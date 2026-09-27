@@ -21,11 +21,7 @@ const SIDES: readonly Side[] = ['debit', 'credit'];
 
 export function MultiLineEntryForm({ action }: EntryFormProps): ReactNode {
   return (
-    <EntryFormShell
-      action={action}
-      mode={entryFormModeSchema.enum['multi-line']}
-      invalid={en.multiLineForm.invalid}
-    >
+    <EntryFormShell action={action} mode={entryFormModeSchema.enum['multi-line']}>
       {(id) =>
         LINES.map((line) => {
           const lineId = `${id}-line-${String(line.number)}`;

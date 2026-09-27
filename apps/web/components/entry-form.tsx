@@ -18,7 +18,7 @@ export type EntryFormState =
   | { readonly outcome: 'saved' }
   | { readonly outcome: 'rejected'; readonly code: DomainErrorCode };
 
-export type EntryFormAction = (previous: EntryFormState, form: FormData) => Promise<EntryFormState>;
+type EntryFormAction = (previous: EntryFormState, form: FormData) => Promise<EntryFormState>;
 
 export type EntryFormProps = {
   readonly action: EntryFormAction;
@@ -26,11 +26,24 @@ export type EntryFormProps = {
 
 type EntryFormShellProps = EntryFormProps & {
   readonly mode: EntryFormMode;
-  readonly invalid: string;
   readonly children: (id: string) => ReactNode;
 };
 
 const IDLE: EntryFormState = { outcome: 'idle' };
+
+const refusalsWith = (invalid: string): Readonly<Record<DomainErrorCode, string>> => ({
+  UNBALANCED: en.entryForm.unbalanced,
+  INVALID_INPUT: invalid,
+  NOT_FOUND: invalid,
+  CONFLICT: en.entryForm.unavailable,
+  DEPENDENCY_UNAVAILABLE: en.entryForm.unavailable,
+  UNAUTHENTICATED: en.entryForm.signedOut,
+});
+
+const REFUSAL: Readonly<Record<EntryFormMode, Readonly<Record<DomainErrorCode, string>>>> = {
+  'two-line': refusalsWith(en.twoLineForm.invalid),
+  'multi-line': refusalsWith(en.multiLineForm.invalid),
+};
 
 export const FIELD = 'flex flex-col gap-1 text-sm';
 export const CONTROL = 'rounded border border-neutral-300 px-2 py-1';
@@ -70,24 +83,10 @@ export function AmountInput({ id }: { readonly id: string }): ReactNode {
   );
 }
 
-export function EntryFormShell({
-  action,
-  mode,
-  invalid,
-  children,
-}: EntryFormShellProps): ReactNode {
+export function EntryFormShell({ action, mode, children }: EntryFormShellProps): ReactNode {
   const [state, submitAction, pending] = useActionState(action, IDLE);
   const form = useRef<HTMLFormElement>(null);
   const id = useId();
-
-  const refusal: Readonly<Record<DomainErrorCode, string>> = {
-    UNBALANCED: en.entryForm.unbalanced,
-    INVALID_INPUT: invalid,
-    NOT_FOUND: invalid,
-    CONFLICT: en.entryForm.unavailable,
-    DEPENDENCY_UNAVAILABLE: en.entryForm.unavailable,
-    UNAUTHENTICATED: en.entryForm.signedOut,
-  };
 
   useEffect(() => {
     if (state.outcome === 'saved') {
@@ -146,7 +145,7 @@ export function EntryFormShell({
 
       {state.outcome === 'rejected' ? (
         <p role="alert" className="text-sm text-red-700">
-          {refusal[state.code]}
+          {REFUSAL[mode][state.code]}
         </p>
       ) : null}
 

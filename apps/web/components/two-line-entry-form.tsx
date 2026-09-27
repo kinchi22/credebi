@@ -13,11 +13,7 @@ import {
 
 export function TwoLineEntryForm({ action }: EntryFormProps): ReactNode {
   return (
-    <EntryFormShell
-      action={action}
-      mode={entryFormModeSchema.enum['two-line']}
-      invalid={en.twoLineForm.invalid}
-    >
+    <EntryFormShell action={action} mode={entryFormModeSchema.enum['two-line']}>
       {(id) => (
         <div className="flex flex-wrap items-end gap-3">
           <div className={FIELD}>
