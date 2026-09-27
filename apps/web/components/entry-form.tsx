@@ -3,6 +3,7 @@
 import { ENTRY_FORM_FIELDS, type DomainErrorCode, type EntryFormMode } from '@repo/contracts';
 import { CHART_OF_ACCOUNTS } from '@repo/core/entries';
 import {
+  Fragment,
   startTransition,
   useActionState,
   useEffect,
@@ -29,7 +30,12 @@ type EntryFormShellProps = EntryFormProps & {
   readonly children: (id: string) => ReactNode;
 };
 
-const IDLE: EntryFormState = { outcome: 'idle' };
+type ShellState = {
+  readonly result: EntryFormState;
+  readonly resetKey: number;
+};
+
+const IDLE: ShellState = { result: { outcome: 'idle' }, resetKey: 0 };
 
 const refusalsWith = (invalid: string): Readonly<Record<DomainErrorCode, string>> => ({
   UNBALANCED: en.entryForm.unbalanced,
@@ -69,11 +75,23 @@ export function AccountSelect({
   );
 }
 
-export function AmountInput({ id }: { readonly id: string }): ReactNode {
+type AmountInputProps = {
+  readonly id: string;
+  readonly onAmountChange?: (amount: string) => void;
+};
+
+export function AmountInput({ id, onAmountChange }: AmountInputProps): ReactNode {
   return (
     <input
       id={id}
       name={ENTRY_FORM_FIELDS.amount}
+      onChange={
+        onAmountChange === undefined
+          ? undefined
+          : (event) => {
+              onAmountChange(event.target.value);
+            }
+      }
       type="text"
       inputMode="numeric"
       pattern="[0-9]+"
@@ -84,7 +102,13 @@ export function AmountInput({ id }: { readonly id: string }): ReactNode {
 }
 
 export function EntryFormShell({ action, mode, children }: EntryFormShellProps): ReactNode {
-  const [state, submitAction, pending] = useActionState(action, IDLE);
+  const [{ result: state, resetKey }, submitAction, pending] = useActionState(
+    async (previous: ShellState, fields: FormData): Promise<ShellState> => {
+      const result = await action(previous.result, fields);
+      return { result, resetKey: previous.resetKey + (result.outcome === 'saved' ? 1 : 0) };
+    },
+    IDLE,
+  );
   const form = useRef<HTMLFormElement>(null);
   const id = useId();
 
@@ -141,7 +165,7 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
         </div>
       </div>
 
-      {children(id)}
+      <Fragment key={resetKey}>{children(id)}</Fragment>
 
       {state.outcome === 'rejected' ? (
         <p role="alert" className="text-sm text-red-700">
