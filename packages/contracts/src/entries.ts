@@ -4,6 +4,7 @@ import { domainError, type DomainError } from './errors';
 import { uuidV7Schema } from './id';
 import { moneySchema, type Money } from './money';
 import { err, ok, type Result } from './result';
+import { entryFormModeSchema, type EntryFormMode } from './settings';
 
 export type EntryId = Brand<string, 'EntryId'>;
 export const entryIdSchema = uuidV7Schema.transform((id): EntryId => id as EntryId);
@@ -97,9 +98,6 @@ export function parseSearchQuery(query: SearchQuery): Result<SearchCriteriaInput
     ? ok(parsed.data)
     : err(domainError('INVALID_INPUT', 'The search criteria are malformed.'));
 }
-
-export const entryFormModeSchema = z.enum(['two-line', 'multi-line']);
-export type EntryFormMode = z.infer<typeof entryFormModeSchema>;
 
 export const ENTRY_FORM_FIELDS = {
   entryFormMode: 'entryFormMode',
