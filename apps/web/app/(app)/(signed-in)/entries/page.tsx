@@ -1,7 +1,7 @@
 import { NO_CRITERIA } from '@repo/core';
 import { type ReactNode } from 'react';
-import { EntryForm } from '../../../../components/entry-form';
 import { EntryList } from '../../../../components/entry-list';
+import { TwoLineEntryForm } from '../../../../components/two-line-entry-form';
 import { en } from '../../../../messages/en';
 import { createContext } from '../../../../server/context';
 import { createCaller } from '../../../../server/root-router';
@@ -20,7 +20,7 @@ export default async function EntriesPage(): Promise<ReactNode> {
 
   return (
     <>
-      <EntryForm action={postEntry} />
+      <TwoLineEntryForm action={postEntry} />
       <EntryList entries={entries} />
     </>
   );

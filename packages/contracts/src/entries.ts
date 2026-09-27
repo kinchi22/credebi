@@ -98,12 +98,18 @@ export function parseSearchQuery(query: SearchQuery): Result<SearchCriteriaInput
     : err(domainError('INVALID_INPUT', 'The search criteria are malformed.'));
 }
 
+export const entryFormModeSchema = z.enum(['two-line', 'multi-line']);
+export type EntryFormMode = z.infer<typeof entryFormModeSchema>;
+
 export const ENTRY_FORM_FIELDS = {
+  entryFormMode: 'entryFormMode',
   entryDate: 'entryDate',
   memo: 'memo',
   account: 'account',
   side: 'side',
   amount: 'amount',
+  debitAccount: 'debitAccount',
+  creditAccount: 'creditAccount',
 } as const;
 
 export type SubmittedFields = {
@@ -117,7 +123,7 @@ const typedAmountSchema = z
   .transform(Number)
   .pipe(moneySchema);
 
-const entryFormSchema = z.object({
+const multiLineFormSchema = z.object({
   entryDate: entryDateSchema,
   memo: z.string(),
   lines: z.array(
@@ -129,13 +135,18 @@ const entryFormSchema = z.object({
   ),
 });
 
-export function parseEntryForm(form: SubmittedFields): Result<PostEntryInput, DomainError> {
+const refusedForm = (): Result<PostEntryInput, DomainError> =>
+  err(domainError('INVALID_INPUT', 'The entry form is incomplete or malformed.'));
+
+export function parseMultiLineEntryForm(
+  form: SubmittedFields,
+): Result<PostEntryInput, DomainError> {
   const accounts = form.getAll(ENTRY_FORM_FIELDS.account);
   const sides = form.getAll(ENTRY_FORM_FIELDS.side);
   const amounts = form.getAll(ENTRY_FORM_FIELDS.amount);
   const lineCount = Math.max(accounts.length, sides.length, amounts.length);
 
-  const parsed = entryFormSchema.safeParse({
+  const parsed = multiLineFormSchema.safeParse({
     entryDate: form.get(ENTRY_FORM_FIELDS.entryDate),
     memo: form.get(ENTRY_FORM_FIELDS.memo),
     lines: Array.from({ length: lineCount }, (_, index) => ({
@@ -145,7 +156,46 @@ export function parseEntryForm(form: SubmittedFields): Result<PostEntryInput, Do
     })),
   });
 
-  return parsed.success
-    ? ok(parsed.data)
-    : err(domainError('INVALID_INPUT', 'The entry form is incomplete or malformed.'));
+  return parsed.success ? ok(parsed.data) : refusedForm();
+}
+
+const twoLineFormSchema = z.object({
+  entryDate: entryDateSchema,
+  memo: z.string(),
+  debitAccount: z.string(),
+  creditAccount: z.string(),
+  amount: typedAmountSchema,
+});
+
+export function parseTwoLineEntryForm(form: SubmittedFields): Result<PostEntryInput, DomainError> {
+  const parsed = twoLineFormSchema.safeParse({
+    entryDate: form.get(ENTRY_FORM_FIELDS.entryDate),
+    memo: form.get(ENTRY_FORM_FIELDS.memo),
+    debitAccount: form.get(ENTRY_FORM_FIELDS.debitAccount),
+    creditAccount: form.get(ENTRY_FORM_FIELDS.creditAccount),
+    amount: form.get(ENTRY_FORM_FIELDS.amount),
+  });
+  if (!parsed.success) return refusedForm();
+
+  const { entryDate, memo, debitAccount, creditAccount, amount } = parsed.data;
+  return ok({
+    entryDate,
+    memo,
+    lines: [
+      { account: debitAccount, side: 'debit', amount },
+      { account: creditAccount, side: 'credit', amount },
+    ],
+  });
+}
+
+const PARSE_BY_MODE: Readonly<
+  Record<EntryFormMode, (form: SubmittedFields) => Result<PostEntryInput, DomainError>>
+> = {
+  'two-line': parseTwoLineEntryForm,
+  'multi-line': parseMultiLineEntryForm,
+};
+
+export function parseEntryForm(form: SubmittedFields): Result<PostEntryInput, DomainError> {
+  const mode = entryFormModeSchema.safeParse(form.get(ENTRY_FORM_FIELDS.entryFormMode));
+  return mode.success ? PARSE_BY_MODE[mode.data](form) : refusedForm();
 }

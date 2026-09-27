@@ -1,6 +1,6 @@
 'use client';
 
-import { ENTRY_FORM_FIELDS, type DomainErrorCode, type Side } from '@repo/contracts';
+import { ENTRY_FORM_FIELDS, type DomainErrorCode, type EntryFormMode } from '@repo/contracts';
 import { CHART_OF_ACCOUNTS } from '@repo/core/entries';
 import {
   startTransition,
@@ -18,35 +18,76 @@ export type EntryFormState =
   | { readonly outcome: 'saved' }
   | { readonly outcome: 'rejected'; readonly code: DomainErrorCode };
 
+export type EntryFormAction = (previous: EntryFormState, form: FormData) => Promise<EntryFormState>;
+
 export type EntryFormProps = {
-  readonly action: (previous: EntryFormState, form: FormData) => Promise<EntryFormState>;
+  readonly action: EntryFormAction;
+};
+
+type EntryFormShellProps = EntryFormProps & {
+  readonly mode: EntryFormMode;
+  readonly invalid: string;
+  readonly children: (id: string) => ReactNode;
 };
 
 const IDLE: EntryFormState = { outcome: 'idle' };
 
-const REFUSAL: Readonly<Record<DomainErrorCode, string>> = {
-  UNBALANCED: en.entryForm.unbalanced,
-  INVALID_INPUT: en.entryForm.invalid,
-  NOT_FOUND: en.entryForm.invalid,
-  CONFLICT: en.entryForm.unavailable,
-  DEPENDENCY_UNAVAILABLE: en.entryForm.unavailable,
-  UNAUTHENTICATED: en.entryForm.signedOut,
-};
+export const FIELD = 'flex flex-col gap-1 text-sm';
+export const CONTROL = 'rounded border border-neutral-300 px-2 py-1';
 
-const LINES: readonly { readonly number: number; readonly side: Side }[] = [
-  { number: 1, side: 'debit' },
-  { number: 2, side: 'credit' },
-];
+export function AccountSelect({
+  id,
+  name,
+}: {
+  readonly id: string;
+  readonly name: string;
+}): ReactNode {
+  return (
+    <select id={id} name={name} required defaultValue="" className={CONTROL}>
+      <option value="" disabled>
+        {en.entryForm.chooseAccount}
+      </option>
+      {CHART_OF_ACCOUNTS.map((code) => (
+        <option key={code} value={code}>
+          {en.accounts[code]}
+        </option>
+      ))}
+    </select>
+  );
+}
 
-const SIDES: readonly Side[] = ['debit', 'credit'];
+export function AmountInput({ id }: { readonly id: string }): ReactNode {
+  return (
+    <input
+      id={id}
+      name={ENTRY_FORM_FIELDS.amount}
+      type="text"
+      inputMode="numeric"
+      pattern="[0-9]+"
+      required
+      className={`${CONTROL} text-right tabular-nums`}
+    />
+  );
+}
 
-const FIELD = 'flex flex-col gap-1 text-sm';
-const CONTROL = 'rounded border border-neutral-300 px-2 py-1';
-
-export function EntryForm({ action }: EntryFormProps): ReactNode {
+export function EntryFormShell({
+  action,
+  mode,
+  invalid,
+  children,
+}: EntryFormShellProps): ReactNode {
   const [state, submitAction, pending] = useActionState(action, IDLE);
   const form = useRef<HTMLFormElement>(null);
   const id = useId();
+
+  const refusal: Readonly<Record<DomainErrorCode, string>> = {
+    UNBALANCED: en.entryForm.unbalanced,
+    INVALID_INPUT: invalid,
+    NOT_FOUND: invalid,
+    CONFLICT: en.entryForm.unavailable,
+    DEPENDENCY_UNAVAILABLE: en.entryForm.unavailable,
+    UNAUTHENTICATED: en.entryForm.signedOut,
+  };
 
   useEffect(() => {
     if (state.outcome === 'saved') {
@@ -76,6 +117,8 @@ export function EntryForm({ action }: EntryFormProps): ReactNode {
         {en.entryForm.title}
       </h2>
 
+      <input type="hidden" name={ENTRY_FORM_FIELDS.entryFormMode} value={mode} />
+
       <div className="flex flex-wrap gap-3">
         <div className={FIELD}>
           <label htmlFor={`${id}-date`}>{en.entryForm.date}</label>
@@ -99,67 +142,11 @@ export function EntryForm({ action }: EntryFormProps): ReactNode {
         </div>
       </div>
 
-      {LINES.map((line) => {
-        const lineId = `${id}-line-${String(line.number)}`;
-        return (
-          <fieldset key={line.number} className="flex flex-wrap items-end gap-3">
-            <legend className="mb-1 text-sm font-medium">
-              {en.entryForm.line} {line.number}
-            </legend>
-            <div className={FIELD}>
-              <label htmlFor={`${lineId}-account`}>{en.entryForm.account}</label>
-              <select
-                id={`${lineId}-account`}
-                name={ENTRY_FORM_FIELDS.account}
-                required
-                defaultValue=""
-                className={CONTROL}
-              >
-                <option value="" disabled>
-                  {en.entryForm.chooseAccount}
-                </option>
-                {CHART_OF_ACCOUNTS.map((code) => (
-                  <option key={code} value={code}>
-                    {en.accounts[code]}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className={FIELD}>
-              <label htmlFor={`${lineId}-side`}>{en.entryForm.side}</label>
-              <select
-                id={`${lineId}-side`}
-                name={ENTRY_FORM_FIELDS.side}
-                required
-                defaultValue={line.side}
-                className={CONTROL}
-              >
-                {SIDES.map((side) => (
-                  <option key={side} value={side}>
-                    {en.sides[side]}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className={FIELD}>
-              <label htmlFor={`${lineId}-amount`}>{en.entryForm.amount}</label>
-              <input
-                id={`${lineId}-amount`}
-                name={ENTRY_FORM_FIELDS.amount}
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]+"
-                required
-                className={`${CONTROL} text-right tabular-nums`}
-              />
-            </div>
-          </fieldset>
-        );
-      })}
+      {children(id)}
 
       {state.outcome === 'rejected' ? (
         <p role="alert" className="text-sm text-red-700">
-          {REFUSAL[state.code]}
+          {refusal[state.code]}
         </p>
       ) : null}
 
