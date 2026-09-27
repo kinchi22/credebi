@@ -72,6 +72,13 @@ export const entryLines = pgTable(
   (table) => [primaryKey({ columns: [table.entryId, table.lineNumber] })],
 );
 
-export const schema = { users, identities, sessions, entries, entryLines } as const;
+export const userSettings = pgTable('user_settings', {
+  userId: uuid('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  entryFormMode: text('entry_form_mode').notNull(),
+});
+
+export const schema = { users, identities, sessions, entries, entryLines, userSettings } as const;
 
 export type Schema = typeof schema;

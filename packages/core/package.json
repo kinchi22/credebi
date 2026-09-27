@@ -11,7 +11,8 @@
     "./entries": "./src/entries/index.ts",
     "./money": "./src/money/index.ts",
     "./logging": "./src/logging/index.ts",
-    "./auth": "./src/auth/index.ts"
+    "./auth": "./src/auth/index.ts",
+    "./settings": "./src/settings/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"

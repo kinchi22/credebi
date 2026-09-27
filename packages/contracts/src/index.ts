@@ -45,6 +45,7 @@ export type {
 export {
   ENTRY_FORM_FIELDS,
   SEARCH_CRITERIA_FIELDS,
+  amountTextSchema,
   entryDateSchema,
   entryIdSchema,
   entryLineSchema,
@@ -56,3 +57,11 @@ export {
   sideSchema,
   toPostedEntry,
 } from './entries';
+
+export type { ChangeEntryFormModeInput, EntryFormMode, SettingsOutput } from './settings';
+export {
+  changeEntryFormModeInputSchema,
+  entryFormModeSchema,
+  settingsSchema,
+  toSettings,
+} from './settings';
