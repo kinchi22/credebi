@@ -1,6 +1,9 @@
 import {
   amountTextSchema,
+  domainError,
+  err,
   ok,
+  type Err,
   type DomainError,
   type Money,
   type Result,
@@ -19,6 +22,9 @@ export type DraftTotals = {
   readonly difference: Money;
 };
 
+const tooLarge = (message: string): Err<DomainError> =>
+  err(domainError('INVALID_INPUT', message));
+
 function typedAmounts(lines: readonly DraftLine[], side: Side): Result<Money[], DomainError> {
   const amounts: Money[] = [];
   for (const line of lines) {
@@ -27,7 +33,7 @@ function typedAmounts(lines: readonly DraftLine[], side: Side): Result<Money[], 
     }
     const amount = money(Number(line.amount));
     if (!amount.ok) {
-      return amount;
+      return tooLarge('A line has more than an amount can hold.');
     }
     amounts.push(amount.value);
   }
@@ -36,7 +42,11 @@ function typedAmounts(lines: readonly DraftLine[], side: Side): Result<Money[], 
 
 function sideTotal(lines: readonly DraftLine[], side: Side): Result<Money, DomainError> {
   const amounts = typedAmounts(lines, side);
-  return amounts.ok ? sumMoney(amounts.value) : amounts;
+  if (!amounts.ok) {
+    return amounts;
+  }
+  const total = sumMoney(amounts.value);
+  return total.ok ? total : tooLarge(`The ${side}s add up to more than an amount can hold.`);
 }
 
 export function draftTotals(lines: readonly DraftLine[]): Result<DraftTotals, DomainError> {

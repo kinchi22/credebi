@@ -32,10 +32,10 @@ type EntryFormShellProps = EntryFormProps & {
 
 type ShellState = {
   readonly result: EntryFormState;
-  readonly saves: number;
+  readonly resetKey: number;
 };
 
-const IDLE: ShellState = { result: { outcome: 'idle' }, saves: 0 };
+const IDLE: ShellState = { result: { outcome: 'idle' }, resetKey: 0 };
 
 const refusalsWith = (invalid: string): Readonly<Record<DomainErrorCode, string>> => ({
   UNBALANCED: en.entryForm.unbalanced,
@@ -77,21 +77,19 @@ export function AccountSelect({
 
 type AmountInputProps = {
   readonly id: string;
-  readonly value?: string;
-  readonly onChange?: (amount: string) => void;
+  readonly onAmountChange?: (amount: string) => void;
 };
 
-export function AmountInput({ id, value, onChange }: AmountInputProps): ReactNode {
+export function AmountInput({ id, onAmountChange }: AmountInputProps): ReactNode {
   return (
     <input
       id={id}
       name={ENTRY_FORM_FIELDS.amount}
-      value={value}
       onChange={
-        onChange === undefined
+        onAmountChange === undefined
           ? undefined
           : (event) => {
-              onChange(event.target.value);
+              onAmountChange(event.target.value);
             }
       }
       type="text"
@@ -104,10 +102,10 @@ export function AmountInput({ id, value, onChange }: AmountInputProps): ReactNod
 }
 
 export function EntryFormShell({ action, mode, children }: EntryFormShellProps): ReactNode {
-  const [{ result: state, saves }, submitAction, pending] = useActionState(
+  const [{ result: state, resetKey }, submitAction, pending] = useActionState(
     async (previous: ShellState, fields: FormData): Promise<ShellState> => {
       const result = await action(previous.result, fields);
-      return { result, saves: previous.saves + (result.outcome === 'saved' ? 1 : 0) };
+      return { result, resetKey: previous.resetKey + (result.outcome === 'saved' ? 1 : 0) };
     },
     IDLE,
   );
@@ -167,7 +165,7 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
         </div>
       </div>
 
-      <Fragment key={saves}>{children(id)}</Fragment>
+      <Fragment key={resetKey}>{children(id)}</Fragment>
 
       {state.outcome === 'rejected' ? (
         <p role="alert" className="text-sm text-red-700">

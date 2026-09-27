@@ -27,8 +27,7 @@ const expectOverflow = (lines: readonly DraftLine[], reason: string): void => {
   expect(result.error.message).toContain(reason);
 };
 
-const PAST_AN_AMOUNT = 'whole number of minor units within the safe integer range';
-const PAST_A_SUM = 'sum of these amounts is outside the safe integer range';
+
 
 const LARGEST = String(Number.MAX_SAFE_INTEGER);
 
@@ -106,12 +105,12 @@ describe('draftTotals', () => {
   });
 
   it('is an error, not an approximation, when one amount is past what an amount can hold', () => {
-    expectOverflow([line('debit', '9007199254740992'), line('credit', '1')], PAST_AN_AMOUNT);
-    expectOverflow([line('debit', '1'), line('credit', '9007199254740992')], PAST_AN_AMOUNT);
+    expectOverflow([line('debit', '9007199254740992'), line('credit', '1')], 'A line has more');
+    expectOverflow([line('debit', '1'), line('credit', '9007199254740992')], 'A line has more');
   });
 
   it('is an error, not an approximation, when a side adds up to more than an amount can hold', () => {
-    expectOverflow([line('debit', LARGEST), line('debit', '1'), line('credit', '1')], PAST_A_SUM);
-    expectOverflow([line('debit', '1'), line('credit', LARGEST), line('credit', '1')], PAST_A_SUM);
+    expectOverflow([line('debit', LARGEST), line('debit', '1'), line('credit', '1')], 'The debits add up');
+    expectOverflow([line('debit', '1'), line('credit', LARGEST), line('credit', '1')], 'The credits add up');
   });
 });

@@ -12,7 +12,7 @@ import {
   FIELD,
   type EntryFormProps,
 } from './entry-form';
-import { AMOUNT } from './entry-list';
+import { formatAmount } from './amount';
 
 type LineState = DraftLine & {
   readonly key: number;
@@ -47,7 +47,7 @@ function DraftTotalsSummary({ lines }: { readonly lines: readonly DraftLine[] })
         <div key={row.testId} className="contents">
           <dt>{row.label}</dt>
           <dd data-testid={row.testId} className="text-right tabular-nums">
-            {AMOUNT.format(row.amount)}
+            {formatAmount(row.amount)}
           </dd>
         </div>
       ))}
@@ -94,7 +94,7 @@ function DraftLines({ id }: { readonly id: string }): ReactNode {
                 id={`${lineId}-side`}
                 name={ENTRY_FORM_FIELDS.side}
                 required
-                value={line.side}
+                defaultValue={line.side}
                 onChange={(event) => {
                   const side = sideSchema.safeParse(event.target.value);
                   if (side.success) {
@@ -114,8 +114,7 @@ function DraftLines({ id }: { readonly id: string }): ReactNode {
               <label htmlFor={`${lineId}-amount`}>{en.multiLineForm.amount}</label>
               <AmountInput
                 id={`${lineId}-amount`}
-                value={line.amount}
-                onChange={(amount) => {
+                onAmountChange={(amount) => {
                   change(line.key, { amount });
                 }}
               />
