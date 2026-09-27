@@ -2,16 +2,20 @@ import 'server-only';
 import { domainError, entryIdSchema, err, userIdSchema } from '@repo/contracts';
 import {
   createBeginGoogleSignIn,
+  createChangeEntryFormMode,
   createFinishGoogleSignIn,
   createGetHealth,
+  createGetSettings,
   createPostEntry,
   createResolveSession,
   createSearchEntries,
   createSignOut,
   createTestSignIn,
   type BeginGoogleSignIn,
+  type ChangeEntryFormMode,
   type FinishGoogleSignIn,
   type GetHealth,
+  type GetSettings,
   type PostEntry,
   type ResolveSession,
   type SearchEntries,
@@ -23,6 +27,7 @@ import {
   createPostgresEntryRepository,
   createPostgresHealthProbe,
   createPostgresSessionRepository,
+  createPostgresSettingsRepository,
   createPostgresUserRepository,
   hashSessionToken,
   newSessionToken,
@@ -35,6 +40,8 @@ export type Container = {
   readonly getHealth: GetHealth;
   readonly postEntry: PostEntry;
   readonly searchEntries: SearchEntries;
+  readonly getSettings: GetSettings;
+  readonly changeEntryFormMode: ChangeEntryFormMode;
   readonly resolveSession: ResolveSession;
   readonly beginGoogleSignIn: BeginGoogleSignIn;
   readonly finishGoogleSignIn: FinishGoogleSignIn;
@@ -51,6 +58,7 @@ export function createContainer({ databaseUrl, google, testSignIn }: Env): Conta
   const postgres = createPostgresHealthProbe(databaseUrl, logger);
   const entries = createPostgresEntryRepository(databaseUrl, logger);
   const sessions = createPostgresSessionRepository(databaseUrl, logger);
+  const settings = createPostgresSettingsRepository(databaseUrl, logger);
   const signIn = {
     users: createPostgresUserRepository(databaseUrl, logger),
     sessions,
@@ -72,6 +80,8 @@ export function createContainer({ databaseUrl, google, testSignIn }: Env): Conta
       now: () => new Date(),
     }),
     searchEntries: createSearchEntries({ entries }),
+    getSettings: createGetSettings({ settings }),
+    changeEntryFormMode: createChangeEntryFormMode({ settings }),
     resolveSession: createResolveSession({ sessions, hashSessionToken, now: () => new Date() }),
     beginGoogleSignIn: createBeginGoogleSignIn({ google: googleSignIn }),
     finishGoogleSignIn: createFinishGoogleSignIn({ ...signIn, google: googleSignIn }),

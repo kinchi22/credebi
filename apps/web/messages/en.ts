@@ -36,6 +36,16 @@ export const en = {
   entriesPage: {
     title: 'Entries',
   },
+  settingsPage: {
+    title: 'Settings',
+    entryFormMode: 'Entry form mode',
+    entryFormModes: {
+      'two-line': 'Two-line mode',
+      'multi-line': 'Multi-line mode',
+    },
+    saved: 'Saved',
+    notSaved: 'Your choice was not saved, so your Entry form mode is unchanged. Try again.',
+  },
   entrySearch: {
     title: 'Search entries',
     from: 'From',

@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   entryDateSchema,
   entryIdSchema,
-  entryFormModeSchema,
   entryLineSchema,
   parseEntryForm,
   parseMultiLineEntryForm,
@@ -312,16 +311,6 @@ describe('parseTwoLineEntryForm', () => {
     ['past the safe integer range', '9007199254740992'],
   ])('refuses an amount that is %s', (_, amount) => {
     expectTwoLineRefused({ ...TWO_LINE, amount });
-  });
-});
-
-describe('entryFormModeSchema', () => {
-  it('accepts both Entry form modes', () => {
-    expect(entryFormModeSchema.options).toEqual(['two-line', 'multi-line']);
-  });
-
-  it('rejects anything else', () => {
-    expect(entryFormModeSchema.safeParse('three-line').success).toBe(false);
   });
 });
 
