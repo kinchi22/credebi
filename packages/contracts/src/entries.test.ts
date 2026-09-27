@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   entryDateSchema,
   entryIdSchema,
+  entryFormModeSchema,
   entryLineSchema,
   parseEntryForm,
+  parseMultiLineEntryForm,
+  parseTwoLineEntryForm,
   parseSearchQuery,
   postEntryInputSchema,
   postedEntrySchema,
@@ -146,8 +149,10 @@ const BALANCED: Fields = {
   amount: ['12500', '12500'],
 };
 
-const expectRefused = (fields: Fields): void => {
-  const result = parseEntryForm(submitted(fields));
+type FormParse = typeof parseEntryForm;
+
+const expectRefusedBy = (parse: FormParse, fields: Fields): void => {
+  const result = parse(submitted(fields));
 
   expect(isErr(result)).toBe(true);
   if (!isErr(result)) return;
@@ -155,9 +160,13 @@ const expectRefused = (fields: Fields): void => {
   expect(result.error.message).toContain('entry form');
 };
 
-describe('parseEntryForm', () => {
+const expectRefused = (fields: Fields): void => {
+  expectRefusedBy(parseMultiLineEntryForm, fields);
+};
+
+describe('parseMultiLineEntryForm', () => {
   it('reads the day, the memo, and one line per position', () => {
-    const result = parseEntryForm(submitted(BALANCED));
+    const result = parseMultiLineEntryForm(submitted(BALANCED));
 
     expect(isOk(result)).toBe(true);
     if (!isOk(result)) return;
@@ -172,7 +181,7 @@ describe('parseEntryForm', () => {
   });
 
   it('leaves the rules to the domain: an unbalanced, unknown-account form still parses', () => {
-    const result = parseEntryForm(
+    const result = parseMultiLineEntryForm(
       submitted({ ...BALANCED, account: ['nowhere', 'cash'], amount: ['12500', '12000'] }),
     );
 
@@ -185,7 +194,7 @@ describe('parseEntryForm', () => {
   });
 
   it('reads leading zeros as the number they spell', () => {
-    const result = parseEntryForm(submitted({ ...BALANCED, amount: ['012500', '12500'] }));
+    const result = parseMultiLineEntryForm(submitted({ ...BALANCED, amount: ['012500', '12500'] }));
 
     expect(isOk(result)).toBe(true);
     if (!isOk(result)) return;
@@ -221,6 +230,141 @@ describe('parseEntryForm', () => {
     ['past the safe integer range', '9007199254740992'],
   ])('refuses an amount that is %s', (_, amount) => {
     expectRefused({ ...BALANCED, amount: [amount, '12500'] });
+  });
+});
+
+const TWO_LINE: Fields = {
+  entryDate: '2026-09-15',
+  memo: 'Office supplies',
+  debitAccount: 'expense',
+  creditAccount: 'cash',
+  amount: '12500',
+};
+
+const expectTwoLineRefused = (fields: Fields): void => {
+  expectRefusedBy(parseTwoLineEntryForm, fields);
+};
+
+const withoutField = (fields: Fields, name: string): Fields =>
+  Object.fromEntries(Object.entries(fields).filter(([key]) => key !== name));
+
+describe('parseTwoLineEntryForm', () => {
+  it('reads one debit line and one credit line of the one amount', () => {
+    const result = parseTwoLineEntryForm(submitted(TWO_LINE));
+
+    expect(isOk(result)).toBe(true);
+    if (!isOk(result)) return;
+    expect(result.value).toEqual({
+      entryDate: '2026-09-15',
+      memo: 'Office supplies',
+      lines: [
+        { account: 'expense', side: 'debit', amount: 12500 },
+        { account: 'cash', side: 'credit', amount: 12500 },
+      ],
+    });
+  });
+
+  it('produces an input the post-entry contract accepts', () => {
+    const result = parseTwoLineEntryForm(submitted(TWO_LINE));
+
+    expect(isOk(result)).toBe(true);
+    if (!isOk(result)) return;
+    expect(postEntryInputSchema.safeParse(result.value).success).toBe(true);
+  });
+
+  it('allows the same Account on both sides', () => {
+    const result = parseTwoLineEntryForm(
+      submitted({ ...TWO_LINE, debitAccount: 'cash', creditAccount: 'cash' }),
+    );
+
+    expect(isOk(result)).toBe(true);
+    if (!isOk(result)) return;
+    expect(result.value.lines.map((line) => [line.account, line.side])).toEqual([
+      ['cash', 'debit'],
+      ['cash', 'credit'],
+    ]);
+  });
+
+  it('leaves the rules to the domain: an unknown Account still parses', () => {
+    const result = parseTwoLineEntryForm(submitted({ ...TWO_LINE, creditAccount: 'nowhere' }));
+
+    expect(isOk(result)).toBe(true);
+    if (!isOk(result)) return;
+    expect(result.value.lines[1]?.account).toBe('nowhere');
+  });
+
+  it.each(['entryDate', 'memo', 'debitAccount', 'creditAccount', 'amount'])(
+    'refuses a form missing its %s',
+    (name) => {
+      expectTwoLineRefused(withoutField(TWO_LINE, name));
+    },
+  );
+
+  it('refuses a date that is not a calendar day', () => {
+    expectTwoLineRefused({ ...TWO_LINE, entryDate: '15/09/2026' });
+  });
+
+  it.each([
+    ['grouped', '12,500'],
+    ['decimal', '12500.00'],
+    ['signed', '-12500'],
+    ['blank', ''],
+    ['past the safe integer range', '9007199254740992'],
+  ])('refuses an amount that is %s', (_, amount) => {
+    expectTwoLineRefused({ ...TWO_LINE, amount });
+  });
+});
+
+describe('entryFormModeSchema', () => {
+  it('accepts both Entry form modes', () => {
+    expect(entryFormModeSchema.options).toEqual(['two-line', 'multi-line']);
+  });
+
+  it('rejects anything else', () => {
+    expect(entryFormModeSchema.safeParse('three-line').success).toBe(false);
+  });
+});
+
+describe('parseEntryForm', () => {
+  it('reads a Two-line mode form as one debit and one credit line', () => {
+    const result = parseEntryForm(submitted({ ...TWO_LINE, entryFormMode: 'two-line' }));
+
+    expect(isOk(result)).toBe(true);
+    if (!isOk(result)) return;
+    expect(result.value.lines).toEqual([
+      { account: 'expense', side: 'debit', amount: 12500 },
+      { account: 'cash', side: 'credit', amount: 12500 },
+    ]);
+  });
+
+  it('reads a Multi-line mode form one line per position', () => {
+    const result = parseEntryForm(
+      submitted({
+        ...BALANCED,
+        amount: ['12500', '12000'],
+        entryFormMode: 'multi-line',
+      }),
+    );
+
+    expect(isOk(result)).toBe(true);
+    if (!isOk(result)) return;
+    expect(result.value.lines.map((line) => line.amount)).toEqual([12500, 12000]);
+  });
+
+  it('reads each form only by its own mode', () => {
+    expectRefusedBy(parseEntryForm, {
+      ...TWO_LINE,
+      entryFormMode: 'multi-line',
+    });
+    expectRefusedBy(parseEntryForm, { ...BALANCED, entryFormMode: 'two-line' });
+  });
+
+  it('refuses a form that names no Entry form mode, or one that does not exist', () => {
+    expectRefusedBy(parseEntryForm, TWO_LINE);
+    expectRefusedBy(parseEntryForm, {
+      ...TWO_LINE,
+      entryFormMode: 'three-line',
+    });
   });
 });
 
