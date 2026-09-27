@@ -19,10 +19,9 @@ export default async function EntriesPage(): Promise<ReactNode> {
   const entries = await orSignIn(caller.entries.search(NO_CRITERIA), '/entries');
 
   return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-4 p-8">
-      <h1 className="text-xl font-semibold">{en.app.name}</h1>
+    <>
       <EntryForm action={postEntry} />
       <EntryList entries={entries} />
-    </main>
+    </>
   );
 }

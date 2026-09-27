@@ -31,8 +31,7 @@ export default async function EntrySearchPage({
   );
 
   return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-4 p-8">
-      <h1 className="text-xl font-semibold">{en.app.name}</h1>
+    <>
       <EntrySearchForm criteria={answer.criteria} />
       {answer.outcome === 'refused' ? (
         <p role="alert" className="text-sm text-red-700">
@@ -41,6 +40,6 @@ export default async function EntrySearchPage({
       ) : (
         <EntrySearchResults entries={answer.entries} />
       )}
-    </main>
+    </>
   );
 }

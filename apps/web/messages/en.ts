@@ -27,7 +27,7 @@ export const en = {
     submit: 'Sign in',
   },
   sidebar: {
-    label: 'Sidebar',
+    ariaLabel: 'Sidebar',
     entries: 'Entries',
     entrySearch: 'Entry search',
     settings: 'Settings',
