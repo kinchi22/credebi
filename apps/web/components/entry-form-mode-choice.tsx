@@ -27,11 +27,14 @@ export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps
     setSelected(next);
     setStatus('idle');
     startTransition(async () => {
-      const result = await action(next);
-      if (result.outcome === 'rejected') {
+      const outcome = await action(next).then(
+        (result) => result.outcome,
+        (): Status => 'rejected',
+      );
+      if (outcome === 'rejected') {
         setSelected(previous);
       }
-      setStatus(result.outcome);
+      setStatus(outcome);
     });
   };
 
