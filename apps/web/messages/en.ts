@@ -26,12 +26,15 @@ export const en = {
     identifier: 'Identifier',
     submit: 'Sign in',
   },
-  signOut: {
-    submit: 'Sign out',
+  sidebar: {
+    ariaLabel: 'Sidebar',
+    entries: 'Entries',
+    entrySearch: 'Entry search',
+    settings: 'Settings',
+    signOut: 'Sign out',
   },
   entriesPage: {
     title: 'Entries',
-    search: 'Search',
   },
   entrySearch: {
     title: 'Search entries',
@@ -45,7 +48,6 @@ export const en = {
     nothingMatched: 'Nothing matched what you asked for.',
     refused:
       'That search was not run. Check the day range -- each day is a calendar day, and From cannot be later than To -- that the account is one of those listed, and that the memo is no longer than a memo can be.',
-    backToEntries: 'Back to entries',
   },
   entryForm: {
     title: 'New entry',

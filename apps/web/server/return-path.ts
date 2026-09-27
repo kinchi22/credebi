@@ -4,6 +4,8 @@ export const SIGNED_IN_HOME = '/entries';
 
 export const ENTRY_SEARCH_PATH = '/entries/search';
 
+export const SETTINGS_PATH = '/settings';
+
 const PROBE = 'http://return-path.invalid';
 
 export function returnPath(requested: unknown): string {
