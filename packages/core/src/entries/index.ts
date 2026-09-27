@@ -6,6 +6,9 @@ export {
 } from './domain/entry';
 export type { AccountCode, Entry, EntryDraft, EntryLine, EntryStamp } from './domain/entry';
 
+export { draftTotals } from './domain/draft-totals';
+export type { DraftLine, DraftTotals } from './domain/draft-totals';
+
 export { NO_CRITERIA, makeSearchCriteria } from './domain/search-criteria';
 export type { SearchCriteria, SearchCriteriaDraft } from './domain/search-criteria';
 

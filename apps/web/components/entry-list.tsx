@@ -12,7 +12,7 @@ const ACCOUNT_NAMES: Readonly<Record<AccountCode, string>> = en.accounts;
 
 const accountName = (code: string): string => (isAccountCode(code) ? ACCOUNT_NAMES[code] : code);
 
-const AMOUNT = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+export const AMOUNT = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 
 const ROW = 'grid grid-cols-[1fr_6rem_8rem] gap-3 py-0.5';
 const AMOUNT_CELL = 'text-right tabular-nums';

@@ -82,6 +82,12 @@ export const en = {
     side: 'Side',
     amount: 'Amount',
     invalid: 'The entry was not added. Check the date, the memo and each line.',
+    addLine: 'Add line',
+    removeLine: 'Remove line',
+    debitTotal: 'Debit total',
+    creditTotal: 'Credit total',
+    difference: 'Difference',
+    tooLarge: 'These amounts add up to more than an amount can hold.',
   },
   entryList: {
     title: 'Entries',

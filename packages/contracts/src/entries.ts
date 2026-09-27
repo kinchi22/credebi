@@ -115,11 +115,9 @@ export type SubmittedFields = {
   readonly getAll: (name: string) => readonly unknown[];
 };
 
-const typedAmountSchema = z
-  .string()
-  .regex(/^[0-9]+$/)
-  .transform(Number)
-  .pipe(moneySchema);
+export const amountTextSchema = z.string().regex(/^[0-9]+$/);
+
+const typedAmountSchema = amountTextSchema.transform(Number).pipe(moneySchema);
 
 const multiLineFormSchema = z.object({
   entryDate: entryDateSchema,

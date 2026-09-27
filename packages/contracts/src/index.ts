@@ -45,6 +45,7 @@ export type {
 export {
   ENTRY_FORM_FIELDS,
   SEARCH_CRITERIA_FIELDS,
+  amountTextSchema,
   entryDateSchema,
   entryIdSchema,
   entryLineSchema,
