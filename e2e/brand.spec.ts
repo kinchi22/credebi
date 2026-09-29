@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { signIn } from './session';
 import { SIGNED_IN_PAGES, sidebar } from './sidebar';
@@ -103,6 +104,13 @@ test('names every signed-out page Credebi and describes it', async ({ page }) =>
     await page.goto(path);
     await expectNamedCredebi(page);
   }
+});
+
+test('names the not-found page Credebi and describes it', async ({ page }) => {
+  const response = await page.goto(`/no-such-page-${randomUUID()}`);
+
+  expect(response?.status()).toBe(404);
+  await expectNamedCredebi(page);
 });
 
 test('names every signed-in page Credebi and describes it', async ({ page }) => {
