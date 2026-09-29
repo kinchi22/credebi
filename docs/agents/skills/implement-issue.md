@@ -61,8 +61,8 @@ it serial.
    request into `main`, waits for the owner: that is a stop.
 7. **Read the milestone's `E2E build (advisory)`**, on a Feature with a
    milestone. A push to the milestone starts one, and that is the name it
-   reports under in the checks list. The criterion's own specs are red until
-   their Task lands, so a failure in the spec file this Feature is building is
+   reports under in the checks list. The Feature's own specs are red until
+   their Task lands, so a failure in a spec file this Feature is building is
    expected. A failure anywhere else is a regression the milestone is carrying:
    open a Bug, and do not let it reach the integration pull request.
 8. **Next.** On a Feature, go back to 1.
@@ -81,11 +81,11 @@ Stop the loop and report where the Feature stands when:
 - **The frontier is empty but Tasks are open**: they are blocked, assigned or
   not Ready. Say which, and by what.
 - **Every Task is closed.** Open the integration pull request,
-  `milestone/<name> -> main`, titled after the criterion, its body
+  `milestone/<name> -> main`, titled after the Feature, its body
   `Closes #<feature>` and a line per merged Task. Set the Feature In Review.
   The owner approves it. A Feature with no specs has no milestone branch, so
-  its last Task's pull request closes it, and a criterion the app already
-  meets has none either, so its specs pull request closes it. For either, open
+  its last Task's pull request closes it, and a Feature whose every criterion
+  the app already meets has none either, so its specs pull request closes it. For either, open
   no integration pull request: report that it is waiting on the owner.
 - **The milestone needs something from `main`.** The owner syncs it (a merge
   commit they push, `docs/ARCHITECTURE.md`); a pull request cannot.

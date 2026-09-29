@@ -16,7 +16,7 @@ the base branch for your Task and the `gh` commands.
 2. **Claim.** Assign yourself and set the Task In Progress.
 3. **Branch.** From the Task's base branch, fetched fresh:
    `git switch -c <type>/<short-name> origin/<base>`. The specs Task of a
-   criterion the app already meets targets `main` and creates no milestone. For
+   Feature whose every criterion the app already meets targets `main` and creates no milestone. For
    any other specs Task, create `milestone/<name>` from `origin/main` first when
    it does not exist:
    `gh api -X POST repos/{owner}/{repo}/git/refs -f ref=refs/heads/milestone/<name> -f sha=$(git rev-parse origin/main)`.
@@ -30,9 +30,9 @@ the base branch for your Task and the `gh` commands.
    the change in the imperative, as the log reads. The body says what changed
    and why, names every owned path in the diff and why the owner is needed, and
    ends with `Closes #<n>`. When the pull request also closes the Feature --
-   the specs Task of a criterion the app already meets, or the last Task of a
-   Feature with no specs -- it carries `Closes #<feature>` as well. Set the Task
-   In Review.
+   the specs Task of a Feature whose every criterion the app already meets, or
+   the last Task of a Feature with no specs -- it carries `Closes #<feature>` as
+   well. Set the Task In Review.
 7. **Return** the pull request number.
 
 When the Driver sends review findings, fix them on the same branch, run the
