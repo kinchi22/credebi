@@ -5,7 +5,7 @@ import { SIGNED_IN_PAGES, sidebar } from './sidebar';
 
 const PRODUCT = 'Credebi';
 
-const REPOSITORY_NAME = 'Double Entry Bookkeeping';
+const DESCRIPTIVE_NAME = 'Double Entry Bookkeeping';
 
 const PRODUCT_TITLE = new RegExp(`^(?:.+ \u00B7 ${PRODUCT}|${PRODUCT})$`);
 
@@ -29,8 +29,8 @@ const logo = (scope: Page | Locator): Locator =>
 
 async function expectNamedCredebi(page: Page): Promise<void> {
   await expect(page).toHaveTitle(PRODUCT_TITLE);
-  expect(await page.title()).not.toContain(REPOSITORY_NAME);
-  await expect(page.locator('body')).not.toContainText(REPOSITORY_NAME);
+  expect(await page.title()).not.toContain(DESCRIPTIVE_NAME);
+  await expect(page.locator('body')).not.toContainText(DESCRIPTIVE_NAME);
   await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /\S/);
 }
 
