@@ -291,9 +291,12 @@ the composition root carried on the strength of being read by a person.
 A specification of a criterion the app does not yet meet lands before the
 behaviour it describes. Such a spec can only be green after the behaviour
 exists, so it needs somewhere to be red in the meantime, and that is a milestone
-branch: one branch per acceptance criterion the app does not yet meet, branched
-from `main`, named `milestone/<name>`. A criterion the app already meets has no
-milestone: its specs go to `main` green.
+branch: one branch per Feature that states an acceptance criterion the app does
+not yet meet, branched from `main`, named `milestone/<name>`. A Feature states
+one or more criteria, and the specs of all of them land on it in one pull
+request, those of a criterion the app already meets green on arrival. A Feature
+whose every criterion the app already meets has no milestone: its specs go to
+`main` green.
 
 | Pull request                | Approved by | E2E    | Isolation |
 | --------------------------- | ----------- | ------ | --------- |
@@ -302,13 +305,13 @@ milestone: its specs go to `main` green.
 | feature -> `milestone/x`    | nobody      | not on the pull request (the specs would fail until the behaviour lands); `E2E build (advisory)` on the merge | no specs |
 | `main` -> `milestone/x`     | the owner, who pushes it: a merge commit, not a pull request | `E2E build (advisory)`, on the push | exempt |
 | `milestone/x` -> `main`     | the owner, like every pull request into `main` | green, required | exempt |
-| specs -> `main`, for a criterion the app already meets | the owner, as code owner | green, required | e2e only |
+| specs -> `main`, for a Feature whose every criterion the app already meets | the owner, as code owner | green, required | e2e only |
 
 A feature branch merges with no approval at all: what it may do was settled when
 the spec was approved, and the one thing it must not do -- edit the spec -- is
 checked rather than reviewed. A spec that turns out to be wrong is corrected in
 its own pull request onto the milestone, reviewed like the first one; for a
-criterion the app already meets, that pull request goes to `main`.
+Feature with no milestone, that pull request goes to `main`.
 
 Nothing forces product code through this route. A pull request straight into
 `main` is allowed and sometimes right -- a spec correction, a tooling change, a
@@ -384,8 +387,9 @@ unless each one fails on a line of its own. A spec that asserts nothing is
 caught on the pull request that lands it, on the milestone or on `main`.
 
 This is what "one PR per acceptance criterion" in `AGENTS.md` now means: one
-milestone per criterion the app does not yet meet, and as many feature pull
-requests underneath it as the work takes.
+milestone per Feature that states a criterion the app does not yet meet, one
+specs pull request stating every criterion of that Feature, and as many feature
+pull requests underneath it as the work takes.
 
 ## Writing a spec
 
