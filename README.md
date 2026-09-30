@@ -1,4 +1,4 @@
-# Double Entry Bookkeeping
+# Credebi
 
 Full-stack web app for double-entry bookkeeping.
 
