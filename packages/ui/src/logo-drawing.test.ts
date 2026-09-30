@@ -55,6 +55,42 @@ const layOut = ({ parts }: LogoDrawing): Lockup => ({
   wordmark: union(letters(parts).map((each) => each.bounds)),
 });
 
+const expectedFills: Readonly<Record<LogoTone, readonly string[]>> = {
+  color: [
+    'left-half:text',
+    'right-half:accent',
+    'C:accent-text',
+    'r:text',
+    'e:text',
+    'd:accent-text',
+    'e:text',
+    'b:text',
+    'i:text',
+  ],
+  reverse: [
+    'left-half:text-on-dark',
+    'right-half:accent',
+    'C:accent',
+    'r:text-on-dark',
+    'e:text-on-dark',
+    'd:accent',
+    'e:text-on-dark',
+    'b:text-on-dark',
+    'i:text-on-dark',
+  ],
+  mono: [
+    'left-half:text',
+    'right-half:text',
+    'C:text',
+    'r:text',
+    'e:text',
+    'd:text',
+    'e:text',
+    'b:text',
+    'i:text',
+  ],
+};
+
 const fillsOf = (variant: LogoVariant, tone: LogoTone): readonly string[] =>
   drawLogo(variant, tone).parts.map((each) => `${each.name}:${each.fill}`);
 
@@ -224,32 +260,10 @@ describe('the stacked Lockup', () => {
 });
 
 describe('the tones', () => {
-  it('colours the color tone ink and mint, with C and d in mint-deep', () => {
-    expect(fillsOf('horizontal', 'color')).toEqual([
-      'left-half:text',
-      'right-half:accent',
-      'C:accent-text',
-      'r:text',
-      'e:text',
-      'd:accent-text',
-      'e:text',
-      'b:text',
-      'i:text',
-    ]);
-  });
+  it.each(every)('colours %s in %s by the tone, with C and d in its accent', (variant, tone) => {
+    const expected = expectedFills[tone].slice(0, variant === 'mark' ? 2 : undefined);
 
-  it('colours the reverse tone frost and mint, with C and d in mint', () => {
-    expect(fillsOf('stacked', 'reverse')).toEqual([
-      'left-half:text-on-dark',
-      'right-half:accent',
-      'C:accent',
-      'r:text-on-dark',
-      'e:text-on-dark',
-      'd:accent',
-      'e:text-on-dark',
-      'b:text-on-dark',
-      'i:text-on-dark',
-    ]);
+    expect(fillsOf(variant, tone)).toEqual(expected);
   });
 
   it.each(logoVariants)('colours %s in the mono tone one colour throughout', (variant) => {

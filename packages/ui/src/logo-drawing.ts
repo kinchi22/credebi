@@ -1,5 +1,15 @@
 import { type SemanticColor } from './tokens';
-import { CAP_HEIGHT, glyphs, TRACKING, UNITS_PER_EM, WORDMARK, type WordmarkLetter } from './wordmark';
+import {
+  CAP_HEIGHT,
+  glyphs,
+  type LogoBox,
+  TRACKING,
+  UNITS_PER_EM,
+  WORDMARK,
+  type WordmarkLetter,
+} from './wordmark';
+
+export type { LogoBox } from './wordmark';
 
 export const logoVariants = ['mark', 'horizontal', 'stacked'] as const;
 
@@ -8,13 +18,6 @@ export type LogoVariant = (typeof logoVariants)[number];
 export const logoTones = ['color', 'reverse', 'mono'] as const;
 
 export type LogoTone = (typeof logoTones)[number];
-
-export type LogoBox = {
-  readonly minX: number;
-  readonly minY: number;
-  readonly maxX: number;
-  readonly maxY: number;
-};
 
 export type LogoPartName = 'left-half' | 'right-half' | WordmarkLetter;
 
@@ -55,9 +58,14 @@ const RIGHT_HALF: Half = {
   bounds: { minX: 64, minY: 6, maxX: 112, maxY: 102 },
 };
 
-const MARK_BOUNDS: LogoBox = { minX: 8, minY: 6, maxX: 112, maxY: 114 };
+const union = (boxes: readonly LogoBox[]): LogoBox => ({
+  minX: Math.min(...boxes.map((box) => box.minX)),
+  minY: Math.min(...boxes.map((box) => box.minY)),
+  maxX: Math.max(...boxes.map((box) => box.maxX)),
+  maxY: Math.max(...boxes.map((box) => box.maxY)),
+});
 
-const MARK_CENTRE = { x: 60, y: 60 };
+const markBounds = (): LogoBox => union([LEFT_HALF.bounds, RIGHT_HALF.bounds]);
 
 const WORDMARK_SIZE = { horizontal: 90, stacked: 55 } as const;
 
@@ -75,13 +83,6 @@ const toneFills: Readonly<Record<LogoTone, ToneFills>> = {
   reverse: { left: 'text-on-dark', right: 'accent', letter: 'text-on-dark', accent: 'accent' },
   mono: { left: 'text', right: 'text', letter: 'text', accent: 'text' },
 };
-
-const union = (boxes: readonly LogoBox[]): LogoBox => ({
-  minX: Math.min(...boxes.map((box) => box.minX)),
-  minY: Math.min(...boxes.map((box) => box.minY)),
-  maxX: Math.max(...boxes.map((box) => box.maxX)),
-  maxY: Math.max(...boxes.map((box) => box.maxY)),
-});
 
 const markParts = (fills: ToneFills): readonly LogoPart[] =>
   [
@@ -115,15 +116,16 @@ function wordmarkOrigin(
   ink: LogoBox,
   scale: number,
 ): { readonly x: number; readonly y: number } {
+  const mark = markBounds();
   if (variant === 'horizontal') {
     return {
-      x: MARK_BOUNDS.maxX + LOCKUP_GAP - ink.minX * scale,
-      y: MARK_CENTRE.y + (CAP_HEIGHT * scale) / 2,
+      x: mark.maxX + LOCKUP_GAP - ink.minX * scale,
+      y: (mark.minY + mark.maxY) / 2 + (CAP_HEIGHT * scale) / 2,
     };
   }
   return {
-    x: MARK_CENTRE.x - ((ink.minX + ink.maxX) / 2) * scale,
-    y: MARK_BOUNDS.maxY + LOCKUP_GAP - ink.minY * scale,
+    x: (mark.minX + mark.maxX) / 2 - ((ink.minX + ink.maxX) / 2) * scale,
+    y: mark.maxY + LOCKUP_GAP - ink.minY * scale,
   };
 }
 

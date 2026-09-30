@@ -253,7 +253,10 @@ lower and the right half higher.
 | --------- | --------------- | --------- | ---------- | -------- | ----------- |
 | `color`   | a light ground  | `ink`     | `mint`     | `ink`    | `mint-deep` |
 | `reverse` | `ink`           | `frost`   | `mint`     | `frost`  | `mint`      |
-| `mono`    | any             | one colour | one colour | one colour | one colour |
+| `mono`    | a light ground  | `ink`     | `ink`      | `ink`    | `ink`       |
+
+In the `mono` tone every part is `ink`, the `text` token: one colour
+throughout.
 
 **Lockups.** `mark` alone; `horizontal`, the Mark left of the Wordmark;
 `stacked`, the Mark above the Wordmark. The Sidebar uses the horizontal Lockup

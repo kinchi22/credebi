@@ -1,6 +1,6 @@
 export type WordmarkLetter = 'C' | 'r' | 'e' | 'd' | 'b' | 'i';
 
-export type GlyphBounds = {
+export type LogoBox = {
   readonly minX: number;
   readonly minY: number;
   readonly maxX: number;
@@ -9,7 +9,7 @@ export type GlyphBounds = {
 
 export type Glyph = {
   readonly advance: number;
-  readonly bounds: GlyphBounds;
+  readonly bounds: LogoBox;
   readonly d: string;
 };
 
