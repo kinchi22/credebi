@@ -47,12 +47,14 @@ describe('the declared pairs', () => {
     expect(foregroundsOn('mint')).toEqual(['ink']);
   });
 
-  it('checks the control edge and the focus ring on both light grounds', () => {
+  it('checks the control edge and the focus ring on every ground', () => {
     expect(controlEdgePairs).toEqual([
       { foreground: 'steel', background: 'white' },
       { foreground: 'steel', background: 'mist' },
       { foreground: 'mint-deep', background: 'white' },
       { foreground: 'mint-deep', background: 'mist' },
+      { foreground: 'mint', background: 'ink' },
+      { foreground: 'mint', background: 'ink-raised' },
     ]);
   });
 });
@@ -66,6 +68,8 @@ describe('the semantic tokens', () => {
       'text-muted': 'slate',
       'text-on-dark': 'frost',
       'text-muted-on-dark': 'sage',
+      'ground-dark': 'ink',
+      'ground-dark-raised': 'ink-raised',
       accent: 'mint',
       'accent-text': 'mint-deep',
       border: 'fog',
@@ -74,6 +78,7 @@ describe('the semantic tokens', () => {
       warning: 'ochre',
       positive: 'mint-deep',
       focus: 'mint-deep',
+      'focus-on-dark': 'mint',
     });
   });
 });
@@ -126,26 +131,25 @@ describe('the type scale', () => {
     }
   });
 
-  it('sets prose in Sora and labels, figures and dates in DM Mono', () => {
-    const familyOf = Object.fromEntries(
-      Object.entries(typeScale).map(([name, step]) => [name, step.fontFamily]),
-    );
-    expect(familyOf).toEqual({
-      display: 'Sora',
-      h1: 'Sora',
-      h2: 'Sora',
-      body: 'Sora',
-      'body-sm': 'Sora',
-      label: 'DM Mono',
-      figure: 'DM Mono',
-      date: 'DM Mono',
+  it('holds the type scale the design states', () => {
+    const sora = { fontFamily: 'Sora', caps: false, tabularNumerals: false };
+    const dmMono = { fontFamily: 'DM Mono', fontWeight: 400 };
+    expect(typeScale).toEqual({
+      display: { ...sora, fontSize: 32, lineHeight: 40, fontWeight: 600, letterSpacing: '-0.01em' },
+      h1: { ...sora, fontSize: 28, lineHeight: 36, fontWeight: 600, letterSpacing: '-0.01em' },
+      h2: { ...sora, fontSize: 20, lineHeight: 28, fontWeight: 600 },
+      body: { ...sora, fontSize: 15, lineHeight: 24, fontWeight: 400 },
+      'body-sm': { ...sora, fontSize: 14, lineHeight: 20, fontWeight: 400 },
+      label: {
+        ...dmMono,
+        fontSize: 12,
+        lineHeight: 16,
+        letterSpacing: '0.06em',
+        caps: true,
+        tabularNumerals: false,
+      },
+      figure: { ...dmMono, fontSize: 14, lineHeight: 20, caps: false, tabularNumerals: true },
+      date: { ...dmMono, fontSize: 13, lineHeight: 20, caps: false, tabularNumerals: false },
     });
-  });
-
-  it('sets labels in capitals and figures in tabular numerals', () => {
-    expect(typeScale.label.caps).toBe(true);
-    expect(typeScale.figure.tabularNumerals).toBe(true);
-    expect(typeScale.body.caps).toBe(false);
-    expect(typeScale.body.tabularNumerals).toBe(false);
   });
 });

@@ -24,6 +24,8 @@ export const semanticColors = {
   'text-muted': 'slate',
   'text-on-dark': 'frost',
   'text-muted-on-dark': 'sage',
+  'ground-dark': 'ink',
+  'ground-dark-raised': 'ink-raised',
   accent: 'mint',
   'accent-text': 'mint-deep',
   border: 'fog',
@@ -32,6 +34,7 @@ export const semanticColors = {
   warning: 'ochre',
   positive: 'mint-deep',
   focus: 'mint-deep',
+  'focus-on-dark': 'mint',
 } as const satisfies Record<string, PaletteColor>;
 
 export type SemanticColor = keyof typeof semanticColors;
@@ -70,6 +73,8 @@ export const controlEdgePairs: readonly ColorPair[] = [
   { foreground: 'steel', background: 'mist' },
   { foreground: 'mint-deep', background: 'white' },
   { foreground: 'mint-deep', background: 'mist' },
+  { foreground: 'mint', background: 'ink' },
+  { foreground: 'mint', background: 'ink-raised' },
 ];
 
 export type TypeStep = {
@@ -82,7 +87,17 @@ export type TypeStep = {
   readonly tabularNumerals: boolean;
 };
 
-const TYPE_STEPS = {
+export type TypeStepName =
+  | 'display'
+  | 'h1'
+  | 'h2'
+  | 'body'
+  | 'body-sm'
+  | 'label'
+  | 'figure'
+  | 'date';
+
+export const typeScale: Readonly<Record<TypeStepName, TypeStep>> = {
   display: {
     fontFamily: 'Sora',
     fontSize: 32,
@@ -150,11 +165,7 @@ const TYPE_STEPS = {
     caps: false,
     tabularNumerals: false,
   },
-} as const satisfies Record<string, TypeStep>;
-
-export type TypeStepName = keyof typeof TYPE_STEPS;
-
-export const typeScale: Readonly<Record<TypeStepName, TypeStep>> = TYPE_STEPS;
+};
 
 function typeDeclarations(name: string, step: TypeStep): Record<string, string> {
   const declarations: Record<string, string> = {

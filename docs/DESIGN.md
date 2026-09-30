@@ -28,6 +28,8 @@ colors:
   text-muted: "{colors.slate}"
   text-on-dark: "{colors.frost}"
   text-muted-on-dark: "{colors.sage}"
+  ground-dark: "{colors.ink}"
+  ground-dark-raised: "{colors.ink-raised}"
   accent: "{colors.mint}"
   accent-text: "{colors.mint-deep}"
   border: "{colors.fog}"
@@ -36,6 +38,7 @@ colors:
   warning: "{colors.ochre}"
   positive: "{colors.mint-deep}"
   focus: "{colors.mint-deep}"
+  focus-on-dark: "{colors.mint}"
 typography:
   display:
     fontFamily: Sora
@@ -86,17 +89,16 @@ components:
     backgroundColor: "{colors.accent}"
     textColor: "{colors.text}"
   sidebar:
-    backgroundColor: "{colors.ink}"
+    backgroundColor: "{colors.ground-dark}"
     textColor: "{colors.text-on-dark}"
   sidebar-link:
     textColor: "{colors.text-muted-on-dark}"
   sidebar-item-active:
-    backgroundColor: "{colors.ink-raised}"
+    backgroundColor: "{colors.ground-dark-raised}"
     textColor: "{colors.text-on-dark}"
   input:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.text}"
-    borderColor: "{colors.border-control}"
 ---
 
 # Credebi design
@@ -163,6 +165,8 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `text-muted`         | `slate`     | labels, hints, dates                  |
 | `text-on-dark`       | `frost`     | text in the Sidebar                   |
 | `text-muted-on-dark` | `sage`      | links in the Sidebar                  |
+| `ground-dark`        | `ink`       | the Sidebar's ground                  |
+| `ground-dark-raised` | `ink-raised` | the active Sidebar item              |
 | `accent`             | `mint`      | the primary button fill, the mark     |
 | `accent-text`        | `mint-deep` | links, accent text on a light ground  |
 | `border`             | `fog`       | dividers, panel edges                 |
@@ -170,15 +174,19 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `danger`             | `rust`      | refusals, errors                      |
 | `warning`            | `ochre`     | a degraded health status              |
 | `positive`           | `mint-deep` | a healthy status, a saved confirmation |
-| `focus`              | `mint-deep` | the 2px focus ring                    |
+| `focus`              | `mint-deep` | the 2px focus ring on a light ground  |
+| `focus-on-dark`      | `mint`      | the 2px focus ring on a dark ground   |
 
 The tokens module declares the pairs that must meet a contrast minimum, and a
 unit test checks every one:
 
 - **Text, 4.5:1.** `ink`, `slate`, `mint-deep`, `mint-deeper`, `rust` and
   `ochre` on `white` and on `mist`; `frost` and `sage` on `ink` and on
-  `ink-raised`; `ink` on `mint`.
-- **Control edges, 3:1.** `steel` and `mint-deep` on `white` and on `mist`.
+  `ink-raised`, which is `text-on-dark` and `text-muted-on-dark` on
+  `ground-dark` and `ground-dark-raised`; `ink` on `mint`.
+- **Control edges, 3:1.** `steel` and `mint-deep` on `white` and on `mist`;
+  `mint`, the `focus-on-dark` ring, on `ink` and on `ink-raised` (7.66:1 on
+  `ink`).
 
 A new text colour or ground is added to these pairs in the same change.
 
@@ -214,11 +222,13 @@ Hierarchy comes from tonal layers, not shadows: `surface` panels with a
 - **Primary button.** `accent` fill with `text`. White on mint reads 2.0:1 and
   is never used.
 - **Secondary button.** `surface` fill, `text`, a `border-control` edge.
-- **Input.** `surface` fill, `text`, a `border-control` edge.
-- **Sidebar.** Dark: an `ink` ground, `text-on-dark` text, `text-muted-on-dark`
-  links, and the active item on `ink-raised`. The logo there is the horizontal
-  Lockup in the reverse tone.
-- **Focus.** A 2px `focus` ring on every focusable element on a light ground.
+- **Input.** `surface` fill, `text`, a `border-control` edge. The spec's
+  component properties have no border colour, so the edge is stated here only.
+- **Sidebar.** Dark: a `ground-dark` ground, `text-on-dark` text,
+  `text-muted-on-dark` links, and the active item on `ground-dark-raised`. The
+  logo there is the horizontal Lockup in the reverse tone.
+- **Focus.** A 2px ring on every focusable element: `focus` on a light ground,
+  `focus-on-dark` on a dark one.
 - **Status.** `positive` for healthy, `warning` for degraded, `danger` for a
   refusal or an error.
 

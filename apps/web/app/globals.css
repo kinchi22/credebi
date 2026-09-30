@@ -7,6 +7,8 @@
   --color-text-muted: #4A6461;
   --color-text-on-dark: #EAF7F2;
   --color-text-muted-on-dark: #9FC4BC;
+  --color-ground-dark: #0B2B2A;
+  --color-ground-dark-raised: #133F3C;
   --color-accent: #2FD0A2;
   --color-accent-text: #0B7A5E;
   --color-border: #E1ECE8;
@@ -15,6 +17,7 @@
   --color-warning: #A15C00;
   --color-positive: #0B7A5E;
   --color-focus: #0B7A5E;
+  --color-focus-on-dark: #2FD0A2;
   --text-display: 32px;
   --text-display--line-height: 40px;
   --text-display--font-weight: 600;
