@@ -67,7 +67,7 @@ describe('the E2E liveness command with Chromium', () => {
     ]));
   });
 
-  it('runs every collected app spec against the empty page', async () => {
+  it('runs every collected app spec against the empty page', { timeout: 0 }, async () => {
     vi.stubEnv('PLAYWRIGHT_JSON_OUTPUT_NAME', undefined);
     const listed = runGate(
       bin('playwright'),

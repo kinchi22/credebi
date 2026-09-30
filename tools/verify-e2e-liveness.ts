@@ -153,11 +153,3 @@ export async function runAgainstEmptyPage(
     rmSync(directory, { recursive: true, force: true });
   }
 }
-
-if (import.meta.main) {
-  const { problems } = await runAgainstEmptyPage(path.resolve(import.meta.dirname, '..'));
-  if (problems.length > 0) {
-    console.error(['E2E gate is NOT alive:', ...problems].join('\n'));
-    process.exitCode = 1;
-  }
-}

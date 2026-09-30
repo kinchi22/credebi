@@ -71,14 +71,14 @@ the test-collection gate excludes this directory too.
 
 ## Other gates
 
-| Fixture                                          | Gate that must fail   |
-| ------------------------------------------------ | --------------------- |
-| `violations/apps/web/server/deep-import.ts`      | typecheck (exports)   |
-| `server-only/client-imports-server.tsx`          | build (server-only)   |
-| `mutation/`                                       | Stryker threshold     |
-| `migration/schema-with-a-table.ts`               | migration drift (`pnpm db:drift`) |
-| `e2e-liveness/no-assertions.spec.ts`               | E2E liveness (passes against an empty page) |
-| `e2e-liveness/browser-failure.spec.ts`             | E2E liveness (browser never launches) |
+| Fixture                                     | Gate that must fail                         |
+| ------------------------------------------- | ------------------------------------------- |
+| `violations/apps/web/server/deep-import.ts` | typecheck (exports)                         |
+| `server-only/client-imports-server.tsx`     | build (server-only)                         |
+| `mutation/`                                 | Stryker threshold                           |
+| `migration/schema-with-a-table.ts`          | migration drift (`pnpm db:drift`)           |
+| `e2e-liveness/no-assertions.spec.ts`        | E2E liveness (passes against an empty page) |
+| `e2e-liveness/browser-failure.spec.ts`      | E2E liveness (browser never launches)       |
 
 `e2e-liveness/missing-input.spec.ts` and `ordinary-input.spec.ts` use the same
 deferred input to exercise the action budget. The input appears after four
@@ -131,7 +131,7 @@ catch:
   `e2e-liveness-gate.test.ts` by reports shaped like real runs: a spec that
   passed against the empty page, one skipped, one that passed on a retry, specs
   that failed in the harness before a line of their own ran, no specs at all,
-  and an empty page nobody requested. Its command half is exercised with the
+  and an empty page nobody requested. Its runner is exercised with the
   browser fixtures above, alongside the full app suite, by `Gate liveness`.
 
 ## Fixtures that are planted, not linted

@@ -71,9 +71,10 @@ The job depends on no deployment.
 Vercel is connected it is narrowed to production deployments. (Step 8 narrowed
 it and moved it to its own workflow, `e2e-deployed.yml`, in ADR-0009.)
 
-**E2E liveness runs in `Gate liveness`.** `tools/verify-e2e-liveness.ts`, as
-`pnpm verify:gates:e2e`, starts a server in its own process that answers an
-empty 200 at `/` and 404 elsewhere, and runs Playwright against it with
+**E2E liveness runs in `Gate liveness`.** `pnpm verify:gates:e2e` runs the
+Chromium suite in `vitest.e2e-liveness.config.ts`. The suite calls
+`runAgainstEmptyPage` from `tools/verify-e2e-liveness.ts`, which starts a server
+that answers an empty 200 at `/` and 404 elsewhere, and runs Playwright with
 `--workers=2 --retries=0 --forbid-only --reporter=json`. The child process sets
 `E2E_LIVENESS=1`, which limits action waits to one second in the shared
 configuration. Ordinary local and external app runs do not set it. It fails
@@ -91,10 +92,9 @@ with deliberate breakages as inputs in `tools/gates/e2e-liveness-gate.test.ts`.
 spec that asserts nothing is caught on the pull request that lands it on a
 milestone, while the owner is reviewing it.
 
-**Bound action waits instead of reducing the test budget.** The owner requested
-PR #165 after reviewing the one-second action timeout and two-worker setting
-against the suite on `main`. Empty-page actions wait for elements that will not
-arrive. Limiting those waits leaves enough time for browser fixtures to start
+**Bound action waits instead of reducing the test budget.** Empty-page actions
+wait for elements that will not arrive. Limiting those waits leaves enough time
+for browser fixtures to start
 and preserves the test, navigation and assertion budgets. A slow spec can still
 spend its longer test budget on hooks or other waits outside the action limit.
 
@@ -108,7 +108,10 @@ that default is already two, the worker flag changes nothing.
 ordinary modes, rejection of a passing spec and a browser launch failure, and
 compares the full run's reported specs with Playwright's own discovery. Its
 fixtures live in `fixtures/e2e-liveness/`. This suite is outside `pnpm gates`,
-which remains runnable without a browser.
+which remains runnable without a browser. The full app run has no Vitest test
+timeout: each Playwright spec retains its budget, and the existing 40-minute
+CI job limit bounds the aggregate run as the suite grows. The fixed regression
+fixtures retain the browser suite's five-minute test timeout.
 
 **Neither `test:e2e` nor `verify:gates:e2e` is in `pnpm gates`.** Both need a
 browser, and CI is already the stronger claim (ADR-0002).
@@ -166,7 +169,7 @@ It does not separate an assertion from a network error thrown by the spec's own
 `page.goto`. The request count covers the case where nothing reached the empty
 page at all, not a run where only some specs did.
 
-The script's command half -- the server and the Playwright process -- is now
+The runner's server and Playwright process are now
 exercised by the Chromium regression suite as well as by the full app suite.
 `tools/**` remains outside the mutation threshold (ADR-0004). Before the script
 first landed it was checked by hand: exit 0 against the real suite, exit 1
@@ -174,9 +177,12 @@ naming two specs with no browser, exit 1 naming a planted spec that only opens
 the page. Thirteen hand-made mutants of `findLivenessProblems` were each killed
 by its test file.
 
-The script lives in `tools/`, which no one owns (ADR-0002), so it can be weakened
-in a pull request onto a milestone that needs no approval. The step that runs it
-is in `.github/`, which is owned.
+The runner lives in `tools/`, which no one owns (ADR-0002), so it can be weakened
+in a pull request onto a milestone that needs no approval. The same exposure
+applies to `vitest.e2e-liveness.config.ts`, the command in `package.json` and the
+fixture Playwright configuration. The step that runs the command is in
+`.github/`, which is owned. These supporting files remain outside the owned
+paths under the existing review policy; a PR into `main` still requires approval.
 
 ## Rejected alternatives
 
