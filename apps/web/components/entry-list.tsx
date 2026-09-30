@@ -14,7 +14,7 @@ const ACCOUNT_NAMES: Readonly<Record<AccountCode, string>> = en.accounts;
 const accountName = (code: string): string => (isAccountCode(code) ? ACCOUNT_NAMES[code] : code);
 
 const ROW = 'grid grid-cols-[1fr_6rem_8rem] gap-3 py-0.5';
-const AMOUNT_CELL = 'text-right tabular-nums';
+const AMOUNT_CELL = 'text-right font-mono text-figure tabular-nums';
 
 export function EntryList({ entries }: EntryListProps): ReactNode {
   return (
@@ -26,7 +26,7 @@ export function EntryList({ entries }: EntryListProps): ReactNode {
           {entries.map((entry) => (
             <li key={entry.id} data-testid="entry" className="text-sm">
               <p className="flex gap-3">
-                <time dateTime={entry.entryDate} className="tabular-nums">
+                <time dateTime={entry.entryDate} className="font-mono text-date tabular-nums">
                   {entry.entryDate}
                 </time>{' '}
                 <span className="font-medium">{entry.memo}</span>

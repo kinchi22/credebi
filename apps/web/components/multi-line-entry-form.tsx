@@ -46,7 +46,7 @@ function DraftTotalsSummary({ lines }: { readonly lines: readonly DraftLine[] })
       {rows.map((row) => (
         <div key={row.testId} className="contents">
           <dt>{row.label}</dt>
-          <dd data-testid={row.testId} className="text-right tabular-nums">
+          <dd data-testid={row.testId} className="text-right font-mono text-figure tabular-nums">
             {formatAmount(row.amount)}
           </dd>
         </div>

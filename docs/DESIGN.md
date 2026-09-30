@@ -209,8 +209,12 @@ column of amounts lines up. Nothing is set below 12px.
 
 Each step is a Tailwind `text-<step>` utility, which sets its size, line height,
 weight and letter spacing. The face, the capitals and the tabular numerals are
-applied beside it. The fonts are served from the repository, never fetched from
-a font service at build or run time.
+applied beside it: `font-sans` is Sora and the page's default, `font-mono` is DM
+Mono, and `tabular-nums` sets the numerals. A date or an amount, shown or typed,
+is set in `font-mono` with `tabular-nums`. The fonts are served from the
+repository, never fetched from a font service at build or run time: the woff2
+files and their OFL licences are in `apps/web/app/fonts/`, loaded through
+`next/font/local`.
 
 ## Elevation & Depth
 

@@ -35,7 +35,7 @@ export function EntrySearchForm({ criteria }: EntrySearchFormProps): ReactNode {
           name={SEARCH_CRITERIA_FIELDS.from}
           type="date"
           defaultValue={criteria.from ?? ''}
-          className={CONTROL}
+          className={`${CONTROL} font-mono tabular-nums`}
         />
       </div>
       <div className={FIELD}>
@@ -45,7 +45,7 @@ export function EntrySearchForm({ criteria }: EntrySearchFormProps): ReactNode {
           name={SEARCH_CRITERIA_FIELDS.to}
           type="date"
           defaultValue={criteria.to ?? ''}
-          className={CONTROL}
+          className={`${CONTROL} font-mono tabular-nums`}
         />
       </div>
 

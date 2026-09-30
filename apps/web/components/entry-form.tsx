@@ -96,7 +96,7 @@ export function AmountInput({ id, onAmountChange }: AmountInputProps): ReactNode
       inputMode="numeric"
       pattern="[0-9]+"
       required
-      className={`${CONTROL} text-right tabular-nums`}
+      className={`${CONTROL} text-right font-mono tabular-nums`}
     />
   );
 }
@@ -150,7 +150,7 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
             name={ENTRY_FORM_FIELDS.entryDate}
             type="date"
             required
-            className={CONTROL}
+            className={`${CONTROL} font-mono tabular-nums`}
           />
         </div>
         <div className={`${FIELD} grow`}>

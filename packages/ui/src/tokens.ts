@@ -78,7 +78,7 @@ export const controlEdgePairs: readonly ColorPair[] = [
 ];
 
 export type TypeStep = {
-  readonly fontFamily: 'Sora' | 'DM Mono';
+  readonly fontFamily: FontFamily;
   readonly fontSize: number;
   readonly lineHeight: number;
   readonly fontWeight: 400 | 600;
@@ -86,6 +86,13 @@ export type TypeStep = {
   readonly caps: boolean;
   readonly tabularNumerals: boolean;
 };
+
+export type FontFamily = 'Sora' | 'DM Mono';
+
+export const fontFaces = {
+  sans: 'Sora',
+  mono: 'DM Mono',
+} as const satisfies Record<string, FontFamily>;
 
 export type TypeStepName =
   | 'display'
@@ -167,6 +174,9 @@ export const typeScale: Readonly<Record<TypeStepName, TypeStep>> = {
   },
 };
 
+const fontVariable = (family: FontFamily): string =>
+  `--font-${family.toLowerCase().replaceAll(' ', '-')}`;
+
 function typeDeclarations(name: string, step: TypeStep): Record<string, string> {
   const declarations: Record<string, string> = {
     [`--text-${name}`]: `${String(step.fontSize)}px`,
@@ -183,8 +193,12 @@ export function themeDeclarations(): Readonly<Record<string, string>> {
   const colors = Object.entries(semanticColors).map(
     ([role, color]): [string, string] => [`--color-${role}`, palette[color]],
   );
+  const faces = Object.entries(fontFaces).map(([role, family]): [string, string] => [
+    `--font-${role}`,
+    `var(${fontVariable(family)})`,
+  ]);
   const type = Object.entries(typeScale).flatMap(([name, step]) =>
     Object.entries(typeDeclarations(name, step)),
   );
-  return Object.fromEntries([...colors, ...type]);
+  return Object.fromEntries([...colors, ...faces, ...type]);
 }
