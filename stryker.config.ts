@@ -11,6 +11,7 @@ export default {
     'packages/core/src/*/{domain,application}/**/*.ts',
     'packages/contracts/src/**/*.ts',
     'apps/web/server/**/*.ts',
+    'packages/ui/src/**/*.ts',
     '!apps/web/server/{container,context,trpc,root-router}.ts',
     '!apps/web/server/routers/**',
     '!**/*.test.ts',

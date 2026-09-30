@@ -17,7 +17,8 @@ the install route for each harness -- which is why it names harness directories
 too, being written for a person setting a clone up rather than for an agent
 following a rule.
 
-Read `docs/ARCHITECTURE.md` before changing anything structural.
+Read `docs/ARCHITECTURE.md` before changing anything structural. Read
+`docs/DESIGN.md` before changing anything visual.
 
 ## Non-negotiable
 
@@ -73,9 +74,10 @@ The work lives in GitHub Issues and the project board, not in a session. Read
 issue; the `implement-issue` Skill builds a Task, or a whole Feature.
 
 The domain glossary is `docs/GLOSSARY.md`. A term resolved while designing,
-refinement with the `grill-with-docs` Skill included, goes into its table. The
-words for how this repository is worked on are not in it: they are defined in
-`docs/agents/harnesses.md`, and no term is defined in both.
+refinement with the `grill-with-docs` Skill included, goes into its table. Two
+kinds of word live elsewhere: how this repository is worked on, in
+`docs/agents/harnesses.md`, and how the product looks, under `## Terms` in
+`docs/DESIGN.md`. Each term is defined in exactly one of the three.
 
 ## Where code goes
 
