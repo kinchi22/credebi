@@ -8,12 +8,11 @@ import { en } from '../messages/en';
 import {
   AccountSelect,
   AmountInput,
-  CONTROL,
   EntryFormShell,
-  FIELD,
   type EntryFormProps,
 } from './entry-form';
 import { formatAmount } from './amount';
+import { BUTTON, CONTROL, FIELD, REFUSAL_TEXT } from './control-classes';
 
 type LineState = DraftLine & {
   readonly key: number;
@@ -28,12 +27,10 @@ const FIRST_LINES: readonly LineState[] = [
   { key: 2, side: 'credit', amount: '' },
 ];
 
-const BUTTON = 'rounded border border-neutral-300 px-2 py-1 text-sm disabled:opacity-50';
-
 function DraftTotalsSummary({ lines }: { readonly lines: readonly DraftLine[] }): ReactNode {
   const totals = draftTotals(lines);
   if (!totals.ok) {
-    return <p className="text-sm text-red-700">{en.multiLineForm.tooLarge}</p>;
+    return <p className={REFUSAL_TEXT}>{en.multiLineForm.tooLarge}</p>;
   }
 
   const rows = [
@@ -43,7 +40,7 @@ function DraftTotalsSummary({ lines }: { readonly lines: readonly DraftLine[] })
   ];
 
   return (
-    <dl className="grid grid-cols-[auto_8rem] gap-x-3 text-sm">
+    <dl className={`grid grid-cols-[auto_8rem] gap-x-3 ${typeClasses['body-sm']}`}>
       {rows.map((row) => (
         <div key={row.testId} className="contents">
           <dt>{row.label}</dt>
@@ -82,7 +79,7 @@ function DraftLines({ id }: { readonly id: string }): ReactNode {
         const lineId = `${id}-line-${String(line.key)}`;
         return (
           <fieldset key={line.key} className="flex flex-wrap items-end gap-3">
-            <legend className="mb-1 text-sm font-semibold">
+            <legend className={`mb-1 ${typeClasses['body-sm']} font-semibold`}>
               {en.multiLineForm.line} {index + 1}
             </legend>
             <div className={FIELD}>

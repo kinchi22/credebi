@@ -28,7 +28,7 @@ export const metadata = {
 export default function RootLayout({ children }: { children: ReactNode }): ReactNode {
   return (
     <html lang="en" className={`${sora.variable} ${dmMono.variable}`}>
-      <body className={`bg-white ${typeClasses.body} text-neutral-900 antialiased`}>{children}</body>
+      <body className={`bg-ground ${typeClasses.body} text-text antialiased`}>{children}</body>
     </html>
   );
 }

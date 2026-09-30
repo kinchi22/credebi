@@ -4,13 +4,11 @@ import { typeClasses } from '@repo/ui/type-classes';
 import { useId, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { ENTRY_SEARCH_PATH } from '../server/return-path';
+import { CONTROL, FIELD, PANEL, PRIMARY_BUTTON } from './control-classes';
 
 export type EntrySearchFormProps = {
   readonly criteria: SearchCriteriaInput;
 };
-
-const FIELD = 'flex flex-col gap-1 text-sm';
-const CONTROL = 'rounded border border-neutral-300 px-2 py-1';
 
 export function EntrySearchForm({ criteria }: EntrySearchFormProps): ReactNode {
   const id = useId();
@@ -20,11 +18,11 @@ export function EntrySearchForm({ criteria }: EntrySearchFormProps): ReactNode {
       aria-labelledby={`${id}-title`}
       action={ENTRY_SEARCH_PATH}
       method="get"
-      className="flex flex-wrap items-end gap-3 rounded-lg border border-neutral-300 p-4"
+      className={`flex flex-wrap items-end gap-3 ${PANEL}`}
     >
       <h2
         id={`${id}-title`}
-        className={`w-full ${typeClasses.label} text-neutral-600`}
+        className={`w-full ${typeClasses.label} text-text-muted`}
       >
         {en.entrySearch.title}
       </h2>
@@ -80,7 +78,7 @@ export function EntrySearchForm({ criteria }: EntrySearchFormProps): ReactNode {
 
       <button
         type="submit"
-        className="rounded border border-neutral-300 px-3 py-1 text-sm"
+        className={PRIMARY_BUTTON}
       >
         {en.entrySearch.submit}
       </button>

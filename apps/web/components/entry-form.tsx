@@ -14,6 +14,7 @@ import {
   type SubmitEvent,
 } from 'react';
 import { en } from '../messages/en';
+import { CONTROL, FIELD, PANEL, PRIMARY_BUTTON, REFUSAL_TEXT } from './control-classes';
 
 export type EntryFormState =
   | { readonly outcome: 'idle' }
@@ -51,9 +52,6 @@ const REFUSAL: Readonly<Record<EntryFormMode, Readonly<Record<DomainErrorCode, s
   'two-line': refusalsWith(en.twoLineForm.invalid),
   'multi-line': refusalsWith(en.multiLineForm.invalid),
 };
-
-export const FIELD = 'flex flex-col gap-1 text-sm';
-export const CONTROL = 'rounded border border-neutral-300 px-2 py-1';
 
 export function AccountSelect({
   id,
@@ -132,11 +130,11 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
       ref={form}
       aria-labelledby={`${id}-title`}
       onSubmit={submit}
-      className="flex flex-col gap-3 rounded-lg border border-neutral-300 p-4"
+      className={`flex flex-col gap-3 ${PANEL}`}
     >
       <h2
         id={`${id}-title`}
-        className={`${typeClasses.label} text-neutral-600`}
+        className={`${typeClasses.label} text-text-muted`}
       >
         {en.entryForm.title}
       </h2>
@@ -169,7 +167,7 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
       <Fragment key={resetKey}>{children(id)}</Fragment>
 
       {state.outcome === 'rejected' ? (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className={REFUSAL_TEXT}>
           {REFUSAL[mode][state.code]}
         </p>
       ) : null}
@@ -177,7 +175,7 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
       <button
         type="submit"
         disabled={pending}
-        className="self-start rounded border border-neutral-300 px-3 py-1 text-sm disabled:opacity-50"
+        className={`self-start ${PRIMARY_BUTTON}`}
       >
         {pending ? en.entryForm.pending : en.entryForm.submit}
       </button>
