@@ -6,8 +6,9 @@ it here in the same commit that introduces it.
 This table is the domain's: what the product is built from. The words for how it
 is worked on -- Harness, Working agreement, Skill, Driver, Implementer, Subagent
 and Agent worktree -- are in `docs/agents/harnesses.md` instead, in a table of
-their own. Between them they are still one index, because no term is defined in
-both.
+their own. The words for how it looks -- Mark, Wordmark, Lockup and Semantic
+token -- are in `docs/DESIGN.md`. Between them they are still one index, because
+no term is defined in more than one.
 
 | Term             | Meaning                                                                     |
 | ---------------- | --------------------------------------------------------------------------- |

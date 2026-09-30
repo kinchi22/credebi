@@ -5,7 +5,8 @@
   "type": "module",
   "main": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./tokens": "./src/tokens.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
@@ -17,6 +18,7 @@
     "@repo/config": "workspace:*",
     "@types/react": "^19.0.0",
     "react": "^19.0.0",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "vitest": "^4.0.0"
   }
 }

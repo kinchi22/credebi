@@ -17,7 +17,8 @@ the install route for each harness -- which is why it names harness directories
 too, being written for a person setting a clone up rather than for an agent
 following a rule.
 
-Read `docs/ARCHITECTURE.md` before changing anything structural.
+Read `docs/ARCHITECTURE.md` before changing anything structural. Read
+`docs/DESIGN.md` before changing anything visual.
 
 ## Non-negotiable
 
