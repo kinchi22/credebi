@@ -11,13 +11,13 @@ export const APP_ICONS = {
 
 export type AppIconName = keyof typeof APP_ICONS;
 
-export type AppIcon = { readonly size: number; readonly maskable: boolean };
+type IconSpec = { readonly size: number; readonly maskable: boolean };
 
 const MASKABLE_SAFE_ZONE = 0.8;
 
 const ICON_GROUND = palette[semanticColors['ground-dark']];
 
-export function appIcon({ size, maskable }: AppIcon): ImageResponse {
+export function appIcon({ size, maskable }: IconSpec): ImageResponse {
   const height = maskable ? size * MASKABLE_SAFE_ZONE : size;
   return new ImageResponse(
     <div

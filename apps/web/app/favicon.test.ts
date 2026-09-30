@@ -6,17 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 const favicon = readFileSync(new URL('./favicon.ico', import.meta.url));
 
-type Image = { readonly size: number; readonly png: Buffer };
-
-const images = (ico: Buffer): readonly Image[] =>
-  Array.from({ length: ico.readUInt16LE(4) }, (_, index) => {
-    const entry = 6 + 16 * index;
-    const offset = ico.readUInt32LE(entry + 12);
-    return {
-      size: ico.readUInt8(entry),
-      png: ico.subarray(offset, offset + ico.readUInt32LE(entry + 8)),
-    };
-  });
+type Image = { readonly size: number; readonly png: Buffer; readonly rows: Buffer };
 
 const idat = (png: Buffer): Buffer => {
   const chunks: Buffer[] = [];
@@ -27,6 +17,22 @@ const idat = (png: Buffer): Buffer => {
   }
   return inflateSync(Buffer.concat(chunks));
 };
+
+const images = (ico: Buffer): readonly Image[] =>
+  Array.from({ length: ico.readUInt16LE(4) }, (_, index) => {
+    const entry = 6 + 16 * index;
+    const offset = ico.readUInt32LE(entry + 12);
+    const png = ico.subarray(offset, offset + ico.readUInt32LE(entry + 8));
+    return { size: ico.readUInt8(entry), png, rows: idat(png) };
+  });
+
+const RGBA_8_BIT = { depth: 8, colourType: 6, interlace: 0 };
+
+const header = (png: Buffer) => ({
+  depth: png.readUInt8(24),
+  colourType: png.readUInt8(25),
+  interlace: png.readUInt8(28),
+});
 
 const hex = (bytes: Buffer): string =>
   `#${[...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('')}`.toUpperCase();
@@ -43,18 +49,20 @@ const part = (name: LogoPartName) => mark.parts.find((candidate) => candidate.na
 function pixel(image: Image, x: number, y: number): { readonly colour: string; readonly alpha: number } {
   const column = Math.floor(((x - centre.x + side / 2) / side) * image.size);
   const row = Math.floor(((y - centre.y + side / 2) / side) * image.size);
-  const at = row * (1 + 4 * image.size) + 1 + 4 * column;
-  const rows = idat(image.png);
-  return { colour: hex(rows.subarray(at, at + 3)), alpha: rows.readUInt8(at + 3) };
+  const start = row * (1 + 4 * image.size);
+  expect(image.rows.readUInt8(start)).toBe(0);
+  const at = start + 1 + 4 * column;
+  return { colour: hex(image.rows.subarray(at, at + 3)), alpha: image.rows.readUInt8(at + 3) };
 }
 
 describe('the favicon', () => {
-  it('holds the Mark at 16 and 32 pixels, as PNGs of that size', () => {
+  it('holds 16 and 32 pixel PNGs, each of the size its entry states, in 8-bit RGBA', () => {
     const found = images(favicon);
     expect(found.map((image) => image.size)).toEqual([16, 32]);
     for (const image of found) {
       expect(image.png.readUInt32BE(16)).toBe(image.size);
       expect(image.png.readUInt32BE(20)).toBe(image.size);
+      expect(header(image.png)).toEqual(RGBA_8_BIT);
     }
   });
 
