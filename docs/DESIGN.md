@@ -236,9 +236,10 @@ Mono, `uppercase` sets the capitals and `tabular-nums` the numerals.
 and a component takes a step from it: a date, shown or typed, is
 `typeClasses.date`, an amount `typeClasses.figure`, and a section label
 `typeClasses.label`. The fonts are served from the
-repository, never fetched from a font service at build or run time: the woff2
-files and their OFL licences are in `apps/web/app/fonts/`, loaded through
-`next/font/local`.
+repository, never fetched from a font service at build or run time. The font
+files and their OFL licences are in `apps/web/app/fonts/`: the pages load the
+woff2 files through `next/font/local`, and the share image reads Sora as TTF, as
+"Metadata files" in `docs/ARCHITECTURE.md` states.
 
 ## Elevation & Depth
 

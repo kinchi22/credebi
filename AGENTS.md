@@ -96,10 +96,12 @@ apps/web/server/container.ts       wiring (composition root)
 apps/web/app/(app)/x/page.tsx      composition only
 apps/web/app/(app)/x/actions.ts    Server Actions: parse, invoke, revalidate
 apps/web/messages/en.ts            copy, grouped by the UI that renders it (ADR-0007)
-apps/web/app/fonts/                font files and their licences, loaded by app/layout.tsx
+apps/web/app/fonts/                font files and their licences
 ```
 
 `apps/web/app/fonts/` is one directory for the whole app, not one per feature.
+The metadata files and the route handlers that serve icons follow "Metadata
+files" in `docs/ARCHITECTURE.md`.
 Add the feature to the `exports` field of `packages/core/package.json`. Do not
 create directories outside this shape, and never create `lib/`, `utils/`,
 `helpers/`, or `common/`.

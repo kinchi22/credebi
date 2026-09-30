@@ -6,6 +6,7 @@
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./logo-drawing": "./src/logo-drawing.ts",
     "./tokens": "./src/tokens.ts",
     "./type-classes": "./src/type-classes.ts"
   },
