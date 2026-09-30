@@ -1,3 +1,4 @@
+import { Logo } from '@repo/ui';
 import Link from 'next/link';
 import { type ReactNode } from 'react';
 import { en } from '../messages/en';
@@ -19,6 +20,7 @@ export function Sidebar({ signOut }: SidebarProps): ReactNode {
       aria-label={en.sidebar.ariaLabel}
       className="flex flex-col gap-2 border-b border-neutral-200 p-4 md:w-48 md:border-r md:border-b-0"
     >
+      <Logo variant="horizontal" tone="reverse" name={en.app.name} height={40} />
       <ul className="flex flex-col gap-1 text-sm">
         {LINKS.map((link) => (
           <li key={link.href}>
