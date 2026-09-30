@@ -66,6 +66,7 @@ const MARKUP_ATTRIBUTES = new Set([
   'role',
   'tone',
   'type',
+  'variant',
 ]);
 
 const isMarkupAttribute = (name) => name.startsWith('data-') || MARKUP_ATTRIBUTES.has(name);

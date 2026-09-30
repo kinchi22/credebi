@@ -1,3 +1,4 @@
+import { Logo } from '@repo/ui';
 import { type ReactNode } from 'react';
 import { TestSignInForm } from '../../../components/test-sign-in-form';
 import { en } from '../../../messages/en';
@@ -24,6 +25,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps): Pro
 
   return (
     <main className="mx-auto flex max-w-md flex-col gap-4 p-8">
+      <Logo variant="stacked" tone="color" name={en.app.name} height={120} />
       <h1 className="text-xl font-semibold">{en.signInPage.title}</h1>
       {query['error'] === undefined ? null : (
         <p role="alert" className="text-sm text-red-700">
