@@ -1,7 +1,11 @@
 export const en = {
   app: {
-    name: 'Double Entry Bookkeeping',
+    name: 'Credebi',
+    titleTemplate: '%s \u00B7 Credebi',
     description: 'Double-entry bookkeeping.',
+  },
+  notFoundPage: {
+    title: 'Page not found',
   },
   healthPanel: {
     title: 'Pipeline health',
