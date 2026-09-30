@@ -163,7 +163,7 @@ describe('the type scale', () => {
         tabularNumerals: false,
       },
       figure: { ...dmMono, fontSize: 14, lineHeight: 20, caps: false, tabularNumerals: true },
-      date: { ...dmMono, fontSize: 13, lineHeight: 20, caps: false, tabularNumerals: false },
+      date: { ...dmMono, fontSize: 13, lineHeight: 20, caps: false, tabularNumerals: true },
     });
   });
 });

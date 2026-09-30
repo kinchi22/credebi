@@ -2,6 +2,7 @@
 
 import { ENTRY_FORM_FIELDS, type DomainErrorCode, type EntryFormMode } from '@repo/contracts';
 import { CHART_OF_ACCOUNTS } from '@repo/core/entries';
+import { typeClasses } from '@repo/ui/type-classes';
 import {
   Fragment,
   startTransition,
@@ -96,7 +97,7 @@ export function AmountInput({ id, onAmountChange }: AmountInputProps): ReactNode
       inputMode="numeric"
       pattern="[0-9]+"
       required
-      className={`${CONTROL} text-right font-mono tabular-nums`}
+      className={`${CONTROL} text-right ${typeClasses.figure}`}
     />
   );
 }
@@ -135,7 +136,7 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
     >
       <h2
         id={`${id}-title`}
-        className="text-sm font-semibold uppercase tracking-wide text-neutral-600"
+        className={`${typeClasses.label} text-neutral-600`}
       >
         {en.entryForm.title}
       </h2>
@@ -150,7 +151,7 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
             name={ENTRY_FORM_FIELDS.entryDate}
             type="date"
             required
-            className={`${CONTROL} font-mono tabular-nums`}
+            className={`${CONTROL} ${typeClasses.date}`}
           />
         </div>
         <div className={`${FIELD} grow`}>

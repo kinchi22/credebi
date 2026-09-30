@@ -1,5 +1,6 @@
 import { SEARCH_CRITERIA_FIELDS, type SearchCriteriaInput } from '@repo/contracts';
 import { CHART_OF_ACCOUNTS } from '@repo/core/entries';
+import { typeClasses } from '@repo/ui/type-classes';
 import { useId, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { ENTRY_SEARCH_PATH } from '../server/return-path';
@@ -23,7 +24,7 @@ export function EntrySearchForm({ criteria }: EntrySearchFormProps): ReactNode {
     >
       <h2
         id={`${id}-title`}
-        className="w-full text-sm font-semibold uppercase tracking-wide text-neutral-600"
+        className={`w-full ${typeClasses.label} text-neutral-600`}
       >
         {en.entrySearch.title}
       </h2>
@@ -35,7 +36,7 @@ export function EntrySearchForm({ criteria }: EntrySearchFormProps): ReactNode {
           name={SEARCH_CRITERIA_FIELDS.from}
           type="date"
           defaultValue={criteria.from ?? ''}
-          className={`${CONTROL} font-mono tabular-nums`}
+          className={`${CONTROL} ${typeClasses.date}`}
         />
       </div>
       <div className={FIELD}>
@@ -45,7 +46,7 @@ export function EntrySearchForm({ criteria }: EntrySearchFormProps): ReactNode {
           name={SEARCH_CRITERIA_FIELDS.to}
           type="date"
           defaultValue={criteria.to ?? ''}
-          className={`${CONTROL} font-mono tabular-nums`}
+          className={`${CONTROL} ${typeClasses.date}`}
         />
       </div>
 

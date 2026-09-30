@@ -170,7 +170,7 @@ export const typeScale: Readonly<Record<TypeStepName, TypeStep>> = {
     lineHeight: 20,
     fontWeight: 400,
     caps: false,
-    tabularNumerals: false,
+    tabularNumerals: true,
   },
 };
 

@@ -1,4 +1,5 @@
 import localFont from 'next/font/local';
+import { typeClasses } from '@repo/ui/type-classes';
 import { type ReactNode } from 'react';
 import { en } from '../messages/en';
 import './globals.css';
@@ -27,7 +28,7 @@ export const metadata = {
 export default function RootLayout({ children }: { children: ReactNode }): ReactNode {
   return (
     <html lang="en" className={`${sora.variable} ${dmMono.variable}`}>
-      <body className="bg-white font-sans text-body text-neutral-900 antialiased">{children}</body>
+      <body className={`bg-white ${typeClasses.body} text-neutral-900 antialiased`}>{children}</body>
     </html>
   );
 }

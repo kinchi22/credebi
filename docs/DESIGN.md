@@ -84,6 +84,7 @@ typography:
     fontSize: 13px
     fontWeight: 400
     lineHeight: 20px
+    fontFeature: '"tnum" 1'
 components:
   button-primary:
     backgroundColor: "{colors.accent}"
@@ -205,13 +206,16 @@ column of amounts lines up. Nothing is set below 12px.
 | `body-sm` | Sora Regular     | 14 / 20            |                |                  |
 | `label`   | DM Mono Regular  | 12 / 16            | 0.06em         | capitals         |
 | `figure`  | DM Mono Regular  | 14 / 20            |                | tabular numerals |
-| `date`    | DM Mono Regular  | 13 / 20            |                |                  |
+| `date`    | DM Mono Regular  | 13 / 20            |                | tabular numerals |
 
 Each step is a Tailwind `text-<step>` utility, which sets its size, line height,
 weight and letter spacing. The face, the capitals and the tabular numerals are
 applied beside it: `font-sans` is Sora and the page's default, `font-mono` is DM
-Mono, and `tabular-nums` sets the numerals. A date or an amount, shown or typed,
-is set in `font-mono` with `tabular-nums`. The fonts are served from the
+Mono, `uppercase` sets the capitals and `tabular-nums` the numerals.
+`typeClasses` in `packages/ui/src/type-classes.ts` holds each step's full set,
+and a component takes a step from it: a date, shown or typed, is
+`typeClasses.date`, an amount `typeClasses.figure`, and a section label
+`typeClasses.label`. The fonts are served from the
 repository, never fetched from a font service at build or run time: the woff2
 files and their OFL licences are in `apps/web/app/fonts/`, loaded through
 `next/font/local`.
