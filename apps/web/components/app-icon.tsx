@@ -11,11 +11,13 @@ export const APP_ICONS = {
 
 export type AppIconName = keyof typeof APP_ICONS;
 
+export type AppIcon = { readonly size: number; readonly maskable: boolean };
+
 const MASKABLE_SAFE_ZONE = 0.8;
 
-export const APP_ICON_GROUND = palette[semanticColors['ground-dark']];
+const ICON_GROUND = palette[semanticColors['ground-dark']];
 
-export function appIcon(size: number, maskable: boolean): ImageResponse {
+export function appIcon({ size, maskable }: AppIcon): ImageResponse {
   const height = maskable ? size * MASKABLE_SAFE_ZONE : size;
   return new ImageResponse(
     <div
@@ -25,7 +27,7 @@ export function appIcon(size: number, maskable: boolean): ImageResponse {
         justifyContent: 'center',
         width: '100%',
         height: '100%',
-        background: APP_ICON_GROUND,
+        background: ICON_GROUND,
       }}
     >
       <Logo variant="mark" tone="reverse" name={en.app.name} height={height} />

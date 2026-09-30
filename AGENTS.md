@@ -100,6 +100,8 @@ apps/web/app/fonts/                font files and their licences, loaded by app/
 ```
 
 `apps/web/app/fonts/` is one directory for the whole app, not one per feature.
+The metadata files and the route handlers that serve icons follow "Metadata
+files" in `docs/ARCHITECTURE.md`.
 Add the feature to the `exports` field of `packages/core/package.json`. Do not
 create directories outside this shape, and never create `lib/`, `utils/`,
 `helpers/`, or `common/`.

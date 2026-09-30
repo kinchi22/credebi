@@ -18,6 +18,5 @@ export async function GET(
   if (!isAppIcon(icon)) {
     notFound();
   }
-  const { size, maskable } = APP_ICONS[icon];
-  return appIcon(size, maskable);
+  return appIcon(APP_ICONS[icon]);
 }

@@ -1,6 +1,6 @@
 import { palette, semanticColors } from '@repo/ui/tokens';
 import { type MetadataRoute } from 'next';
-import { APP_ICON_GROUND, APP_ICONS } from '../components/app-icon';
+import { APP_ICONS } from '../components/app-icon';
 import { en } from '../messages/en';
 
 export default function manifest(): MetadataRoute.Manifest {
@@ -11,7 +11,7 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: '/',
     display: 'standalone',
     background_color: palette[semanticColors.ground],
-    theme_color: APP_ICON_GROUND,
+    theme_color: palette[semanticColors['ground-dark']],
     icons: Object.entries(APP_ICONS).map(([name, { size, maskable }]) => ({
       src: `/app-icon/${name}`,
       sizes: `${String(size)}x${String(size)}`,
