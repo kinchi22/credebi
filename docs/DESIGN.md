@@ -32,6 +32,7 @@ colors:
   ground-dark-raised: "{colors.ink-raised}"
   accent: "{colors.mint}"
   accent-text: "{colors.mint-deep}"
+  accent-text-hover: "{colors.mint-deeper}"
   border: "{colors.fog}"
   border-control: "{colors.steel}"
   danger: "{colors.rust}"
@@ -89,6 +90,17 @@ components:
   button-primary:
     backgroundColor: "{colors.accent}"
     textColor: "{colors.text}"
+  button-secondary:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.text}"
+  button-quiet-on-dark:
+    textColor: "{colors.text-muted-on-dark}"
+  button-quiet-on-dark-hover:
+    textColor: "{colors.text-on-dark}"
+  link:
+    textColor: "{colors.accent-text}"
+  link-hover:
+    textColor: "{colors.accent-text-hover}"
   sidebar:
     backgroundColor: "{colors.ground-dark}"
     textColor: "{colors.text-on-dark}"
@@ -170,6 +182,7 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `ground-dark-raised` | `ink-raised` | the active Sidebar item              |
 | `accent`             | `mint`      | the primary button fill, the mark     |
 | `accent-text`        | `mint-deep` | links, accent text on a light ground  |
+| `accent-text-hover`  | `mint-deeper` | a link under the pointer            |
 | `border`             | `fog`       | dividers, panel edges                 |
 | `border-control`     | `steel`     | inputs, secondary buttons             |
 | `danger`             | `rust`      | refusals, errors                      |
@@ -228,8 +241,15 @@ Hierarchy comes from tonal layers, not shadows: `surface` panels with a
 ## Components
 
 - **Primary button.** `accent` fill with `text`. White on mint reads 2.0:1 and
-  is never used.
+  is never used. It is kept for a page's main action: the entry form's submit,
+  Entry search's submit and "Sign in with Google". Every other button on a
+  light ground is secondary.
 - **Secondary button.** `surface` fill, `text`, a `border-control` edge.
+- **Quiet button on dark.** No fill and no border: `text-muted-on-dark` text,
+  `text-on-dark` under the pointer, and the `focus-on-dark` ring. It is Sign out
+  in the Sidebar.
+- **Link.** `accent-text`, underlined, and `accent-text-hover` under the
+  pointer.
 - **Input.** `surface` fill, `text`, a `border-control` edge. The spec's
   component properties have no border colour, so the edge is stated here only.
 - **Sidebar.** Dark: a `ground-dark` ground, `text-on-dark` text,

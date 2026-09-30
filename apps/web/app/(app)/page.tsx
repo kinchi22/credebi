@@ -3,6 +3,7 @@ import { typeClasses } from '@repo/ui/type-classes';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { type ReactNode } from 'react';
+import { LINK, MUTED_TEXT } from '../../components/text-classes';
 import { RefreshButton } from '../../components/refresh-button';
 import { en } from '../../messages/en';
 import { createContext } from '../../server/context';
@@ -20,9 +21,9 @@ export default async function HomePage(): Promise<ReactNode> {
 
   return (
     <main className="mx-auto flex max-w-xl flex-col gap-4 p-8">
-      <h1 className="text-xl font-semibold">{en.app.name}</h1>
+      <h1 className={typeClasses.h1}>{en.app.name}</h1>
       <nav>
-        <Link href="/entries" className="text-sm underline">
+        <Link href="/entries" className={`${typeClasses['body-sm']} ${LINK}`}>
           {en.home.entriesLink}
         </Link>
       </nav>
@@ -33,7 +34,7 @@ export default async function HomePage(): Promise<ReactNode> {
             tone={health.status === 'healthy' ? 'positive' : 'negative'}
             label={health.status}
           />
-          <ul className="text-sm text-neutral-600">
+          <ul className={MUTED_TEXT}>
             {health.components.map((component) => (
               <li key={component.name} data-testid={`component-${component.name}`}>
                 {component.name}:{' '}
@@ -42,7 +43,7 @@ export default async function HomePage(): Promise<ReactNode> {
             ))}
           </ul>
           <time
-            className={`${typeClasses.date} text-neutral-500`}
+            className={`${typeClasses.date} text-text-muted`}
             dateTime={health.checkedAt}
             data-testid="checked-at"
           >

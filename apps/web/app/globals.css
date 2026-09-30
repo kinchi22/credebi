@@ -12,6 +12,7 @@
   --color-ground-dark-raised: #133F3C;
   --color-accent: #2FD0A2;
   --color-accent-text: #0B7A5E;
+  --color-accent-text-hover: #09644D;
   --color-border: #E1ECE8;
   --color-border-control: #78948F;
   --color-danger: #B4400F;
@@ -48,4 +49,11 @@
   --text-date: 13px;
   --text-date--line-height: 20px;
   --text-date--font-weight: 400;
+}
+
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
 }

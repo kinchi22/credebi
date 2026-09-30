@@ -73,6 +73,7 @@ describe('the semantic tokens', () => {
       'ground-dark-raised': 'ink-raised',
       accent: 'mint',
       'accent-text': 'mint-deep',
+      'accent-text-hover': 'mint-deeper',
       border: 'fog',
       'border-control': 'steel',
       danger: 'rust',
@@ -97,6 +98,7 @@ describe('themeDeclarations', () => {
     expect(declarations['--color-text']).toBe('#0B2B2A');
     expect(declarations['--color-border-control']).toBe('#78948F');
     expect(declarations['--color-accent-text']).toBe('#0B7A5E');
+    expect(declarations['--color-accent-text-hover']).toBe('#09644D');
   });
 
   it('declares no palette colour, so components can reach only a role', () => {

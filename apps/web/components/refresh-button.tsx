@@ -3,6 +3,7 @@
 import { useFormStatus } from 'react-dom';
 import { type ReactNode } from 'react';
 import { en } from '../messages/en';
+import { BUTTON } from './control-classes';
 
 export type RefreshButtonProps = {
   readonly action: () => Promise<void>;
@@ -14,7 +15,7 @@ function SubmitButton(): ReactNode {
   return (
     <button
       type="submit"
-      className="rounded border border-neutral-300 px-3 py-1 text-sm disabled:opacity-50"
+      className={BUTTON}
       disabled={pending}
     >
       {pending ? en.refreshButton.pending : en.refreshButton.idle}

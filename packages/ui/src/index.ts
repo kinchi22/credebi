@@ -1,4 +1,4 @@
-export { Panel } from './panel';
+export { PANEL, Panel } from './panel';
 export type { PanelProps } from './panel';
 
 export { StatusDot } from './status-dot';
