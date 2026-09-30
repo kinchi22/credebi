@@ -9,6 +9,7 @@ import {
   findSharedTermProblems,
   findStubProblems,
   findVendorPathProblems,
+  type Glossaries,
   HARNESS_PATHS_ALLOWED_IN,
   type SkillStub,
 } from './agents-shape';
@@ -64,9 +65,13 @@ describe('the harness layout', () => {
     expect(findVendorPathProblems(sharedProse())).toEqual([]);
   });
 
-  it('defines no term in both glossaries', () => {
+  it('defines no term in more than one glossary', () => {
     expect(
-      findSharedTermProblems(read('docs', 'GLOSSARY.md'), read('docs', 'agents', 'harnesses.md')),
+      findSharedTermProblems({
+        glossary: read('docs', 'GLOSSARY.md'),
+        harnesses: read('docs', 'agents', 'harnesses.md'),
+        design: read('docs', 'DESIGN.md'),
+      }),
     ).toEqual([]);
   });
 
@@ -364,24 +369,94 @@ const harnessesOf = (...terms: readonly string[]): string =>
     '',
   ].join('\n');
 
-describe('the two-glossary check', () => {
+const designOf = (...terms: readonly string[]): string =>
+  [
+    '# Design',
+    '',
+    '## Colors',
+    '',
+    '| Term | Hex |',
+    '| ---- | --- |',
+    '| Ledger | #000000 |',
+    '',
+    '## Terms',
+    '',
+    '| Term | Meaning |',
+    '| ---- | ------- |',
+    ...terms.map((term) => `| ${term} | What it means. |`),
+    '',
+  ].join('\n');
+
+const sharedTerms = ({
+  glossary = glossaryOf('Entry'),
+  harnesses = harnessesOf('Harness'),
+  design = designOf('Mark'),
+}: Partial<Glossaries>): readonly string[] => findSharedTermProblems({ glossary, harnesses, design });
+
+describe('the three-glossary check', () => {
   it('passes tables that share no term', () => {
     expect(
-      findSharedTermProblems(glossaryOf('Entry', 'Money'), harnessesOf('Harness', 'Driver')),
+      sharedTerms({
+        glossary: glossaryOf('Entry', 'Money'),
+        harnesses: harnessesOf('Harness', 'Driver'),
+        design: designOf('Mark', 'Wordmark'),
+      }),
     ).toEqual([]);
   });
 
-  it('rejects a term defined in both', () => {
+  it('rejects a term defined in both the domain glossary and the harness vocabulary', () => {
     expect(
-      findSharedTermProblems(glossaryOf('Entry', 'Skill'), harnessesOf('Harness', 'Skill')),
+      sharedTerms({
+        glossary: glossaryOf('Entry', 'Skill'),
+        harnesses: harnessesOf('Harness', 'Skill'),
+      }),
     ).toEqual([
       "'Skill' is defined in both docs/GLOSSARY.md and docs/agents/harnesses.md, and one " +
         'canonical name per concept means one table per term',
     ]);
   });
 
+  it('rejects a term defined in both the domain glossary and the design terms', () => {
+    expect(
+      sharedTerms({ glossary: glossaryOf('Entry', 'Lockup'), design: designOf('Mark', 'Lockup') }),
+    ).toEqual([
+      "'Lockup' is defined in both docs/GLOSSARY.md and docs/DESIGN.md, and one " +
+        'canonical name per concept means one table per term',
+    ]);
+  });
+
+  it('rejects a term defined in both the harness vocabulary and the design terms', () => {
+    expect(
+      sharedTerms({ harnesses: harnessesOf('Harness', 'Token'), design: designOf('Token') }),
+    ).toEqual([
+      "'Token' is defined in both docs/agents/harnesses.md and docs/DESIGN.md, and one " +
+        'canonical name per concept means one table per term',
+    ]);
+  });
+
+  it('reports every pair a term defined in all three belongs to', () => {
+    expect(
+      sharedTerms({
+        glossary: glossaryOf('Mark'),
+        harnesses: harnessesOf('Mark'),
+        design: designOf('Mark'),
+      }),
+    ).toEqual([
+      "'Mark' is defined in both docs/GLOSSARY.md and docs/agents/harnesses.md, and one " +
+        'canonical name per concept means one table per term',
+      "'Mark' is defined in both docs/GLOSSARY.md and docs/DESIGN.md, and one " +
+        'canonical name per concept means one table per term',
+      "'Mark' is defined in both docs/agents/harnesses.md and docs/DESIGN.md, and one " +
+        'canonical name per concept means one table per term',
+    ]);
+  });
+
   it('reads the vocabulary table alone, not the mapping table beside it', () => {
-    expect(findSharedTermProblems(glossaryOf('Skill body'), harnessesOf('Harness'))).toEqual([]);
+    expect(sharedTerms({ glossary: glossaryOf('Skill body') })).toEqual([]);
+  });
+
+  it('reads the design Terms table alone, not the tables above it', () => {
+    expect(sharedTerms({ glossary: glossaryOf('Ledger') })).toEqual([]);
   });
 
   it('still compares a term whose meaning cell contains a pipe', () => {
@@ -394,7 +469,7 @@ describe('the two-glossary check', () => {
       '',
     ].join('\n');
 
-    expect(findSharedTermProblems(glossary, harnessesOf('Result'))).toEqual([
+    expect(sharedTerms({ glossary, harnesses: harnessesOf('Result') })).toEqual([
       "'Result' is defined in both docs/GLOSSARY.md and docs/agents/harnesses.md, and one " +
         'canonical name per concept means one table per term',
     ]);
@@ -402,7 +477,7 @@ describe('the two-glossary check', () => {
 
   it('reports a vocabulary heading that moved rather than agreeing with nothing', () => {
     const renamed = harnessesOf('Harness').replace('## Vocabulary', '## Words');
-    expect(findSharedTermProblems(glossaryOf('Entry'), renamed)).toEqual([
+    expect(sharedTerms({ harnesses: renamed })).toEqual([
       'no term was found under `## Vocabulary` in docs/agents/harnesses.md, so nothing was ' +
         'compared. The scan is broken, not the repository empty.',
     ]);
@@ -410,9 +485,24 @@ describe('the two-glossary check', () => {
 
   it('reports a domain glossary that has stopped being a table the same way', () => {
     const untabled = '# Glossary\n\nOne canonical name per concept. No synonyms.\n';
-    expect(findSharedTermProblems(untabled, harnessesOf('Harness'))).toEqual([
+    expect(sharedTerms({ glossary: untabled })).toEqual([
       'no term was found in docs/GLOSSARY.md, so nothing was compared. The scan is broken, ' +
         'not the repository empty.',
+    ]);
+  });
+
+  it('reports an empty design Terms table the same way', () => {
+    expect(sharedTerms({ design: designOf() })).toEqual([
+      'no term was found under `## Terms` in docs/DESIGN.md, so nothing was compared. The ' +
+        'scan is broken, not the repository empty.',
+    ]);
+  });
+
+  it('reports a design Terms heading that moved the same way', () => {
+    const renamed = designOf('Mark').replace('## Terms', '## Words');
+    expect(sharedTerms({ design: renamed })).toEqual([
+      'no term was found under `## Terms` in docs/DESIGN.md, so nothing was compared. The ' +
+        'scan is broken, not the repository empty.',
     ]);
   });
 });
