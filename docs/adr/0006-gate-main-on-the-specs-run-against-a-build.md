@@ -220,5 +220,5 @@ feature work built against it, until the milestone was finished.
 passes it.
 
 **Liveness in `pnpm gates`.** Every other `verify:gates:*` script is there, but
-this one needs a browser installed and about 36 seconds, and `test:e2e`, the
-suite it checks, is outside `pnpm gates` already.
+this one needs a browser installed; its original three-spec run took about
+36 seconds. `test:e2e`, the suite it checks, is outside `pnpm gates` already.
