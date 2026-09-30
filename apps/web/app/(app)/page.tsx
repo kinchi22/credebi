@@ -3,7 +3,7 @@ import { typeClasses } from '@repo/ui/type-classes';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { type ReactNode } from 'react';
-import { MUTED_TEXT } from '../../components/control-classes';
+import { LINK, MUTED_TEXT } from '../../components/text-classes';
 import { RefreshButton } from '../../components/refresh-button';
 import { en } from '../../messages/en';
 import { createContext } from '../../server/context';
@@ -23,7 +23,7 @@ export default async function HomePage(): Promise<ReactNode> {
     <main className="mx-auto flex max-w-xl flex-col gap-4 p-8">
       <h1 className={typeClasses.h1}>{en.app.name}</h1>
       <nav>
-        <Link href="/entries" className={`${typeClasses['body-sm']} text-accent-text underline`}>
+        <Link href="/entries" className={`${typeClasses['body-sm']} ${LINK}`}>
           {en.home.entriesLink}
         </Link>
       </nav>

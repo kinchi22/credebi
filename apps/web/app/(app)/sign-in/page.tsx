@@ -1,7 +1,8 @@
 import { Logo } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { type ReactNode } from 'react';
-import { BUTTON, REFUSAL_TEXT } from '../../../components/control-classes';
+import { PRIMARY_BUTTON } from '../../../components/control-classes';
+import { DANGER_TEXT } from '../../../components/text-classes';
 import { TestSignInForm } from '../../../components/test-sign-in-form';
 import { en } from '../../../messages/en';
 import { createContext } from '../../../server/context';
@@ -30,13 +31,13 @@ export default async function SignInPage({ searchParams }: SignInPageProps): Pro
       <Logo variant="stacked" tone="color" name={en.app.name} height={120} />
       <h1 className={typeClasses.h1}>{en.signInPage.title}</h1>
       {query['error'] === undefined ? null : (
-        <p role="alert" className={REFUSAL_TEXT}>
+        <p role="alert" className={DANGER_TEXT}>
           {en.signInPage.failed}
         </p>
       )}
       <a
         href={`/sign-in/google?${new URLSearchParams({ returnTo }).toString()}`}
-        className={`self-start ${BUTTON}`}
+        className={`self-start ${PRIMARY_BUTTON}`}
       >
         {en.signInPage.google}
       </a>

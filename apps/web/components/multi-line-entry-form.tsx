@@ -12,7 +12,8 @@ import {
   type EntryFormProps,
 } from './entry-form';
 import { formatAmount } from './amount';
-import { BUTTON, CONTROL, FIELD, REFUSAL_TEXT } from './control-classes';
+import { BUTTON, CONTROL, FIELD, LEGEND } from './control-classes';
+import { DANGER_TEXT } from './text-classes';
 
 type LineState = DraftLine & {
   readonly key: number;
@@ -30,7 +31,7 @@ const FIRST_LINES: readonly LineState[] = [
 function DraftTotalsSummary({ lines }: { readonly lines: readonly DraftLine[] }): ReactNode {
   const totals = draftTotals(lines);
   if (!totals.ok) {
-    return <p className={REFUSAL_TEXT}>{en.multiLineForm.tooLarge}</p>;
+    return <p className={DANGER_TEXT}>{en.multiLineForm.tooLarge}</p>;
   }
 
   const rows = [
@@ -79,7 +80,7 @@ function DraftLines({ id }: { readonly id: string }): ReactNode {
         const lineId = `${id}-line-${String(line.key)}`;
         return (
           <fieldset key={line.key} className="flex flex-wrap items-end gap-3">
-            <legend className={`mb-1 ${typeClasses['body-sm']} font-semibold`}>
+            <legend className={`mb-1 ${LEGEND}`}>
               {en.multiLineForm.line} {index + 1}
             </legend>
             <div className={FIELD}>

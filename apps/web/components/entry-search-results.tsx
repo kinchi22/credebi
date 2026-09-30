@@ -2,7 +2,7 @@ import { type PostedEntry } from '@repo/contracts';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useId, type ReactNode } from 'react';
 import { en } from '../messages/en';
-import { MUTED_TEXT } from './control-classes';
+import { MUTED_TEXT } from './text-classes';
 import { EntryList } from './entry-list';
 
 export type EntrySearchResultsProps = {

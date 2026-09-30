@@ -2,9 +2,11 @@
 
 import { entryFormModeSchema, type DomainErrorCode, type EntryFormMode } from '@repo/contracts';
 import { useId, useState, useTransition, type ChangeEvent, type ReactNode } from 'react';
+import { PANEL } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { en } from '../messages/en';
-import { PANEL, REFUSAL_TEXT } from './control-classes';
+import { LEGEND } from './control-classes';
+import { DANGER_TEXT } from './text-classes';
 
 export type EntryFormModeChange =
   | { readonly outcome: 'saved' }
@@ -43,7 +45,7 @@ export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps
   return (
     <div className="flex flex-col gap-2">
       <fieldset className={`flex flex-col gap-2 ${PANEL}`}>
-        <legend className={`px-1 ${typeClasses['body-sm']} font-semibold`}>{en.settingsPage.entryFormMode}</legend>
+        <legend className={`px-1 ${LEGEND}`}>{en.settingsPage.entryFormMode}</legend>
         {entryFormModeSchema.options.map((mode) => (
           <div key={mode} className={`flex items-center gap-2 ${typeClasses['body-sm']}`}>
             <input
@@ -63,7 +65,7 @@ export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps
         {status === 'saved' ? en.settingsPage.saved : null}
       </p>
       {status === 'rejected' ? (
-        <p role="alert" className={REFUSAL_TEXT}>
+        <p role="alert" className={DANGER_TEXT}>
           {en.settingsPage.notSaved}
         </p>
       ) : null}

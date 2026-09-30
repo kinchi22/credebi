@@ -1,10 +1,11 @@
 import { SEARCH_CRITERIA_FIELDS, type SearchCriteriaInput } from '@repo/contracts';
 import { CHART_OF_ACCOUNTS } from '@repo/core/entries';
+import { PANEL } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useId, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { ENTRY_SEARCH_PATH } from '../server/return-path';
-import { CONTROL, FIELD, PANEL, PRIMARY_BUTTON } from './control-classes';
+import { CONTROL, FIELD, PRIMARY_BUTTON } from './control-classes';
 
 export type EntrySearchFormProps = {
   readonly criteria: SearchCriteriaInput;

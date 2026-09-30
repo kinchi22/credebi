@@ -2,6 +2,7 @@
 
 import { ENTRY_FORM_FIELDS, type DomainErrorCode, type EntryFormMode } from '@repo/contracts';
 import { CHART_OF_ACCOUNTS } from '@repo/core/entries';
+import { PANEL } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import {
   Fragment,
@@ -14,7 +15,8 @@ import {
   type SubmitEvent,
 } from 'react';
 import { en } from '../messages/en';
-import { CONTROL, FIELD, PANEL, PRIMARY_BUTTON, REFUSAL_TEXT } from './control-classes';
+import { CONTROL, FIELD, PRIMARY_BUTTON } from './control-classes';
+import { DANGER_TEXT } from './text-classes';
 
 export type EntryFormState =
   | { readonly outcome: 'idle' }
@@ -167,7 +169,7 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
       <Fragment key={resetKey}>{children(id)}</Fragment>
 
       {state.outcome === 'rejected' ? (
-        <p role="alert" className={REFUSAL_TEXT}>
+        <p role="alert" className={DANGER_TEXT}>
           {REFUSAL[mode][state.code]}
         </p>
       ) : null}

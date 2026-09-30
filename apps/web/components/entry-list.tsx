@@ -5,7 +5,7 @@ import { typeClasses } from '@repo/ui/type-classes';
 import { type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { formatAmount } from './amount';
-import { MUTED_TEXT } from './control-classes';
+import { MUTED_TEXT } from './text-classes';
 
 export type EntryListProps = {
   readonly entries: readonly PostedEntry[];

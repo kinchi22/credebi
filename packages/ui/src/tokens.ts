@@ -28,6 +28,7 @@ export const semanticColors = {
   'ground-dark-raised': 'ink-raised',
   accent: 'mint',
   'accent-text': 'mint-deep',
+  'accent-text-hover': 'mint-deeper',
   border: 'fog',
   'border-control': 'steel',
   danger: 'rust',
