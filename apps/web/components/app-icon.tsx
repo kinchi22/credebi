@@ -1,0 +1,35 @@
+import { Logo } from '@repo/ui';
+import { palette, semanticColors } from '@repo/ui/tokens';
+import { ImageResponse } from 'next/og';
+import { en } from '../messages/en';
+
+export const APP_ICONS = {
+  '192': { size: 192, maskable: false },
+  '512': { size: 512, maskable: false },
+  'maskable-512': { size: 512, maskable: true },
+} as const;
+
+export type AppIconName = keyof typeof APP_ICONS;
+
+const MASKABLE_SAFE_ZONE = 0.8;
+
+export const APP_ICON_GROUND = palette[semanticColors['ground-dark']];
+
+export function appIcon(size: number, maskable: boolean): ImageResponse {
+  const height = maskable ? size * MASKABLE_SAFE_ZONE : size;
+  return new ImageResponse(
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+        height: '100%',
+        background: APP_ICON_GROUND,
+      }}
+    >
+      <Logo variant="mark" tone="reverse" name={en.app.name} height={height} />
+    </div>,
+    { width: size, height: size },
+  );
+}
