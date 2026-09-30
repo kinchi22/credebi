@@ -409,9 +409,9 @@ have an answer. An absence alone is satisfied by an empty or failed page.
 
 A spec that writes three or more Entries through the form carries
 `test.slow()`, because it spends most of its budget before it reaches what it
-tests. The threshold is a rule rather than a tag to reach for because the cost
-lands in `Gate liveness`: every spec fails by timeout against the empty page,
-so a longer timeout is a longer wait there. ADR-0006.
+tests. `Gate liveness` uses two workers and a one-second action timeout against
+the empty page, so a missing element does not consume that extended budget.
+The test and assertion timeouts keep their app-suite defaults. ADR-0006.
 
 ## How a release reaches Production
 

@@ -106,6 +106,7 @@ async function runAgainstEmptyPage(repoRoot: string): Promise<readonly string[]>
           stdio: 'inherit',
           env: {
             ...process.env,
+            E2E_LIVENESS: '1',
             E2E_BASE_URL: `http://127.0.0.1:${String(port)}`,
             PLAYWRIGHT_JSON_OUTPUT_NAME: reportFile,
           },
