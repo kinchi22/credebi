@@ -1,9 +1,8 @@
-import { type Metadata } from 'next';
 import { type ReactNode } from 'react';
 import { en } from '../messages/en';
 import './globals.css';
 
-export const metadata: Metadata = {
+export const metadata = {
   title: { template: en.app.titleTemplate, default: en.app.name },
   description: en.app.description,
   applicationName: en.app.name,

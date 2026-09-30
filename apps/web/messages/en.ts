@@ -1,7 +1,9 @@
+const productName = 'Credebi';
+
 export const en = {
   app: {
-    name: 'Credebi',
-    titleTemplate: '%s \u00B7 Credebi',
+    name: productName,
+    titleTemplate: `%s \u00B7 ${productName}`,
     description: 'Double-entry bookkeeping.',
   },
   notFoundPage: {
