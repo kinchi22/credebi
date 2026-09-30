@@ -77,6 +77,15 @@ the test-collection gate excludes this directory too.
 | `server-only/client-imports-server.tsx`          | build (server-only)   |
 | `mutation/`                                       | Stryker threshold     |
 | `migration/schema-with-a-table.ts`               | migration drift (`pnpm db:drift`) |
+| `e2e-liveness/no-assertions.spec.ts`               | E2E liveness (passes against an empty page) |
+| `e2e-liveness/browser-failure.spec.ts`             | E2E liveness (browser never launches) |
+
+`e2e-liveness/missing-input.spec.ts` and `ordinary-input.spec.ts` use the same
+deferred input to exercise the action budget. The input appears after four
+seconds: liveness fails its fill after one second, while an ordinary run waits
+and succeeds. The fixtures import the shared Playwright configuration and run
+in `vitest.e2e-liveness.config.ts`, which is called by `pnpm verify:gates:e2e`
+after Chromium is installed.
 
 ## Rules with no fixture
 
@@ -122,8 +131,8 @@ catch:
   `e2e-liveness-gate.test.ts` by reports shaped like real runs: a spec that
   passed against the empty page, one skipped, one that passed on a retry, specs
   that failed in the harness before a line of their own ran, no specs at all,
-  and an empty page nobody requested. Its command half starts a browser, so
-  `Gate liveness` runs it rather than that test.
+  and an empty page nobody requested. Its command half is exercised with the
+  browser fixtures above, alongside the full app suite, by `Gate liveness`.
 
 ## Fixtures that are planted, not linted
 

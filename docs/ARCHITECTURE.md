@@ -190,7 +190,8 @@ The exclusions in that config name files no unit test can import, not files whos
 tests are missing: each reaches the composition root, and that imports
 `server-only`. So the rows above that say Playwright are outside every automated
 coverage gate, and `tools/**` is outside too, for a different reason -- its tests
-run under `vitest.gates.config.ts` and the mutation runner runs the unit config.
+run under `vitest.gates.config.ts` or the browser suite in
+`vitest.e2e-liveness.config.ts`, and the mutation runner runs the unit config.
 ADR-0004 carries the reasoning, the numbers and the limits; the config is an owned
 path below, so the exclusion list cannot grow without the owner seeing it.
 
@@ -409,9 +410,11 @@ have an answer. An absence alone is satisfied by an empty or failed page.
 
 A spec that writes three or more Entries through the form carries
 `test.slow()`, because it spends most of its budget before it reaches what it
-tests. `Gate liveness` uses two workers and a one-second action timeout against
-the empty page, so a missing element does not consume that extended budget.
-The test and assertion timeouts keep their app-suite defaults. ADR-0006.
+tests. The fixed threshold limits unnecessary extensions of the test budget:
+hooks and waits outside the action timeout can still consume that budget in
+`Gate liveness`. The liveness command uses two workers and a one-second action
+timeout for missing elements; test and assertion timeouts retain their normal
+budgets. ADR-0006.
 
 ## How a release reaches Production
 

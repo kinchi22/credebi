@@ -26,7 +26,6 @@ const localServer: Pick<PlaywrightTestConfig, 'webServer'> =
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
-  ...(isLiveness ? { workers: 2 } : {}),
   forbidOnly: isCI,
   retries: isCI ? 2 : 0,
   reporter: isCI ? [['github'], ['html', { open: 'never' }]] : [['list']],
