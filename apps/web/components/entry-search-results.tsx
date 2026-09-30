@@ -1,4 +1,5 @@
 import { type PostedEntry } from '@repo/contracts';
+import { typeClasses } from '@repo/ui/type-classes';
 import { useId, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { EntryList } from './entry-list';
@@ -14,7 +15,7 @@ export function EntrySearchResults({ entries }: EntrySearchResultsProps): ReactN
     <section aria-labelledby={titleId} className="flex flex-col gap-2">
       <h2
         id={titleId}
-        className="text-sm font-semibold uppercase tracking-wide text-neutral-600"
+        className={`${typeClasses.label} text-neutral-600`}
       >
         {en.entrySearch.results}
       </h2>

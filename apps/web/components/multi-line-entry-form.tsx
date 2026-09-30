@@ -2,6 +2,7 @@
 
 import { ENTRY_FORM_FIELDS, entryFormModeSchema, sideSchema, type Side } from '@repo/contracts';
 import { draftTotals, type DraftLine } from '@repo/core/entries';
+import { typeClasses } from '@repo/ui/type-classes';
 import { useState, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import {
@@ -46,7 +47,7 @@ function DraftTotalsSummary({ lines }: { readonly lines: readonly DraftLine[] })
       {rows.map((row) => (
         <div key={row.testId} className="contents">
           <dt>{row.label}</dt>
-          <dd data-testid={row.testId} className="text-right tabular-nums">
+          <dd data-testid={row.testId} className={`text-right ${typeClasses.figure}`}>
             {formatAmount(row.amount)}
           </dd>
         </div>
@@ -81,7 +82,7 @@ function DraftLines({ id }: { readonly id: string }): ReactNode {
         const lineId = `${id}-line-${String(line.key)}`;
         return (
           <fieldset key={line.key} className="flex flex-wrap items-end gap-3">
-            <legend className="mb-1 text-sm font-medium">
+            <legend className="mb-1 text-sm font-semibold">
               {en.multiLineForm.line} {index + 1}
             </legend>
             <div className={FIELD}>

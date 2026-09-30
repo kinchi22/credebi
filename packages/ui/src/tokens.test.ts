@@ -3,6 +3,7 @@ import { contrastRatio } from './contrast';
 import {
   CONTROL_EDGE_MINIMUM,
   controlEdgePairs,
+  fontFaces,
   palette,
   semanticColors,
   TEXT_MINIMUM,
@@ -84,6 +85,11 @@ describe('the semantic tokens', () => {
 });
 
 describe('themeDeclarations', () => {
+  it('sets Sora as the sans face and DM Mono as the mono face, from the fonts the app serves', () => {
+    const declarations = themeDeclarations();
+    expect(declarations['--font-sans']).toBe('var(--font-sora)');
+    expect(declarations['--font-mono']).toBe('var(--font-dm-mono)');
+  });
 
   it('declares each semantic colour at its palette value', () => {
     const declarations = themeDeclarations();
@@ -115,16 +121,24 @@ describe('themeDeclarations', () => {
     expect(declarations['--text-body--letter-spacing']).toBeUndefined();
   });
 
-  it('declares nothing but the colours and the type scale', () => {
+  it('declares nothing but the colours, the faces and the type scale', () => {
     const declarations = themeDeclarations();
     const colours = Object.keys(semanticColors).length;
+    const faces = Object.keys(fontFaces).length;
     const typeSteps = Object.values(typeScale);
     const spacing = typeSteps.filter((step) => step.letterSpacing !== undefined).length;
-    expect(Object.keys(declarations)).toHaveLength(colours + typeSteps.length * 3 + spacing);
+    expect(Object.keys(declarations)).toHaveLength(colours + faces + typeSteps.length * 3 + spacing);
   });
 });
 
 describe('the type scale', () => {
+  it('sets every step in a face the theme declares', () => {
+    const declared: readonly string[] = Object.values(fontFaces);
+    for (const step of Object.values(typeScale)) {
+      expect(declared).toContain(step.fontFamily);
+    }
+  });
+
   it('sets nothing smaller than 12px', () => {
     for (const step of Object.values(typeScale)) {
       expect(step.fontSize).toBeGreaterThanOrEqual(12);
@@ -149,7 +163,7 @@ describe('the type scale', () => {
         tabularNumerals: false,
       },
       figure: { ...dmMono, fontSize: 14, lineHeight: 20, caps: false, tabularNumerals: true },
-      date: { ...dmMono, fontSize: 13, lineHeight: 20, caps: false, tabularNumerals: false },
+      date: { ...dmMono, fontSize: 13, lineHeight: 20, caps: false, tabularNumerals: true },
     });
   });
 });

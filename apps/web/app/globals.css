@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@source "../../../packages/ui/src";
 
 @theme {
   --color-surface: #FFFFFF;
@@ -18,6 +19,8 @@
   --color-positive: #0B7A5E;
   --color-focus: #0B7A5E;
   --color-focus-on-dark: #2FD0A2;
+  --font-sans: var(--font-sora);
+  --font-mono: var(--font-dm-mono);
   --text-display: 32px;
   --text-display--line-height: 40px;
   --text-display--font-weight: 600;

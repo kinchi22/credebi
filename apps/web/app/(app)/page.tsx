@@ -1,4 +1,5 @@
 import { Panel, StatusDot } from '@repo/ui';
+import { typeClasses } from '@repo/ui/type-classes';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { type ReactNode } from 'react';
@@ -41,7 +42,7 @@ export default async function HomePage(): Promise<ReactNode> {
             ))}
           </ul>
           <time
-            className="text-xs text-neutral-500"
+            className={`${typeClasses.date} text-neutral-500`}
             dateTime={health.checkedAt}
             data-testid="checked-at"
           >
