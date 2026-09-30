@@ -158,6 +158,55 @@ const noInlineCopy = {
   },
 };
 
+const RAW_COLOUR = /(?<![\w&])#(?:[\da-f]{8}|[\da-f]{6}|[\da-f]{3,4})(?![\w-])|\b(?:rgba?|hsla?|oklch|oklab)\(/giu;
+
+const COLOUR_UTILITY =
+  /^(?:text|bg|border(?:-[xytrblse])?|outline|ring|ring-offset|inset-ring|divide|fill|stroke|from|via|to|decoration|placeholder|caret|accent|shadow|inset-shadow|drop-shadow|text-shadow)-(?:(?:slate|gray|zinc|neutral|stone|mauve|olive|mist|taupe|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}|white|black)(?:\/\S+)?$/u;
+
+const utilityOf = (className) => (className.split(':').at(-1) ?? '').replace(/^[!-]+|!$/gu, '');
+
+const paletteClasses = (text) =>
+  text.split(/\s+/u).filter((className) => COLOUR_UTILITY.test(utilityOf(className)));
+
+const noRawColor = {
+  meta: {
+    type: 'problem',
+    docs: {
+      description:
+        'Disallow colour literals and Tailwind palette classes outside the token source.',
+    },
+    schema: [],
+    messages: {
+      rawColour:
+        'Colour literal {{text}} is written outside the token source. Use a semantic token ' +
+        'from packages/ui/src/tokens.ts, as a utility such as `text-danger`, or add the ' +
+        'colour there and to docs/DESIGN.md.',
+      paletteClass:
+        'Class {{text}} names a colour outside the token set. Use a semantic token such as ' +
+        '`bg-surface` or `text-text-muted`; docs/DESIGN.md lists them.',
+    },
+  },
+  create(context) {
+    const check = (node, text) => {
+      for (const match of text.matchAll(RAW_COLOUR)) {
+        context.report({ node, messageId: 'rawColour', data: { text: JSON.stringify(match[0]) } });
+      }
+      for (const className of paletteClasses(text)) {
+        context.report({ node, messageId: 'paletteClass', data: { text: JSON.stringify(className) } });
+      }
+    };
+
+    return {
+      Literal(node) {
+        if (typeof node.value === 'string') check(node, node.value);
+      },
+      TemplateElement(node) {
+        check(node, node.value.cooked ?? node.value.raw);
+      },
+    };
+  },
+};
+
 const DIRECTIVE = /^(?:eslint-disable-next-line|eslint-disable-line|eslint-disable|eslint-enable|@ts-expect-error)(?=\s|$)/;
 const DIRECTIVE_REASON = /\s--\s*\S/;
 
@@ -202,6 +251,7 @@ export const repoPlugin = {
     'no-comments': noComments,
     'no-inline-copy': noInlineCopy,
     'no-non-ascii': noNonAscii,
+    'no-raw-color': noRawColor,
   },
 };
 

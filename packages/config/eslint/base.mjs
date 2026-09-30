@@ -55,6 +55,16 @@ export function createBaseConfig({ tsconfigRootDir }) {
     },
 
     {
+      name: 'repo/token-colours',
+      files: ['apps/web/**/*.{ts,tsx}', 'packages/ui/**/*.{ts,tsx}'],
+      ignores: ['packages/ui/src/tokens.ts', 'packages/ui/src/*.test.ts'],
+      plugins: { repo: repoPlugin },
+      rules: {
+        'repo/no-raw-color': 'error',
+      },
+    },
+
+    {
       name: 'repo/plain-js',
       files: ['**/*.{js,mjs,cjs}'],
       languageOptions: {
