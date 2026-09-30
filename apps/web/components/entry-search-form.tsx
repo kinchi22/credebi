@@ -1,15 +1,15 @@
 import { SEARCH_CRITERIA_FIELDS, type SearchCriteriaInput } from '@repo/contracts';
 import { CHART_OF_ACCOUNTS } from '@repo/core/entries';
+import { PANEL } from '@repo/ui';
+import { typeClasses } from '@repo/ui/type-classes';
 import { useId, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { ENTRY_SEARCH_PATH } from '../server/return-path';
+import { CONTROL, FIELD, PRIMARY_BUTTON } from './control-classes';
 
 export type EntrySearchFormProps = {
   readonly criteria: SearchCriteriaInput;
 };
-
-const FIELD = 'flex flex-col gap-1 text-sm';
-const CONTROL = 'rounded border border-neutral-300 px-2 py-1';
 
 export function EntrySearchForm({ criteria }: EntrySearchFormProps): ReactNode {
   const id = useId();
@@ -19,11 +19,11 @@ export function EntrySearchForm({ criteria }: EntrySearchFormProps): ReactNode {
       aria-labelledby={`${id}-title`}
       action={ENTRY_SEARCH_PATH}
       method="get"
-      className="flex flex-wrap items-end gap-3 rounded-lg border border-neutral-300 p-4"
+      className={`flex flex-wrap items-end gap-3 ${PANEL}`}
     >
       <h2
         id={`${id}-title`}
-        className="w-full text-sm font-semibold uppercase tracking-wide text-neutral-600"
+        className={`w-full ${typeClasses.label} text-text-muted`}
       >
         {en.entrySearch.title}
       </h2>
@@ -35,7 +35,7 @@ export function EntrySearchForm({ criteria }: EntrySearchFormProps): ReactNode {
           name={SEARCH_CRITERIA_FIELDS.from}
           type="date"
           defaultValue={criteria.from ?? ''}
-          className={CONTROL}
+          className={`${CONTROL} ${typeClasses.date}`}
         />
       </div>
       <div className={FIELD}>
@@ -45,7 +45,7 @@ export function EntrySearchForm({ criteria }: EntrySearchFormProps): ReactNode {
           name={SEARCH_CRITERIA_FIELDS.to}
           type="date"
           defaultValue={criteria.to ?? ''}
-          className={CONTROL}
+          className={`${CONTROL} ${typeClasses.date}`}
         />
       </div>
 
@@ -79,7 +79,7 @@ export function EntrySearchForm({ criteria }: EntrySearchFormProps): ReactNode {
 
       <button
         type="submit"
-        className="rounded border border-neutral-300 px-3 py-1 text-sm"
+        className={PRIMARY_BUTTON}
       >
         {en.entrySearch.submit}
       </button>

@@ -3,16 +3,13 @@ import { entryForm, entrySearchForm } from './entries';
 import { ENTRIES_URL, ENTRY_SEARCH_URL, SETTINGS_URL, SIGN_IN_URL } from './routes';
 import { signIn } from './session';
 import { entryFormModes } from './settings';
-
-const sidebar = (page: Page): Locator => page.getByRole('navigation', { name: 'Sidebar' });
+import { SIGNED_IN_PAGES, sidebar } from './sidebar';
 
 const sidebarLink = (page: Page, name: 'Entries' | 'Entry search' | 'Settings'): Locator =>
   sidebar(page).getByRole('link', { name, exact: true });
 
 const sidebarSignOut = (page: Page): Locator =>
   sidebar(page).getByRole('button', { name: 'Sign out' });
-
-const SIGNED_IN_PAGES = ['/entries', '/entries/search', '/settings'] as const;
 
 test('shows the Sidebar on every signed-in page, with links to Entries, Entry search and Settings and the only Sign out', async ({ page }) => {
   await signIn(page);

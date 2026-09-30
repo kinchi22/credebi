@@ -13,10 +13,9 @@ automated from the repo, and no gate here reads any of it.
 
 ### Databases
 
-Two Neon projects, `double-entry-bookkeeping-production` and
-`double-entry-bookkeeping-preview`: Postgres 18, AWS Asia Pacific (Singapore).
-They are separate projects, not branches of one: a Neon branch starts with its
-parent's data and its roles' passwords.
+Two Neon projects, `credebi-production` and `credebi-preview`: Postgres 18,
+AWS Asia Pacific (Singapore). They are separate projects, not branches of one:
+a Neon branch starts with its parent's data and its roles' passwords.
 
 - The app connects through the **pooled** URL, whose host ends in `-pooler`.
 - The two migrate jobs connect through the **direct** URL, because a migration

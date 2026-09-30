@@ -1,4 +1,7 @@
 import { useId, type ReactNode } from 'react';
+import { typeClasses } from './type-classes';
+
+export const PANEL = 'rounded-lg border border-border bg-surface p-4';
 
 export type PanelProps = {
   readonly title: string;
@@ -9,10 +12,10 @@ export function Panel({ title, children }: PanelProps): ReactNode {
   const titleId = useId();
 
   return (
-    <section aria-labelledby={titleId} className="rounded-lg border border-neutral-300 p-4">
+    <section aria-labelledby={titleId} className={PANEL}>
       <h2
         id={titleId}
-        className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-600"
+        className={`mb-2 ${typeClasses.label} text-text-muted`}
       >
         {title}
       </h2>

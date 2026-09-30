@@ -1,3 +1,4 @@
+import { typeClasses } from '@repo/ui/type-classes';
 import { type ReactNode } from 'react';
 import { EntryFormModeChoice } from '../../../../components/entry-form-mode-choice';
 import { en } from '../../../../messages/en';
@@ -19,7 +20,7 @@ export default async function SettingsPage(): Promise<ReactNode> {
 
   return (
     <>
-      <h2 className="text-lg font-semibold">{en.settingsPage.title}</h2>
+      <h2 className={typeClasses.h2}>{en.settingsPage.title}</h2>
       <EntryFormModeChoice chosen={settings.entryFormMode} action={changeEntryFormMode} />
     </>
   );

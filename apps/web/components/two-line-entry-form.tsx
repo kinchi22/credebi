@@ -7,9 +7,9 @@ import {
   AccountSelect,
   AmountInput,
   EntryFormShell,
-  FIELD,
   type EntryFormProps,
 } from './entry-form';
+import { FIELD } from './control-classes';
 
 export function TwoLineEntryForm({ action }: EntryFormProps): ReactNode {
   return (

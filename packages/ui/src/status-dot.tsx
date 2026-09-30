@@ -8,7 +8,7 @@ export type StatusDotProps = {
 };
 
 export function StatusDot({ tone, label }: StatusDotProps): ReactNode {
-  const toneClass = tone === 'positive' ? 'bg-emerald-500' : 'bg-amber-500';
+  const toneClass = tone === 'positive' ? 'bg-positive' : 'bg-warning';
 
   return (
     <span className="inline-flex items-center gap-2">

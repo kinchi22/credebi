@@ -31,6 +31,8 @@ export const LINT_FIXTURES: readonly LintFixture[] = [
   ['apps/web/components/inline-attribute.tsx', 'repo/no-inline-copy'],
   ['apps/web/app/inline-expression.tsx', 'repo/no-inline-copy'],
   ['apps/web/app/inline-metadata.ts', 'repo/no-inline-copy'],
+  ['apps/web/components/raw-color.tsx', 'repo/no-raw-color'],
+  ['packages/ui/src/palette-class.ts', 'repo/no-raw-color'],
 ];
 
 export const LINT_RULES_WITHOUT_FIXTURE: Readonly<Record<string, string>> = {

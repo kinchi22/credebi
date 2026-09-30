@@ -2,6 +2,8 @@
 
 import { ENTRY_FORM_FIELDS, type DomainErrorCode, type EntryFormMode } from '@repo/contracts';
 import { CHART_OF_ACCOUNTS } from '@repo/core/entries';
+import { PANEL } from '@repo/ui';
+import { typeClasses } from '@repo/ui/type-classes';
 import {
   Fragment,
   startTransition,
@@ -13,6 +15,8 @@ import {
   type SubmitEvent,
 } from 'react';
 import { en } from '../messages/en';
+import { CONTROL, FIELD, PRIMARY_BUTTON } from './control-classes';
+import { DANGER_TEXT } from './text-classes';
 
 export type EntryFormState =
   | { readonly outcome: 'idle' }
@@ -50,9 +54,6 @@ const REFUSAL: Readonly<Record<EntryFormMode, Readonly<Record<DomainErrorCode, s
   'two-line': refusalsWith(en.twoLineForm.invalid),
   'multi-line': refusalsWith(en.multiLineForm.invalid),
 };
-
-export const FIELD = 'flex flex-col gap-1 text-sm';
-export const CONTROL = 'rounded border border-neutral-300 px-2 py-1';
 
 export function AccountSelect({
   id,
@@ -96,7 +97,7 @@ export function AmountInput({ id, onAmountChange }: AmountInputProps): ReactNode
       inputMode="numeric"
       pattern="[0-9]+"
       required
-      className={`${CONTROL} text-right tabular-nums`}
+      className={`${CONTROL} text-right ${typeClasses.figure}`}
     />
   );
 }
@@ -131,11 +132,11 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
       ref={form}
       aria-labelledby={`${id}-title`}
       onSubmit={submit}
-      className="flex flex-col gap-3 rounded-lg border border-neutral-300 p-4"
+      className={`flex flex-col gap-3 ${PANEL}`}
     >
       <h2
         id={`${id}-title`}
-        className="text-sm font-semibold uppercase tracking-wide text-neutral-600"
+        className={`${typeClasses.label} text-text-muted`}
       >
         {en.entryForm.title}
       </h2>
@@ -150,7 +151,7 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
             name={ENTRY_FORM_FIELDS.entryDate}
             type="date"
             required
-            className={CONTROL}
+            className={`${CONTROL} ${typeClasses.date}`}
           />
         </div>
         <div className={`${FIELD} grow`}>
@@ -168,7 +169,7 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
       <Fragment key={resetKey}>{children(id)}</Fragment>
 
       {state.outcome === 'rejected' ? (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className={DANGER_TEXT}>
           {REFUSAL[mode][state.code]}
         </p>
       ) : null}
@@ -176,7 +177,7 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
       <button
         type="submit"
         disabled={pending}
-        className="self-start rounded border border-neutral-300 px-3 py-1 text-sm disabled:opacity-50"
+        className={`self-start ${PRIMARY_BUTTON}`}
       >
         {pending ? en.entryForm.pending : en.entryForm.submit}
       </button>

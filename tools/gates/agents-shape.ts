@@ -29,7 +29,6 @@ const TERM_ROW = /^\|\s*([^|]+?)\s*\|/gm;
 const SEPARATOR_CELL = /^[-: ]+$/;
 const TABLE_HEADINGS = ['Term', 'Concept'];
 
-const VOCABULARY_HEADING = '\n## Vocabulary\n';
 
 export function findImportProblems(content: string): readonly string[] {
   const lines = content
@@ -211,44 +210,67 @@ const termsOf = (content: string): readonly string[] =>
     .flatMap((match) => (match[1] === undefined ? [] : [match[1]]))
     .filter((term) => !SEPARATOR_CELL.test(term) && !TABLE_HEADINGS.includes(term));
 
-const vocabularySection = (content: string): string => {
-  const start = content.indexOf(VOCABULARY_HEADING);
+const section = (content: string, heading: string): string => {
+  const marker = `\n${heading}\n`;
+  const start = content.indexOf(marker);
   if (start === -1) return '';
 
-  const from = start + VOCABULARY_HEADING.length;
+  const from = start + marker.length;
   const next = content.indexOf('\n## ', from);
   return next === -1 ? content.slice(from) : content.slice(from, next);
 };
 
-export function findSharedTermProblems(
-  glossary: string,
-  harnesses: string,
-): readonly string[] {
-  const domainTerms = termsOf(glossary);
-  const harnessTerms = termsOf(vocabularySection(harnesses));
+export type Glossaries = {
+  readonly glossary: string;
+  readonly harnesses: string;
+  readonly design: string;
+};
 
-  const missingInput: string[] = [];
-  if (harnessTerms.length === 0) {
-    missingInput.push(
-      'no term was found under `## Vocabulary` in docs/agents/harnesses.md, so nothing was ' +
-        'compared. The scan is broken, not the repository empty.',
-    );
-  }
-  if (domainTerms.length === 0) {
-    missingInput.push(
-      'no term was found in docs/GLOSSARY.md, so nothing was compared. The scan is broken, ' +
-        'not the repository empty.',
-    );
-  }
+type TermTable = {
+  readonly path: string;
+  readonly terms: readonly string[];
+  readonly missing: string;
+};
+
+const brokenScan = 'so nothing was compared. The scan is broken, not the repository empty.';
+
+export function findSharedTermProblems({
+  glossary,
+  harnesses,
+  design,
+}: Glossaries): readonly string[] {
+  const tables: readonly TermTable[] = [
+    {
+      path: 'docs/GLOSSARY.md',
+      terms: termsOf(glossary),
+      missing: `no term was found in docs/GLOSSARY.md, ${brokenScan}`,
+    },
+    {
+      path: 'docs/agents/harnesses.md',
+      terms: termsOf(section(harnesses, '## Vocabulary')),
+      missing: `no term was found under \`## Vocabulary\` in docs/agents/harnesses.md, ${brokenScan}`,
+    },
+    {
+      path: 'docs/DESIGN.md',
+      terms: termsOf(section(design, '## Terms')),
+      missing: `no term was found under \`## Terms\` in docs/DESIGN.md, ${brokenScan}`,
+    },
+  ];
+
+  const missingInput = tables.flatMap((table) => (table.terms.length === 0 ? [table.missing] : []));
   if (missingInput.length > 0) return missingInput;
 
-  const defined = new Set(harnessTerms);
-  return domainTerms.flatMap((term) =>
-    defined.has(term)
-      ? [
-          `'${term}' is defined in both docs/GLOSSARY.md and docs/agents/harnesses.md, and ` +
-            'one canonical name per concept means one table per term',
-        ]
-      : [],
+  return tables.flatMap((first, index) =>
+    tables.slice(index + 1).flatMap((second) => {
+      const defined = new Set(second.terms);
+      return first.terms.flatMap((term) =>
+        defined.has(term)
+          ? [
+              `'${term}' is defined in both ${first.path} and ${second.path}, and one ` +
+                'canonical name per concept means one table per term',
+            ]
+          : [],
+      );
+    }),
   );
 }

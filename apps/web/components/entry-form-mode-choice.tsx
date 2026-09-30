@@ -2,7 +2,11 @@
 
 import { entryFormModeSchema, type DomainErrorCode, type EntryFormMode } from '@repo/contracts';
 import { useId, useState, useTransition, type ChangeEvent, type ReactNode } from 'react';
+import { PANEL } from '@repo/ui';
+import { typeClasses } from '@repo/ui/type-classes';
 import { en } from '../messages/en';
+import { LEGEND } from './control-classes';
+import { DANGER_TEXT } from './text-classes';
 
 export type EntryFormModeChange =
   | { readonly outcome: 'saved' }
@@ -40,10 +44,10 @@ export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps
 
   return (
     <div className="flex flex-col gap-2">
-      <fieldset className="flex flex-col gap-2 rounded-lg border border-neutral-300 p-4">
-        <legend className="px-1 text-sm font-semibold">{en.settingsPage.entryFormMode}</legend>
+      <fieldset className={`flex flex-col gap-2 ${PANEL}`}>
+        <legend className={`px-1 ${LEGEND}`}>{en.settingsPage.entryFormMode}</legend>
         {entryFormModeSchema.options.map((mode) => (
-          <div key={mode} className="flex items-center gap-2 text-sm">
+          <div key={mode} className={`flex items-center gap-2 ${typeClasses['body-sm']}`}>
             <input
               id={`${id}-${mode}`}
               type="radio"
@@ -57,11 +61,11 @@ export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps
           </div>
         ))}
       </fieldset>
-      <p role="status" className="text-sm text-neutral-600">
+      <p role="status" className={`${typeClasses['body-sm']} text-positive`}>
         {status === 'saved' ? en.settingsPage.saved : null}
       </p>
       {status === 'rejected' ? (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className={DANGER_TEXT}>
           {en.settingsPage.notSaved}
         </p>
       ) : null}

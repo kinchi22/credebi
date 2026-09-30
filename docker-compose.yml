@@ -6,12 +6,12 @@
 # Credentials live in a gitignored `.env` (copy `.env.example`). The defaults
 # below exist so `docker compose up` works before that file is written; they are
 # local-only and are not secrets.
-name: double-entry-bookkeeping
+name: credebi
 
 services:
   postgres:
     image: postgres:18-alpine
-    container_name: deb-postgres-dev
+    container_name: credebi-postgres-dev
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-app}

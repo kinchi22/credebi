@@ -163,6 +163,7 @@ Raise the TypeScript major only together with `typescript-eslint`.
 | Environment          | `DATABASE_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `AUTH_TEST_LOGIN`, validated by `parseEnv` in `apps/web/server/env.ts` and read in `apps/web/server/container.ts` alone, at first use rather than at import. Missing or malformed fails the request; unreachable degrades to the probe's amber dot. `AUTH_TEST_LOGIN` with `VERCEL_ENV=production` fails it too. ADR-0005, ADR-0021. |
 | Healthcheck          | `health.get` is the deployment's healthcheck, not a demonstration of the Phase 0 slice, and outlives the panel that renders it. Every external component the app depends on reports through it as a named component, and the smoke run asserts the strict answer: `healthy`, with `postgres` reachable. ADR-0020. |
 | Barrels              | One `index.ts` per public surface. No barrels inside a package.        |
+| Metadata files       | The favicon, icons, web manifest and share image use Next.js metadata file conventions at the root of `apps/web/app/`, drawn from the `Logo` module's geometry and the tokens. An image the conventions cannot name, such as a web manifest icon, is served by a route handler at `apps/web/app/<name>/[param]/route.tsx` that renders it and nothing else: its params come from `generateStaticParams`, with `dynamicParams` off. The shared rendering lives in `apps/web/components/`. The share image sets its text in Sora from `apps/web/app/fonts/Sora-Regular.ttf`, because `ImageResponse` cannot read woff2. |
 | User-facing copy     | In `apps/web/messages/en.ts`, a plain object read by import, grouped by the part of the UI that renders it. `repo/no-inline-copy` rejects copy written as a literal in `apps/web/app` or `apps/web/components`. ADR-0007. Localization is decided and not built: ADR-0008, Deferred. |
 
 ## Testing layers
@@ -174,6 +175,7 @@ Raise the TypeScript major only together with `typescript-eslint`.
 | `ports/**`                   | Nothing. An interface has no behaviour to test.        |
 | `adapters/**`                | `*.integration.test.ts` against a real Postgres. Unmeasured: the mutation runner does not run that suite. |
 | `packages/contracts`         | Unit tests, pure. Measured since ADR-0004.             |
+| `packages/ui`                | Its pure `.ts` modules, such as the design tokens: unit tests, measured. Its `.tsx` components: Playwright, where the app renders them. |
 | `apps/web/server`            | The half a unit test can import -- `domain-error.ts`, `env.ts`, `logger.ts`, `request-error.ts`, `return-path.ts`, `session-cookie.ts` and `sign-in-redirect.ts` today -- unit tested and measured. |
 | the composition root, `routers/**`, `app/**` | Playwright, against a production build in CI (`E2E build`), on a Postgres service container migrated before the suite. Nothing else reaches them. |
 
@@ -182,7 +184,7 @@ there is no line-coverage gate and no `@vitest/coverage-v8`. `stryker.config.ts`
 states the measured surface as patterns rather than a list, so a new file in a
 measured directory is measured by existing. A file nobody tests scores 0, and the
 break threshold of 90 is over the whole surface, so what fails is a named file
-rather than a percentage. Measured today: 29 files, 715 mutants, score 98.60.
+rather than a percentage. Measured today: 36 files, 944 mutants, score 98.73.
 
 The exclusions in that config name files no unit test can import, not files whose
 tests are missing: each reaches the composition root, and that imports

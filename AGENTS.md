@@ -17,7 +17,8 @@ the install route for each harness -- which is why it names harness directories
 too, being written for a person setting a clone up rather than for an agent
 following a rule.
 
-Read `docs/ARCHITECTURE.md` before changing anything structural.
+Read `docs/ARCHITECTURE.md` before changing anything structural. Read
+`docs/DESIGN.md` before changing anything visual.
 
 ## Non-negotiable
 
@@ -73,9 +74,10 @@ The work lives in GitHub Issues and the project board, not in a session. Read
 issue; the `implement-issue` Skill builds a Task, or a whole Feature.
 
 The domain glossary is `docs/GLOSSARY.md`. A term resolved while designing,
-refinement with the `grill-with-docs` Skill included, goes into its table. The
-words for how this repository is worked on are not in it: they are defined in
-`docs/agents/harnesses.md`, and no term is defined in both.
+refinement with the `grill-with-docs` Skill included, goes into its table. Two
+kinds of word live elsewhere: how this repository is worked on, in
+`docs/agents/harnesses.md`, and how the product looks, under `## Terms` in
+`docs/DESIGN.md`. Each term is defined in exactly one of the three.
 
 ## Where code goes
 
@@ -94,8 +96,12 @@ apps/web/server/container.ts       wiring (composition root)
 apps/web/app/(app)/x/page.tsx      composition only
 apps/web/app/(app)/x/actions.ts    Server Actions: parse, invoke, revalidate
 apps/web/messages/en.ts            copy, grouped by the UI that renders it (ADR-0007)
+apps/web/app/fonts/                font files and their licences
 ```
 
+`apps/web/app/fonts/` is one directory for the whole app, not one per feature.
+The metadata files and the route handlers that serve icons follow "Metadata
+files" in `docs/ARCHITECTURE.md`.
 Add the feature to the `exports` field of `packages/core/package.json`. Do not
 create directories outside this shape, and never create `lib/`, `utils/`,
 `helpers/`, or `common/`.

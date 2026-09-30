@@ -1,5 +1,6 @@
 import { type SearchQuery } from '@repo/contracts';
 import { type ReactNode } from 'react';
+import { DANGER_TEXT } from '../../../../../components/text-classes';
 import { EntrySearchForm } from '../../../../../components/entry-search-form';
 import { EntrySearchResults } from '../../../../../components/entry-search-results';
 import { en } from '../../../../../messages/en';
@@ -34,7 +35,7 @@ export default async function EntrySearchPage({
     <>
       <EntrySearchForm criteria={answer.criteria} />
       {answer.outcome === 'refused' ? (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className={DANGER_TEXT}>
           {en.entrySearch.refused}
         </p>
       ) : (
