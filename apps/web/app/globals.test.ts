@@ -5,28 +5,33 @@ import { describe, expect, it } from 'vitest';
 const stylesheet = readFileSync(new URL('./globals.css', import.meta.url), 'utf8');
 
 const THEME_BLOCK = /@theme\s*\{([^}]*)\}/u;
-const DECLARATION = /^\s*(--[\w-]+)\s*:\s*([^;]+?)\s*;\s*$/u;
+const DECLARATION = /^\s*(--[\w-]+(?:-\*)?)\s*:\s*([^;]+?)\s*;\s*$/u;
 
-const themeBlock = (css: string): Readonly<Record<string, string>> => {
-  const body = THEME_BLOCK.exec(css)?.[1] ?? '';
-  return Object.fromEntries(
-    body
-      .split('\n')
-      .filter((line) => line.trim() !== '')
-      .map((line): [string, string] => {
-        const match = DECLARATION.exec(line);
-        return [match?.[1] ?? line.trim(), match?.[2] ?? ''];
-      }),
+const themeLines = (css: string): readonly string[] =>
+  (THEME_BLOCK.exec(css)?.[1] ?? '').split('\n').filter((line) => line.trim() !== '');
+
+const themeBlock = (css: string): Readonly<Record<string, string>> =>
+  Object.fromEntries(
+    themeLines(css).map((line): [string, string] => {
+      const match = DECLARATION.exec(line);
+      return [match?.[1] ?? line.trim(), match?.[2] ?? ''];
+    }),
   );
-};
+
+const COLOUR_RESET = '--color-*';
 
 describe('the global stylesheet', () => {
-  it('declares in @theme exactly the tokens the tokens module holds', () => {
-    expect(themeBlock(stylesheet)).toEqual(themeDeclarations());
+  it('declares in @theme exactly the tokens the tokens module holds, after resetting the colours', () => {
+    const { [COLOUR_RESET]: reset, ...declarations } = themeBlock(stylesheet);
+    expect(reset).toBe('initial');
+    expect(declarations).toEqual(themeDeclarations());
   });
 
-  it('keeps Tailwind and its default theme, so no existing utility changes', () => {
+  it('resets the colours before declaring any token, so only token colours exist', () => {
+    expect(themeLines(stylesheet)[0]?.trim()).toBe(`${COLOUR_RESET}: initial;`);
+  });
+
+  it('imports Tailwind', () => {
     expect(stylesheet).toMatch(/^@import "tailwindcss";$/mu);
-    expect(stylesheet).not.toMatch(/--color-\*\s*:\s*initial/u);
   });
 });

@@ -123,6 +123,13 @@ stylesheet, `apps/web/app/globals.css`, declares the same values in Tailwind's
 colour pair falls below its contrast minimum. A value changes in the tokens
 module, the stylesheet and here, in one pull request.
 
+The stylesheet resets Tailwind's colours to `initial`, so the tokens are the
+only colour utilities that exist, and the lint rule `repo/no-raw-color` rejects
+a colour literal, or a class naming a colour that is not a semantic token,
+anywhere in `apps/web` or `packages/ui` outside the tokens module and the tests
+of the tokens and contrast modules. The rule reads the token names from the
+tokens module.
+
 Only the light theme exists. A dark theme is deferred to a Feature of its own,
 and until then no token has a dark mapping.
 

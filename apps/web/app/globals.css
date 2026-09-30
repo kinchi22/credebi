@@ -2,6 +2,7 @@
 @source "../../../packages/ui/src";
 
 @theme {
+  --color-*: initial;
   --color-surface: #FFFFFF;
   --color-ground: #F2F8F5;
   --color-text: #0B2B2A;

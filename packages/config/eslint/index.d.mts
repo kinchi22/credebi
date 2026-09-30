@@ -12,6 +12,10 @@ export declare const DEFAULT_IGNORES: readonly string[];
 export declare function createEslintConfig(options: {
   readonly tsconfigRootDir: string;
   readonly ignores?: readonly string[];
+  readonly tokens?: {
+    readonly colors: readonly string[];
+    readonly textSizes: readonly string[];
+  };
 }): readonly EslintConfigBlock[];
 
 export declare const ELEMENTS: readonly unknown[];

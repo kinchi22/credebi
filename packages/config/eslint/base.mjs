@@ -3,7 +3,7 @@ import tseslint from 'typescript-eslint';
 import globals from 'globals';
 import { repoPlugin } from './plugin.mjs';
 
-export function createBaseConfig({ tsconfigRootDir }) {
+export function createBaseConfig({ tsconfigRootDir, tokens }) {
   return [
     js.configs.recommended,
 
@@ -51,6 +51,20 @@ export function createBaseConfig({ tsconfigRootDir }) {
       plugins: { repo: repoPlugin },
       rules: {
         'repo/no-comments': 'error',
+      },
+    },
+
+    {
+      name: 'repo/token-colors',
+      files: ['apps/web/**/*.{ts,tsx}', 'packages/ui/**/*.{ts,tsx}'],
+      ignores: [
+        'packages/ui/src/tokens.ts',
+        'packages/ui/src/tokens.test.ts',
+        'packages/ui/src/contrast.test.ts',
+      ],
+      plugins: { repo: repoPlugin },
+      rules: {
+        'repo/no-raw-color': ['error', tokens],
       },
     },
 
