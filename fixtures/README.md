@@ -51,7 +51,7 @@ the test-collection gate excludes this directory too.
 | `violations/apps/web/components/inline-attribute.tsx`   | `repo/no-inline-copy` (an attribute not listed as markup) |
 | `violations/apps/web/app/inline-expression.tsx`         | `repo/no-inline-copy` (a string an expression renders) |
 | `violations/apps/web/app/inline-metadata.ts`            | `repo/no-inline-copy` (`export const metadata`) |
-| `violations/apps/web/components/raw-color.tsx`          | `repo/no-raw-color` (a hex literal and a Tailwind palette class) |
+| `violations/apps/web/components/raw-color.tsx`          | `repo/no-raw-color` (a hex literal, a Tailwind palette class and a palette colour that is not a token) |
 | `violations/packages/ui/src/palette-class.ts`           | `repo/no-raw-color` (palette classes, behind a variant too) |
 
 ## dependency-cruiser

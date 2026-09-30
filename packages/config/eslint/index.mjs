@@ -19,10 +19,14 @@ export const DEFAULT_IGNORES = [
   '**/next-env.d.ts',
 ];
 
-export function createEslintConfig({ tsconfigRootDir, ignores = [] }) {
+export function createEslintConfig({
+  tsconfigRootDir,
+  ignores = [],
+  tokens = { colors: [], textSizes: [] },
+}) {
   return [
     { name: 'repo/ignores', ignores: [...DEFAULT_IGNORES, ...ignores] },
-    ...createBaseConfig({ tsconfigRootDir }),
+    ...createBaseConfig({ tsconfigRootDir, tokens }),
     boundariesConfig,
     ...nextConfigs,
     ...layerConfigs,

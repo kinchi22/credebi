@@ -158,41 +158,126 @@ const noInlineCopy = {
   },
 };
 
-const RAW_COLOUR = /(?<![\w&])#(?:[\da-f]{8}|[\da-f]{6}|[\da-f]{3,4})(?![\w-])|\b(?:rgba?|hsla?|oklch|oklab)\(/giu;
+const HEX = /(?<![\w&])#(?:[\da-f]{8}|[\da-f]{6}|[\da-f]{3,4})(?![\w-])/giu;
 
-const COLOUR_UTILITY =
-  /^(?:text|bg|border(?:-[xytrblse])?|outline|ring|ring-offset|inset-ring|divide|fill|stroke|from|via|to|decoration|placeholder|caret|accent|shadow|inset-shadow|drop-shadow|text-shadow)-(?:(?:slate|gray|zinc|neutral|stone|mauve|olive|mist|taupe|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}|white|black)(?:\/\S+)?$/u;
+const COLOR_FUNCTION = /\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color|color-mix)\(/giu;
+
+const COLOR_KEY = /colou?r|background|fill|stroke|border|outline|shadow/iu;
+
+const OPENS_A_VALUE = /[[(,]\s*$/u;
+
+const IN_A_DECLARATION = /(?:^|[;{])\s*[a-z-]+\s*:[^;]*$/u;
+
+const keyOf = (node) => {
+  const parent = node.parent;
+  if (parent?.type === 'JSXAttribute') return { jsx: true, name: attributeName(parent.name) };
+  if (parent?.type === 'Property' && parent.value === node) {
+    const key = parent.key;
+    const name = key.type === 'Identifier' ? key.name : String(key.value ?? '');
+    return { jsx: false, name };
+  }
+  return undefined;
+};
+
+const isLongHex = (hex) => hex.length === 7 || hex.length === 9;
+
+function isColorHex(node, text, match) {
+  const before = text.slice(0, match.index);
+  if (OPENS_A_VALUE.test(before) || IN_A_DECLARATION.test(before)) return true;
+  if (text.trim() !== match[0]) return false;
+  const key = keyOf(node);
+  if (key !== undefined && COLOR_KEY.test(key.name)) return true;
+  if (key?.jsx === true) return false;
+  return isLongHex(match[0]);
+}
+
+const COLOR_UTILITY =
+  /^(text-shadow|inset-shadow|drop-shadow|inset-ring|ring-offset|border-[xytrblse]|text|bg|border|outline|ring|divide|fill|stroke|from|via|to|decoration|placeholder|caret|accent|shadow)-(.+)$/u;
+
+const NAMED_VALUE = /^[a-z][a-z-]*?(?:-\d{2,3})?$/u;
+
+const ALWAYS_ALLOWED = ['transparent', 'current', 'inherit'];
+
+const NON_COLOR_VALUES = new Set([
+  'auto', 'balance', 'base', 'bottom', 'center', 'clip', 'clone', 'collapse', 'contain', 'cover',
+  'dashed', 'dotted', 'double', 'ellipsis', 'end', 'fixed', 'from-font', 'hidden', 'inner', 'inset',
+  'justify', 'left', 'left-bottom', 'left-top', 'lg', 'local', 'md', 'no-repeat', 'none', 'nowrap',
+  'pretty', 'radial', 'repeat', 'right', 'right-bottom', 'right-top', 'scroll', 'separate',
+  'slice', 'sm', 'solid', 'start', 'top', 'wavy', 'wrap', 'xl', 'xs',
+  'x', 'y', 't', 'r', 'b', 'l', 's', 'e', 'x-reverse', 'y-reverse',
+]);
+
+const NON_COLOR_PREFIXES = [
+  'blend-', 'clip-', 'conic', 'gradient-', 'linear-', 'offset-', 'origin-', 'position-',
+  'radial-', 'repeat-', 'size-', 'spacing-',
+];
+
+const CLASS_LIST = /^[a-z0-9!:[\]()/%.#_&*>~+=,'"-]+(?:\s+[a-z0-9!:[\]()/%.#_&*>~+=,'"-]+)*$/u;
 
 const utilityOf = (className) => (className.split(':').at(-1) ?? '').replace(/^[!-]+|!$/gu, '');
 
-const paletteClasses = (text) =>
-  text.split(/\s+/u).filter((className) => COLOUR_UTILITY.test(utilityOf(className)));
+const withoutOpacity = (value) => value.replace(/\/[^/]*$/u, '');
+
+function namesANonTokenColor(className, allowed, textSizes) {
+  const name = utilityOf(className);
+  if (allowed.has(name)) return false;
+  const utility = COLOR_UTILITY.exec(name);
+  if (utility === null) return false;
+  const [, prefix, rawValue] = utility;
+  const value = withoutOpacity(rawValue);
+  if (!NAMED_VALUE.test(value)) return false;
+  if (allowed.has(value) || NON_COLOR_VALUES.has(value)) return false;
+  if (prefix === 'text' && textSizes.has(value)) return false;
+  return !NON_COLOR_PREFIXES.some((start) => value.startsWith(start));
+}
 
 const noRawColor = {
   meta: {
     type: 'problem',
     docs: {
       description:
-        'Disallow colour literals and Tailwind palette classes outside the token source.',
+        'Disallow colour literals, and classes that name a colour outside the token set, ' +
+        'outside the token source.',
     },
-    schema: [],
+    schema: [
+      {
+        type: 'object',
+        properties: {
+          colors: { type: 'array', items: { type: 'string' } },
+          textSizes: { type: 'array', items: { type: 'string' } },
+        },
+        additionalProperties: false,
+      },
+    ],
     messages: {
-      rawColour:
+      rawColor:
         'Colour literal {{text}} is written outside the token source. Use a semantic token ' +
-        'from packages/ui/src/tokens.ts, as a utility such as `text-danger`, or add the ' +
-        'colour there and to docs/DESIGN.md.',
-      paletteClass:
-        'Class {{text}} names a colour outside the token set. Use a semantic token such as ' +
-        '`bg-surface` or `text-text-muted`; docs/DESIGN.md lists them.',
+        'utility such as `text-danger`, or add the colour to packages/ui/src/tokens.ts, ' +
+        'apps/web/app/globals.css and docs/DESIGN.md in one pull request.',
+      nonTokenClass:
+        'Class {{text}} names a colour outside the token set, so it produces no CSS. Use a ' +
+        'semantic token such as `bg-surface` or `text-text-muted`; packages/ui/src/tokens.ts ' +
+        'holds them and docs/DESIGN.md lists them.',
     },
   },
   create(context) {
+    const options = context.options[0] ?? {};
+    const allowed = new Set([...ALWAYS_ALLOWED, ...(options.colors ?? [])]);
+    const textSizes = new Set(options.textSizes ?? []);
+    const report = (node, messageId, text) => {
+      context.report({ node, messageId, data: { text: JSON.stringify(text) } });
+    };
+
     const check = (node, text) => {
-      for (const match of text.matchAll(RAW_COLOUR)) {
-        context.report({ node, messageId: 'rawColour', data: { text: JSON.stringify(match[0]) } });
+      for (const match of text.matchAll(HEX)) {
+        if (isColorHex(node, text, match)) report(node, 'rawColor', match[0]);
       }
-      for (const className of paletteClasses(text)) {
-        context.report({ node, messageId: 'paletteClass', data: { text: JSON.stringify(className) } });
+      for (const match of text.matchAll(COLOR_FUNCTION)) report(node, 'rawColor', match[0]);
+      if (!CLASS_LIST.test(text.trim())) return;
+      for (const className of text.trim().split(/\s+/u)) {
+        if (namesANonTokenColor(className, allowed, textSizes)) {
+          report(node, 'nonTokenClass', className);
+        }
       }
     };
 
