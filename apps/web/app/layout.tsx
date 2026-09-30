@@ -3,8 +3,9 @@ import { en } from '../messages/en';
 import './globals.css';
 
 export const metadata = {
-  title: en.app.name,
+  title: { template: en.app.titleTemplate, default: en.app.name },
   description: en.app.description,
+  applicationName: en.app.name,
 };
 
 export default function RootLayout({ children }: { children: ReactNode }): ReactNode {
