@@ -1,14 +1,16 @@
 import { type SearchQuery } from '@repo/contracts';
+import { redirect } from 'next/navigation';
 import { type ReactNode } from 'react';
-import { DANGER_TEXT } from '../../../../../components/text-classes';
+import { EntrySearchColdVisit } from '../../../../../components/entry-search-cold-visit';
 import { EntrySearchForm } from '../../../../../components/entry-search-form';
-import { EntrySearchResults } from '../../../../../components/entry-search-results';
+import { EntrySearchOutcome } from '../../../../../components/entry-search-results';
 import { en } from '../../../../../messages/en';
 import { createContext } from '../../../../../server/context';
 import { answerEntrySearch } from '../../../../../server/entry-search';
-import { ENTRY_SEARCH_PATH, pathWithQuery } from '../../../../../server/return-path';
+import { ENTRY_SEARCH_PATH, pathWithQuery, signInPath } from '../../../../../server/return-path';
 import { createCaller } from '../../../../../server/root-router';
 import { orSignIn } from '../../../../../server/sign-in-redirect';
+import { searchDefaultRange } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,23 +26,24 @@ export default async function EntrySearchPage({
   searchParams,
 }: EntrySearchPageProps): Promise<ReactNode> {
   const query = await searchParams;
+  const path = pathWithQuery(ENTRY_SEARCH_PATH, query);
   const caller = createCaller(await createContext());
+  if (path === ENTRY_SEARCH_PATH) {
+    if (!(await caller.auth.signedIn())) {
+      redirect(signInPath(ENTRY_SEARCH_PATH));
+    }
+    return <EntrySearchColdVisit search={searchDefaultRange} />;
+  }
+
   const answer = await answerEntrySearch(
-    (criteria) =>
-      orSignIn(caller.entries.search(criteria), pathWithQuery(ENTRY_SEARCH_PATH, query)),
+    (criteria) => orSignIn(caller.entries.search(criteria), path),
     query,
   );
 
   return (
     <>
       <EntrySearchForm criteria={answer.criteria} />
-      {answer.outcome === 'refused' ? (
-        <p role="alert" className={DANGER_TEXT}>
-          {en.entrySearch.refused}
-        </p>
-      ) : (
-        <EntrySearchResults entries={answer.entries} />
-      )}
+      <EntrySearchOutcome answer={answer} />
     </>
   );
 }
