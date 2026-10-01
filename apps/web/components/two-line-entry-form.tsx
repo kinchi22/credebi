@@ -24,6 +24,8 @@ function TwoLineFields({ id, heading, footer }: EntryFormParts): ReactNode {
     setChosen((current) => ({ ...current, [side]: account }));
   };
 
+  const isChosen = (side: Side, account: AccountCode): boolean => chosen[side] === account;
+
   return (
     <div className="grid items-start gap-6 wide:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <div className="flex min-w-0 flex-col gap-3">
@@ -49,7 +51,7 @@ function TwoLineFields({ id, heading, footer }: EntryFormParts): ReactNode {
         </div>
         {footer}
       </div>
-      <AccountPicker id={id} chosen={chosen} onChoose={choose} />
+      <AccountPicker id={id} isChosen={isChosen} onPick={choose} />
     </div>
   );
 }
