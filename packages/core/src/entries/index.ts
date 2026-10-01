@@ -15,6 +15,8 @@ export { draftLinesInOrder } from './domain/draft-line-order';
 
 export { NO_CRITERIA, makeSearchCriteria } from './domain/search-criteria';
 export type { SearchCriteria, SearchCriteriaDraft } from './domain/search-criteria';
+export { defaultSearchRange } from './domain/search-range';
+export type { DayRange } from './domain/search-range';
 
 export { createPostEntry } from './application/post-entry';
 export type { PostEntry, PostEntryDependencies } from './application/post-entry';

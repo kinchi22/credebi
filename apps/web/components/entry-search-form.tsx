@@ -1,8 +1,10 @@
+'use client';
+
 import { SEARCH_CRITERIA_FIELDS, type SearchCriteriaInput } from '@repo/contracts';
 import { CHART_OF_ACCOUNTS } from '@repo/core/entries';
 import { PANEL } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
-import { useId, type ReactNode } from 'react';
+import { useId, useState, type ChangeEvent, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { ENTRY_SEARCH_PATH } from '../server/return-path';
 import { CONTROL, FIELD, PRIMARY_BUTTON } from './control-classes';
@@ -11,8 +13,18 @@ export type EntrySearchFormProps = {
   readonly criteria: SearchCriteriaInput;
 };
 
+function keepingADay(set: (day: string) => void): (event: ChangeEvent<HTMLInputElement>) => void {
+  return (event) => {
+    if (event.target.value !== '') {
+      set(event.target.value);
+    }
+  };
+}
+
 export function EntrySearchForm({ criteria }: EntrySearchFormProps): ReactNode {
   const id = useId();
+  const [from, setFrom] = useState(criteria.from ?? '');
+  const [to, setTo] = useState(criteria.to ?? '');
 
   return (
     <form
@@ -34,7 +46,9 @@ export function EntrySearchForm({ criteria }: EntrySearchFormProps): ReactNode {
           id={`${id}-from`}
           name={SEARCH_CRITERIA_FIELDS.from}
           type="date"
-          defaultValue={criteria.from ?? ''}
+          value={from}
+          onChange={keepingADay(setFrom)}
+          required
           className={`${CONTROL} ${typeClasses.date}`}
         />
       </div>
@@ -44,7 +58,9 @@ export function EntrySearchForm({ criteria }: EntrySearchFormProps): ReactNode {
           id={`${id}-to`}
           name={SEARCH_CRITERIA_FIELDS.to}
           type="date"
-          defaultValue={criteria.to ?? ''}
+          value={to}
+          onChange={keepingADay(setTo)}
+          required
           className={`${CONTROL} ${typeClasses.date}`}
         />
       </div>

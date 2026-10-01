@@ -241,6 +241,15 @@ travel in the URL's query and the page reads them on the render path: a search
 is reloadable, bookmarkable and walkable with the back button, and no Server
 Action is involved.
 
+One read is the exception. A visit to Entry search with no query searches the
+last month, and only the browser knows today: the server has no clock that is
+the User's calendar day. So the page leaves that URL as it is, the browser
+computes the default range with `defaultSearchRange`, and it fetches the results
+through the `searchDefaultRange` Server Action, which calls the same
+`entries.search` procedure. It is the one read done through an action. Pressing
+Search puts the criteria into the query, and from there the page reads them on
+the render path as above.
+
 ## Dates on the wire
 
 `checkedAt` is a `Date` in `core` and an ISO 8601 string in `packages/contracts`,
