@@ -2,12 +2,10 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    name: 'gates',
-    include: ['tools/gates/**/*.test.ts'],
-    exclude: ['tools/gates/**/*.browser.test.ts'],
+    name: 'e2e-liveness',
+    include: ['tools/gates/**/*.browser.test.ts'],
     environment: 'node',
     testTimeout: 300_000,
-    hookTimeout: 300_000,
     fileParallelism: false,
     passWithNoTests: false,
   },

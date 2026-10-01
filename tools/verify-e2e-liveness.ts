@@ -22,15 +22,22 @@ export type ReportSpec = {
 export type ReportSuite = { readonly specs: readonly ReportSpec[]; readonly suites?: readonly ReportSuite[] };
 
 export type LivenessReport = {
-  readonly config: { readonly rootDir: string };
+  readonly config: { readonly rootDir: string; readonly workers?: number };
   readonly errors: readonly { readonly message: string }[];
   readonly suites: readonly ReportSuite[];
 };
 
+export type LivenessRun = {
+  readonly problems: readonly string[];
+  readonly report: LivenessReport | undefined;
+};
+
+const LIVENESS_WORKERS = 2;
+
 const firstLine = (message: string): string =>
   stripVTControlCharacters(message).split('\n')[0] ?? '';
 
-const specsIn = (suites: readonly ReportSuite[]): readonly ReportSpec[] =>
+export const specsIn = (suites: readonly ReportSuite[]): readonly ReportSpec[] =>
   suites.flatMap((suite) => [...suite.specs, ...specsIn(suite.suites ?? [])]);
 
 export function findLivenessProblems(report: LivenessReport, requests: number): readonly string[] {
@@ -83,7 +90,10 @@ export function findLivenessProblems(report: LivenessReport, requests: number): 
   return problems;
 }
 
-async function runAgainstEmptyPage(repoRoot: string): Promise<readonly string[]> {
+export async function runAgainstEmptyPage(
+  repoRoot: string,
+  configFile?: string,
+): Promise<LivenessRun> {
   let requests = 0;
   const server = createServer((request, response) => {
     requests += 1;
@@ -100,12 +110,20 @@ async function runAgainstEmptyPage(repoRoot: string): Promise<readonly string[]>
     const exitStatus = await new Promise<number | null>((resolve, reject) => {
       const child = spawn(
         path.join(repoRoot, 'node_modules', '.bin', 'playwright'),
-        ['test', '--retries=0', '--forbid-only', '--reporter=json'],
+        [
+          'test',
+          `--workers=${String(LIVENESS_WORKERS)}`,
+          '--retries=0',
+          '--forbid-only',
+          '--reporter=json',
+          ...(configFile === undefined ? [] : ['--config', configFile]),
+        ],
         {
           cwd: repoRoot,
           stdio: 'inherit',
           env: {
             ...process.env,
+            E2E_LIVENESS: '1',
             E2E_BASE_URL: `http://127.0.0.1:${String(port)}`,
             PLAYWRIGHT_JSON_OUTPUT_NAME: reportFile,
           },
@@ -116,7 +134,10 @@ async function runAgainstEmptyPage(repoRoot: string): Promise<readonly string[]>
     });
 
     if (!existsSync(reportFile)) {
-      return [`Playwright wrote no report (exit status ${String(exitStatus)}).`];
+      return {
+        problems: [`Playwright wrote no report (exit status ${String(exitStatus)}).`],
+        report: undefined,
+      };
     }
 
     const report = JSON.parse(readFileSync(reportFile, 'utf8')) as LivenessReport;
@@ -126,17 +147,9 @@ async function runAgainstEmptyPage(repoRoot: string): Promise<readonly string[]>
         `E2E gate is alive: all ${String(specsIn(report.suites).length)} specs failed against an empty page, each on a line of its own.`,
       );
     }
-    return problems;
+    return { problems, report };
   } finally {
     server.close();
     rmSync(directory, { recursive: true, force: true });
-  }
-}
-
-if (import.meta.main) {
-  const problems = await runAgainstEmptyPage(path.resolve(import.meta.dirname, '..'));
-  if (problems.length > 0) {
-    console.error(['E2E gate is NOT alive:', ...problems].join('\n'));
-    process.exitCode = 1;
   }
 }

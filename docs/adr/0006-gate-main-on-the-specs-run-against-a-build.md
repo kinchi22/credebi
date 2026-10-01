@@ -3,6 +3,7 @@
 **Status:** Accepted
 **Date:** 2026-09-14
 **Amended:** 2026-09-22, PR #77
+**Amended:** 2026-10-01, PR #165
 
 ## Problem
 
@@ -20,7 +21,8 @@ happen. It is missing, and a required check that is missing leaves the pull
 request waiting, with nothing to say why.
 
 A suite that runs is not enough either, because a green suite never proves a
-spec asserts anything. Measured on Playwright 1.62 in this repository, against a
+spec asserts anything. In the original measurement, before the action timeout
+introduced in PR #165, Playwright 1.62 ran in this repository against a
 server that answers an empty 200 at `/` and 404 everywhere else:
 
 - The three specs in `e2e/health.spec.ts` all fail, in 36 seconds. The re-check
@@ -69,10 +71,14 @@ The job depends on no deployment.
 Vercel is connected it is narrowed to production deployments. (Step 8 narrowed
 it and moved it to its own workflow, `e2e-deployed.yml`, in ADR-0009.)
 
-**E2E liveness runs in `Gate liveness`.** `tools/verify-e2e-liveness.ts`, as
-`pnpm verify:gates:e2e`, starts a server in its own process that answers an
-empty 200 at `/` and 404 elsewhere, and runs Playwright against it with
-`--retries=0 --forbid-only --reporter=json`. It fails unless:
+**E2E liveness runs in `Gate liveness`.** `pnpm verify:gates:e2e` runs the
+Chromium suite in `vitest.e2e-liveness.config.ts`. The suite calls
+`runAgainstEmptyPage` from `tools/verify-e2e-liveness.ts`, which starts a server
+that answers an empty 200 at `/` and 404 elsewhere, and runs Playwright with
+`--workers=2 --retries=0 --forbid-only --reporter=json`. The child process sets
+`E2E_LIVENESS=1`, which limits action waits to one second in the shared
+configuration. Ordinary local and external app runs do not set it. It fails
+unless:
 
 - Playwright reported no error outside a spec;
 - at least one spec ran;
@@ -86,6 +92,28 @@ with deliberate breakages as inputs in `tools/gates/e2e-liveness-gate.test.ts`.
 spec that asserts nothing is caught on the pull request that lands it on a
 milestone, while the owner is reviewing it.
 
+**Bound action waits instead of reducing the test budget.** Empty-page actions
+wait for elements that will not arrive. Limiting those waits preserves the test,
+navigation and assertion budgets. A slow spec can still spend its longer test
+budget on hooks or other waits outside the action limit.
+
+Two workers make the command's parallelism explicit on local machines and CI.
+This is a bound for the empty-page workload, whose time is mostly waiting;
+ordinary app runs continue to use Playwright's worker default. On runners where
+that default is already two, the worker flag changes nothing.
+
+`pnpm verify:gates:e2e` runs the Chromium regression suite in
+`vitest.e2e-liveness.config.ts`. It exercises rejection of a passing spec and a
+browser launch failure, and compares the full run's reported specs with
+Playwright's own discovery. Its
+fixtures live in `fixtures/e2e-liveness/`. This suite is outside `pnpm gates`,
+which remains runnable without a browser. The full app run has no Vitest test
+timeout: each Playwright spec retains its budget, and the existing 40-minute
+CI job limit bounds the aggregate run as the suite grows. The two rejection
+fixtures retain the browser suite's five-minute test timeout. Configuration
+tests check the liveness action limit and ordinary local and external defaults
+without browser timing fixtures.
+
 **Neither `test:e2e` nor `verify:gates:e2e` is in `pnpm gates`.** Both need a
 browser, and CI is already the stronger claim (ADR-0002).
 
@@ -97,9 +125,15 @@ none retried; in `Gate liveness`, the chromium install took 22 seconds and the
 liveness run 32. Locally the same build takes 70 seconds and the liveness run 36.
 The build in `E2E build` had the same turbo hash as the one in `Gates`, which is
 the evidence that no `DATABASE_URL` reached it. Chromium is installed twice for a
-pull request into `main`, once per job, uncached, and every new spec that waits
-for something an empty page lacks adds up to its own timeout to the liveness
-run.
+pull request into `main`, once per job, uncached. Before PR #165, a missing
+element could consume a spec's full timeout. The action limit now bounds those
+element waits, while test budgets still bound hooks and other waits.
+
+Measured for PR #165 on `main` at `4742d42`, the 11 brand specs took 60.0 seconds
+with two workers and the ordinary action budget, then 26.6 seconds with the
+one-second action limit and the same failure locations. The full 48-spec
+liveness run took 73.9 seconds. These measurements cover the app suite alone;
+the two rejection fixtures add their own browser setup and report processing.
 
 The gate is a repository setting as much as a file. `E2E build` blocked nothing
 until the owner added it to the `main` ruleset's required checks, which was done
@@ -136,16 +170,20 @@ It does not separate an assertion from a network error thrown by the spec's own
 `page.goto`. The request count covers the case where nothing reached the empty
 page at all, not a run where only some specs did.
 
-The script's command half -- the server, the Playwright process, the exit code --
-has no unit test. `Gate liveness` running it is its only exercise, and `tools/**`
-is outside the mutation threshold (ADR-0004). It was checked by hand before it
-landed: exit 0 against the real suite, exit 1 naming two specs with no browser,
-exit 1 naming a planted spec that only opens the page. Thirteen hand-made
-mutants of `findLivenessProblems` were each killed by its test file.
+The runner's server and Playwright process are now
+exercised by the Chromium regression suite as well as by the full app suite.
+`tools/**` remains outside the mutation threshold (ADR-0004). Before the script
+first landed it was checked by hand: exit 0 against the real suite, exit 1
+naming two specs with no browser, exit 1 naming a planted spec that only opens
+the page. Thirteen hand-made mutants of `findLivenessProblems` were each killed
+by its test file.
 
-The script lives in `tools/`, which no one owns (ADR-0002), so it can be weakened
-in a pull request onto a milestone that needs no approval. The step that runs it
-is in `.github/`, which is owned.
+The runner lives in `tools/`, which no one owns (ADR-0002), so it can be weakened
+in a pull request onto a milestone that needs no approval. The same exposure
+applies to `vitest.e2e-liveness.config.ts`, the command in `package.json` and the
+fixture Playwright configuration. The step that runs the command is in
+`.github/`, which is owned. These supporting files remain outside the owned
+paths under the existing review policy; a PR into `main` still requires approval.
 
 ## Rejected alternatives
 
@@ -189,5 +227,5 @@ feature work built against it, until the milestone was finished.
 passes it.
 
 **Liveness in `pnpm gates`.** Every other `verify:gates:*` script is there, but
-this one needs a browser installed and about 36 seconds, and `test:e2e`, the
-suite it checks, is outside `pnpm gates` already.
+this one needs a browser installed; its original three-spec run took about
+36 seconds. `test:e2e`, the suite it checks, is outside `pnpm gates` already.

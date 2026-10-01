@@ -71,12 +71,19 @@ the test-collection gate excludes this directory too.
 
 ## Other gates
 
-| Fixture                                          | Gate that must fail   |
-| ------------------------------------------------ | --------------------- |
-| `violations/apps/web/server/deep-import.ts`      | typecheck (exports)   |
-| `server-only/client-imports-server.tsx`          | build (server-only)   |
-| `mutation/`                                       | Stryker threshold     |
-| `migration/schema-with-a-table.ts`               | migration drift (`pnpm db:drift`) |
+| Fixture                                     | Gate that must fail                         |
+| ------------------------------------------- | ------------------------------------------- |
+| `violations/apps/web/server/deep-import.ts` | typecheck (exports)                         |
+| `server-only/client-imports-server.tsx`     | build (server-only)                         |
+| `mutation/`                                 | Stryker threshold                           |
+| `migration/schema-with-a-table.ts`          | migration drift (`pnpm db:drift`)           |
+| `e2e-liveness/no-assertions.spec.ts`        | E2E liveness (passes against an empty page) |
+| `e2e-liveness/browser-failure.spec.ts`      | E2E liveness (browser never launches)       |
+
+The two E2E liveness fixtures import the shared Playwright configuration and run
+in `vitest.e2e-liveness.config.ts`, which is called by `pnpm verify:gates:e2e`
+after Chromium is installed. Each fixture run selects its spec explicitly with
+`E2E_LIVENESS_FIXTURE`; the fixture configuration has no default spec.
 
 ## Rules with no fixture
 
@@ -122,8 +129,8 @@ catch:
   `e2e-liveness-gate.test.ts` by reports shaped like real runs: a spec that
   passed against the empty page, one skipped, one that passed on a retry, specs
   that failed in the harness before a line of their own ran, no specs at all,
-  and an empty page nobody requested. Its command half starts a browser, so
-  `Gate liveness` runs it rather than that test.
+  and an empty page nobody requested. Its runner is exercised with the
+  browser fixtures above, alongside the full app suite, by `Gate liveness`.
 
 ## Fixtures that are planted, not linted
 
