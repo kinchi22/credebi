@@ -1,6 +1,6 @@
 'use client';
 
-import { Logo } from '@repo/ui';
+import { Logo, SignOutIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -51,8 +51,9 @@ export function Sidebar({ signOut }: SidebarProps): ReactNode {
       <form action={signOut}>
         <button
           type="submit"
-          className={`rounded px-3 py-1 ${typeClasses['body-sm']} text-text-muted-on-dark hover:text-text-on-dark ${ON_DARK_FOCUS}`}
+          className={`inline-flex items-center gap-2 rounded px-3 py-1 ${typeClasses['body-sm']} text-text-muted-on-dark hover:text-text-on-dark ${ON_DARK_FOCUS}`}
         >
+          <SignOutIcon />
           {en.sidebar.signOut}
         </button>
       </form>
