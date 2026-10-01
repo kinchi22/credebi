@@ -14,9 +14,9 @@ export const ACCOUNTS = ['Cash', 'Accounts payable', 'Capital', 'Sales', 'Expens
 
 export type Account = (typeof ACCOUNTS)[number];
 
-export type Side = 'Debit' | 'Credit';
+export const SIDES = ['Debit', 'Credit'] as const;
 
-export const PHONE = { width: 390, height: 844 } as const;
+export type Side = (typeof SIDES)[number];
 
 type Heading = {
   readonly day: string;
@@ -39,10 +39,6 @@ export type MultiLineEntry = Heading & {
   readonly lines: readonly Line[];
 };
 
-export async function fixToday(page: Page, day: string): Promise<void> {
-  await page.clock.setFixedTime(new Date(`${day}T12:00:00`));
-}
-
 export const entryForm = (page: Page): Locator => page.getByRole('form', { name: 'New entry' });
 
 export const entrySearchForm = (page: Page): Locator =>
@@ -64,7 +60,9 @@ export const lineGroup = (form: Locator, side: Side, account: Account): Locator 
   form.getByRole('group', { name: `${side} ${account}`, exact: true });
 
 export const lineGroups = (form: Locator): Locator =>
-  form.getByRole('group', { name: /^(Debit|Credit) (?!accounts$)/ });
+  form.getByRole('group', {
+    name: new RegExp(`^(${SIDES.join('|')}) (${ACCOUNTS.join('|')})$`),
+  });
 
 export const listedEntry = (page: Page, memo: string): Locator =>
   page.getByTestId('entry').filter({ hasText: memo });

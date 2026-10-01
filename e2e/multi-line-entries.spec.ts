@@ -11,6 +11,7 @@ import {
   lineGroup,
   lineGroups,
   listedEntry,
+  SIDES,
   submitMultiLineEntry,
   TWELVE_THOUSAND_FIVE_HUNDRED,
 } from './entries';
@@ -29,7 +30,7 @@ async function openMultiLineForm(page: Page): Promise<Locator> {
 test('offers every Account as a checkbox on each Side, and ticking, unticking or Remove adds or drops its line', async ({ page }) => {
   const form = await openMultiLineForm(page);
 
-  for (const side of ['Debit', 'Credit'] as const) {
+  for (const side of SIDES) {
     await expect(accountTicks(form, side).getByRole('checkbox')).toHaveCount(ACCOUNTS.length);
     for (const account of ACCOUNTS) {
       await expect(accountTick(form, side, account)).toBeVisible();

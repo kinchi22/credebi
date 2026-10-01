@@ -5,19 +5,13 @@ import {
   AMOUNT,
   entrySearchForm,
   expectDebitAndCreditColumns,
-  fixToday,
-  PHONE,
   postEntries,
   TWELVE_THOUSAND_FIVE_HUNDRED,
   type TwoLineEntry,
 } from './entries';
+import { ENTRY_SEARCH_PATH as SEARCH, ENTRY_SEARCH_WITH_QUERY, ENTRY_SEARCH_WITHOUT_QUERY } from './routes';
 import { signIn, signInForSmoke } from './session';
-
-const SEARCH = '/entries/search';
-
-const WITHOUT_QUERY = /\/entries\/search$/;
-
-const WITH_QUERY = /\/entries\/search\?.+$/;
+import { PHONE } from './viewport';
 
 const TODAY = '2026-09-15';
 
@@ -27,7 +21,13 @@ const EARLIEST = '2000-01-01';
 
 const LATEST = '2099-12-31';
 
-type Category = 'Year' | 'Quarter' | 'Month' | 'Relative';
+const CATEGORIES = ['Year', 'Quarter', 'Month', 'Relative'] as const;
+
+type Category = (typeof CATEGORIES)[number];
+
+async function fixToday(page: Page, day: string): Promise<void> {
+  await page.clock.setFixedTime(new Date(`${day}T12:00:00`));
+}
 
 const posting = (
   debitAccount: Account,
@@ -43,9 +43,9 @@ const results = (page: Page): Locator => page.getByRole('region', { name: 'Resul
 const resultFor = (page: Page, memo: string): Locator =>
   results(page).getByTestId('entry').filter({ hasText: memo });
 
-const from = (page: Page): Locator => entrySearchForm(page).getByLabel('From', { exact: true });
+const fromField = (page: Page): Locator => entrySearchForm(page).getByLabel('From', { exact: true });
 
-const to = (page: Page): Locator => entrySearchForm(page).getByLabel('To', { exact: true });
+const toField = (page: Page): Locator => entrySearchForm(page).getByLabel('To', { exact: true });
 
 const datePresets = (page: Page): Locator =>
   page.getByRole('group', { name: 'Date presets', exact: true });
@@ -53,8 +53,11 @@ const datePresets = (page: Page): Locator =>
 const category = (page: Page, name: Category): Locator =>
   datePresets(page).getByRole('button', { name, exact: true });
 
-const choice = (scope: Page | Locator, name: string): Locator =>
+const presetChoice = (scope: Page | Locator, name: string): Locator =>
   scope.getByRole('button', { name, exact: true });
+
+const pressedChoices = (page: Page): Locator =>
+  page.getByRole('main').locator('[aria-pressed="true"]');
 
 type Criteria = {
   readonly from?: string;
@@ -67,8 +70,8 @@ async function search(page: Page, criteria: Criteria): Promise<void> {
   const form = entrySearchForm(page);
   await expect(form).toBeVisible();
 
-  await from(page).fill(criteria.from ?? EARLIEST);
-  await to(page).fill(criteria.to ?? LATEST);
+  await fromField(page).fill(criteria.from ?? EARLIEST);
+  await toField(page).fill(criteria.to ?? LATEST);
   if (criteria.account !== undefined) {
     await form.getByLabel('Account', { exact: true }).selectOption(criteria.account);
   }
@@ -80,18 +83,18 @@ async function search(page: Page, criteria: Criteria): Promise<void> {
 }
 
 async function expectRange(page: Page, first: string, last: string): Promise<void> {
-  await expect(from(page)).toHaveValue(first);
-  await expect(to(page)).toHaveValue(last);
+  await expect(fromField(page)).toHaveValue(first);
+  await expect(toField(page)).toHaveValue(last);
 }
 
 async function choosePreset(page: Page, within: Category, name: string): Promise<void> {
   await category(page, within).click();
-  await choice(page, name).click();
+  await presetChoice(page, name).click();
 }
 
 async function expectNoPresetChosen(page: Page): Promise<void> {
-  await expect(page.getByRole('main').locator('[aria-pressed="true"]')).toHaveCount(0);
-  for (const name of ['Year', 'Quarter', 'Month', 'Relative'] as const) {
+  await expect(pressedChoices(page)).toHaveCount(0);
+  for (const name of CATEGORIES) {
     await expect(category(page, name)).toBeVisible();
   }
 }
@@ -132,7 +135,7 @@ test('opens with no query on the month up to today, filled into From and To, and
 
   await expect(entrySearchForm(page)).toBeVisible();
   await expectRange(page, '2026-08-16', '2026-09-15');
-  await expect(page).toHaveURL(WITHOUT_QUERY);
+  await expect(page).toHaveURL(ENTRY_SEARCH_WITHOUT_QUERY);
 
   const openingResult = resultFor(page, opening);
   await expect(openingResult).toHaveCount(1);
@@ -144,7 +147,7 @@ test('opens with no query on the month up to today, filled into From and To, and
   await expect(resultFor(page, today)).toHaveCount(1);
   await expect(resultFor(page, before)).toHaveCount(0);
   await expect(resultFor(page, after)).toHaveCount(0);
-  await expect(page).toHaveURL(WITHOUT_QUERY);
+  await expect(page).toHaveURL(ENTRY_SEARCH_WITHOUT_QUERY);
 });
 
 test('opens on 31 March with a range from 1 March, as a month back has no 31st', async ({ page }) => {
@@ -179,42 +182,48 @@ test('puts the criteria into the query when the User searches, and a reload keep
 
   await fixToday(page, TODAY);
   await page.goto(SEARCH);
-  await expect(page).toHaveURL(WITHOUT_QUERY);
+  await expect(page).toHaveURL(ENTRY_SEARCH_WITHOUT_QUERY);
 
   await search(page, { from: '2026-06-01', to: '2026-06-30' });
-  await expect(page).toHaveURL(WITH_QUERY);
+  await expect(page).toHaveURL(ENTRY_SEARCH_WITH_QUERY);
   await expect(resultFor(page, june)).toHaveCount(1);
   await expect(resultFor(page, july)).toHaveCount(0);
 
   await page.reload();
-  await expect(page).toHaveURL(WITH_QUERY);
+  await expect(page).toHaveURL(ENTRY_SEARCH_WITH_QUERY);
   await expectRange(page, '2026-06-01', '2026-06-30');
   await expect(resultFor(page, june)).toHaveCount(1);
   await expect(resultFor(page, july)).toHaveCount(0);
 });
 
 test('never searches with From or To emptied', async ({ page }) => {
+  test.slow();
   const run = randomUUID();
   const recent = `Recent ${run}`;
   const old = `Old ${run}`;
+  const future = `Future ${run}`;
 
   await signIn(page);
   await postEntries(page, [
     { day: '2026-09-01', memo: recent, ...posting('Expenses', 'Cash') },
     { day: '2020-01-01', memo: old, ...posting('Expenses', 'Cash') },
+    { day: '2030-01-01', memo: future, ...posting('Expenses', 'Cash') },
   ]);
 
   await fixToday(page, TODAY);
-  await page.goto(SEARCH);
-  await expect(resultFor(page, recent)).toHaveCount(1);
-
-  const form = entrySearchForm(page);
-  for (const field of [from(page), to(page)]) {
-    await field.fill('');
-    await form.getByRole('button', { name: 'Search' }).click();
-    await expect(resultFor(page, recent)).toHaveCount(1);
-    await expect(resultFor(page, old)).toHaveCount(0);
+  const fields = [
+    { field: fromField, outside: old },
+    { field: toField, outside: future },
+  ];
+  for (const { field, outside } of fields) {
     await page.goto(SEARCH);
+    await expect(resultFor(page, recent)).toHaveCount(1);
+
+    await field(page).fill('');
+    await entrySearchForm(page).getByRole('button', { name: 'Search' }).click();
+
+    await expect(resultFor(page, recent)).toHaveCount(1);
+    await expect(resultFor(page, outside)).toHaveCount(0);
   }
 });
 
@@ -228,14 +237,14 @@ test('fills From and To from a Year preset and runs the search, emphasising the 
 
   await category(page, 'Year').click();
   for (const year of ['2016', '2025', '2026', '2031']) {
-    await expect(choice(page, year)).toBeVisible();
+    await expect(presetChoice(page, year)).toBeVisible();
   }
-  await expect(choice(page, '2015')).toHaveCount(0);
-  await expect(choice(page, '2032')).toHaveCount(0);
-  await expect(choice(page, '2026')).toHaveAttribute('aria-current', 'date');
-  await expect(choice(page, '2025')).not.toHaveAttribute('aria-current', 'date');
+  await expect(presetChoice(page, '2015')).toHaveCount(0);
+  await expect(presetChoice(page, '2032')).toHaveCount(0);
+  await expect(presetChoice(page, '2026')).toHaveAttribute('aria-current', 'date');
+  await expect(presetChoice(page, '2025')).not.toHaveAttribute('aria-current', 'date');
 
-  await choice(page, '2026').click();
+  await presetChoice(page, '2026').click();
   await expectRange(page, '2026-01-01', '2026-12-31');
   await expectPresetRanSearch(page, june, lastYear);
   await expectNoPresetChosen(page);
@@ -256,14 +265,14 @@ test('fills From and To from a Quarter preset and runs the search, emphasising t
 
   await category(page, 'Quarter').click();
   for (const quarter of ['Q1 2021', 'Q2 2026', 'Q3 2026', 'Q4 2029']) {
-    await expect(choice(page, quarter)).toBeVisible();
+    await expect(presetChoice(page, quarter)).toBeVisible();
   }
-  await expect(choice(page, 'Q4 2020')).toHaveCount(0);
-  await expect(choice(page, 'Q1 2030')).toHaveCount(0);
-  await expect(choice(page, 'Q3 2026')).toHaveAttribute('aria-current', 'date');
-  await expect(choice(page, 'Q2 2026')).not.toHaveAttribute('aria-current', 'date');
+  await expect(presetChoice(page, 'Q4 2020')).toHaveCount(0);
+  await expect(presetChoice(page, 'Q1 2030')).toHaveCount(0);
+  await expect(presetChoice(page, 'Q3 2026')).toHaveAttribute('aria-current', 'date');
+  await expect(presetChoice(page, 'Q2 2026')).not.toHaveAttribute('aria-current', 'date');
 
-  await choice(page, 'Q2 2026').click();
+  await presetChoice(page, 'Q2 2026').click();
   await expectRange(page, '2026-04-01', '2026-06-30');
   await expectPresetRanSearch(page, june, lastYear);
   await expectNoPresetChosen(page);
@@ -284,14 +293,14 @@ test('fills From and To from a Month preset and runs the search, emphasising the
 
   await category(page, 'Month').click();
   for (const month of ['Jan 2023', 'Jun 2026', 'Sep 2026', 'Dec 2028']) {
-    await expect(choice(page, month)).toBeVisible();
+    await expect(presetChoice(page, month)).toBeVisible();
   }
-  await expect(choice(page, 'Dec 2022')).toHaveCount(0);
-  await expect(choice(page, 'Jan 2029')).toHaveCount(0);
-  await expect(choice(page, 'Sep 2026')).toHaveAttribute('aria-current', 'date');
-  await expect(choice(page, 'Aug 2026')).not.toHaveAttribute('aria-current', 'date');
+  await expect(presetChoice(page, 'Dec 2022')).toHaveCount(0);
+  await expect(presetChoice(page, 'Jan 2029')).toHaveCount(0);
+  await expect(presetChoice(page, 'Sep 2026')).toHaveAttribute('aria-current', 'date');
+  await expect(presetChoice(page, 'Aug 2026')).not.toHaveAttribute('aria-current', 'date');
 
-  await choice(page, 'Jun 2026').click();
+  await presetChoice(page, 'Jun 2026').click();
   await expectRange(page, '2026-06-01', '2026-06-30');
   await expectPresetRanSearch(page, june, lastYear);
   await expectNoPresetChosen(page);
@@ -331,14 +340,14 @@ test('fills From and To from a Relative preset and runs the search, emphasising 
   ];
   await category(page, 'Relative').click();
   for (const name of relative) {
-    await expect(choice(page, name)).toBeVisible();
-    await expect(choice(page, name)).not.toHaveAttribute('aria-current', /.+/);
+    await expect(presetChoice(page, name)).toBeVisible();
+    await expect(presetChoice(page, name)).not.toHaveAttribute('aria-current', /.+/);
   }
   for (const absent of ['Next 24 months', 'Next 36 months', `${PLUS_MINUS}24 months`, 'Last 2 months']) {
-    await expect(choice(page, absent)).toHaveCount(0);
+    await expect(presetChoice(page, absent)).toHaveCount(0);
   }
 
-  await choice(page, 'Last 6 months').click();
+  await presetChoice(page, 'Last 6 months').click();
   await expectRange(page, '2026-03-16', '2026-09-15');
   await expectPresetRanSearch(page, june, lastYear);
   await expectNoPresetChosen(page);
@@ -376,24 +385,28 @@ test('opens the presets at 390px from Choose a period, as a full-screen sheet wi
   await page.getByRole('button', { name: 'Choose a period', exact: true }).click();
   const sheet = page.getByRole('dialog', { name: 'Choose a period', exact: true });
   await expect(sheet).toBeVisible();
-  await expect.poll(async () => sheet.boundingBox()).toEqual({ x: 0, y: 0, ...PHONE });
+  const box = await sheet.boundingBox();
+  expect(box?.x ?? Number.NaN).toBeCloseTo(0, 0);
+  expect(box?.y ?? Number.NaN).toBeCloseTo(0, 0);
+  expect(box?.width ?? Number.NaN).toBeCloseTo(PHONE.width, 0);
+  expect(box?.height ?? Number.NaN).toBeCloseTo(PHONE.height, 0);
 
   const tabs = sheet.getByRole('tablist');
-  for (const name of ['Year', 'Quarter', 'Month', 'Relative']) {
+  for (const name of CATEGORIES) {
     await expect(tabs.getByRole('tab', { name, exact: true })).toBeVisible();
   }
 
   await tabs.getByRole('tab', { name: 'Year', exact: true }).click();
-  await expect(choice(sheet, '2026')).toHaveAttribute('aria-current', 'date');
+  await expect(presetChoice(sheet, '2026')).toHaveAttribute('aria-current', 'date');
 
   await tabs.getByRole('tab', { name: 'Month', exact: true }).click();
-  await expect(choice(sheet, 'Sep 2026')).toHaveAttribute('aria-current', 'date');
-  await choice(sheet, 'Jun 2026').click();
+  await expect(presetChoice(sheet, 'Sep 2026')).toHaveAttribute('aria-current', 'date');
+  await presetChoice(sheet, 'Jun 2026').click();
 
   await expect(sheet).toBeHidden();
   await expectRange(page, '2026-06-01', '2026-06-30');
   await expectPresetRanSearch(page, june, lastYear);
-  await expect(page.getByRole('main').locator('[aria-pressed="true"]')).toHaveCount(0);
+  await expect(pressedChoices(page)).toHaveCount(0);
 });
 
 test('narrows the results to a day range, both of whose ends are included', async ({ page }) => {

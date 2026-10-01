@@ -9,12 +9,13 @@ import {
   entryForm,
   expectDebitAndCreditColumns,
   listedEntry,
-  PHONE,
+  SIDES,
   submitTwoLineEntry,
   TWELVE_THOUSAND_FIVE_HUNDRED,
 } from './entries';
 import { signIn, signInForSmoke } from './session';
 import { setEntryFormMode } from './settings';
+import { PHONE } from './viewport';
 
 const entries = (page: Page): Locator => page.getByRole('region', { name: 'Entries' });
 
@@ -60,7 +61,7 @@ test('lists a Two-line mode Entry as one debit and one credit line of its amount
 test('offers every Account as a radio on each Side in Two-line mode, and choosing a second Account replaces the first', async ({ page }) => {
   const form = await openTwoLineForm(page);
 
-  for (const side of ['Debit', 'Credit'] as const) {
+  for (const side of SIDES) {
     await expect(accountChoices(form, side)).toBeVisible();
     await expect(accountChoices(form, side).getByRole('radio')).toHaveCount(ACCOUNTS.length);
     for (const account of ACCOUNTS) {

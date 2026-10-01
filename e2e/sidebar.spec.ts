@@ -1,9 +1,10 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { entryForm, entrySearchForm, PHONE } from './entries';
+import { entryForm, entrySearchForm } from './entries';
 import { ENTRIES_URL, ENTRY_SEARCH_URL, SETTINGS_URL, SIGN_IN_URL } from './routes';
 import { signIn } from './session';
 import { entryFormModes } from './settings';
 import { SIGNED_IN_PAGES, sidebar } from './sidebar';
+import { PHONE } from './viewport';
 
 const sidebarLink = (page: Page, name: 'Entries' | 'Entry search' | 'Settings'): Locator =>
   sidebar(page).getByRole('link', { name, exact: true });
