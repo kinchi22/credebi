@@ -263,11 +263,18 @@ woff2 files through `next/font/local`, and the share image reads Sora as TTF, as
 
 ## Layout
 
-There is one breakpoint, `wide`, at 720px. The stylesheet declares it as
+The design has one breakpoint, `wide`, at 720px. The stylesheet declares it as
 `--breakpoint-wide: 45rem`, which is 720px at the root's 16px and is in rem like
 Tailwind's own breakpoints, so they sort together. `breakpoints` in the tokens
 module holds it, and the utilities take it as the `wide:` variant: a style
 written bare is the narrow layout, and `wide:` sets the layout from 720px up.
+New layout uses `wide:` alone.
+
+Tailwind's default breakpoints still exist, because the Sidebar and the
+signed-in layout use `md:`, at 768px. They stay until the Sidebar drawer and the
+redesigned layout move those uses to `wide:`; the stylesheet then resets
+`--breakpoint-*` to `initial`, as it does the colours, and `wide` is the only
+breakpoint left.
 
 ## Elevation & Depth
 
