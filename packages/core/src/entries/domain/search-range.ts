@@ -3,37 +3,46 @@ export type DayRange = {
   readonly to: string;
 };
 
-const MILLISECONDS_IN_A_DAY = 86_400_000;
-
-function utcDay(day: string): Date {
-  const [year, month, date] = day.split('-').map(Number) as [number, number, number];
+export function calendarDay(year: number, monthIndex: number, date: number): string {
   const instant = new Date(0);
-  instant.setUTCFullYear(year, month - 1, date);
-  return instant;
-}
-
-function lastDateOfMonth(year: number, monthIndex: number): number {
-  const instant = new Date(0);
-  instant.setUTCFullYear(year, monthIndex + 1, 0);
-  return instant.getUTCDate();
-}
-
-function dayOf(instant: Date): string {
+  instant.setUTCFullYear(year, monthIndex, date);
   return instant.toISOString().slice(0, 10);
 }
 
-function monthBack(day: string): Date {
-  const today = utcDay(day);
-  const year = today.getUTCFullYear();
-  const monthIndex = today.getUTCMonth() - 1;
-  const back = new Date(0);
-  back.setUTCFullYear(year, monthIndex, Math.min(today.getUTCDate(), lastDateOfMonth(year, monthIndex)));
-  return back;
+export function yearOf(day: string): number {
+  return Number(day.slice(0, 4));
+}
+
+export function monthOf(day: string): number {
+  return Number(day.slice(5, 7));
+}
+
+function dateOf(day: string): number {
+  return Number(day.slice(8, 10));
+}
+
+function lastDateOfMonth(year: number, monthIndex: number): number {
+  return dateOf(calendarDay(year, monthIndex + 1, 0));
+}
+
+function monthsAfter(day: string, months: number): string {
+  const year = yearOf(day);
+  const monthIndex = monthOf(day) - 1 + months;
+  return calendarDay(year, monthIndex, Math.min(dateOf(day), lastDateOfMonth(year, monthIndex)));
+}
+
+function daysAfter(day: string, days: number): string {
+  return calendarDay(yearOf(day), monthOf(day) - 1, dateOf(day) + days);
+}
+
+export function firstDayOfLastMonths(today: string, months: number): string {
+  return daysAfter(monthsAfter(today, -months), 1);
+}
+
+export function lastDayOfNextMonths(today: string, months: number): string {
+  return daysAfter(monthsAfter(today, months), -1);
 }
 
 export function defaultSearchRange(today: string): DayRange {
-  return {
-    from: dayOf(new Date(monthBack(today).getTime() + MILLISECONDS_IN_A_DAY)),
-    to: today,
-  };
+  return { from: firstDayOfLastMonths(today, 1), to: today };
 }
