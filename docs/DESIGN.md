@@ -288,7 +288,8 @@ Hierarchy comes from tonal layers, not shadows: `surface` panels with a
 - **Secondary button.** `surface` fill, `text`, a `border-control` edge.
 - **Quiet button on dark.** No fill and no border: `text-muted-on-dark` text,
   `text-on-dark` under the pointer, and the `focus-on-dark` ring. It is Sign out
-  in the Sidebar, an exit icon in `currentColor` before its text.
+  in the Sidebar, an exit icon in `currentColor` before its text, and `Menu`
+  in the bar that opens the Sidebar drawer.
 - **Segmented control.** A radiogroup drawn as one `surface` strip with a
   `border-control` edge, each choice a segment. Only the chosen segment is
   marked: an `accent` tint and the semibold weight. It is the Entry form mode in
@@ -303,8 +304,10 @@ Hierarchy comes from tonal layers, not shadows: `surface` panels with a
 - **Sidebar.** Dark: a `ground-dark` ground, `text-on-dark` text,
   `text-muted-on-dark` links, and the active item on `ground-dark-raised`. The
   logo there is the horizontal Lockup in the reverse tone. Below `wide` it is a
-  drawer: a `ground-dark` bar holds the logo and a `Menu` quiet button on dark,
-  which opens the Sidebar over the page's left edge; following a link closes it.
+  drawer: a `ground-dark` bar holds the logo and `Menu`, which opens the Sidebar
+  as a modal dialog on the page's left edge over a `ground-dark` scrim at 60%.
+  The bar's logo hides while it is open, so one logo shows. Escape, a click on
+  the scrim or following a link closes it, and focus returns to `Menu`.
 - **Focus.** A 2px ring on every focusable element: `focus` on a light ground,
   `focus-on-dark` on a dark one.
 - **Status.** `positive` for healthy, `warning` for degraded, `danger` for a
