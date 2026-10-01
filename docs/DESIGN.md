@@ -271,13 +271,8 @@ The design has one breakpoint, `wide`, at 720px. The stylesheet declares it as
 Tailwind's own breakpoints, so they sort together. `breakpoints` in the tokens
 module holds it, and the utilities take it as the `wide:` variant: a style
 written bare is the narrow layout, and `wide:` sets the layout from 720px up.
-New layout uses `wide:` alone.
-
-Tailwind's default breakpoints still exist, because the Sidebar and the
-signed-in layout use `md:`, at 768px. They stay until the Sidebar drawer and the
-redesigned layout move those uses to `wide:`; the stylesheet then resets
-`--breakpoint-*` to `initial`, as it does the colours, and `wide` is the only
-breakpoint left.
+The stylesheet resets `--breakpoint-*` to `initial`, as it does the colours, so
+Tailwind's default breakpoints do not exist and `wide` is the only one.
 
 ## Elevation & Depth
 
@@ -307,7 +302,9 @@ Hierarchy comes from tonal layers, not shadows: `surface` panels with a
   component properties have no border colour, so the edge is stated here only.
 - **Sidebar.** Dark: a `ground-dark` ground, `text-on-dark` text,
   `text-muted-on-dark` links, and the active item on `ground-dark-raised`. The
-  logo there is the horizontal Lockup in the reverse tone.
+  logo there is the horizontal Lockup in the reverse tone. Below `wide` it is a
+  drawer: a `ground-dark` bar holds the logo and a `Menu` quiet button on dark,
+  which opens the Sidebar over the page's left edge; following a link closes it.
 - **Focus.** A 2px ring on every focusable element: `focus` on a light ground,
   `focus-on-dark` on a dark one.
 - **Status.** `positive` for healthy, `warning` for degraded, `danger` for a

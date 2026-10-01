@@ -19,16 +19,25 @@ const themeBlock = (css: string): Readonly<Record<string, string>> =>
   );
 
 const COLOUR_RESET = '--color-*';
+const BREAKPOINT_RESET = '--breakpoint-*';
 
 describe('the global stylesheet', () => {
-  it('declares in @theme exactly the tokens the tokens module holds, after resetting the colours', () => {
-    const { [COLOUR_RESET]: reset, ...declarations } = themeBlock(stylesheet);
-    expect(reset).toBe('initial');
+  it('declares in @theme exactly the tokens the tokens module holds, after resetting the colours and the breakpoints', () => {
+    const {
+      [COLOUR_RESET]: colourReset,
+      [BREAKPOINT_RESET]: breakpointReset,
+      ...declarations
+    } = themeBlock(stylesheet);
+    expect(colourReset).toBe('initial');
+    expect(breakpointReset).toBe('initial');
     expect(declarations).toEqual(themeDeclarations());
   });
 
-  it('resets the colours before declaring any token, so only token colours exist', () => {
-    expect(themeLines(stylesheet)[0]?.trim()).toBe(`${COLOUR_RESET}: initial;`);
+  it('resets the colours and the breakpoints before declaring any token, so only token colours and token breakpoints exist', () => {
+    expect(themeLines(stylesheet).slice(0, 2).map((line) => line.trim())).toEqual([
+      `${COLOUR_RESET}: initial;`,
+      `${BREAKPOINT_RESET}: initial;`,
+    ]);
   });
 
   it('imports Tailwind', () => {
