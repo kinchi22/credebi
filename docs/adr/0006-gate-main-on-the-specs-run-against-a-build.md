@@ -93,10 +93,9 @@ spec that asserts nothing is caught on the pull request that lands it on a
 milestone, while the owner is reviewing it.
 
 **Bound action waits instead of reducing the test budget.** Empty-page actions
-wait for elements that will not arrive. Limiting those waits leaves enough time
-for browser fixtures to start
-and preserves the test, navigation and assertion budgets. A slow spec can still
-spend its longer test budget on hooks or other waits outside the action limit.
+wait for elements that will not arrive. Limiting those waits preserves the test,
+navigation and assertion budgets. A slow spec can still spend its longer test
+budget on hooks or other waits outside the action limit.
 
 Two workers make the command's parallelism explicit on local machines and CI.
 This is a bound for the empty-page workload, whose time is mostly waiting;
@@ -104,14 +103,16 @@ ordinary app runs continue to use Playwright's worker default. On runners where
 that default is already two, the worker flag changes nothing.
 
 `pnpm verify:gates:e2e` runs the Chromium regression suite in
-`vitest.e2e-liveness.config.ts`. It exercises delayed inputs in liveness and
-ordinary modes, rejection of a passing spec and a browser launch failure, and
-compares the full run's reported specs with Playwright's own discovery. Its
+`vitest.e2e-liveness.config.ts`. It exercises rejection of a passing spec and a
+browser launch failure, and compares the full run's reported specs with
+Playwright's own discovery. Its
 fixtures live in `fixtures/e2e-liveness/`. This suite is outside `pnpm gates`,
 which remains runnable without a browser. The full app run has no Vitest test
 timeout: each Playwright spec retains its budget, and the existing 40-minute
-CI job limit bounds the aggregate run as the suite grows. The fixed regression
-fixtures retain the browser suite's five-minute test timeout.
+CI job limit bounds the aggregate run as the suite grows. The two rejection
+fixtures retain the browser suite's five-minute test timeout. Configuration
+tests check the liveness action limit and ordinary local and external defaults
+without browser timing fixtures.
 
 **Neither `test:e2e` nor `verify:gates:e2e` is in `pnpm gates`.** Both need a
 browser, and CI is already the stronger claim (ADR-0002).
@@ -132,7 +133,7 @@ Measured for PR #165 on `main` at `4742d42`, the 11 brand specs took 60.0 second
 with two workers and the ordinary action budget, then 26.6 seconds with the
 one-second action limit and the same failure locations. The full 48-spec
 liveness run took 73.9 seconds. These measurements cover the app suite alone;
-the Chromium regression fixtures add their own browser starts and waits.
+the two rejection fixtures add their own browser setup and report processing.
 
 The gate is a repository setting as much as a file. `E2E build` blocked nothing
 until the owner added it to the `main` ruleset's required checks, which was done

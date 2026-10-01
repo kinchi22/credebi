@@ -80,12 +80,10 @@ the test-collection gate excludes this directory too.
 | `e2e-liveness/no-assertions.spec.ts`        | E2E liveness (passes against an empty page) |
 | `e2e-liveness/browser-failure.spec.ts`      | E2E liveness (browser never launches)       |
 
-`e2e-liveness/missing-input.spec.ts` and `ordinary-input.spec.ts` use the same
-deferred input to exercise the action budget. The input appears after four
-seconds: liveness fails its fill after one second, while an ordinary run waits
-and succeeds. The fixtures import the shared Playwright configuration and run
+The two E2E liveness fixtures import the shared Playwright configuration and run
 in `vitest.e2e-liveness.config.ts`, which is called by `pnpm verify:gates:e2e`
-after Chromium is installed.
+after Chromium is installed. Each fixture run selects its spec explicitly with
+`E2E_LIVENESS_FIXTURE`; the fixture configuration has no default spec.
 
 ## Rules with no fixture
 
