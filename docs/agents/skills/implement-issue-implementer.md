@@ -19,8 +19,8 @@ the base branch for your Task and the `gh` commands.
    Feature whose every criterion the app already meets targets `main` and creates no milestone. For
    any other specs Task, create `milestone/<name>` from `origin/main` first when
    it does not exist:
-   `gh api -X POST repos/{owner}/{repo}/git/refs -f ref=refs/heads/milestone/<name> -f sha=$(git rev-parse origin/main)`.
-   When the ruleset refuses it, return that to the Driver: the owner creates it.
+   `git push origin origin/main:refs/heads/milestone/<name>`.
+   When the push is refused, return that to the Driver: the owner creates it.
 4. **Build.** Test-first, with the `tdd` Skill. Stay inside the Task. Work you
    find that it does not cover becomes a new issue, labelled and added as a
    sub-issue of the Feature, and you carry on without it.
