@@ -15,8 +15,7 @@ import {
   type SubmitEvent,
 } from 'react';
 import { en } from '../messages/en';
-import { CONTROL, FIELD, PRIMARY_BUTTON } from './control-classes';
-import { DANGER_TEXT } from './text-classes';
+import { CONTROL, DENSE_FIELD, PRIMARY_BUTTON } from './control-classes';
 
 export type EntryFormState =
   | { readonly outcome: 'idle' }
@@ -29,9 +28,15 @@ export type EntryFormProps = {
   readonly action: EntryFormAction;
 };
 
+export type EntryFormParts = {
+  readonly id: string;
+  readonly heading: ReactNode;
+  readonly footer: ReactNode;
+};
+
 type EntryFormShellProps = EntryFormProps & {
   readonly mode: EntryFormMode;
-  readonly children: (id: string) => ReactNode;
+  readonly children: (parts: EntryFormParts) => ReactNode;
 };
 
 type ShellState = {
@@ -127,24 +132,14 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
     });
   };
 
-  return (
-    <form
-      ref={form}
-      aria-labelledby={`${id}-title`}
-      onSubmit={submit}
-      className={`flex flex-col gap-3 ${PANEL}`}
-    >
-      <h2
-        id={`${id}-title`}
-        className={`${typeClasses.label} text-text-muted`}
-      >
+  const heading = (
+    <>
+      <h2 id={`${id}-title`} className={`${typeClasses.label} text-text-muted`}>
         {en.entryForm.title}
       </h2>
 
-      <input type="hidden" name={ENTRY_FORM_FIELDS.entryFormMode} value={mode} />
-
       <div className="flex flex-wrap gap-3">
-        <div className={FIELD}>
+        <div className={DENSE_FIELD}>
           <label htmlFor={`${id}-date`}>{en.entryForm.date}</label>
           <input
             id={`${id}-date`}
@@ -154,7 +149,7 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
             className={`${CONTROL} ${typeClasses.date}`}
           />
         </div>
-        <div className={`${FIELD} grow`}>
+        <div className={`${DENSE_FIELD} grow`}>
           <label htmlFor={`${id}-memo`}>{en.entryForm.memo}</label>
           <input
             id={`${id}-memo`}
@@ -165,22 +160,32 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
           />
         </div>
       </div>
+    </>
+  );
 
-      <Fragment key={resetKey}>{children(id)}</Fragment>
-
+  const footer = (
+    <div className={`flex flex-wrap items-center gap-3 ${typeClasses['body-dense']}`}>
       {state.outcome === 'rejected' ? (
-        <p role="alert" className={DANGER_TEXT}>
+        <p role="alert" className="min-w-0 flex-1 text-danger">
           {REFUSAL[mode][state.code]}
         </p>
       ) : null}
-
-      <button
-        type="submit"
-        disabled={pending}
-        className={`self-start ${PRIMARY_BUTTON}`}
-      >
+      <button type="submit" disabled={pending} className={`ml-auto ${PRIMARY_BUTTON}`}>
         {pending ? en.entryForm.pending : en.entryForm.submit}
       </button>
+    </div>
+  );
+
+  return (
+    <form
+      ref={form}
+      aria-labelledby={`${id}-title`}
+      onSubmit={submit}
+      className={`flex flex-col gap-3 ${PANEL}`}
+    >
+      <input type="hidden" name={ENTRY_FORM_FIELDS.entryFormMode} value={mode} />
+
+      <Fragment key={resetKey}>{children({ id, heading, footer })}</Fragment>
     </form>
   );
 }
