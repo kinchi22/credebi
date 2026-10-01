@@ -22,6 +22,8 @@ colors:
   steel: "#78948F"
   rust: "#B4400F"
   ochre: "#A15C00"
+  cobalt: "#2B63B8"
+  gold: "#7F6500"
   surface: "{colors.white}"
   ground: "{colors.mist}"
   text: "{colors.ink}"
@@ -40,6 +42,8 @@ colors:
   positive: "{colors.mint-deep}"
   focus: "{colors.mint-deep}"
   focus-on-dark: "{colors.mint}"
+  debit: "{colors.cobalt}"
+  credit: "{colors.gold}"
 typography:
   display:
     fontFamily: Sora
@@ -66,6 +70,11 @@ typography:
   body-sm:
     fontFamily: Sora
     fontSize: 14px
+    fontWeight: 400
+    lineHeight: 20px
+  body-dense:
+    fontFamily: Sora
+    fontSize: 13px
     fontWeight: 400
     lineHeight: 20px
   label:
@@ -165,6 +174,8 @@ a palette colour.
 | `steel`       | `#78948F` | control edges                              |
 | `rust`        | `#B4400F` | danger                                     |
 | `ochre`       | `#A15C00` | warning                                    |
+| `cobalt`      | `#2B63B8` | Debit                                      |
+| `gold`        | `#7F6500` | Credit                                     |
 
 `mint-deep` was `#0E9A76`, which reads 3.6:1 on white and 3.3:1 on mist, below
 AA for text. `#0B7A5E` reads 5.3:1 and 4.9:1.
@@ -197,13 +208,23 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `positive`           | `mint-deep` | a healthy status, a saved confirmation |
 | `focus`              | `mint-deep` | the 2px focus ring on a light ground  |
 | `focus-on-dark`      | `mint`      | the 2px focus ring on a dark ground   |
+| `debit`              | `cobalt`    | a Debit amount or label               |
+| `credit`             | `gold`      | a Credit amount or label              |
+
+`debit` and `credit` back up position, Debit on the left and Credit on the
+right; they never carry a Side alone. Neither is green or red, so neither reads
+as gain or loss. `credit` is a dark gold, not an amber, so it stays clearly
+apart from `warning`'s ochre (ΔE76 21.5) and `danger`'s rust (ΔE76 43): a
+Credit amount never reads as a warning. As text, `debit` reads 5.87:1 on
+`surface` and 5.45:1 on `ground`; `credit` reads 5.58:1 on `surface` and 5.19:1
+on `ground`.
 
 The tokens module declares the pairs that must meet a contrast minimum, and a
 unit test checks every one:
 
-- **Text, 4.5:1.** `ink`, `slate`, `mint-deep`, `mint-deeper`, `rust` and
-  `ochre` on `white` and on `mist`; `frost` and `sage` on `ink` and on
-  `ink-raised`, which is `text-on-dark` and `text-muted-on-dark` on
+- **Text, 4.5:1.** `ink`, `slate`, `mint-deep`, `mint-deeper`, `rust`,
+  `ochre`, `cobalt` and `gold` on `white` and on `mist`; `frost` and `sage` on
+  `ink` and on `ink-raised`, which is `text-on-dark` and `text-muted-on-dark` on
   `ground-dark` and `ground-dark-raised`; `ink` on `mint`.
 - **Control edges, 3:1.** `steel` and `mint-deep` on `white` and on `mist`;
   `mint`, the `focus-on-dark` ring, on `ink` and on `ink-raised` (7.66:1 on
@@ -224,6 +245,7 @@ column of amounts lines up. Nothing is set below 12px.
 | `h2`      | Sora SemiBold    | 20 / 28            |                |                  |
 | `body`    | Sora Regular     | 15 / 24            |                |                  |
 | `body-sm` | Sora Regular     | 14 / 20            |                |                  |
+| `body-dense` | Sora Regular  | 13 / 20            |                |                  |
 | `label`   | DM Mono Regular  | 12 / 16            | 0.06em         | capitals         |
 | `figure`  | DM Mono Regular  | 14 / 20            |                | tabular numerals |
 | `date`    | DM Mono Regular  | 13 / 20            |                | tabular numerals |
@@ -235,11 +257,27 @@ Mono, `uppercase` sets the capitals and `tabular-nums` the numerals.
 `typeClasses` in `packages/ui/src/type-classes.ts` holds each step's full set,
 and a component takes a step from it: a date, shown or typed, is
 `typeClasses.date`, an amount `typeClasses.figure`, and a section label
-`typeClasses.label`. The fonts are served from the
+`typeClasses.label`. `body-dense` is the entry form's step, so the form stays
+short. The fonts are served from the
 repository, never fetched from a font service at build or run time. The font
 files and their OFL licences are in `apps/web/app/fonts/`: the pages load the
 woff2 files through `next/font/local`, and the share image reads Sora as TTF, as
 "Metadata files" in `docs/ARCHITECTURE.md` states.
+
+## Layout
+
+The design has one breakpoint, `wide`, at 720px. The stylesheet declares it as
+`--breakpoint-wide: 45rem`, which is 720px at the root's 16px and is in rem like
+Tailwind's own breakpoints, so they sort together. `breakpoints` in the tokens
+module holds it, and the utilities take it as the `wide:` variant: a style
+written bare is the narrow layout, and `wide:` sets the layout from 720px up.
+New layout uses `wide:` alone.
+
+Tailwind's default breakpoints still exist, because the Sidebar and the
+signed-in layout use `md:`, at 768px. They stay until the Sidebar drawer and the
+redesigned layout move those uses to `wide:`; the stylesheet then resets
+`--breakpoint-*` to `initial`, as it does the colours, and `wide` is the only
+breakpoint left.
 
 ## Elevation & Depth
 

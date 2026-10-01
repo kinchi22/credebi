@@ -21,6 +21,8 @@
   --color-positive: #0B7A5E;
   --color-focus: #0B7A5E;
   --color-focus-on-dark: #2FD0A2;
+  --color-debit: #2B63B8;
+  --color-credit: #7F6500;
   --font-sans: var(--font-sora);
   --font-mono: var(--font-dm-mono);
   --text-display: 32px;
@@ -40,6 +42,9 @@
   --text-body-sm: 14px;
   --text-body-sm--line-height: 20px;
   --text-body-sm--font-weight: 400;
+  --text-body-dense: 13px;
+  --text-body-dense--line-height: 20px;
+  --text-body-dense--font-weight: 400;
   --text-label: 12px;
   --text-label--line-height: 16px;
   --text-label--font-weight: 400;
@@ -50,6 +55,7 @@
   --text-date: 13px;
   --text-date--line-height: 20px;
   --text-date--font-weight: 400;
+  --breakpoint-wide: 45rem;
 }
 
 @layer base {

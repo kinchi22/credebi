@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { contrastRatio } from './contrast';
 import {
+  breakpoints,
   CONTROL_EDGE_MINIMUM,
   controlEdgePairs,
   fontFaces,
@@ -40,7 +41,16 @@ describe('the declared pairs', () => {
       textPairs.filter((pair) => pair.background === background).map((pair) => pair.foreground);
 
     expect(foregroundsOn('white')).toEqual(
-      expect.arrayContaining(['ink', 'slate', 'mint-deep', 'mint-deeper', 'rust', 'ochre']),
+      expect.arrayContaining([
+        'ink',
+        'slate',
+        'mint-deep',
+        'mint-deeper',
+        'rust',
+        'ochre',
+        'cobalt',
+        'gold',
+      ]),
     );
     expect(foregroundsOn('mist')).toEqual(foregroundsOn('white'));
     expect(foregroundsOn('ink')).toEqual(['frost', 'sage']);
@@ -81,7 +91,22 @@ describe('the semantic tokens', () => {
       positive: 'mint-deep',
       focus: 'mint-deep',
       'focus-on-dark': 'mint',
+      debit: 'cobalt',
+      credit: 'gold',
     });
+  });
+
+  it('sets Debit in a blue and Credit in a gold that each read as text on the ground', () => {
+    expect(palette[semanticColors.debit]).toBe('#2B63B8');
+    expect(palette[semanticColors.credit]).toBe('#7F6500');
+    expect(ratio(semanticColors.debit, semanticColors.ground)).toBeGreaterThanOrEqual(TEXT_MINIMUM);
+    expect(ratio(semanticColors.credit, semanticColors.ground)).toBeGreaterThanOrEqual(TEXT_MINIMUM);
+  });
+});
+
+describe('the breakpoints', () => {
+  it('holds one breakpoint, wide, at 720px', () => {
+    expect(breakpoints).toEqual({ wide: 720 });
   });
 });
 
@@ -123,13 +148,20 @@ describe('themeDeclarations', () => {
     expect(declarations['--text-body--letter-spacing']).toBeUndefined();
   });
 
-  it('declares nothing but the colours, the faces and the type scale', () => {
+  it('declares the wide breakpoint in rem, the unit of the breakpoints Tailwind keeps', () => {
+    expect(themeDeclarations()['--breakpoint-wide']).toBe('45rem');
+  });
+
+  it('declares nothing but the colours, the faces, the type scale and the breakpoints', () => {
     const declarations = themeDeclarations();
     const colours = Object.keys(semanticColors).length;
     const faces = Object.keys(fontFaces).length;
     const typeSteps = Object.values(typeScale);
     const spacing = typeSteps.filter((step) => step.letterSpacing !== undefined).length;
-    expect(Object.keys(declarations)).toHaveLength(colours + faces + typeSteps.length * 3 + spacing);
+    const widths = Object.keys(breakpoints).length;
+    expect(Object.keys(declarations)).toHaveLength(
+      colours + faces + typeSteps.length * 3 + spacing + widths,
+    );
   });
 });
 
@@ -156,6 +188,7 @@ describe('the type scale', () => {
       h2: { ...sora, fontSize: 20, lineHeight: 28, fontWeight: 600 },
       body: { ...sora, fontSize: 15, lineHeight: 24, fontWeight: 400 },
       'body-sm': { ...sora, fontSize: 14, lineHeight: 20, fontWeight: 400 },
+      'body-dense': { ...sora, fontSize: 13, lineHeight: 20, fontWeight: 400 },
       label: {
         ...dmMono,
         fontSize: 12,
