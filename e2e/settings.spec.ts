@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { entryForm, lineGroup } from './entries';
+import { accountChoices, accountTicks, entryForm } from './entries';
 import { SETTINGS_URL, SIGN_IN_URL } from './routes';
 import { freshIdentifier, signIn, submitTestSignIn } from './session';
 import { entryFormModeChoice, entryFormModes, savedStatus } from './settings';
@@ -23,10 +23,10 @@ test('gives a new User Two-line mode, and the Two-line form on the entries page'
 
   await page.goto('/entries');
   const form = entryForm(page);
-  await expect(form.getByLabel('Debit account')).toBeVisible();
-  await expect(form.getByLabel('Credit account')).toBeVisible();
+  await expect(accountChoices(form, 'Debit')).toBeVisible();
+  await expect(accountChoices(form, 'Credit')).toBeVisible();
   await expect(form.getByLabel('Amount')).toHaveCount(1);
-  await expect(lineGroup(form, 1)).toHaveCount(0);
+  await expect(accountTicks(form, 'Debit')).toHaveCount(0);
 });
 
 test('keeps Multi-line mode once chosen, after a reload, and shows the Multi-line form on the entries page', async ({ page }) => {
@@ -43,7 +43,7 @@ test('keeps Multi-line mode once chosen, after a reload, and shows the Multi-lin
 
   await page.goto('/entries');
   const form = entryForm(page);
-  await expect(lineGroup(form, 1)).toBeVisible();
-  await expect(lineGroup(form, 2)).toBeVisible();
-  await expect(form.getByLabel('Debit account')).toHaveCount(0);
+  await expect(accountTicks(form, 'Debit')).toBeVisible();
+  await expect(accountTicks(form, 'Credit')).toBeVisible();
+  await expect(accountChoices(form, 'Debit')).toHaveCount(0);
 });
