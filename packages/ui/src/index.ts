@@ -8,4 +8,4 @@ export { Logo } from './logo';
 export type { LogoProps } from './logo';
 export type { LogoTone, LogoVariant } from './logo-drawing';
 
-export { SignOutIcon } from './sign-out-icon';
+export { CalendarIcon, CloseIcon, SignOutIcon } from './icons';

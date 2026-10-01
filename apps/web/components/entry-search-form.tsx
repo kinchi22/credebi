@@ -10,11 +10,13 @@ import { en } from '../messages/en';
 import { ENTRY_SEARCH_PATH } from '../server/return-path';
 import { useBrowserToday } from './browser-today';
 import { CONTROL, FIELD, PRIMARY_BUTTON } from './control-classes';
-import { DatePresets } from './date-presets';
+import { DatePresets, DatePresetsSheet } from './date-presets';
 
 export type EntrySearchFormProps = {
   readonly criteria: SearchCriteriaInput;
 };
+
+const DATE_CONTROL = `w-full min-w-0 wide:w-auto ${typeClasses.date}`;
 
 function keepingADay(set: (day: string) => void): (event: ChangeEvent<HTMLInputElement>) => void {
   return (event) => {
@@ -54,29 +56,32 @@ export function EntrySearchForm({ criteria }: EntrySearchFormProps): ReactNode {
         {en.entrySearch.title}
       </h2>
 
-      <div className={FIELD}>
-        <label htmlFor={`${id}-from`}>{en.entrySearch.from}</label>
-        <input
-          id={`${id}-from`}
-          name={SEARCH_CRITERIA_FIELDS.from}
-          type="date"
-          value={from}
-          onChange={keepingADay(setFrom)}
-          required
-          className={`${CONTROL} ${typeClasses.date}`}
-        />
-      </div>
-      <div className={FIELD}>
-        <label htmlFor={`${id}-to`}>{en.entrySearch.to}</label>
-        <input
-          id={`${id}-to`}
-          name={SEARCH_CRITERIA_FIELDS.to}
-          type="date"
-          value={to}
-          onChange={keepingADay(setTo)}
-          required
-          className={`${CONTROL} ${typeClasses.date}`}
-        />
+      <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-end gap-3 wide:contents">
+        <div className={FIELD}>
+          <label htmlFor={`${id}-from`}>{en.entrySearch.from}</label>
+          <input
+            id={`${id}-from`}
+            name={SEARCH_CRITERIA_FIELDS.from}
+            type="date"
+            value={from}
+            onChange={keepingADay(setFrom)}
+            required
+            className={`${CONTROL} ${DATE_CONTROL}`}
+          />
+        </div>
+        <div className={FIELD}>
+          <label htmlFor={`${id}-to`}>{en.entrySearch.to}</label>
+          <input
+            id={`${id}-to`}
+            name={SEARCH_CRITERIA_FIELDS.to}
+            type="date"
+            value={to}
+            onChange={keepingADay(setTo)}
+            required
+            className={`${CONTROL} ${DATE_CONTROL}`}
+          />
+        </div>
+        <DatePresetsSheet today={today} onChoose={searchPreset} />
       </div>
 
       <div className={FIELD}>

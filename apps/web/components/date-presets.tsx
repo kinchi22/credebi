@@ -10,6 +10,7 @@ import {
   type DayRange,
   type RelativePreset,
 } from '@repo/core/entries';
+import { CalendarIcon, CloseIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import {
   useEffect,
@@ -19,8 +20,10 @@ import {
   type FocusEvent,
   type KeyboardEvent,
   type ReactNode,
+  type RefObject,
 } from 'react';
 import { en } from '../messages/en';
+import { useCloseWhenWide } from './close-when-wide';
 import { BUTTON } from './control-classes';
 
 type Category = keyof typeof en.datePresets.categories;
@@ -37,8 +40,21 @@ type Choose = (range: DayRange) => void;
 const CHOICE = `whitespace-nowrap rounded px-1.5 py-1 text-left ${typeClasses['body-dense']} hover:bg-ground`;
 const IDLE_CHOICE = `${CHOICE} text-text`;
 const CURRENT_CHOICE = `${CHOICE} font-semibold text-accent-text underline decoration-accent decoration-2 underline-offset-4`;
-const ROW = 'flex items-center gap-1';
-const ROW_YEAR = `w-11 shrink-0 ${typeClasses.date} text-text-muted`;
+
+type Layout = {
+  readonly row: string;
+  readonly rowYear: string;
+};
+
+const MENU_LAYOUT: Layout = {
+  row: 'flex items-center gap-1',
+  rowYear: `w-11 shrink-0 ${typeClasses.date} text-text-muted`,
+};
+
+const SHEET_LAYOUT: Layout = {
+  row: 'flex flex-wrap items-center gap-1',
+  rowYear: `basis-full pt-2 ${typeClasses.date} text-text-muted`,
+};
 
 type ChoiceProps = {
   readonly name: string;
@@ -66,12 +82,13 @@ function Choice({ name, range, current, onChoose, children }: ChoiceProps): Reac
 
 type YearRowProps = {
   readonly current: boolean;
+  readonly layout: Layout;
   readonly children: ReactNode;
 };
 
-function YearRow({ current, children }: YearRowProps): ReactNode {
+function YearRow({ current, layout, children }: YearRowProps): ReactNode {
   return (
-    <div data-current-year={current ? '' : undefined} className={ROW}>
+    <div data-current-year={current ? '' : undefined} className={layout.row}>
       {children}
     </div>
   );
@@ -79,15 +96,16 @@ function YearRow({ current, children }: YearRowProps): ReactNode {
 
 type ChoicesProps = {
   readonly today: string;
+  readonly layout: Layout;
   readonly onChoose: Choose;
 };
 
-function YearChoices({ today, onChoose }: ChoicesProps): ReactNode {
+function YearChoices({ today, layout, onChoose }: ChoicesProps): ReactNode {
   const current = currentPeriod(today);
   return yearPresets(today).map((preset) => {
     const isCurrent = preset.year === current.year;
     return (
-      <YearRow key={preset.year} current={isCurrent}>
+      <YearRow key={preset.year} current={isCurrent} layout={layout}>
         <Choice name={String(preset.year)} range={preset.range} current={isCurrent} onChoose={onChoose}>
           {preset.year}
         </Choice>
@@ -96,11 +114,11 @@ function YearChoices({ today, onChoose }: ChoicesProps): ReactNode {
   });
 }
 
-function QuarterChoices({ today, onChoose }: ChoicesProps): ReactNode {
+function QuarterChoices({ today, layout, onChoose }: ChoicesProps): ReactNode {
   const current = currentPeriod(today);
   return quarterPresets(today).map((row) => (
-    <YearRow key={row.year} current={row.year === current.year}>
-      <span className={ROW_YEAR}>{row.year}</span>
+    <YearRow key={row.year} current={row.year === current.year} layout={layout}>
+      <span className={layout.rowYear}>{row.year}</span>
       {row.presets.map((preset) => {
         const quarter = `${en.datePresets.quarterPrefix}${String(preset.quarter)}`;
         return (
@@ -119,11 +137,11 @@ function QuarterChoices({ today, onChoose }: ChoicesProps): ReactNode {
   ));
 }
 
-function MonthChoices({ today, onChoose }: ChoicesProps): ReactNode {
+function MonthChoices({ today, layout, onChoose }: ChoicesProps): ReactNode {
   const current = currentPeriod(today);
   return monthPresets(today).map((row) => (
-    <YearRow key={row.year} current={row.year === current.year}>
-      <span className={ROW_YEAR}>{row.year}</span>
+    <YearRow key={row.year} current={row.year === current.year} layout={layout}>
+      <span className={layout.rowYear}>{row.year}</span>
       {row.presets.map((preset) => {
         const month = en.datePresets.months[preset.month - 1] ?? String(preset.month);
         return (
@@ -176,7 +194,7 @@ const CHOICES: Readonly<Record<Category, (props: ChoicesProps) => ReactNode>> = 
   relative: RelativeChoices,
 };
 
-function ChoicesPanel({ id, children }: { readonly id: string; readonly children: ReactNode }): ReactNode {
+function useScrolledToCurrentYear(): RefObject<HTMLDivElement | null> {
   const panel = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -186,6 +204,12 @@ function ChoicesPanel({ id, children }: { readonly id: string; readonly children
       element.scrollTop = row.offsetTop - (element.clientHeight - row.offsetHeight) / 2;
     }
   }, []);
+
+  return panel;
+}
+
+function ChoicesPanel({ id, children }: { readonly id: string; readonly children: ReactNode }): ReactNode {
+  const panel = useScrolledToCurrentYear();
 
   return (
     <div className="absolute top-full left-0 z-10 pt-1.5">
@@ -277,10 +301,152 @@ export function DatePresets({ today, onChoose }: DatePresetsProps): ReactNode {
               setOpen((shown) => (shown === category ? undefined : shown));
             }}
           >
-            {today === undefined ? null : <Choices today={today} onChoose={choose} />}
+            {today === undefined ? null : <Choices today={today} layout={MENU_LAYOUT} onChoose={choose} />}
           </CategoryMenu>
         );
       })}
     </div>
+  );
+}
+
+const TAB = `flex-1 border-b-2 py-3 ${typeClasses['body-sm']}`;
+const IDLE_TAB = `${TAB} border-border text-text-muted`;
+const SHOWN_TAB = `${TAB} border-accent font-semibold text-accent-text`;
+
+const STEPS: Readonly<Record<string, (index: number) => number>> = {
+  ArrowLeft: (index) => (index + CATEGORIES.length - 1) % CATEGORIES.length,
+  ArrowRight: (index) => (index + 1) % CATEGORIES.length,
+  Home: () => 0,
+  End: () => CATEGORIES.length - 1,
+};
+
+type SheetPanelProps = {
+  readonly id: string;
+  readonly labelledBy: string;
+  readonly children: ReactNode;
+};
+
+function SheetPanel({ id, labelledBy, children }: SheetPanelProps): ReactNode {
+  const panel = useScrolledToCurrentYear();
+
+  return (
+    <div
+      ref={panel}
+      id={id}
+      role="tabpanel"
+      aria-labelledby={labelledBy}
+      className="relative flex min-h-0 grow flex-col gap-0.5 overflow-y-auto px-4 pt-3 pb-5"
+    >
+      {children}
+    </div>
+  );
+}
+
+export function DatePresetsSheet({ today, onChoose }: DatePresetsProps): ReactNode {
+  const id = useId();
+  const [open, setOpen] = useState(false);
+  const [shown, setShown] = useState<Category>('relative');
+  const sheet = useRef<HTMLDialogElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const tabs = useRef<Partial<Record<Category, HTMLButtonElement | null>>>({});
+  useCloseWhenWide(sheet);
+
+  const close = (): void => {
+    sheet.current?.close();
+  };
+
+  const choose = (range: DayRange): void => {
+    close();
+    onChoose(range);
+  };
+
+  const moveTab = (event: KeyboardEvent<HTMLButtonElement>, index: number): void => {
+    const step = STEPS[event.key];
+    const next = step === undefined ? undefined : CATEGORIES[step(index)];
+    if (next === undefined) {
+      return;
+    }
+    event.preventDefault();
+    setShown(next);
+    tabs.current[next]?.focus();
+  };
+
+  const tabId = (category: Category): string => `${id}-${category}-tab`;
+  const Choices = CHOICES[shown];
+
+  return (
+    <>
+      <button
+        ref={trigger}
+        type="button"
+        aria-label={en.datePresets.choosePeriod}
+        aria-expanded={open}
+        aria-controls={id}
+        disabled={today === undefined}
+        onClick={() => {
+          sheet.current?.showModal();
+          setOpen(true);
+        }}
+        className="inline-flex size-8 items-center justify-center rounded border border-border-control bg-surface text-text disabled:opacity-50 wide:hidden"
+      >
+        <CalendarIcon />
+      </button>
+      <dialog
+        ref={sheet}
+        id={id}
+        aria-labelledby={`${id}-title`}
+        onClose={() => {
+          setOpen(false);
+          trigger.current?.focus();
+        }}
+        className="m-0 h-full max-h-none w-full max-w-none border-0 bg-ground p-0 text-text"
+      >
+        {open && today !== undefined ? (
+          <div className="flex h-full flex-col">
+            <div className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-surface px-4">
+              <h2 id={`${id}-title`} className={`${typeClasses.body} font-semibold`}>
+                {en.datePresets.choosePeriod}
+              </h2>
+              <button
+                type="button"
+                aria-label={en.datePresets.close}
+                onClick={close}
+                className="-mr-2 inline-flex size-10 items-center justify-center rounded text-text"
+              >
+                <CloseIcon />
+              </button>
+            </div>
+            <div role="tablist" className="flex shrink-0 bg-surface px-2">
+              {CATEGORIES.map((category, index) => (
+                <button
+                  key={category}
+                  id={tabId(category)}
+                  ref={(element) => {
+                    tabs.current[category] = element;
+                  }}
+                  type="button"
+                  role="tab"
+                  aria-selected={shown === category}
+                  aria-controls={`${id}-panel`}
+                  tabIndex={shown === category ? 0 : -1}
+                  onClick={() => {
+                    setShown(category);
+                  }}
+                  onKeyDown={(event) => {
+                    moveTab(event, index);
+                  }}
+                  className={shown === category ? SHOWN_TAB : IDLE_TAB}
+                >
+                  {en.datePresets.categories[category]}
+                </button>
+              ))}
+            </div>
+            <SheetPanel key={shown} id={`${id}-panel`} labelledBy={tabId(shown)}>
+              <Choices today={today} layout={SHEET_LAYOUT} onChoose={choose} />
+            </SheetPanel>
+          </div>
+        ) : null}
+      </dialog>
+    </>
   );
 }

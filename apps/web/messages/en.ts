@@ -70,6 +70,8 @@ export const en = {
   },
   datePresets: {
     title: 'Date presets',
+    choosePeriod: 'Choose a period',
+    close: 'Close',
     categories: {
       year: 'Year',
       quarter: 'Quarter',
