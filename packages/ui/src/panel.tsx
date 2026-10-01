@@ -3,6 +3,8 @@ import { typeClasses } from './type-classes';
 
 export const PANEL = 'rounded-lg border border-border bg-surface p-4';
 
+export const PANEL_BLEED = '-mx-4 px-4';
+
 export type PanelProps = {
   readonly title: string;
   readonly children: ReactNode;

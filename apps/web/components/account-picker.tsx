@@ -1,6 +1,6 @@
 'use client';
 
-import { ENTRY_FORM_FIELDS, sideSchema, type Side } from '@repo/contracts';
+import { ENTRY_FORM_FIELDS, type Side } from '@repo/contracts';
 import {
   ACCOUNT_TYPE_OF,
   CHART_OF_ACCOUNTS,
@@ -10,7 +10,7 @@ import {
 import { typeClasses } from '@repo/ui/type-classes';
 import { useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { en } from '../messages/en';
-import { SIDE_TONE } from './side-classes';
+import { SIDE_TONE, SIDES } from './side-classes';
 
 export type AccountChoice = Readonly<Record<Side, AccountCode | undefined>>;
 
@@ -19,8 +19,6 @@ export type AccountPickerProps = {
   readonly chosen: AccountChoice;
   readonly onChoose: (side: Side, account: AccountCode) => void;
 };
-
-const SIDES: readonly Side[] = sideSchema.options;
 
 const FIELD_NAME: Readonly<Record<Side, string>> = {
   debit: ENTRY_FORM_FIELDS.debitAccount,
