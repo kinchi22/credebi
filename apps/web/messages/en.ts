@@ -34,6 +34,7 @@ export const en = {
   },
   sidebar: {
     ariaLabel: 'Sidebar',
+    menu: 'Menu',
     entries: 'Entries',
     entrySearch: 'Entry search',
     settings: 'Settings',
