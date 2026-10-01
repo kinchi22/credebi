@@ -14,6 +14,7 @@ no term is defined in more than one.
 | ---------------- | --------------------------------------------------------------------------- |
 | ADR              | A numbered file under `docs/adr/` holding an architectural decision that is hard to reverse, surprising without context and the result of a real trade-off. Indexed from `docs/ARCHITECTURE.md`. |
 | Account          | What an Entry line is posted against, named by a code from the Chart of accounts. |
+| Account type     | One of asset, liability, equity, revenue and expense: the fixed vocabulary of double-entry bookkeeping every Account belongs to. Never the owner's to change. |
 | Adapter          | A concrete implementation of a Port. The only place infrastructure appears.  |
 | Aggregate        | The entity a repository loads and saves as one thing, together with the entities it owns. An Entry owns its Entry lines. A write of one aggregate is atomic; ADR-0011. |
 | Auth context     | Who a request is made by: the User its Session belongs to, or nobody. A controller resolves it from the session cookie and passes it on; a use case that touches a User's data checks it at its entry point, and without a User answers `UNAUTHENTICATED`, mapped to 401. ADR-0021. |
@@ -44,6 +45,7 @@ no term is defined in more than one.
 | Milestone branch | `milestone/<name>`, one per Feature that states an acceptance criterion the app does not yet meet. The specs of every criterion the Feature states land first, in one owner-reviewed pull request; feature branches merge into it; it reaches `main` once they are green. |
 | Minor units      | The smallest denomination an amount is counted in. Scale 0 today, so one minor unit is one whole unit: no decimal places, no currency symbol, grouping applied only at display. |
 | Money            | A branded integer count of minor units. Built and combined only through `@repo/core/money`. |
+| Normal balance   | The Side an Account type usually grows on: debit for asset and expense, credit for liability, equity and revenue. It orders the choices on each Side and never restricts them, because a correction or a closing Entry posts any Account on either Side. |
 | Multi-line mode  | The Entry form mode that takes two or more Entry lines, each with its own Account, Side and amount, and lets the User add and remove lines. |
 | Port             | An interface stated in domain terms that the application layer depends on.   |
 | Preview          | The Vercel deployment of a pull request's commit, against the one shared preview Neon project, which only `main` migrates. Best effort: never smoke-run and read by no gate, so one that needs an unmerged migration may fail at runtime. ADR-0024. |
