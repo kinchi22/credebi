@@ -98,6 +98,8 @@ export const en = {
   entryList: {
     title: 'Entries',
     empty: 'No entries yet.',
+    date: 'Date',
+    memo: 'Memo',
     total: 'Total',
   },
   accounts: {
