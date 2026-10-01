@@ -2,7 +2,6 @@
 
 import { entryFormModeSchema, type DomainErrorCode, type EntryFormMode } from '@repo/contracts';
 import { useId, useState, useTransition, type ChangeEvent, type ReactNode } from 'react';
-import { PANEL } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { en } from '../messages/en';
 import { LEGEND } from './control-classes';
@@ -44,22 +43,28 @@ export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps
 
   return (
     <div className="flex flex-col gap-2">
-      <fieldset className={`flex flex-col gap-2 ${PANEL}`}>
-        <legend className={`px-1 ${LEGEND}`}>{en.settingsPage.entryFormMode}</legend>
-        {entryFormModeSchema.options.map((mode) => (
-          <div key={mode} className={`flex items-center gap-2 ${typeClasses['body-sm']}`}>
-            <input
-              id={`${id}-${mode}`}
-              type="radio"
-              name={id}
-              value={mode}
-              checked={selected === mode}
-              disabled={pending}
-              onChange={change}
-            />
-            <label htmlFor={`${id}-${mode}`}>{en.settingsPage.entryFormModes[mode]}</label>
-          </div>
-        ))}
+      <fieldset className="m-0 flex flex-col gap-3 border-0 border-y border-border px-0 py-4 wide:flex-row wide:items-center wide:justify-between">
+        <legend className={`float-left p-0 ${LEGEND}`}>
+          {en.settingsPage.entryFormMode}
+        </legend>
+        <div className="flex self-start rounded border border-border-control bg-surface p-0.5 wide:self-auto">
+          {entryFormModeSchema.options.map((mode) => (
+            <label key={mode} className={`relative flex ${typeClasses['body-sm']}`}>
+              <input
+                type="radio"
+                name={id}
+                value={mode}
+                checked={selected === mode}
+                disabled={pending}
+                onChange={change}
+                className="peer absolute inset-0 m-0 cursor-pointer appearance-none opacity-0 disabled:cursor-default"
+              />
+              <span className="rounded px-3 py-1 text-text-muted peer-checked:bg-accent/15 peer-checked:font-semibold peer-checked:text-text peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus peer-disabled:opacity-50">
+                {en.settingsPage.entryFormModes[mode]}
+              </span>
+            </label>
+          ))}
+        </div>
       </fieldset>
       <p role="status" className={`${typeClasses['body-sm']} text-positive`}>
         {status === 'saved' ? en.settingsPage.saved : null}

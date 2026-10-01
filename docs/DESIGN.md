@@ -293,7 +293,14 @@ Hierarchy comes from tonal layers, not shadows: `surface` panels with a
 - **Secondary button.** `surface` fill, `text`, a `border-control` edge.
 - **Quiet button on dark.** No fill and no border: `text-muted-on-dark` text,
   `text-on-dark` under the pointer, and the `focus-on-dark` ring. It is Sign out
-  in the Sidebar.
+  in the Sidebar, an exit icon in `currentColor` before its text.
+- **Segmented control.** A radiogroup drawn as one `surface` strip with a
+  `border-control` edge, each choice a segment. Only the chosen segment is
+  marked: an `accent` tint and the semibold weight. It is the Entry form mode in
+  Settings.
+- **Settings row.** Settings has no panel: each setting is a row between
+  `border` hairlines, its name on the left and its control on the right, and
+  stacked below `wide`.
 - **Link.** `accent-text`, underlined, and `accent-text-hover` under the
   pointer.
 - **Input.** `surface` fill, `text`, a `border-control` edge. The spec's
