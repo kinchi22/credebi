@@ -1,7 +1,7 @@
 import { domainError, type PostedEntry, type SearchCriteriaInput } from '@repo/contracts';
 import { describe, expect, it } from 'vitest';
 import { toTrpcError } from './domain-error';
-import { answerEntrySearch, type SearchForEntries } from './entry-search';
+import { answerDefaultRangeSearch, answerEntrySearch, type SearchForEntries } from './entry-search';
 
 const ENTRY = {
   id: '01920000-0000-7000-8000-000000000001',
@@ -122,5 +122,54 @@ describe('answerEntrySearch', () => {
     const defect = new Error('DATABASE_URL is not set.');
 
     await expect(answerEntrySearch(() => Promise.reject(defect), {})).rejects.toBe(defect);
+  });
+});
+
+describe('answerDefaultRangeSearch', () => {
+  it('searches the range it was given, and answers with what was found', async () => {
+    const answer = await answerDefaultRangeSearch(inRange, { from: '2026-07-01', to: '2026-07-31' });
+
+    expect(answer).toEqual({
+      outcome: 'answered',
+      criteria: { from: '2026-07-01', to: '2026-07-31' },
+      entries: [],
+    });
+  });
+
+  it('searches nothing but the range, whatever else it was sent', async () => {
+    const answer = await answerDefaultRangeSearch(holding([ENTRY]), {
+      from: '2026-06-01',
+      to: '2026-06-30',
+      memo: 'Office',
+    });
+
+    expect(answer.criteria).toEqual({ from: '2026-06-01', to: '2026-06-30' });
+  });
+
+  it.each([
+    ['nothing', undefined],
+    ['null', null],
+    ['a string', '2026-06-01'],
+    ['a range with no last day', { from: '2026-06-01' }],
+    ['a range with no first day', { to: '2026-06-30' }],
+    ['a range whose day is not a calendar day', { from: '2026-02-30', to: '2026-03-01' }],
+  ])('refuses %s without searching', async (_name, range) => {
+    let searched = false;
+    const answer = await answerDefaultRangeSearch(() => {
+      searched = true;
+      return Promise.resolve([ENTRY]);
+    }, range);
+
+    expect(answer).toEqual({ outcome: 'refused', criteria: {} });
+    expect(searched).toBe(false);
+  });
+
+  it('refuses a range that ends before it starts, as the search does', async () => {
+    const answer = await answerDefaultRangeSearch(refusing('INVALID_INPUT'), {
+      from: '2026-06-30',
+      to: '2026-06-01',
+    });
+
+    expect(answer.outcome).toBe('refused');
   });
 });

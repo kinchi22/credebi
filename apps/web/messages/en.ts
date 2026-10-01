@@ -62,6 +62,7 @@ export const en = {
     submit: 'Search',
     results: 'Results',
     searching: 'Searching the last month...',
+    unavailable: 'The search could not be run just now. Press Search to try again.',
     nothingMatched: 'Nothing matched what you asked for.',
     refused:
       'That search was not run. Check the day range -- each day is a calendar day, and From cannot be later than To -- that the account is one of those listed, and that the memo is no longer than a memo can be.',
