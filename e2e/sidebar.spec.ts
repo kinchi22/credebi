@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { entryForm, entrySearchForm } from './entries';
-import { ENTRIES_URL, ENTRY_SEARCH_URL, SETTINGS_URL, SIGN_IN_URL } from './routes';
+import { ENTRIES_URL, ENTRY_SEARCH_WITHOUT_QUERY, SETTINGS_URL, SIGN_IN_URL } from './routes';
 import { signIn } from './session';
 import { entryFormModes } from './settings';
 import { SIGNED_IN_PAGES, sidebar } from './sidebar';
@@ -29,7 +29,7 @@ test('moves between the signed-in pages through the Sidebar', async ({ page }) =
   await signIn(page);
 
   await sidebarLink(page, 'Entry search').click();
-  await expect(page).toHaveURL(ENTRY_SEARCH_URL);
+  await expect(page).toHaveURL(ENTRY_SEARCH_WITHOUT_QUERY);
   await expect(entrySearchForm(page)).toBeVisible();
 
   await sidebarLink(page, 'Settings').click();
@@ -88,6 +88,6 @@ test('puts the Sidebar behind a Menu button at 390px, whose drawer holds the lin
   }
 
   await sidebarLink(page, 'Entry search').click();
-  await expect(page).toHaveURL(ENTRY_SEARCH_URL);
+  await expect(page).toHaveURL(ENTRY_SEARCH_WITHOUT_QUERY);
   await expect(entrySearchForm(page)).toBeVisible();
 });

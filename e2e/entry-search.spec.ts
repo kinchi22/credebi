@@ -211,19 +211,17 @@ test('never searches with From or To emptied', async ({ page }) => {
   ]);
 
   await fixToday(page, TODAY);
-  const fields = [
-    { field: fromField, outside: old },
-    { field: toField, outside: future },
-  ];
-  for (const { field, outside } of fields) {
+  for (const field of [fromField, toField]) {
     await page.goto(SEARCH);
     await expect(resultFor(page, recent)).toHaveCount(1);
 
     await field(page).fill('');
     await entrySearchForm(page).getByRole('button', { name: 'Search' }).click();
 
+    await expect(field(page)).not.toHaveValue('');
     await expect(resultFor(page, recent)).toHaveCount(1);
-    await expect(resultFor(page, outside)).toHaveCount(0);
+    await expect(resultFor(page, old)).toHaveCount(0);
+    await expect(resultFor(page, future)).toHaveCount(0);
   }
 });
 
