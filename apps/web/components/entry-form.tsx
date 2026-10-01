@@ -1,7 +1,6 @@
 'use client';
 
 import { ENTRY_FORM_FIELDS, type DomainErrorCode, type EntryFormMode } from '@repo/contracts';
-import { CHART_OF_ACCOUNTS } from '@repo/core/entries';
 import { PANEL } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import {
@@ -59,27 +58,6 @@ const REFUSAL: Readonly<Record<EntryFormMode, Readonly<Record<DomainErrorCode, s
   'two-line': refusalsWith(en.twoLineForm.invalid),
   'multi-line': refusalsWith(en.multiLineForm.invalid),
 };
-
-export function AccountSelect({
-  id,
-  name,
-}: {
-  readonly id: string;
-  readonly name: string;
-}): ReactNode {
-  return (
-    <select id={id} name={name} required defaultValue="" className={CONTROL}>
-      <option value="" disabled>
-        {en.entryForm.chooseAccount}
-      </option>
-      {CHART_OF_ACCOUNTS.map((code) => (
-        <option key={code} value={code}>
-          {en.accounts[code]}
-        </option>
-      ))}
-    </select>
-  );
-}
 
 type AmountInputProps = {
   readonly id: string;

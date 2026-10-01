@@ -11,6 +11,7 @@ export type { AccountType } from './domain/normal-balance';
 
 export { draftTotals } from './domain/draft-totals';
 export type { DraftLine, DraftTotals } from './domain/draft-totals';
+export { draftLinesInOrder } from './domain/draft-line-order';
 
 export { NO_CRITERIA, makeSearchCriteria } from './domain/search-criteria';
 export type { SearchCriteria, SearchCriteriaDraft } from './domain/search-criteria';

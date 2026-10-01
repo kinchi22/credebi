@@ -16,18 +16,36 @@ export type AccountChoice = Readonly<Record<Side, AccountCode | undefined>>;
 
 export type AccountPickerProps = {
   readonly id: string;
-  readonly chosen: AccountChoice;
-  readonly onChoose: (side: Side, account: AccountCode) => void;
+  readonly multiple?: boolean;
+  readonly isChosen: (side: Side, account: AccountCode) => boolean;
+  readonly onPick: (side: Side, account: AccountCode, chosen: boolean) => void;
 };
 
-const FIELD_NAME: Readonly<Record<Side, string>> = {
-  debit: ENTRY_FORM_FIELDS.debitAccount,
-  credit: ENTRY_FORM_FIELDS.creditAccount,
+type PickControl = {
+  readonly groupRole: 'radiogroup' | 'group';
+  readonly inputType: 'radio' | 'checkbox';
+  readonly groupName: Readonly<Record<Side, string>>;
+  readonly fieldName: Readonly<Record<Side, string>> | undefined;
 };
 
-const CHOICES_NAME: Readonly<Record<Side, string>> = {
-  debit: en.twoLineForm.debitAccount,
-  credit: en.twoLineForm.creditAccount,
+const PICK_ONE: PickControl = {
+  groupRole: 'radiogroup',
+  inputType: 'radio',
+  groupName: { debit: en.twoLineForm.debitAccount, credit: en.twoLineForm.creditAccount },
+  fieldName: {
+    debit: ENTRY_FORM_FIELDS.debitAccount,
+    credit: ENTRY_FORM_FIELDS.creditAccount,
+  },
+};
+
+const PICK_MANY: PickControl = {
+  groupRole: 'group',
+  inputType: 'checkbox',
+  groupName: {
+    debit: en.multiLineForm.debitAccounts,
+    credit: en.multiLineForm.creditAccounts,
+  },
+  fieldName: undefined,
 };
 
 const otherSide = (side: Side): Side => (side === 'debit' ? 'credit' : 'debit');
@@ -35,22 +53,30 @@ const otherSide = (side: Side): Side => (side === 'debit' ? 'credit' : 'debit');
 type SideChoicesProps = {
   readonly id: string;
   readonly side: Side;
-  readonly chosen: AccountCode | undefined;
-  readonly onChoose: (account: AccountCode) => void;
+  readonly control: PickControl;
+  readonly isChosen: (account: AccountCode) => boolean;
+  readonly onPick: (account: AccountCode, chosen: boolean) => void;
   readonly onInvalid: () => void;
 };
 
-function SideChoices({ id, side, chosen, onChoose, onInvalid }: SideChoicesProps): ReactNode {
+function SideChoices({
+  id,
+  side,
+  control,
+  isChosen,
+  onPick,
+  onInvalid,
+}: SideChoicesProps): ReactNode {
   const choicesId = `${id}-${side}-accounts`;
 
   return (
     <div
-      role="radiogroup"
+      role={control.groupRole}
       aria-labelledby={`${choicesId}-name`}
       className={`flex min-w-0 flex-col gap-2 border-t-2 ${SIDE_TONE[side].edge} px-3 pt-2 pb-3`}
     >
       <p id={`${choicesId}-name`} className={`${typeClasses.label} text-text-muted`}>
-        {CHOICES_NAME[side]}
+        {control.groupName[side]}
       </p>
       {accountTypesInOrder(side).map((type) => (
         <div
@@ -65,13 +91,13 @@ function SideChoices({ id, side, chosen, onChoose, onInvalid }: SideChoicesProps
           {CHART_OF_ACCOUNTS.filter((code) => ACCOUNT_TYPE_OF[code] === type).map((code) => (
             <label key={code} className="relative flex">
               <input
-                type="radio"
-                name={FIELD_NAME[side]}
+                type={control.inputType}
+                name={control.fieldName?.[side]}
                 value={code}
-                required
-                checked={chosen === code}
-                onChange={() => {
-                  onChoose(code);
+                required={control.fieldName !== undefined}
+                checked={isChosen(code)}
+                onChange={(event) => {
+                  onPick(code, event.target.checked);
                 }}
                 onInvalid={onInvalid}
                 className="peer absolute inset-0 m-0 cursor-pointer appearance-none opacity-0"
@@ -87,7 +113,7 @@ function SideChoices({ id, side, chosen, onChoose, onInvalid }: SideChoicesProps
   );
 }
 
-export function AccountPicker({ id, chosen, onChoose }: AccountPickerProps): ReactNode {
+export function AccountPicker({ id, multiple = false, isChosen, onPick }: AccountPickerProps): ReactNode {
   const [shown, setShown] = useState<Side>('debit');
   const tabs = useRef<Partial<Record<Side, HTMLButtonElement | null>>>({});
 
@@ -140,9 +166,10 @@ export function AccountPicker({ id, chosen, onChoose }: AccountPickerProps): Rea
             <SideChoices
               id={id}
               side={side}
-              chosen={chosen[side]}
-              onChoose={(account) => {
-                onChoose(side, account);
+              control={multiple ? PICK_MANY : PICK_ONE}
+              isChosen={(account) => isChosen(side, account)}
+              onPick={(account, chosen) => {
+                onPick(side, account, chosen);
               }}
               onInvalid={() => {
                 setShown(side);

@@ -1,37 +1,42 @@
 'use client';
 
-import { ENTRY_FORM_FIELDS, entryFormModeSchema, sideSchema, type Side } from '@repo/contracts';
-import { draftTotals, type DraftLine } from '@repo/core/entries';
+import { ENTRY_FORM_FIELDS, entryFormModeSchema, type Side } from '@repo/contracts';
+import {
+  draftLinesInOrder,
+  draftTotals,
+  type AccountCode,
+  type DraftLine,
+} from '@repo/core/entries';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useState, type ReactNode } from 'react';
 import { en } from '../messages/en';
+import { AccountPicker } from './account-picker';
+import { formatAmount } from './amount';
+import { BUTTON, DENSE_FIELD } from './control-classes';
 import {
-  AccountSelect,
   AmountInput,
   EntryFormShell,
+  type EntryFormParts,
   type EntryFormProps,
 } from './entry-form';
-import { formatAmount } from './amount';
-import { BUTTON, CONTROL, FIELD, LEGEND } from './control-classes';
+import { SIDE_TONE } from './side-classes';
 import { DANGER_TEXT } from './text-classes';
 
-type LineState = DraftLine & {
-  readonly key: number;
+type ChosenLine = DraftLine & {
+  readonly account: AccountCode;
 };
 
-const SIDES: readonly Side[] = sideSchema.options;
-
-const MINIMUM_LINES = 2;
-
-const FIRST_LINES: readonly LineState[] = [
-  { key: 1, side: 'debit', amount: '' },
-  { key: 2, side: 'credit', amount: '' },
-];
+const isLine =
+  (side: Side, account: AccountCode) =>
+  (line: ChosenLine): boolean =>
+    line.side === side && line.account === account;
 
 function DraftTotalsSummary({ lines }: { readonly lines: readonly DraftLine[] }): ReactNode {
   const totals = draftTotals(lines);
   if (!totals.ok) {
-    return <p className={DANGER_TEXT}>{en.multiLineForm.tooLarge}</p>;
+    return (
+      <p className={`${DANGER_TEXT} ${typeClasses['body-dense']}`}>{en.multiLineForm.tooLarge}</p>
+    );
   }
 
   const rows = [
@@ -41,7 +46,7 @@ function DraftTotalsSummary({ lines }: { readonly lines: readonly DraftLine[] })
   ];
 
   return (
-    <dl className={`grid grid-cols-[auto_8rem] gap-x-3 ${typeClasses['body-sm']}`}>
+    <dl className={`grid grid-cols-[auto_8rem] gap-x-3 ${typeClasses['body-dense']}`}>
       {rows.map((row) => (
         <div key={row.testId} className="contents">
           <dt>{row.label}</dt>
@@ -54,103 +59,91 @@ function DraftTotalsSummary({ lines }: { readonly lines: readonly DraftLine[] })
   );
 }
 
-function DraftLines({ id }: { readonly id: string }): ReactNode {
-  const [lines, setLines] = useState<readonly LineState[]>(FIRST_LINES);
+type LineFieldsProps = {
+  readonly id: string;
+  readonly line: ChosenLine;
+  readonly onAmountChange: (amount: string) => void;
+  readonly onRemove: () => void;
+};
 
-  const change = (key: number, update: Partial<DraftLine>): void => {
-    setLines((current) => current.map((line) => (line.key === key ? { ...line, ...update } : line)));
-  };
-
-  const add = (): void => {
-    setLines((current) => [
-      ...current,
-      { key: Math.max(...current.map((line) => line.key)) + 1, side: 'debit', amount: '' },
-    ]);
-  };
-
-  const remove = (key: number): void => {
-    setLines((current) => current.filter((line) => line.key !== key));
-  };
-
-  const removable = lines.length > MINIMUM_LINES;
+function LineFields({ id, line, onAmountChange, onRemove }: LineFieldsProps): ReactNode {
+  const lineId = `${id}-${line.side}-${line.account}`;
 
   return (
-    <>
-      {lines.map((line, index) => {
-        const lineId = `${id}-line-${String(line.key)}`;
-        return (
-          <fieldset key={line.key} className="flex flex-wrap items-end gap-3">
-            <legend className={`mb-1 ${LEGEND}`}>
-              {en.multiLineForm.line} {index + 1}
-            </legend>
-            <div className={FIELD}>
-              <label htmlFor={`${lineId}-account`}>{en.multiLineForm.account}</label>
-              <AccountSelect id={`${lineId}-account`} name={ENTRY_FORM_FIELDS.account} />
-            </div>
-            <div className={FIELD}>
-              <label htmlFor={`${lineId}-side`}>{en.multiLineForm.side}</label>
-              <select
-                id={`${lineId}-side`}
-                name={ENTRY_FORM_FIELDS.side}
-                required
-                defaultValue={line.side}
-                onChange={(event) => {
-                  const side = sideSchema.safeParse(event.target.value);
-                  if (side.success) {
-                    change(line.key, { side: side.data });
-                  }
-                }}
-                className={CONTROL}
-              >
-                {SIDES.map((side) => (
-                  <option key={side} value={side}>
-                    {en.sides[side]}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className={FIELD}>
-              <label htmlFor={`${lineId}-amount`}>{en.multiLineForm.amount}</label>
-              <AmountInput
-                id={`${lineId}-amount`}
-                onAmountChange={(amount) => {
-                  change(line.key, { amount });
-                }}
-              />
-            </div>
-            <button
-              type="button"
-              disabled={!removable}
-              onClick={() => {
-                remove(line.key);
-              }}
-              className={BUTTON}
-            >
-              {en.multiLineForm.removeLine}
-            </button>
-          </fieldset>
-        );
-      })}
-
-      <button type="button" onClick={add} className={`${BUTTON} self-start`}>
-        {en.multiLineForm.addLine}
+    <fieldset
+      aria-label={`${en.sides[line.side]} ${en.accounts[line.account]}`}
+      className={`flex flex-wrap items-end gap-3 border-b border-border py-1 ${typeClasses['body-dense']}`}
+    >
+      <input type="hidden" name={ENTRY_FORM_FIELDS.account} value={line.account} />
+      <input type="hidden" name={ENTRY_FORM_FIELDS.side} value={line.side} />
+      <p aria-hidden className="flex grow gap-3 self-center">
+        <span className={`w-16 ${typeClasses.label} leading-5 ${SIDE_TONE[line.side].text}`}>
+          {en.sides[line.side]}
+        </span>
+        <span className="font-semibold">{en.accounts[line.account]}</span>
+      </p>
+      <div className={DENSE_FIELD}>
+        <label htmlFor={`${lineId}-amount`}>{en.multiLineForm.amount}</label>
+        <AmountInput id={`${lineId}-amount`} onAmountChange={onAmountChange} />
+      </div>
+      <button type="button" onClick={onRemove} className={BUTTON}>
+        {en.multiLineForm.remove}
       </button>
+    </fieldset>
+  );
+}
 
-      <DraftTotalsSummary lines={lines} />
-    </>
+function MultiLineFields({ id, heading, footer }: EntryFormParts): ReactNode {
+  const [chosen, setChosen] = useState<readonly ChosenLine[]>([]);
+
+  const pick = (side: Side, account: AccountCode, ticked: boolean): void => {
+    setChosen((current) =>
+      ticked
+        ? [...current, { side, account, amount: '' }]
+        : current.filter((line) => !isLine(side, account)(line)),
+    );
+  };
+
+  const changeAmount = (side: Side, account: AccountCode, amount: string): void => {
+    setChosen((current) =>
+      current.map((line) => (isLine(side, account)(line) ? { ...line, amount } : line)),
+    );
+  };
+
+  const isChosen = (side: Side, account: AccountCode): boolean =>
+    chosen.some(isLine(side, account));
+
+  return (
+    <div className="grid items-start gap-6 wide:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="flex min-w-0 flex-col gap-3">
+        {heading}
+        <div className="flex flex-col">
+          {draftLinesInOrder(chosen).map((line) => (
+            <LineFields
+              key={`${line.side}-${line.account}`}
+              id={id}
+              line={line}
+              onAmountChange={(amount) => {
+                changeAmount(line.side, line.account, amount);
+              }}
+              onRemove={() => {
+                pick(line.side, line.account, false);
+              }}
+            />
+          ))}
+        </div>
+        <DraftTotalsSummary lines={chosen} />
+        {footer}
+      </div>
+      <AccountPicker id={id} multiple isChosen={isChosen} onPick={pick} />
+    </div>
   );
 }
 
 export function MultiLineEntryForm({ action }: EntryFormProps): ReactNode {
   return (
     <EntryFormShell action={action} mode={entryFormModeSchema.enum['multi-line']}>
-      {({ id, heading, footer }) => (
-        <>
-          {heading}
-          <DraftLines id={id} />
-          {footer}
-        </>
-      )}
+      {(parts) => <MultiLineFields {...parts} />}
     </EntryFormShell>
   );
 }
