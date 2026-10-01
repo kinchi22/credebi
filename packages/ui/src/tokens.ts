@@ -14,7 +14,7 @@ export const palette = {
   rust: '#B4400F',
   ochre: '#A15C00',
   cobalt: '#2B63B8',
-  amber: '#A2560F',
+  gold: '#7F6500',
 } as const;
 
 export type PaletteColor = keyof typeof palette;
@@ -39,7 +39,7 @@ export const semanticColors = {
   focus: 'mint-deep',
   'focus-on-dark': 'mint',
   debit: 'cobalt',
-  credit: 'amber',
+  credit: 'gold',
 } as const satisfies Record<string, PaletteColor>;
 
 export type SemanticColor = keyof typeof semanticColors;
@@ -61,7 +61,7 @@ export const textPairs: readonly ColorPair[] = [
   { foreground: 'rust', background: 'white' },
   { foreground: 'ochre', background: 'white' },
   { foreground: 'cobalt', background: 'white' },
-  { foreground: 'amber', background: 'white' },
+  { foreground: 'gold', background: 'white' },
   { foreground: 'ink', background: 'mist' },
   { foreground: 'slate', background: 'mist' },
   { foreground: 'mint-deep', background: 'mist' },
@@ -69,7 +69,7 @@ export const textPairs: readonly ColorPair[] = [
   { foreground: 'rust', background: 'mist' },
   { foreground: 'ochre', background: 'mist' },
   { foreground: 'cobalt', background: 'mist' },
-  { foreground: 'amber', background: 'mist' },
+  { foreground: 'gold', background: 'mist' },
   { foreground: 'frost', background: 'ink' },
   { foreground: 'sage', background: 'ink' },
   { foreground: 'frost', background: 'ink-raised' },

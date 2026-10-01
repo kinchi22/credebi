@@ -49,7 +49,7 @@ describe('the declared pairs', () => {
         'rust',
         'ochre',
         'cobalt',
-        'amber',
+        'gold',
       ]),
     );
     expect(foregroundsOn('mist')).toEqual(foregroundsOn('white'));
@@ -92,13 +92,13 @@ describe('the semantic tokens', () => {
       focus: 'mint-deep',
       'focus-on-dark': 'mint',
       debit: 'cobalt',
-      credit: 'amber',
+      credit: 'gold',
     });
   });
 
-  it('sets Debit in a blue and Credit in an amber that each read as text on the ground', () => {
+  it('sets Debit in a blue and Credit in a gold that each read as text on the ground', () => {
     expect(palette[semanticColors.debit]).toBe('#2B63B8');
-    expect(palette[semanticColors.credit]).toBe('#A2560F');
+    expect(palette[semanticColors.credit]).toBe('#7F6500');
     expect(ratio(semanticColors.debit, semanticColors.ground)).toBeGreaterThanOrEqual(TEXT_MINIMUM);
     expect(ratio(semanticColors.credit, semanticColors.ground)).toBeGreaterThanOrEqual(TEXT_MINIMUM);
   });
