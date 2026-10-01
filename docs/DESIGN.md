@@ -297,6 +297,13 @@ Hierarchy comes from tonal layers, not shadows: `surface` panels with a
 - **Settings row.** Settings has no panel: each setting is a row between
   `border` hairlines, its name on the left and its control on the right, and
   stacked below `wide`.
+- **Date presets.** A row of secondary buttons, `Year`, `Quarter`, `Month`
+  and `Relative`, below a `border` hairline at the foot of the Entry search
+  form, from `wide` up. Each opens its choices on hover in a `surface` panel
+  with a `border` edge and no shadow, one row per year, scrolled to the year of
+  today. The year, quarter and month that hold today are set in `accent-text`,
+  semibold and underlined in `accent`; a Relative choice never is. No choice is
+  marked as chosen: From and To state the range.
 - **Link.** `accent-text`, underlined, and `accent-text-hover` under the
   pointer.
 - **Input.** `surface` fill, `text`, a `border-control` edge. The spec's

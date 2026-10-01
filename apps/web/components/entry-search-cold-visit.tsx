@@ -1,9 +1,10 @@
 'use client';
 
 import { defaultSearchRange, type DayRange } from '@repo/core/entries';
-import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { type EntrySearchAnswer } from '../server/entry-search';
+import { useBrowserToday } from './browser-today';
 import { EntrySearchForm } from './entry-search-form';
 import { EntrySearchOutcome, EntrySearchPending } from './entry-search-results';
 import { DANGER_TEXT } from './text-classes';
@@ -13,13 +14,6 @@ export type SearchDefaultRange = (range: DayRange) => Promise<EntrySearchAnswer>
 export type EntrySearchColdVisitProps = {
   readonly search: SearchDefaultRange;
 };
-
-const twoDigits = (value: number): string => String(value).padStart(2, '0');
-
-function todayInTheBrowser(): string {
-  const now = new Date();
-  return `${String(now.getFullYear()).padStart(4, '0')}-${twoDigits(now.getMonth() + 1)}-${twoDigits(now.getDate())}`;
-}
 
 const UNAVAILABLE = 'unavailable';
 
@@ -39,12 +33,8 @@ function ColdVisitOutcome({ answer }: { readonly answer: ColdVisitAnswer | undef
   return <EntrySearchOutcome answer={answer} />;
 }
 
-const subscribeToNothing = (): (() => void) => () => undefined;
-
-const todayUnknownOnTheServer = (): undefined => undefined;
-
 export function EntrySearchColdVisit({ search }: EntrySearchColdVisitProps): ReactNode {
-  const today = useSyncExternalStore(subscribeToNothing, todayInTheBrowser, todayUnknownOnTheServer);
+  const today = useBrowserToday();
   const range = useMemo(() => (today === undefined ? undefined : defaultSearchRange(today)), [today]);
   const [answer, setAnswer] = useState<ColdVisitAnswer>();
 

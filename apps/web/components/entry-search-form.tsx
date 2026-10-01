@@ -1,13 +1,16 @@
 'use client';
 
 import { SEARCH_CRITERIA_FIELDS, type SearchCriteriaInput } from '@repo/contracts';
-import { CHART_OF_ACCOUNTS } from '@repo/core/entries';
+import { CHART_OF_ACCOUNTS, type DayRange } from '@repo/core/entries';
 import { PANEL } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
-import { useId, useState, type ChangeEvent, type ReactNode } from 'react';
+import { useId, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
+import { flushSync } from 'react-dom';
 import { en } from '../messages/en';
 import { ENTRY_SEARCH_PATH } from '../server/return-path';
+import { useBrowserToday } from './browser-today';
 import { CONTROL, FIELD, PRIMARY_BUTTON } from './control-classes';
+import { DatePresets } from './date-presets';
 
 export type EntrySearchFormProps = {
   readonly criteria: SearchCriteriaInput;
@@ -25,9 +28,20 @@ export function EntrySearchForm({ criteria }: EntrySearchFormProps): ReactNode {
   const id = useId();
   const [from, setFrom] = useState(criteria.from ?? '');
   const [to, setTo] = useState(criteria.to ?? '');
+  const form = useRef<HTMLFormElement>(null);
+  const today = useBrowserToday();
+
+  const searchPreset = (range: DayRange): void => {
+    flushSync(() => {
+      setFrom(range.from);
+      setTo(range.to);
+    });
+    form.current?.requestSubmit();
+  };
 
   return (
     <form
+      ref={form}
       aria-labelledby={`${id}-title`}
       action={ENTRY_SEARCH_PATH}
       method="get"
@@ -99,6 +113,8 @@ export function EntrySearchForm({ criteria }: EntrySearchFormProps): ReactNode {
       >
         {en.entrySearch.submit}
       </button>
+
+      <DatePresets today={today} onChoose={searchPreset} />
     </form>
   );
 }

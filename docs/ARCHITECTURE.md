@@ -251,6 +251,11 @@ does and calls the same `entries.search` procedure. Pressing Search puts the
 criteria into the query, and from there the page reads them on the render path
 as above.
 
+A date preset is the same `GET`. The browser computes each preset's range from
+its own day with the preset functions of `@repo/core/entries`, and choosing one
+fills From and To and submits the form, so the range lands in the query exactly
+as if the User had typed it and pressed Search.
+
 ## Dates on the wire
 
 `checkedAt` is a `Date` in `core` and an ISO 8601 string in `packages/contracts`,

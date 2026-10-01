@@ -68,6 +68,26 @@ export const en = {
     refused:
       'That search was not run. Check the day range -- each day is a calendar day, and From cannot be later than To -- that the account is one of those listed, and that the memo is no longer than a memo can be.',
   },
+  datePresets: {
+    title: 'Date presets',
+    categories: {
+      year: 'Year',
+      quarter: 'Quarter',
+      month: 'Month',
+      relative: 'Relative',
+    },
+    quarterPrefix: 'Q',
+    months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    relative: {
+      last: 'Last ',
+      next: 'Next ',
+      around: '\u00B1',
+    },
+    monthUnit: {
+      one: 'month',
+      many: 'months',
+    },
+  },
   entryForm: {
     title: 'New entry',
     date: 'Date',
