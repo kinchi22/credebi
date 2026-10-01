@@ -107,6 +107,13 @@ export const en = {
     sales: 'Sales',
     expense: 'Expenses',
   },
+  accountTypes: {
+    asset: 'Assets',
+    liability: 'Liabilities',
+    equity: 'Equity',
+    revenue: 'Revenue',
+    expense: 'Expenses',
+  },
   sides: {
     debit: 'Debit',
     credit: 'Credit',

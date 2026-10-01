@@ -144,7 +144,13 @@ function DraftLines({ id }: { readonly id: string }): ReactNode {
 export function MultiLineEntryForm({ action }: EntryFormProps): ReactNode {
   return (
     <EntryFormShell action={action} mode={entryFormModeSchema.enum['multi-line']}>
-      {(id) => <DraftLines id={id} />}
+      {({ id, heading, footer }) => (
+        <>
+          {heading}
+          <DraftLines id={id} />
+          {footer}
+        </>
+      )}
     </EntryFormShell>
   );
 }
