@@ -2,7 +2,7 @@
 
 import { ENTRY_FORM_FIELDS, sideSchema, type Side } from '@repo/contracts';
 import {
-  ACCOUNT_TYPE,
+  ACCOUNT_TYPE_OF,
   CHART_OF_ACCOUNTS,
   accountTypesInOrder,
   type AccountCode,
@@ -10,6 +10,7 @@ import {
 import { typeClasses } from '@repo/ui/type-classes';
 import { useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { en } from '../messages/en';
+import { SIDE_TONE } from './side-classes';
 
 export type AccountChoice = Readonly<Record<Side, AccountCode | undefined>>;
 
@@ -31,31 +32,24 @@ const CHOICES_NAME: Readonly<Record<Side, string>> = {
   credit: en.twoLineForm.creditAccount,
 };
 
-const SIDE_EDGE: Readonly<Record<Side, string>> = {
-  debit: 'border-debit',
-  credit: 'border-credit',
-};
-
 const otherSide = (side: Side): Side => (side === 'debit' ? 'credit' : 'debit');
 
 type SideChoicesProps = {
   readonly id: string;
   readonly side: Side;
-  readonly shown: boolean;
   readonly chosen: AccountCode | undefined;
   readonly onChoose: (account: AccountCode) => void;
   readonly onInvalid: () => void;
 };
 
-function SideChoices({ id, side, shown, chosen, onChoose, onInvalid }: SideChoicesProps): ReactNode {
+function SideChoices({ id, side, chosen, onChoose, onInvalid }: SideChoicesProps): ReactNode {
   const choicesId = `${id}-${side}-accounts`;
 
   return (
     <div
-      id={choicesId}
       role="radiogroup"
       aria-labelledby={`${choicesId}-name`}
-      className={`${shown ? 'flex' : 'hidden'} min-w-0 flex-col gap-2 border-t-2 ${SIDE_EDGE[side]} px-3 pt-2 pb-3 wide:flex`}
+      className={`flex min-w-0 flex-col gap-2 border-t-2 ${SIDE_TONE[side].edge} px-3 pt-2 pb-3`}
     >
       <p id={`${choicesId}-name`} className={`${typeClasses.label} text-text-muted`}>
         {CHOICES_NAME[side]}
@@ -70,7 +64,7 @@ function SideChoices({ id, side, shown, chosen, onChoose, onInvalid }: SideChoic
           <p id={`${choicesId}-${type}`} className={`${typeClasses.label} text-text-muted`}>
             {en.accountTypes[type]}
           </p>
-          {CHART_OF_ACCOUNTS.filter((code) => ACCOUNT_TYPE[code] === type).map((code) => (
+          {CHART_OF_ACCOUNTS.filter((code) => ACCOUNT_TYPE_OF[code] === type).map((code) => (
             <label key={code} className="relative flex">
               <input
                 type="radio"
@@ -84,7 +78,7 @@ function SideChoices({ id, side, shown, chosen, onChoose, onInvalid }: SideChoic
                 onInvalid={onInvalid}
                 className="peer absolute inset-0 m-0 cursor-pointer appearance-none opacity-0"
               />
-              <span className="grow rounded border border-transparent px-2 py-1 text-text peer-checked:border-accent-text peer-checked:bg-surface peer-checked:font-semibold peer-checked:text-accent-text peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus">
+              <span className="grow rounded px-2 py-1 text-text peer-checked:bg-accent/15 peer-checked:font-semibold peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus">
                 {en.accounts[code]}
               </span>
             </label>
@@ -115,13 +109,14 @@ export function AccountPicker({ id, chosen, onChoose }: AccountPickerProps): Rea
         {SIDES.map((side) => (
           <button
             key={side}
+            id={`${id}-${side}-tab`}
             ref={(element) => {
               tabs.current[side] = element;
             }}
             type="button"
             role="tab"
             aria-selected={shown === side}
-            aria-controls={`${id}-${side}-accounts`}
+            aria-controls={`${id}-${side}-panel`}
             tabIndex={shown === side ? 0 : -1}
             onClick={() => {
               setShown(side);
@@ -137,19 +132,25 @@ export function AccountPicker({ id, chosen, onChoose }: AccountPickerProps): Rea
       </div>
       <div className="grid wide:grid-cols-2">
         {SIDES.map((side) => (
-          <SideChoices
+          <div
             key={side}
-            id={id}
-            side={side}
-            shown={shown === side}
-            chosen={chosen[side]}
-            onChoose={(account) => {
-              onChoose(side, account);
-            }}
-            onInvalid={() => {
-              setShown(side);
-            }}
-          />
+            id={`${id}-${side}-panel`}
+            role="tabpanel"
+            aria-labelledby={`${id}-${side}-tab`}
+            className={`${shown === side ? 'block' : 'hidden'} min-w-0 wide:block`}
+          >
+            <SideChoices
+              id={id}
+              side={side}
+              chosen={chosen[side]}
+              onChoose={(account) => {
+                onChoose(side, account);
+              }}
+              onInvalid={() => {
+                setShown(side);
+              }}
+            />
+          </div>
         ))}
       </div>
     </div>

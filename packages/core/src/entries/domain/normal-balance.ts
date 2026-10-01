@@ -5,7 +5,7 @@ export const ACCOUNT_TYPES = ['asset', 'liability', 'equity', 'revenue', 'expens
 
 export type AccountType = (typeof ACCOUNT_TYPES)[number];
 
-export const ACCOUNT_TYPE: Readonly<Record<AccountCode, AccountType>> = {
+export const ACCOUNT_TYPE_OF: Readonly<Record<AccountCode, AccountType>> = {
   cash: 'asset',
   payable: 'liability',
   capital: 'equity',

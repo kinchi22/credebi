@@ -7,17 +7,13 @@ import { useState, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { AccountPicker, type AccountChoice } from './account-picker';
 import { DENSE_FIELD } from './control-classes';
+import { SIDE_TONE } from './side-classes';
 import {
   AmountInput,
   EntryFormShell,
   type EntryFormParts,
   type EntryFormProps,
 } from './entry-form';
-
-const SIDE_TEXT: Readonly<Record<Side, string>> = {
-  debit: 'text-debit',
-  credit: 'text-credit',
-};
 
 const NOTHING_CHOSEN: AccountChoice = { debit: undefined, credit: undefined };
 
@@ -37,7 +33,7 @@ function TwoLineFields({ id, heading, footer }: EntryFormParts): ReactNode {
             const account = chosen[side];
             return (
               <div key={side} className="flex gap-3 border-b border-border py-1">
-                <dt className={`w-16 ${typeClasses.label} leading-5 ${SIDE_TEXT[side]}`}>
+                <dt className={`w-16 ${typeClasses.label} leading-5 ${SIDE_TONE[side].text}`}>
                   {en.sides[side]}
                 </dt>
                 <dd className={account === undefined ? 'text-text-muted' : 'font-semibold'}>

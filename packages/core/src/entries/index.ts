@@ -6,7 +6,7 @@ export {
 } from './domain/entry';
 export type { AccountCode, Entry, EntryDraft, EntryLine, EntryStamp } from './domain/entry';
 
-export { ACCOUNT_TYPE, ACCOUNT_TYPES, accountTypesInOrder } from './domain/normal-balance';
+export { ACCOUNT_TYPE_OF, ACCOUNT_TYPES, accountTypesInOrder } from './domain/normal-balance';
 export type { AccountType } from './domain/normal-balance';
 
 export { draftTotals } from './domain/draft-totals';
