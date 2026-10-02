@@ -9,14 +9,14 @@ import { flushSync } from 'react-dom';
 import { en } from '../messages/en';
 import { ENTRY_SEARCH_PATH } from '../server/return-path';
 import { useBrowserToday } from './browser-today';
-import { CONTROL, FIELD, PRIMARY_BUTTON } from './control-classes';
+import { CONTROL, DATE_CONTROL, FIELD, PRIMARY_BUTTON } from './control-classes';
 import { DatePresets, DatePresetsSheet } from './date-presets';
 
 export type EntrySearchFormProps = {
   readonly criteria: SearchCriteriaInput;
 };
 
-const DATE_CONTROL = `w-full min-w-0 appearance-none wide:w-auto ${typeClasses.date}`;
+const RANGE_DAY = `${DATE_CONTROL} w-full min-w-0 wide:w-auto`;
 
 function keepingADay(set: (day: string) => void): (event: ChangeEvent<HTMLInputElement>) => void {
   return (event) => {
@@ -66,7 +66,7 @@ export function EntrySearchForm({ criteria }: EntrySearchFormProps): ReactNode {
             value={from}
             onChange={keepingADay(setFrom)}
             required
-            className={`${CONTROL} ${DATE_CONTROL}`}
+            className={RANGE_DAY}
           />
         </div>
         <div className={FIELD}>
@@ -78,7 +78,7 @@ export function EntrySearchForm({ criteria }: EntrySearchFormProps): ReactNode {
             value={to}
             onChange={keepingADay(setTo)}
             required
-            className={`${CONTROL} ${DATE_CONTROL}`}
+            className={RANGE_DAY}
           />
         </div>
         <DatePresetsSheet today={today} onChoose={searchPreset} />

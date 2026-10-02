@@ -15,7 +15,7 @@ import {
 } from 'react';
 import { en } from '../messages/en';
 import { useBrowserToday } from './browser-today';
-import { CONTROL, DENSE_FIELD, PRIMARY_BUTTON } from './control-classes';
+import { CONTROL, DATE_CONTROL, DENSE_FIELD, PRIMARY_BUTTON } from './control-classes';
 
 export type EntryFormState =
   | { readonly outcome: 'idle' }
@@ -128,7 +128,7 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
             type="date"
             defaultValue={today}
             required
-            className={`${CONTROL} ${typeClasses.date}`}
+            className={DATE_CONTROL}
           />
         </div>
         <div className={`${DENSE_FIELD} grow`}>
