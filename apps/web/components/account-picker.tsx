@@ -141,7 +141,7 @@ export function ChooseAccountButton({ side, account, sheet }: ChooseAccountButto
       }}
       className="flex min-h-10 w-full items-center gap-3 border-b border-border py-1 text-left disabled:opacity-50 wide:hidden"
     >
-      <AccountRowContent side={side} account={account} />
+      <AccountRowContent side={side} account={account} placeholderInSideTone />
       {account === undefined ? null : (
         <span className="shrink-0 text-text-muted">
           <ChevronIcon />
@@ -159,18 +159,30 @@ type AccountRowProps = {
 export function AccountRow({ side, account }: AccountRowProps): ReactNode {
   return (
     <div className="hidden items-center gap-3 border-b border-border py-1 wide:flex">
-      <AccountRowContent side={side} account={account} />
+      <AccountRowContent side={side} account={account} placeholderInSideTone={false} />
     </div>
   );
 }
 
-function AccountRowContent({ side, account }: AccountRowProps): ReactNode {
+type AccountRowContentProps = AccountRowProps & {
+  readonly placeholderInSideTone: boolean;
+};
+
+function AccountRowContent({
+  side,
+  account,
+  placeholderInSideTone,
+}: AccountRowContentProps): ReactNode {
+  const placeholderClass = placeholderInSideTone
+    ? `font-semibold ${SIDE_TONE[side].text}`
+    : 'text-text-muted';
+
   return (
     <>
       <span className={`w-16 shrink-0 ${typeClasses.label} leading-5 ${SIDE_TONE[side].text}`}>
         {en.sides[side]}
       </span>
-      <span className={`min-w-0 grow ${account === undefined ? 'text-text-muted' : 'font-semibold'}`}>
+      <span className={`min-w-0 grow ${account === undefined ? placeholderClass : 'font-semibold'}`}>
         {account === undefined ? en.entryForm.chooseAccount : en.accounts[account]}
       </span>
     </>

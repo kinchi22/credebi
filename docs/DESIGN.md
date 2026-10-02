@@ -378,20 +378,20 @@ Hierarchy comes from tonal layers, not shadows: `surface` panels with a
   `Add credit account`, a text button in the Side's colour after a `+`. In
   Two-line mode each Side's row is itself one full-width button, named
   `Choose debit account` or `Choose credit account`: the Side in `label` and the
-  Side's colour, then `Choose an account` in `text-muted` while it has none, or
-  the Account's name, semibold, and a chevron icon at the row's end once it has
-  one. A `surface` bar holds the sheet's title and, in Multi-line mode, `Done`,
-  a primary button, or in Two-line mode the close icon, as the Date presets
-  sheet's; below it Debit and Credit are tabs drawn as the Date presets sheet's,
-  then a `Find an account` search field, then the shown Side's Accounts grouped
-  by Account type, narrowed to those whose name holds the text typed, or
-  `No account matches` and the text when none does. The tab names the Side, so
-  no Side heading is shown above the Accounts, though each column from `wide` up
-  keeps one. In Two-line mode, choosing an Account on one Side while the other
-  has none shows the other Side's tab, and a choice that leaves both Sides with
-  an Account closes the sheet; in Multi-line mode ticking an Account keeps the
-  tab. `Done` or the close icon, Escape or a click on the scrim closes it, and
-  focus returns to the button that opened it.
+  Side's colour, then `Choose an account`, semibold and in the Side's colour,
+  while it has none, or the Account's name, semibold, and a chevron icon at the
+  row's end once it has one. A `surface` bar holds the sheet's title and, in
+  Multi-line mode, `Done`, a primary button, or in Two-line mode the close
+  icon, as the Date presets sheet's; below it Debit and Credit are tabs drawn as
+  the Date presets sheet's, then a `Find an account` search field, then the
+  shown Side's Accounts grouped by Account type, narrowed to those whose name
+  holds the text typed, or `No account matches` and the text when none does.
+  The tab names the Side, so no Side heading is shown above the Accounts, though
+  each column from `wide` up keeps one. In Two-line mode, choosing an Account
+  on one Side while the other has none shows the other Side's tab, and a choice
+  that leaves both Sides with an Account closes the sheet; in Multi-line mode
+  ticking an Account keeps the tab. `Done` or the close icon, Escape or a click
+  on the scrim closes it, and focus returns to the button that opened it.
 - **Entry form dividers.** In both Entry form modes a `border` hairline runs
   under Date and Memo, before the Accounts. In Multi-line mode the lines of one
   Side are divided by dashed `border` hairlines, and a solid one closes each
