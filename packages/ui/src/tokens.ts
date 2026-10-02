@@ -15,6 +15,11 @@ export const palette = {
   ochre: '#A15C00',
   cobalt: '#2B63B8',
   gold: '#7F6500',
+  pewter: '#747775',
+  azure: '#4285F4',
+  leaf: '#34A853',
+  amber: '#FBBC05',
+  scarlet: '#EA4335',
 } as const;
 
 export type PaletteColor = keyof typeof palette;
@@ -40,6 +45,11 @@ export const semanticColors = {
   'focus-on-dark': 'mint',
   debit: 'cobalt',
   credit: 'gold',
+  'border-google': 'pewter',
+  'google-blue': 'azure',
+  'google-green': 'leaf',
+  'google-yellow': 'amber',
+  'google-red': 'scarlet',
 } as const satisfies Record<string, PaletteColor>;
 
 export type SemanticColor = keyof typeof semanticColors;
@@ -84,6 +94,7 @@ export const controlEdgePairs: readonly ColorPair[] = [
   { foreground: 'mint-deep', background: 'mist' },
   { foreground: 'mint', background: 'ink' },
   { foreground: 'mint', background: 'ink-raised' },
+  { foreground: 'pewter', background: 'white' },
 ];
 
 export type TypeStep = {

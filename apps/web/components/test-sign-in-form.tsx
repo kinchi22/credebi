@@ -11,7 +11,7 @@ export type TestSignInFormProps = {
 
 export function TestSignInForm({ returnTo, action }: TestSignInFormProps): ReactNode {
   return (
-    <form action={action} aria-label={en.testSignIn.title} className="flex flex-col gap-2">
+    <form action={action} aria-label={en.testSignIn.title} className="flex flex-col gap-3">
       <h2 className={`${typeClasses.label} text-text-muted`}>{en.testSignIn.title}</h2>
       <input type="hidden" name={TEST_SIGN_IN_FIELDS.returnTo} value={returnTo} />
       <label className={`flex flex-col gap-1 ${typeClasses['body-sm']}`}>

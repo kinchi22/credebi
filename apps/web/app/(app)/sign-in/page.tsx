@@ -1,7 +1,6 @@
-import { Logo } from '@repo/ui';
+import { GoogleMark, Logo, PANEL } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { type ReactNode } from 'react';
-import { PRIMARY_BUTTON } from '../../../components/control-classes';
 import { DANGER_TEXT } from '../../../components/text-classes';
 import { TestSignInForm } from '../../../components/test-sign-in-form';
 import { en } from '../../../messages/en';
@@ -27,23 +26,30 @@ export default async function SignInPage({ searchParams }: SignInPageProps): Pro
   const testSignInOffered = await caller.auth.testSignInOffered();
 
   return (
-    <main className="mx-auto flex max-w-md flex-col gap-4 p-8">
-      <Logo variant="stacked" tone="color" name={en.app.name} height={120} />
-      <h1 className={typeClasses.h1}>{en.signInPage.title}</h1>
-      {query['error'] === undefined ? null : (
-        <p role="alert" className={DANGER_TEXT}>
-          {en.signInPage.failed}
-        </p>
-      )}
-      <a
-        href={`/sign-in/google?${new URLSearchParams({ returnTo }).toString()}`}
-        className={`self-start ${PRIMARY_BUTTON}`}
-      >
-        {en.signInPage.google}
-      </a>
-      {testSignInOffered ? (
-        <TestSignInForm returnTo={returnTo} action={signInWithTestIdentifier} />
-      ) : null}
+    <main className="flex min-h-screen items-center justify-center p-4 wide:p-8">
+      <div className={`flex w-full flex-col gap-6 ${PANEL} px-5 py-7 wide:w-100 wide:p-10`}>
+        <div className="flex justify-center">
+          <Logo variant="stacked" tone="color" name={en.app.name} height={112} />
+        </div>
+        <h1 className={`mt-2 text-center ${typeClasses.h2}`}>{en.signInPage.title}</h1>
+        {query['error'] === undefined ? null : (
+          <p role="alert" className={`text-center ${DANGER_TEXT}`}>
+            {en.signInPage.failed}
+          </p>
+        )}
+        <a
+          href={`/sign-in/google?${new URLSearchParams({ returnTo }).toString()}`}
+          className={`flex h-10 items-center justify-center gap-2.5 rounded border border-border-google bg-surface px-4 ${typeClasses['body-sm']} font-semibold text-text`}
+        >
+          <GoogleMark />
+          {en.signInPage.google}
+        </a>
+        {testSignInOffered ? (
+          <div className="border-t border-dashed border-border pt-5">
+            <TestSignInForm returnTo={returnTo} action={signInWithTestIdentifier} />
+          </div>
+        ) : null}
+      </div>
     </main>
   );
 }
