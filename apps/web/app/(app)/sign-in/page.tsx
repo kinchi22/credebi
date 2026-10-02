@@ -27,7 +27,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps): Pro
 
   return (
     <main className="flex min-h-screen items-center justify-center p-4 wide:p-8">
-      <div className={`flex w-full flex-col gap-6 ${PANEL} px-5 py-7 wide:w-100 wide:p-10`}>
+      <div className={`flex w-full flex-col gap-6 ${PANEL} px-5 py-7 wide:w-100 wide:px-10 wide:py-10`}>
         <div className="flex justify-center">
           <Logo variant="stacked" tone="color" name={en.app.name} height={112} />
         </div>
