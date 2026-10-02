@@ -274,6 +274,9 @@ written bare is the narrow layout, and `wide:` sets the layout from 720px up.
 The stylesheet resets `--breakpoint-*` to `initial`, as it does the colours, so
 Tailwind's default breakpoints do not exist and `wide` is the only one.
 
+Below `wide` the page gutter is 16px and a panel sits directly in it, with no
+box nested inside the panel; from `wide` up the gutter is 32px.
+
 ## Elevation & Depth
 
 Hierarchy comes from tonal layers, not shadows: `surface` panels with a
@@ -288,8 +291,11 @@ Hierarchy comes from tonal layers, not shadows: `surface` panels with a
 - **Secondary button.** `surface` fill, `text`, a `border-control` edge.
 - **Quiet button on dark.** No fill and no border: `text-muted-on-dark` text,
   `text-on-dark` under the pointer, and the `focus-on-dark` ring. It is Sign out
-  in the Sidebar, an exit icon in `currentColor` before its text, and `Menu`
-  in the bar that opens the Sidebar drawer.
+  in the Sidebar, an exit icon in `currentColor` before its text.
+- **Icon button on dark.** No fill and no border: a 40px square holding a
+  stroke icon in `text-on-dark`, with the `focus-on-dark` ring and an accessible
+  name in place of text. It is `Menu`, a hamburger icon, in the bar that opens
+  the Sidebar drawer.
 - **Segmented control.** A radiogroup drawn as one `surface` strip with a
   `border-control` edge, each choice a segment. Only the chosen segment is
   marked: an `accent` tint and the semibold weight. It is the Entry form mode in
@@ -317,9 +323,12 @@ Hierarchy comes from tonal layers, not shadows: `surface` panels with a
   component properties have no border colour, so the edge is stated here only.
 - **Sidebar.** Dark: a `ground-dark` ground, `text-on-dark` text,
   `text-muted-on-dark` links, and the active item on `ground-dark-raised`. The
-  logo there is the horizontal Lockup in the reverse tone. Below `wide` it is a
-  drawer: a `ground-dark` bar holds the logo and `Menu`, which opens the Sidebar
-  as a modal dialog on the page's left edge over a `ground-dark` scrim at 60%.
+  logo there is the horizontal Lockup in the reverse tone. Sign out sits at the
+  foot, below a `ground-dark-raised` hairline; from `wide` up the Sidebar is as
+  tall as the viewport and stays in place as the page scrolls. Below `wide` it is
+  a drawer: a `ground-dark` bar holds `Menu` at its left and the logo after it,
+  and `Menu` opens the Sidebar as a modal dialog on the page's left edge over a
+  `ground-dark` scrim at 60%.
   The bar's logo hides while it is open, so one logo shows. Escape, a click on
   the scrim or following a link closes it, and focus returns to `Menu`.
 - **Focus.** A 2px ring on every focusable element: `focus` on a light ground,
