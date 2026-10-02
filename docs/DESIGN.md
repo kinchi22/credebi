@@ -389,8 +389,9 @@ Hierarchy comes from tonal layers, not shadows: `surface` panels with a
   inside its start, narrowing both Sides as the Account sheet's does, with the
   same `No account matches` line. From `wide` to below `split` one Side is
   shown at a time under `Debit` and `Credit` tabs, drawn as the Account sheet's
-  but with the shown tab underlined and set in its Side's colour; when a hidden
-  Side's required Account is missing on submit, its tab is shown. From `split`
+  but with the shown tab underlined and set in its Side's colour; when a submit
+  finds a Side missing its required Account, the first such Side's tab is
+  shown, so the browser's message is visible. From `split`
   up there are no tabs and the two Sides sit side by side, Credit's column
   behind a `border` hairline. Each Side is headed by its name in `label` and the
   Side's colour over a 2px rule in that colour. Each Account type's name, in
@@ -514,3 +515,5 @@ hidden.
 | Wordmark       | The name "Credebi" set as outlined Sora SemiBold, with C and d in the accent colour of its tone. |
 | Lockup         | A fixed arrangement of the Mark and the Wordmark: horizontal or stacked. The Mark alone is also a variant of the logo. |
 | Semantic token | A colour named by its role, such as `text-muted` or `danger`, mapped onto a brand palette colour. Components use only these. |
+| Band           | A full-width strip tinted `band` behind a heading, such as an Account type's name in the Account picker, so the groups under it read apart. |
+| Chip           | A choice drawn as a small inline box that sits beside others and wraps, rather than one per row; a chosen chip takes a fill and an edge. |
