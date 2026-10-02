@@ -20,7 +20,7 @@ export default async function HomePage(): Promise<ReactNode> {
   const health = await caller.health.get();
 
   return (
-    <main className="mx-auto flex max-w-xl flex-col gap-4 p-8">
+    <main className="mx-auto flex max-w-xl flex-col gap-4 p-4 wide:p-8">
       <h1 className={typeClasses.h1}>{en.app.name}</h1>
       <nav>
         <Link href="/entries" className={`${typeClasses['body-sm']} ${LINK}`}>

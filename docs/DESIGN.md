@@ -274,8 +274,8 @@ written bare is the narrow layout, and `wide:` sets the layout from 720px up.
 The stylesheet resets `--breakpoint-*` to `initial`, as it does the colours, so
 Tailwind's default breakpoints do not exist and `wide` is the only one.
 
-Below `wide` the page gutter is 16px, and a panel's padding is the only inset
-inside it; from `wide` up the gutter is 32px.
+Below `wide` the page gutter is 16px and a panel sits directly in it, with no
+box nested inside the panel; from `wide` up the gutter is 32px.
 
 ## Elevation & Depth
 
@@ -291,9 +291,11 @@ Hierarchy comes from tonal layers, not shadows: `surface` panels with a
 - **Secondary button.** `surface` fill, `text`, a `border-control` edge.
 - **Quiet button on dark.** No fill and no border: `text-muted-on-dark` text,
   `text-on-dark` under the pointer, and the `focus-on-dark` ring. It is Sign out
-  in the Sidebar, an exit icon in `currentColor` before its text. `Menu`, in the
-  bar that opens the Sidebar drawer, is the icon-only form: a hamburger icon in
-  `text-on-dark`, named `Menu`.
+  in the Sidebar, an exit icon in `currentColor` before its text.
+- **Icon button on dark.** No fill and no border: a 40px square holding a
+  stroke icon in `text-on-dark`, with the `focus-on-dark` ring and an accessible
+  name in place of text. It is `Menu`, a hamburger icon, in the bar that opens
+  the Sidebar drawer.
 - **Segmented control.** A radiogroup drawn as one `surface` strip with a
   `border-control` edge, each choice a segment. Only the chosen segment is
   marked: an `accent` tint and the semibold weight. It is the Entry form mode in

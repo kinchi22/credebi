@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function NotFoundPage(): ReactNode {
   return (
-    <main className="mx-auto flex max-w-md flex-col gap-4 p-8">
+    <main className="mx-auto flex max-w-md flex-col gap-4 p-4 wide:p-8">
       <h1 className="text-h1">{en.notFoundPage.title}</h1>
     </main>
   );

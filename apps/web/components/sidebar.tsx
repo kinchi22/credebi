@@ -35,6 +35,7 @@ const IDLE_LINK = `${LINK} text-text-muted-on-dark hover:text-text-on-dark`;
 const QUIET_BUTTON = `inline-flex items-center gap-2 rounded px-3 py-1 ${typeClasses['body-sm']} text-text-muted-on-dark hover:text-text-on-dark ${ON_DARK_FOCUS}`;
 const ICON_BUTTON = `-ml-2 inline-flex size-10 items-center justify-center rounded text-text-on-dark ${ON_DARK_FOCUS}`;
 const SIDEBAR = 'flex-col gap-4 bg-ground-dark p-4 text-text-on-dark';
+const WIDE_SIDEBAR = `hidden ${SIDEBAR} wide:sticky wide:top-0 wide:flex wide:h-screen wide:w-56 wide:shrink-0 wide:overflow-y-auto`;
 
 function SidebarNav({ signOut, className, firstLink, onFollow }: SidebarNavProps): ReactNode {
   const pathname = usePathname();
@@ -107,7 +108,7 @@ export function Sidebar({ signOut }: SidebarProps): ReactNode {
           <Logo variant="horizontal" tone="reverse" name={en.app.name} height={BAR_LOGO_HEIGHT} />
         </span>
       </div>
-      <SidebarNav signOut={signOut} className={`hidden ${SIDEBAR} wide:sticky wide:top-0 wide:flex wide:h-screen wide:w-56 wide:shrink-0 wide:overflow-y-auto`} />
+      <SidebarNav signOut={signOut} className={WIDE_SIDEBAR} />
       <dialog
         ref={drawer}
         id={drawerId}

@@ -52,7 +52,7 @@ export function CloseIcon(): ReactNode {
 
 export function MenuIcon(): ReactNode {
   return (
-    <StrokeIcon size={22}>
+    <StrokeIcon size={20}>
       <path d="M4 7h16M4 12h16M4 17h16" />
     </StrokeIcon>
   );
