@@ -6,7 +6,7 @@ export default function SignedInLayout({ children }: { children: ReactNode }): R
   return (
     <div className="flex min-h-screen flex-col wide:flex-row">
       <Sidebar signOut={signOut} />
-      <main className="mx-auto flex max-w-2xl min-w-0 flex-1 flex-col gap-4 p-8">
+      <main className="mx-auto flex max-w-2xl min-w-0 flex-1 flex-col gap-4 p-4 wide:p-8">
         {children}
       </main>
     </div>
