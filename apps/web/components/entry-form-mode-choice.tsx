@@ -10,6 +10,7 @@ import { useId, useState, useTransition, type ChangeEvent, type ReactNode } from
 import { typeClasses } from '@repo/ui/type-classes';
 import { en } from '../messages/en';
 import { LEGEND } from './control-classes';
+import { SIDE_TONE } from './side-classes';
 import { DANGER_TEXT } from './text-classes';
 
 export type EntryFormModeChange =
@@ -24,6 +25,8 @@ export type EntryFormModeChoiceProps = {
 type Status = 'idle' | EntryFormModeChange['outcome'];
 
 type Bar = { readonly side: Side; readonly width: number };
+
+const CHOSEN_SEGMENT = 'bg-accent/15 text-text';
 
 const BAR_HEIGHT = 4;
 const BAR_PITCH = 9;
@@ -42,11 +45,6 @@ const MODE_BARS: Readonly<Record<EntryFormMode, readonly Bar[]>> = {
   ],
 };
 
-const BAR_FILL: Readonly<Record<Side, string>> = {
-  debit: 'fill-debit',
-  credit: 'fill-credit',
-};
-
 function ModeDrawing({ mode }: { readonly mode: EntryFormMode }): ReactNode {
   const bars = MODE_BARS[mode];
   const height = (bars.length - 1) * BAR_PITCH + BAR_HEIGHT;
@@ -60,7 +58,7 @@ function ModeDrawing({ mode }: { readonly mode: EntryFormMode }): ReactNode {
           width={bar.width}
           height={BAR_HEIGHT}
           rx={BAR_HEIGHT / 2}
-          className={BAR_FILL[bar.side]}
+          className={SIDE_TONE[bar.side].fill}
         />
       ))}
     </svg>
@@ -110,7 +108,9 @@ export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps
                 aria-describedby={`${id}-${mode}-description`}
                 className="peer absolute inset-0 m-0 cursor-pointer appearance-none opacity-0 disabled:cursor-default"
               />
-              <span className="flex flex-1 flex-col gap-2 rounded px-3 py-2 text-text-muted peer-checked:bg-accent/15 peer-checked:text-text peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus peer-disabled:opacity-50">
+              <span
+                className={`flex flex-1 flex-col gap-2 rounded px-3 py-2 ${selected === mode ? CHOSEN_SEGMENT : 'text-text-muted'} peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus peer-disabled:opacity-50`}
+              >
                 <ModeDrawing mode={mode} />
                 <span
                   id={`${id}-${mode}-name`}
