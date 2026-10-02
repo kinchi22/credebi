@@ -103,7 +103,7 @@ export function Sidebar({ signOut }: SidebarProps): ReactNode {
         {...drawer.dialogProps}
         id={drawerId}
         onClick={drawer.closeOnScrim}
-        className="m-0 h-full max-h-none w-64 max-w-[calc(100%-3rem)] border-0 bg-ground-dark p-0 backdrop:bg-ground-dark/60"
+        className="m-0 h-full max-h-none w-64 max-w-[calc(100%-3rem)] rounded-r border-0 bg-ground-dark p-0 backdrop:bg-ground-dark/60"
       >
         <SidebarNav
           signOut={signOut}
