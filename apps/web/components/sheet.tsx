@@ -84,7 +84,7 @@ export function SheetTabs<Tab extends string>({
   };
 
   return (
-    <div role="tablist" className="flex shrink-0 bg-surface px-2">
+    <div role="tablist" className="flex shrink-0 bg-surface">
       {tabs.map((tab, index) => (
         <button
           key={tab}

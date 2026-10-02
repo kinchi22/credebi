@@ -1,7 +1,7 @@
 import { useId, type ReactNode } from 'react';
 import { typeClasses } from './type-classes';
 
-export const PANEL = 'rounded-lg border border-border bg-surface p-2 wide:p-4';
+export const PANEL = 'rounded border border-border bg-surface p-2 wide:p-4';
 
 export const PANEL_BLEED = '-mx-2 px-2 wide:-mx-4 wide:px-4';
 

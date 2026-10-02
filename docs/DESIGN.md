@@ -6,7 +6,7 @@ omitted:
   - section: spacing
     reason: Spacing stays on Tailwind's default scale; no spacing token is decided.
   - section: rounded
-    reason: Corner radii stay on Tailwind's default scale; no radius token is decided.
+    reason: Every corner radius is 4px, Tailwind's `rounded`; no radius token is decided.
 colors:
   mint: "#2FD0A2"
   mint-deep: "#0B7A5E"
@@ -326,6 +326,14 @@ reach the panel's edges at every width.
 Hierarchy comes from tonal layers, not shadows: `surface` panels with a
 `border` edge sit on the `ground`, and the Sidebar is the one dark layer.
 
+## Shapes
+
+Every rounded corner is 4px, Tailwind's `rounded`, and no other radius is used:
+panels, controls, buttons, chips, menus and the Sign in card. A surface fixed
+to a screen edge rounds only its free corners: the Account sheet its top ones
+with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
+8px status dot takes the same 4px, which draws it as a circle.
+
 ## Components
 
 - **Primary button.** `accent` fill with `text`. White on mint reads 2.0:1 and
@@ -379,8 +387,9 @@ Hierarchy comes from tonal layers, not shadows: `surface` panels with a
   the `ground`. The button is square and as tall as From and To: it keeps an
   Input's edge and vertical padding, pads its sides by that same amount, and
   its icon is as tall as an Input's line. A `surface` bar holds its title and a
-  close icon, and below it the four categories are tabs, the shown one
-  underlined in `accent` and set in `accent-text`, semibold. Each tab lists its
+  close icon, and below it the four categories are tabs running the sheet's
+  full width with no side padding, the shown one underlined in `accent` and set
+  in `accent-text`, semibold. Each tab lists its
   choices as the panel does, with each year above its row; choosing one closes
   the sheet. Escape or the close icon closes it without choosing, and focus
   returns to the button.
@@ -530,6 +539,7 @@ hidden.
   appears, so the contrast test checks it.
 - Do use `accent-text`, never `accent`, for mint text on a light ground.
 - Do set figures and dates in DM Mono with tabular numerals.
+- Don't round a corner by anything but 4px.
 - Don't set text below 12px.
 - Don't add a dark mapping before the dark theme Feature.
 
