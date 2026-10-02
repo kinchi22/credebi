@@ -369,11 +369,14 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
 - **Segmented control.** A radiogroup drawn as one `surface` strip with a
   `border-control` edge, each choice a segment. Only the chosen segment is
   marked: an `accent` tint and the semibold weight. It is the Entry form mode in
-  Settings, where each segment fills an equal share of the strip and stacks a
-  decorative drawing of the mode over its name and a one-line description in
-  `body-dense`. The drawing is rounded 4px bars, 72px wide at most: Two-line is
-  two equal bars, one `debit` over one `credit`; Multi-line is four of varying
-  length, two `debit` then two `credit`.
+  Settings, where each segment fills an equal share of the strip. From `wide`
+  up the strip sits right of its legend and grows to fill the space beside it,
+  up to 42rem. The segments are equal height: a decorative drawing of the mode
+  at the top, and its name over a one-line description in `body-dense` together
+  at the foot, so the names of the two modes line up on one row. The drawing is
+  rounded 4px bars, 72px wide at most: Two-line is two equal bars, one `debit`
+  over one `credit`; Multi-line is four of varying length, two `debit` then two
+  `credit`.
 - **Settings row.** Settings has no panel: each setting is a row between
   `border` hairlines, its name on the left and its control on the right, and
   stacked below `wide`.

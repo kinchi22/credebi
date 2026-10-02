@@ -94,7 +94,7 @@ export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps
         <legend className={`float-left p-0 ${LEGEND}`}>
           {en.settingsPage.entryFormMode}
         </legend>
-        <div className="flex self-stretch rounded border border-border-control bg-surface p-0.5 wide:max-w-md wide:self-auto">
+        <div className="flex self-stretch rounded border border-border-control bg-surface p-0.5 wide:max-w-2xl wide:flex-1 wide:self-auto">
           {entryFormModeSchema.options.map((mode) => (
             <label key={mode} className={`relative flex flex-1 basis-0 ${typeClasses['body-sm']}`}>
               <input
@@ -112,14 +112,16 @@ export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps
                 className={`flex flex-1 flex-col gap-2 rounded px-3 py-2 ${selected === mode ? CHOSEN_SEGMENT : 'text-text-muted'} peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus peer-disabled:opacity-50`}
               >
                 <ModeDrawing mode={mode} />
-                <span
-                  id={`${id}-${mode}-name`}
-                  className={selected === mode ? 'font-semibold' : undefined}
-                >
-                  {en.settingsPage.entryFormModes[mode]}
-                </span>
-                <span id={`${id}-${mode}-description`} className={typeClasses['body-dense']}>
-                  {en.settingsPage.entryFormModeDescriptions[mode]}
+                <span className="mt-auto flex flex-col gap-2">
+                  <span
+                    id={`${id}-${mode}-name`}
+                    className={selected === mode ? 'font-semibold' : undefined}
+                  >
+                    {en.settingsPage.entryFormModes[mode]}
+                  </span>
+                  <span id={`${id}-${mode}-description`} className={typeClasses['body-dense']}>
+                    {en.settingsPage.entryFormModeDescriptions[mode]}
+                  </span>
                 </span>
               </span>
             </label>
