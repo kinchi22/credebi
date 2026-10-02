@@ -50,6 +50,14 @@ export function CloseIcon(): ReactNode {
   );
 }
 
+export function TrashIcon(): ReactNode {
+  return (
+    <StrokeIcon size={20}>
+      <path d="M4 7h16M10 3h4M6 7l1 13h10l1-13M10 11v6M14 11v6" />
+    </StrokeIcon>
+  );
+}
+
 export function MenuIcon(): ReactNode {
   return (
     <StrokeIcon size={20}>

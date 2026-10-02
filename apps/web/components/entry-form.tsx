@@ -119,7 +119,7 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
         {en.entryForm.title}
       </h2>
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-3 border-b border-border pb-3">
         <div className={DENSE_FIELD}>
           <label htmlFor={`${id}-date`}>{en.entryForm.date}</label>
           <input

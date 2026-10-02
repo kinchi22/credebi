@@ -384,6 +384,19 @@ Hierarchy comes from tonal layers, not shadows: `surface` panels with a
   keeps one. Choosing an Account on one Side while the other has none shows the
   other Side's tab. `Done`, Escape or a click on the scrim closes it, and focus
   returns to the button that opened it.
+- **Entry form dividers.** In both Entry form modes a `border` hairline runs
+  under Date and Memo, before the Accounts. In Multi-line mode the lines of one
+  Side are divided by dashed `border` hairlines, and a solid one closes each
+  Side below its `+ Add … account`, separating Debit from Credit; from `wide`
+  up, where that button is not shown, it sits under the Side's last line, and a
+  Side with no line draws none.
+- **Multi-line line.** Two columns at all widths, about 6:4, the Account's the
+  wider: the left stacks the Side, in `label` and the Side's colour, over the
+  Account name, semibold and wrapping; the right holds the amount field and,
+  beside it, the Remove icon button.
+- **Icon button.** A secondary button holding a stroke icon in place of text,
+  with an accessible name: square and as tall as the Input beside it, as
+  `Choose a period` is. It is `Remove`, a trash icon, on each Multi-line line.
 - **Link.** `accent-text`, underlined, and `accent-text-hover` under the
   pointer.
 - **Input.** `surface` fill, `text`, a `border-control` edge. The spec's

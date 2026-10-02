@@ -7,12 +7,13 @@ import {
   type AccountCode,
   type DraftLine,
 } from '@repo/core/entries';
+import { TrashIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
-import { Fragment, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { AccountPicker, AddAccountButton, useAccountSheet } from './account-picker';
 import { formatAmount } from './amount';
-import { BUTTON, DENSE_FIELD } from './control-classes';
+import { DENSE_FIELD, ICON_CONTROL } from './control-classes';
 import {
   AmountInput,
   EntryFormShell,
@@ -72,23 +73,30 @@ function LineFields({ id, line, onAmountChange, onRemove }: LineFieldsProps): Re
   return (
     <fieldset
       aria-label={`${en.sides[line.side]} ${en.accounts[line.account]}`}
-      className={`flex flex-wrap items-end gap-3 border-b border-border py-1 ${typeClasses['body-dense']}`}
+      className={`grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] items-end gap-3 py-1 ${typeClasses['body-dense']}`}
     >
       <input type="hidden" name={ENTRY_FORM_FIELDS.account} value={line.account} />
       <input type="hidden" name={ENTRY_FORM_FIELDS.side} value={line.side} />
-      <p aria-hidden className="flex grow gap-3 self-center">
-        <span className={`w-16 ${typeClasses.label} leading-5 ${SIDE_TONE[line.side].text}`}>
+      <p aria-hidden className="flex min-w-0 flex-col self-center">
+        <span className={`${typeClasses.label} leading-5 ${SIDE_TONE[line.side].text}`}>
           {en.sides[line.side]}
         </span>
-        <span className="font-semibold">{en.accounts[line.account]}</span>
+        <span className="font-semibold break-words">{en.accounts[line.account]}</span>
       </p>
-      <div className={DENSE_FIELD}>
-        <label htmlFor={`${lineId}-amount`}>{en.multiLineForm.amount}</label>
-        <AmountInput id={`${lineId}-amount`} onAmountChange={onAmountChange} />
+      <div className="flex min-w-0 items-end gap-1">
+        <div className={`${DENSE_FIELD} min-w-0 grow`}>
+          <label htmlFor={`${lineId}-amount`}>{en.multiLineForm.amount}</label>
+          <AmountInput id={`${lineId}-amount`} onAmountChange={onAmountChange} />
+        </div>
+        <button
+          type="button"
+          aria-label={en.multiLineForm.remove}
+          onClick={onRemove}
+          className={`shrink-0 ${ICON_CONTROL}`}
+        >
+          <TrashIcon />
+        </button>
       </div>
-      <button type="button" onClick={onRemove} className={BUTTON}>
-        {en.multiLineForm.remove}
-      </button>
     </fieldset>
   );
 }
@@ -119,26 +127,32 @@ function MultiLineFields({ id, heading, refusal, submitButton }: EntryFormParts)
       <div className="flex min-w-0 flex-col gap-3">
         {heading}
         <div className="flex flex-col">
-          {SIDES.map((side) => (
-            <Fragment key={side}>
-              {draftLinesInOrder(chosen)
-                .filter((line) => line.side === side)
-                .map((line) => (
-                  <LineFields
-                    key={`${line.side}-${line.account}`}
-                    id={id}
-                    line={line}
-                    onAmountChange={(amount) => {
-                      changeAmount(line.side, line.account, amount);
-                    }}
-                    onRemove={() => {
-                      pick(line.side, line.account, false);
-                    }}
-                  />
-                ))}
-              <AddAccountButton side={side} sheet={sheet} />
-            </Fragment>
-          ))}
+          {SIDES.map((side) => {
+            const lines = draftLinesInOrder(chosen).filter((line) => line.side === side);
+            return (
+              <div
+                key={side}
+                className={`flex flex-col border-b border-border ${lines.length === 0 ? 'wide:border-b-0' : ''}`}
+              >
+                <div className="flex flex-col divide-y divide-dashed divide-border">
+                  {lines.map((line) => (
+                    <LineFields
+                      key={`${line.side}-${line.account}`}
+                      id={id}
+                      line={line}
+                      onAmountChange={(amount) => {
+                        changeAmount(line.side, line.account, amount);
+                      }}
+                      onRemove={() => {
+                        pick(line.side, line.account, false);
+                      }}
+                    />
+                  ))}
+                </div>
+                <AddAccountButton side={side} sheet={sheet} />
+              </div>
+            );
+          })}
         </div>
         <DraftTotalsSummary lines={chosen} />
         <div className="flex flex-wrap items-center justify-end gap-3">
