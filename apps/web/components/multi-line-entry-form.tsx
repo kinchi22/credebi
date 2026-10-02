@@ -8,9 +8,9 @@ import {
   type DraftLine,
 } from '@repo/core/entries';
 import { typeClasses } from '@repo/ui/type-classes';
-import { useState, type ReactNode } from 'react';
+import { Fragment, useState, type ReactNode } from 'react';
 import { en } from '../messages/en';
-import { AccountPicker } from './account-picker';
+import { AccountPicker, AddAccountButton, useAccountSheet } from './account-picker';
 import { formatAmount } from './amount';
 import { BUTTON, DENSE_FIELD } from './control-classes';
 import {
@@ -19,7 +19,7 @@ import {
   type EntryFormParts,
   type EntryFormProps,
 } from './entry-form';
-import { SIDE_TONE } from './side-classes';
+import { SIDE_TONE, SIDES } from './side-classes';
 import { DANGER_TEXT } from './text-classes';
 
 type ChosenLine = DraftLine & {
@@ -95,6 +95,7 @@ function LineFields({ id, line, onAmountChange, onRemove }: LineFieldsProps): Re
 
 function MultiLineFields({ id, heading, refusal, submitButton }: EntryFormParts): ReactNode {
   const [chosen, setChosen] = useState<readonly ChosenLine[]>([]);
+  const sheet = useAccountSheet();
 
   const pick = (side: Side, account: AccountCode, ticked: boolean): void => {
     setChosen((current) =>
@@ -118,18 +119,25 @@ function MultiLineFields({ id, heading, refusal, submitButton }: EntryFormParts)
       <div className="flex min-w-0 flex-col gap-3">
         {heading}
         <div className="flex flex-col">
-          {draftLinesInOrder(chosen).map((line) => (
-            <LineFields
-              key={`${line.side}-${line.account}`}
-              id={id}
-              line={line}
-              onAmountChange={(amount) => {
-                changeAmount(line.side, line.account, amount);
-              }}
-              onRemove={() => {
-                pick(line.side, line.account, false);
-              }}
-            />
+          {SIDES.map((side) => (
+            <Fragment key={side}>
+              {draftLinesInOrder(chosen)
+                .filter((line) => line.side === side)
+                .map((line) => (
+                  <LineFields
+                    key={`${line.side}-${line.account}`}
+                    id={id}
+                    line={line}
+                    onAmountChange={(amount) => {
+                      changeAmount(line.side, line.account, amount);
+                    }}
+                    onRemove={() => {
+                      pick(line.side, line.account, false);
+                    }}
+                  />
+                ))}
+              <AddAccountButton side={side} sheet={sheet} />
+            </Fragment>
           ))}
         </div>
         <DraftTotalsSummary lines={chosen} />
@@ -138,7 +146,7 @@ function MultiLineFields({ id, heading, refusal, submitButton }: EntryFormParts)
           {submitButton}
         </div>
       </div>
-      <AccountPicker id={id} multiple isChosen={isChosen} onPick={pick} />
+      <AccountPicker id={id} multiple isChosen={isChosen} onPick={pick} sheet={sheet} />
     </div>
   );
 }

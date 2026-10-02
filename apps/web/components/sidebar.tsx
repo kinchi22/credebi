@@ -4,10 +4,10 @@ import { Logo, MenuIcon, SignOutIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { type ReactNode, type RefObject, useId, useRef, useState } from 'react';
+import { type ReactNode, type RefObject, useId, useRef } from 'react';
 import { en } from '../messages/en';
 import { ENTRY_SEARCH_PATH, SETTINGS_PATH, SIGNED_IN_HOME } from '../server/return-path';
-import { useCloseWhenWide } from './close-when-wide';
+import { useModalDialog } from './modal-dialog';
 
 export type SidebarProps = {
   readonly signOut: () => Promise<void>;
@@ -74,58 +74,42 @@ function SidebarNav({ signOut, className, firstLink, onFollow }: SidebarNavProps
 }
 
 export function Sidebar({ signOut }: SidebarProps): ReactNode {
-  const [open, setOpen] = useState(false);
   const drawerId = useId();
-  const drawer = useRef<HTMLDialogElement>(null);
-  const menu = useRef<HTMLButtonElement>(null);
+  const drawer = useModalDialog();
   const firstLink = useRef<HTMLAnchorElement>(null);
-
-  const close = (): void => {
-    drawer.current?.close();
-  };
-
-  useCloseWhenWide(drawer);
 
   return (
     <>
       <div className="flex h-14 items-center gap-2 bg-ground-dark px-4 wide:hidden">
         <button
-          ref={menu}
           type="button"
           aria-label={en.sidebar.menu}
-          aria-expanded={open}
+          aria-expanded={drawer.open}
           aria-controls={drawerId}
-          onClick={() => {
-            drawer.current?.showModal();
-            setOpen(true);
+          onClick={(event) => {
+            drawer.show(event.currentTarget);
             firstLink.current?.focus();
           }}
           className={ICON_BUTTON}
         >
           <MenuIcon />
         </button>
-        <span className={open ? 'invisible' : undefined}>
+        <span className={drawer.open ? 'invisible' : undefined}>
           <Logo variant="horizontal" tone="reverse" name={en.app.name} height={BAR_LOGO_HEIGHT} />
         </span>
       </div>
       <SidebarNav signOut={signOut} className={WIDE_SIDEBAR} />
       <dialog
-        ref={drawer}
+        {...drawer.dialogProps}
         id={drawerId}
-        onClose={() => {
-          setOpen(false);
-          menu.current?.focus();
-        }}
-        onClick={(event) => {
-          if (event.target === event.currentTarget) close();
-        }}
+        onClick={drawer.closeOnScrim}
         className="m-0 h-full max-h-none w-64 max-w-[calc(100%-3rem)] border-0 bg-ground-dark p-0 backdrop:bg-ground-dark/60"
       >
         <SidebarNav
           signOut={signOut}
           className={`flex h-full ${SIDEBAR} overflow-y-auto`}
           firstLink={firstLink}
-          onFollow={close}
+          onFollow={drawer.close}
         />
       </dialog>
     </>
