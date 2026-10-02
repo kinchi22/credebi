@@ -122,6 +122,15 @@ export const en = {
     difference: 'Difference',
     tooLarge: 'These amounts add up to more than an amount can hold.',
   },
+  accountSheet: {
+    title: 'Choose accounts',
+    done: 'Done',
+    find: 'Find an account',
+    add: {
+      debit: 'Add debit account',
+      credit: 'Add credit account',
+    },
+  },
   entryList: {
     title: 'Entries',
     empty: 'No entries yet.',

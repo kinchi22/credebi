@@ -23,8 +23,9 @@ import {
   type RefObject,
 } from 'react';
 import { en } from '../messages/en';
-import { useCloseWhenWide } from './close-when-wide';
 import { BUTTON } from './control-classes';
+import { useModalDialog } from './modal-dialog';
+import { SheetTabs } from './sheet-tabs';
 
 type Category = keyof typeof en.datePresets.categories;
 
@@ -309,17 +310,6 @@ export function DatePresets({ today, onChoose }: DatePresetsProps): ReactNode {
   );
 }
 
-const TAB = `flex-1 border-b-2 py-3 ${typeClasses['body-sm']}`;
-const IDLE_TAB = `${TAB} border-border text-text-muted`;
-const SHOWN_TAB = `${TAB} border-accent font-semibold text-accent-text`;
-
-const STEPS: Readonly<Record<string, (index: number) => number>> = {
-  ArrowLeft: (index) => (index + CATEGORIES.length - 1) % CATEGORIES.length,
-  ArrowRight: (index) => (index + 1) % CATEGORIES.length,
-  Home: () => 0,
-  End: () => CATEGORIES.length - 1,
-};
-
 type SheetPanelProps = {
   readonly id: string;
   readonly labelledBy: string;
@@ -344,31 +334,12 @@ function SheetPanel({ id, labelledBy, children }: SheetPanelProps): ReactNode {
 
 export function DatePresetsSheet({ today, onChoose }: DatePresetsProps): ReactNode {
   const id = useId();
-  const [open, setOpen] = useState(false);
   const [shown, setShown] = useState<Category>('relative');
-  const sheet = useRef<HTMLDialogElement>(null);
-  const trigger = useRef<HTMLButtonElement>(null);
-  const tabs = useRef<Partial<Record<Category, HTMLButtonElement | null>>>({});
-  useCloseWhenWide(sheet);
-
-  const close = (): void => {
-    sheet.current?.close();
-  };
+  const sheet = useModalDialog();
 
   const choose = (range: DayRange): void => {
-    close();
+    sheet.close();
     onChoose(range);
-  };
-
-  const moveTab = (event: KeyboardEvent<HTMLButtonElement>, index: number): void => {
-    const step = STEPS[event.key];
-    const next = step === undefined ? undefined : CATEGORIES[step(index)];
-    if (next === undefined) {
-      return;
-    }
-    event.preventDefault();
-    setShown(next);
-    tabs.current[next]?.focus();
   };
 
   const tabId = (category: Category): string => `${id}-${category}-tab`;
@@ -377,31 +348,25 @@ export function DatePresetsSheet({ today, onChoose }: DatePresetsProps): ReactNo
   return (
     <>
       <button
-        ref={trigger}
         type="button"
         aria-label={en.datePresets.choosePeriod}
-        aria-expanded={open}
+        aria-expanded={sheet.open}
         aria-controls={id}
         disabled={today === undefined}
-        onClick={() => {
-          sheet.current?.showModal();
-          setOpen(true);
+        onClick={(event) => {
+          sheet.show(event.currentTarget);
         }}
         className="inline-flex size-8 items-center justify-center rounded border border-border-control bg-surface text-text disabled:opacity-50 wide:hidden"
       >
         <CalendarIcon />
       </button>
       <dialog
-        ref={sheet}
+        {...sheet.dialogProps}
         id={id}
         aria-labelledby={`${id}-title`}
-        onClose={() => {
-          setOpen(false);
-          trigger.current?.focus();
-        }}
         className="m-0 h-full max-h-none w-full max-w-none border-0 bg-ground p-0 text-text"
       >
-        {open && today !== undefined ? (
+        {sheet.open && today !== undefined ? (
           <div className="flex h-full flex-col">
             <div className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-surface px-4">
               <h2 id={`${id}-title`} className={`${typeClasses.body} font-semibold`}>
@@ -410,37 +375,20 @@ export function DatePresetsSheet({ today, onChoose }: DatePresetsProps): ReactNo
               <button
                 type="button"
                 aria-label={en.datePresets.close}
-                onClick={close}
+                onClick={sheet.close}
                 className="-mr-2 inline-flex size-10 items-center justify-center rounded text-text"
               >
                 <CloseIcon />
               </button>
             </div>
-            <div role="tablist" className="flex shrink-0 bg-surface px-2">
-              {CATEGORIES.map((category, index) => (
-                <button
-                  key={category}
-                  id={tabId(category)}
-                  ref={(element) => {
-                    tabs.current[category] = element;
-                  }}
-                  type="button"
-                  role="tab"
-                  aria-selected={shown === category}
-                  aria-controls={`${id}-panel`}
-                  tabIndex={shown === category ? 0 : -1}
-                  onClick={() => {
-                    setShown(category);
-                  }}
-                  onKeyDown={(event) => {
-                    moveTab(event, index);
-                  }}
-                  className={shown === category ? SHOWN_TAB : IDLE_TAB}
-                >
-                  {en.datePresets.categories[category]}
-                </button>
-              ))}
-            </div>
+            <SheetTabs
+              tabs={CATEGORIES}
+              shown={shown}
+              onShow={setShown}
+              tabId={tabId}
+              panelId={() => `${id}-panel`}
+              label={(category) => en.datePresets.categories[category]}
+            />
             <SheetPanel key={shown} id={`${id}-panel`} labelledBy={tabId(shown)}>
               <Choices today={today} layout={SHEET_LAYOUT} onChoose={choose} />
             </SheetPanel>

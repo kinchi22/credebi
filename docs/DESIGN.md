@@ -324,6 +324,19 @@ Hierarchy comes from tonal layers, not shadows: `surface` panels with a
   `accent-text`, semibold. Each tab lists its choices as the panel does, with
   each year above its row; choosing one closes the sheet. Escape or the close
   icon closes it without choosing, and focus returns to the button.
+- **Account sheet.** From `wide` up the Accounts to choose from sit right of
+  the entry form, Debit and Credit side by side. Below `wide` they leave the
+  form: each
+  Side shows `Add debit account` or `Add credit account`, a text button in the
+  Side's colour after a `+`, which opens `Choose accounts` as a modal dialog
+  rising from the foot of the page to 64px below its top, on the `ground` over
+  a `ground-dark` scrim at 60%. A `surface` bar holds its title and `Done`, a
+  primary button; below it Debit and Credit are tabs drawn as the Date presets
+  sheet's, then a `Find an account` search field, then the shown Side's
+  Accounts grouped by Account type, narrowed to those whose name holds the
+  text typed. Choosing an Account on one Side while the other has none shows
+  the other Side's tab. `Done`, Escape or a click on the scrim closes it, and
+  focus returns to the button that opened it.
 - **Link.** `accent-text`, underlined, and `accent-text-hover` under the
   pointer.
 - **Input.** `surface` fill, `text`, a `border-control` edge. The spec's
