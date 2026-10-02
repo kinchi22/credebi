@@ -28,6 +28,16 @@ export function signInPath(from: string): string {
   return `/sign-in?${new URLSearchParams({ returnTo: from }).toString()}`;
 }
 
+export const REQUESTED_PATH_HEADER = 'x-requested-path';
+
+export function requestedPath(url: Pick<URL, 'pathname' | 'search'>): string {
+  return `${url.pathname}${url.search}`;
+}
+
+export function signInPathFor(headers: Pick<Headers, 'get'>): string {
+  return signInPath(returnPath(headers.get(REQUESTED_PATH_HEADER)));
+}
+
 const values = (value: SearchQuery[string]): readonly string[] => {
   if (value === undefined) {
     return [];
