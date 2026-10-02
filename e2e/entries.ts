@@ -44,13 +44,13 @@ export const entryForm = (page: Page): Locator => page.getByRole('form', { name:
 export const entrySearchForm = (page: Page): Locator =>
   page.getByRole('form', { name: 'Search entries' });
 
-export const accountChoices = (form: Locator, side: Side): Locator =>
+export const accountChoices = (form: Page | Locator, side: Side): Locator =>
   form.getByRole('radiogroup', { name: `${side} account`, exact: true });
 
 export const accountChoice = (form: Locator, side: Side, account: Account): Locator =>
   accountChoices(form, side).getByRole('radio', { name: account, exact: true });
 
-export const accountTicks = (form: Locator, side: Side): Locator =>
+export const accountTicks = (form: Page | Locator, side: Side): Locator =>
   form.getByRole('group', { name: `${side} accounts`, exact: true });
 
 export const accountTick = (form: Locator, side: Side, account: Account): Locator =>
@@ -63,6 +63,33 @@ export const lineGroups = (form: Locator): Locator =>
   form.getByRole('group', {
     name: new RegExp(`^(${SIDES.join('|')}) (${ACCOUNTS.join('|')})$`),
   });
+
+export const addAccountButton = (form: Locator, side: Side): Locator =>
+  form.getByRole('button', { name: `Add ${side.toLowerCase()} account`, exact: true });
+
+export const sheetTab = (sheet: Locator, side: Side): Locator =>
+  sheet.getByRole('tablist').getByRole('tab', { name: side, exact: true });
+
+export const findAnAccount = (sheet: Locator): Locator =>
+  sheet.getByRole('searchbox', { name: 'Find an account', exact: true });
+
+export async function openAccountSheet(form: Locator, side: Side): Promise<Locator> {
+  await addAccountButton(form, side).click();
+  const sheet = form.page().getByRole('dialog', { name: 'Choose accounts', exact: true });
+  await expect(sheet).toBeVisible();
+  return sheet;
+}
+
+export async function closeAccountSheet(sheet: Locator): Promise<void> {
+  await sheet.getByRole('button', { name: 'Done', exact: true }).click();
+  await expect(sheet).toBeHidden();
+}
+
+export async function expectSheetOnSide(sheet: Locator, side: Side): Promise<void> {
+  for (const tab of SIDES) {
+    await expect(sheetTab(sheet, tab)).toHaveAttribute('aria-selected', String(tab === side));
+  }
+}
 
 export const listedEntry = (page: Page, memo: string): Locator =>
   page.getByTestId('entry').filter({ hasText: memo });
@@ -84,17 +111,53 @@ export async function submitTwoLineEntry(form: Locator, entry: TwoLineEntry): Pr
   await submit(form);
 }
 
+export async function submitTwoLineEntryOnPhone(
+  form: Locator,
+  entry: TwoLineEntry,
+): Promise<void> {
+  await fillHeading(form, entry);
+  const sheet = await openAccountSheet(form, 'Debit');
+  await accountChoice(sheet, 'Debit', entry.debitAccount).check();
+  await sheetTab(sheet, 'Credit').click();
+  await accountChoice(sheet, 'Credit', entry.creditAccount).check();
+  await closeAccountSheet(sheet);
+  await form.getByLabel('Amount').fill(entry.amount);
+  await submit(form);
+}
+
+export async function addLineOnPhone(form: Locator, line: Line): Promise<void> {
+  const sheet = await openAccountSheet(form, line.side);
+  await accountTick(sheet, line.side, line.account).check();
+  await closeAccountSheet(sheet);
+  await lineGroup(form, line.side, line.account).getByLabel('Amount').fill(line.amount);
+}
+
 export async function addLine(form: Locator, line: Line): Promise<void> {
   await accountTick(form, line.side, line.account).check();
   await lineGroup(form, line.side, line.account).getByLabel('Amount').fill(line.amount);
 }
 
-export async function submitMultiLineEntry(form: Locator, entry: MultiLineEntry): Promise<void> {
+async function submitLines(
+  form: Locator,
+  entry: MultiLineEntry,
+  add: (form: Locator, line: Line) => Promise<void>,
+): Promise<void> {
   await fillHeading(form, entry);
   for (const line of entry.lines) {
-    await addLine(form, line);
+    await add(form, line);
   }
   await submit(form);
+}
+
+export async function submitMultiLineEntry(form: Locator, entry: MultiLineEntry): Promise<void> {
+  await submitLines(form, entry, addLine);
+}
+
+export async function submitMultiLineEntryOnPhone(
+  form: Locator,
+  entry: MultiLineEntry,
+): Promise<void> {
+  await submitLines(form, entry, addLineOnPhone);
 }
 
 export async function postEntries(page: Page, entries: readonly TwoLineEntry[]): Promise<void> {

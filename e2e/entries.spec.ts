@@ -4,13 +4,20 @@ import {
   accountChoice,
   accountChoices,
   ACCOUNTS,
+  addAccountButton,
   AMOUNT,
+  closeAccountSheet,
   DAY,
   entryForm,
   expectDebitAndCreditColumns,
+  expectSheetOnSide,
+  findAnAccount,
   listedEntry,
+  openAccountSheet,
+  sheetTab,
   SIDES,
   submitTwoLineEntry,
+  submitTwoLineEntryOnPhone,
   TWELVE_THOUSAND_FIVE_HUNDRED,
 } from './entries';
 import { signIn, signInForSmoke } from './session';
@@ -82,26 +89,96 @@ test('offers every Account as a radio on each Side in Two-line mode, and choosin
   await expect(accountChoice(form, 'Debit', 'Expenses')).toBeChecked();
 });
 
-test('shows the Debit and Credit pickers side by side on a wide window, and as Debit and Credit tabs at 390px', async ({ page }) => {
+test('shows the Debit and Credit pickers side by side on a wide window, with no tabs and no Add account buttons', async ({ page }) => {
   const form = await openTwoLineForm(page);
 
   await expect(accountChoices(form, 'Debit')).toBeVisible();
   await expect(accountChoices(form, 'Credit')).toBeVisible();
-  await expect(form.getByRole('tab')).toHaveCount(0);
+  await expect(page.getByRole('tab')).toHaveCount(0);
+  for (const side of SIDES) {
+    await expect(addAccountButton(form, side)).toBeHidden();
+  }
+});
 
+test('hides the Account pickers at 390px until Add debit account or Add credit account opens Choose accounts on that Side', async ({ page }) => {
+  const form = await openTwoLineForm(page);
   await page.setViewportSize(PHONE);
 
-  const tabs = form.getByRole('tablist');
-  await expect(tabs.getByRole('tab', { name: 'Debit', exact: true })).toBeVisible();
-  await expect(tabs.getByRole('tab', { name: 'Credit', exact: true })).toBeVisible();
+  for (const side of SIDES) {
+    await expect(addAccountButton(form, side)).toBeVisible();
+    await expect(accountChoices(page, side)).toBeHidden();
+  }
+  await expect(page.getByRole('dialog')).toHaveCount(0);
 
-  await tabs.getByRole('tab', { name: 'Debit', exact: true }).click();
-  await expect(accountChoices(form, 'Debit')).toBeVisible();
-  await expect(accountChoices(form, 'Credit')).toBeHidden();
+  const sheet = await openAccountSheet(form, 'Credit');
+  await expectSheetOnSide(sheet, 'Credit');
+  await expect(findAnAccount(sheet)).toBeVisible();
+  await expect(sheet.getByText('Recent')).toHaveCount(0);
+  await expect(accountChoices(sheet, 'Credit').getByRole('radio')).toHaveCount(ACCOUNTS.length);
+  await expect(accountChoices(sheet, 'Debit')).toBeHidden();
 
-  await tabs.getByRole('tab', { name: 'Credit', exact: true }).click();
-  await expect(accountChoices(form, 'Credit')).toBeVisible();
-  await expect(accountChoices(form, 'Debit')).toBeHidden();
+  await sheetTab(sheet, 'Debit').click();
+  await expectSheetOnSide(sheet, 'Debit');
+  await expect(accountChoices(sheet, 'Debit').getByRole('radio')).toHaveCount(ACCOUNTS.length);
+  await expect(accountChoices(sheet, 'Credit')).toBeHidden();
+
+  await closeAccountSheet(sheet);
+  for (const side of SIDES) {
+    await expect(accountChoices(page, side)).toBeHidden();
+  }
+
+  const reopened = await openAccountSheet(form, 'Debit');
+  await expectSheetOnSide(reopened, 'Debit');
+});
+
+test('narrows the Accounts in Choose accounts at 390px to those whose name contains the text typed in Find an account', async ({ page }) => {
+  const form = await openTwoLineForm(page);
+  await page.setViewportSize(PHONE);
+
+  const sheet = await openAccountSheet(form, 'Debit');
+  await findAnAccount(sheet).fill('es');
+
+  const debit = accountChoices(sheet, 'Debit');
+  await expect(debit.getByRole('radio')).toHaveCount(2);
+  await expect(accountChoice(sheet, 'Debit', 'Sales')).toBeVisible();
+  await expect(accountChoice(sheet, 'Debit', 'Expenses')).toBeVisible();
+  for (const account of ['Cash', 'Accounts payable', 'Capital'] as const) {
+    await expect(accountChoice(sheet, 'Debit', account)).toBeHidden();
+  }
+});
+
+test('selects the Credit tab at 390px once a Debit Account is chosen while Credit has none, keeps the tab while the other Side has one, and shows the chosen Accounts in the form after Done', async ({ page }) => {
+  const form = await openTwoLineForm(page);
+  await page.setViewportSize(PHONE);
+
+  const sheet = await openAccountSheet(form, 'Debit');
+  await accountChoice(sheet, 'Debit', 'Cash').check();
+  await expectSheetOnSide(sheet, 'Credit');
+
+  await accountChoice(sheet, 'Credit', 'Expenses').check();
+  await expectSheetOnSide(sheet, 'Credit');
+
+  await sheetTab(sheet, 'Debit').click();
+  await accountChoice(sheet, 'Debit', 'Sales').check();
+  await expectSheetOnSide(sheet, 'Debit');
+  await expect(accountChoice(sheet, 'Debit', 'Sales')).toBeChecked();
+
+  await closeAccountSheet(sheet);
+  const shownInForm = (account: string): Locator =>
+    form.getByText(account, { exact: true }).filter({ visible: true });
+  await expect(shownInForm('Sales')).toHaveCount(1);
+  await expect(shownInForm('Expenses')).toHaveCount(1);
+  await expect(shownInForm('Cash')).toHaveCount(0);
+});
+
+test('lists a Two-line mode Entry added at 390px through Choose accounts', async ({ page }) => {
+  const memo = `Office supplies ${randomUUID()}`;
+  const form = await openTwoLineForm(page);
+  await page.setViewportSize(PHONE);
+
+  await submitTwoLineEntryOnPhone(form, { day: DAY, memo, debitAccount: 'Expenses', creditAccount: 'Cash', amount: AMOUNT });
+
+  await expectListedAsSubmitted(listedEntry(page, memo));
 });
 
 test('renders the entry form and the list of entries', { tag: '@smoke' }, async ({ page, context, baseURL }) => {
