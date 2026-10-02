@@ -45,7 +45,6 @@ no term is defined in more than one.
 | Milestone branch | `milestone/<name>`, one per Feature that states an acceptance criterion the app does not yet meet. The specs of every criterion the Feature states land first, in one owner-reviewed pull request; feature branches merge into it; it reaches `main` once they are green. |
 | Minor units      | The smallest denomination an amount is counted in. Scale 0 today, so one minor unit is one whole unit: no decimal places, no currency symbol, grouping applied only at display. |
 | Money            | A branded integer count of minor units. Built and combined only through `@repo/core/money`. |
-| Normal balance   | The Side an Account type usually grows on: debit for asset and expense, credit for liability, equity and revenue. It orders the choices on each Side and never restricts them, because a correction or a closing Entry posts any Account on either Side. |
 | Multi-line mode  | The Entry form mode that takes two or more Entry lines, each with its own Account, Side and amount, and lets the User add and remove lines. |
 | Port             | An interface stated in domain terms that the application layer depends on.   |
 | Preview          | The Vercel deployment of a pull request's commit, against the one shared preview Neon project, which only `main` migrates. Best effort: never smoke-run and read by no gate, so one that needs an unmerged migration may fail at runtime. ADR-0024. |

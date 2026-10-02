@@ -3,8 +3,8 @@
 import { ENTRY_FORM_FIELDS, type Side } from '@repo/contracts';
 import {
   ACCOUNT_TYPE_OF,
+  ACCOUNT_TYPES,
   CHART_OF_ACCOUNTS,
-  accountTypesInOrder,
   type AccountCode,
 } from '@repo/core/entries';
 import { ChevronIcon } from '@repo/ui';
@@ -224,7 +224,7 @@ function SideChoices({
       >
         {control.groupName[side]}
       </p>
-      {accountTypesInOrder(side).map((type) => {
+      {ACCOUNT_TYPES.map((type) => {
         const accounts = CHART_OF_ACCOUNTS.filter((code) => ACCOUNT_TYPE_OF[code] === type);
         return (
           <div
