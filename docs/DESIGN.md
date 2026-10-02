@@ -306,7 +306,8 @@ are in rem like Tailwind's own breakpoints, so they sort together.
 `breakpoints` in the tokens module holds them, and the utilities take them as
 the `wide:` and `split:` variants: a style written bare is the narrow layout,
 `wide:` sets the layout from 720px up and `split:` from 1280px up. `split` is
-where the wide Account picker puts Debit and Credit side by side. The
+where the wide Account picker puts Debit and Credit side by side and the
+entry form takes a fixed column. The
 stylesheet resets `--breakpoint-*` to `initial`, as it does the colours, so
 Tailwind's default breakpoints do not exist and these two are the only ones.
 
@@ -420,19 +421,41 @@ Hierarchy comes from tonal layers, not shadows: `surface` panels with a
   that leaves both Sides with an Account closes the sheet; in Multi-line mode
   ticking an Account keeps the tab. `Done` or the close icon, Escape or a click
   on the scrim closes it, and focus returns to the button that opened it.
+- **Entry form grid.** From `wide` up the entry form and the Account picker
+  sit side by side, 24px apart: as two equal columns below `split`, and from
+  `split` up the entry form in a fixed 400px column with the picker taking the
+  rest. Wherever the form names a Side, the name is in `label` and the Side's
+  colour.
+- **Date and Memo.** From `wide` up they share one row: Date in a 148px
+  column, Memo filling the rest. Below `wide` they wrap, Date at its own width
+  and Memo growing beside it.
 - **Entry form dividers.** In both Entry form modes a `border` hairline runs
   under Date and Memo, before the Accounts. In Multi-line mode the lines of one
-  Side are divided by dashed `border` hairlines, and a solid one closes each
-  Side below its `+ Add … account`, separating Debit from Credit; from `wide`
-  up, where that button is not shown, it sits under the Side's last line, and a
-  Side with no line draws none.
+  Side are divided by dashed `border` hairlines, and a dashed one sits above
+  the Side's total, below its `+ Add … account`; from `wide` up, where that
+  button is not shown, a Side with no line draws no dashed rule above its
+  total. A solid `border` hairline separates the Debit Side from the Credit
+  Side, and a 3px double rule in `text` sits above the Difference row.
 - **Multi-line line.** Two columns at all widths, about 6:4, the Account's the
   wider: the left stacks the Side, in `label` and the Side's colour, over the
   Account name, semibold and wrapping; the right holds the amount field and,
-  beside it, the Remove icon button.
+  beside it, the Remove button.
+- **Multi-line totals.** At every width each Side ends with its own total,
+  `Debit total` or `Credit total` in `body-dense` and `text-muted`, its amount
+  in `figure` on the line grid, right-aligned with the lines' amounts and
+  leaving the Remove button's column empty. Below both Sides the Difference row
+  holds `Difference`, in `label` and `text-muted`, and its amount in `figure`,
+  on the left and `Add entry` on the right, with a refusal below them. The
+  amount is in `warning` while it is not 0, and in `text`, with no word beside
+  it, at 0. When the amounts add up to more than an amount can hold, the
+  `danger` message takes the Difference's place and neither Side shows a
+  total.
+- **Remove button.** A bare × icon in `text-muted`, `text` under the pointer,
+  with no fill and no border, named `Remove`, on each Multi-line line: 32px
+  wide below `wide` and 24px from `wide` up, as tall as the amount field.
 - **Icon button.** A secondary button holding a stroke icon in place of text,
   with an accessible name: square and as tall as the Input beside it, as
-  `Choose a period` is. It is `Remove`, a trash icon, on each Multi-line line.
+  `Choose a period` is.
 - **Entries list.** Its panel shows no `Entries` heading and its table no
   `Entry` column header, at every width; only `Debit` and `Credit` head their
   columns. Both are visually hidden, not removed: the region is still named

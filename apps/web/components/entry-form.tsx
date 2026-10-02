@@ -61,6 +61,9 @@ const REFUSAL: Readonly<Record<EntryFormMode, Readonly<Record<DomainErrorCode, s
   'multi-line': refusalsWith(en.multiLineForm.invalid),
 };
 
+export const ENTRY_FORM_GRID =
+  'grid items-start gap-6 wide:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] split:grid-cols-[25rem_minmax(0,1fr)]';
+
 type AmountInputProps = {
   readonly id: string;
   readonly onAmountChange?: (amount: string) => void;
@@ -119,7 +122,7 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
         {en.entryForm.title}
       </h2>
 
-      <div className="flex flex-wrap gap-3 border-b border-border pb-3">
+      <div className="flex flex-wrap gap-3 border-b border-border pb-3 wide:grid wide:grid-cols-[9.25rem_minmax(0,1fr)]">
         <div className={DENSE_FIELD}>
           <label htmlFor={`${id}-date`}>{en.entryForm.date}</label>
           <input

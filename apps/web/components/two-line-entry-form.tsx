@@ -15,6 +15,7 @@ import {
 import { DENSE_FIELD } from './control-classes';
 import {
   AmountInput,
+  ENTRY_FORM_GRID,
   EntryFormShell,
   type EntryFormParts,
   type EntryFormProps,
@@ -33,7 +34,7 @@ function TwoLineFields({ id, heading, refusal, submitButton }: EntryFormParts): 
   const isChosen = (side: Side, account: AccountCode): boolean => chosen[side] === account;
 
   return (
-    <div className="grid items-start gap-6 wide:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+    <div className={ENTRY_FORM_GRID}>
       <div className="flex min-w-0 flex-col gap-3">
         {heading}
         <div className={`flex flex-col ${typeClasses['body-dense']}`}>
