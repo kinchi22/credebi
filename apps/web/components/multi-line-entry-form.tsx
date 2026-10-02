@@ -93,7 +93,7 @@ function LineFields({ id, line, onAmountChange, onRemove }: LineFieldsProps): Re
   );
 }
 
-function MultiLineFields({ id, heading, footer }: EntryFormParts): ReactNode {
+function MultiLineFields({ id, heading, refusal, submitButton }: EntryFormParts): ReactNode {
   const [chosen, setChosen] = useState<readonly ChosenLine[]>([]);
 
   const pick = (side: Side, account: AccountCode, ticked: boolean): void => {
@@ -133,7 +133,10 @@ function MultiLineFields({ id, heading, footer }: EntryFormParts): ReactNode {
           ))}
         </div>
         <DraftTotalsSummary lines={chosen} />
-        {footer}
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          {refusal}
+          {submitButton}
+        </div>
       </div>
       <AccountPicker id={id} multiple isChosen={isChosen} onPick={pick} />
     </div>

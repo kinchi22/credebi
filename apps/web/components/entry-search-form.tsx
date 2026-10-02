@@ -16,7 +16,7 @@ export type EntrySearchFormProps = {
   readonly criteria: SearchCriteriaInput;
 };
 
-const DATE_CONTROL = `w-full min-w-0 wide:w-auto ${typeClasses.date}`;
+const DATE_CONTROL = `w-full min-w-0 appearance-none wide:w-auto ${typeClasses.date}`;
 
 function keepingADay(set: (day: string) => void): (event: ChangeEvent<HTMLInputElement>) => void {
   return (event) => {
