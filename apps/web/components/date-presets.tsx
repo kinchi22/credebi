@@ -23,7 +23,7 @@ import {
   type RefObject,
 } from 'react';
 import { en } from '../messages/en';
-import { BUTTON } from './control-classes';
+import { BUTTON, ICON_CONTROL } from './control-classes';
 import { useModalDialog } from './modal-dialog';
 import { SheetBar, SheetTabs } from './sheet';
 
@@ -357,7 +357,7 @@ export function DatePresetsSheet({ today, onChoose }: DatePresetsProps): ReactNo
         onClick={(event) => {
           sheet.show(event.currentTarget);
         }}
-        className="inline-flex size-8 items-center justify-center rounded border border-border-control bg-surface text-text disabled:opacity-50 wide:hidden"
+        className={`${ICON_CONTROL} wide:hidden`}
       >
         <CalendarIcon />
       </button>
