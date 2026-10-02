@@ -34,6 +34,7 @@ export const en = {
   },
   sidebar: {
     ariaLabel: 'Sidebar',
+    menu: 'Menu',
     entries: 'Entries',
     entrySearch: 'Entry search',
     settings: 'Settings',
@@ -49,6 +50,10 @@ export const en = {
       'two-line': 'Two-line mode',
       'multi-line': 'Multi-line mode',
     },
+    entryFormModeDescriptions: {
+      'two-line': 'One debit Account, one credit Account, one amount.',
+      'multi-line': 'Two or more Entry lines, each on its own Side.',
+    },
     saved: 'Saved',
     notSaved: 'Your choice was not saved, so your Entry form mode is unchanged. Try again.',
   },
@@ -61,9 +66,33 @@ export const en = {
     memo: 'Memo',
     submit: 'Search',
     results: 'Results',
+    searching: 'Searching the last month...',
+    unavailable: 'The search could not be run just now. Press Search to try again.',
     nothingMatched: 'Nothing matched what you asked for.',
     refused:
       'That search was not run. Check the day range -- each day is a calendar day, and From cannot be later than To -- that the account is one of those listed, and that the memo is no longer than a memo can be.',
+  },
+  datePresets: {
+    title: 'Date presets',
+    choosePeriod: 'Choose a period',
+    close: 'Close',
+    categories: {
+      year: 'Year',
+      quarter: 'Quarter',
+      month: 'Month',
+      relative: 'Relative',
+    },
+    quarterPrefix: 'Q',
+    months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    relative: {
+      last: 'Last ',
+      next: 'Next ',
+      around: '\u00B1',
+    },
+    monthUnit: {
+      one: 'month',
+      many: 'months',
+    },
   },
   entryForm: {
     title: 'New entry',
@@ -83,17 +112,30 @@ export const en = {
     invalid: 'The entry was not added. Check the date, the memo, both accounts and the amount.',
   },
   multiLineForm: {
-    line: 'Line',
-    account: 'Account',
-    side: 'Side',
+    debitAccounts: 'Debit accounts',
+    creditAccounts: 'Credit accounts',
     amount: 'Amount',
     invalid: 'The entry was not added. Check the date, the memo and each line.',
-    addLine: 'Add line',
-    removeLine: 'Remove line',
+    remove: 'Remove',
     debitTotal: 'Debit total',
     creditTotal: 'Credit total',
     difference: 'Difference',
     tooLarge: 'These amounts add up to more than an amount can hold.',
+  },
+  accountSheet: {
+    title: 'Choose accounts',
+    done: 'Done',
+    close: 'Close',
+    find: 'Find an account',
+    noMatch: 'No account matches',
+    add: {
+      debit: 'Add debit account',
+      credit: 'Add credit account',
+    },
+    choose: {
+      debit: 'Choose debit account',
+      credit: 'Choose credit account',
+    },
   },
   entryList: {
     title: 'Entries',
@@ -105,6 +147,13 @@ export const en = {
     payable: 'Accounts payable',
     capital: 'Capital',
     sales: 'Sales',
+    expense: 'Expenses',
+  },
+  accountTypes: {
+    asset: 'Assets',
+    liability: 'Liabilities',
+    equity: 'Equity',
+    revenue: 'Revenue',
     expense: 'Expenses',
   },
   sides: {

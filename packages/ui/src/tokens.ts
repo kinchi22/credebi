@@ -13,6 +13,13 @@ export const palette = {
   steel: '#78948F',
   rust: '#B4400F',
   ochre: '#A15C00',
+  cobalt: '#2B63B8',
+  gold: '#7F6500',
+  pewter: '#747775',
+  azure: '#4285F4',
+  leaf: '#34A853',
+  amber: '#FBBC05',
+  scarlet: '#EA4335',
 } as const;
 
 export type PaletteColor = keyof typeof palette;
@@ -30,12 +37,20 @@ export const semanticColors = {
   'accent-text': 'mint-deep',
   'accent-text-hover': 'mint-deeper',
   border: 'fog',
+  band: 'fog',
   'border-control': 'steel',
   danger: 'rust',
   warning: 'ochre',
   positive: 'mint-deep',
   focus: 'mint-deep',
   'focus-on-dark': 'mint',
+  debit: 'cobalt',
+  credit: 'gold',
+  'border-google': 'pewter',
+  'google-blue': 'azure',
+  'google-green': 'leaf',
+  'google-yellow': 'amber',
+  'google-red': 'scarlet',
 } as const satisfies Record<string, PaletteColor>;
 
 export type SemanticColor = keyof typeof semanticColors;
@@ -56,17 +71,22 @@ export const textPairs: readonly ColorPair[] = [
   { foreground: 'mint-deeper', background: 'white' },
   { foreground: 'rust', background: 'white' },
   { foreground: 'ochre', background: 'white' },
+  { foreground: 'cobalt', background: 'white' },
+  { foreground: 'gold', background: 'white' },
   { foreground: 'ink', background: 'mist' },
   { foreground: 'slate', background: 'mist' },
   { foreground: 'mint-deep', background: 'mist' },
   { foreground: 'mint-deeper', background: 'mist' },
   { foreground: 'rust', background: 'mist' },
   { foreground: 'ochre', background: 'mist' },
+  { foreground: 'cobalt', background: 'mist' },
+  { foreground: 'gold', background: 'mist' },
   { foreground: 'frost', background: 'ink' },
   { foreground: 'sage', background: 'ink' },
   { foreground: 'frost', background: 'ink-raised' },
   { foreground: 'sage', background: 'ink-raised' },
   { foreground: 'ink', background: 'mint' },
+  { foreground: 'slate', background: 'fog' },
 ];
 
 export const controlEdgePairs: readonly ColorPair[] = [
@@ -76,6 +96,7 @@ export const controlEdgePairs: readonly ColorPair[] = [
   { foreground: 'mint-deep', background: 'mist' },
   { foreground: 'mint', background: 'ink' },
   { foreground: 'mint', background: 'ink-raised' },
+  { foreground: 'pewter', background: 'white' },
 ];
 
 export type TypeStep = {
@@ -101,6 +122,7 @@ export type TypeStepName =
   | 'h2'
   | 'body'
   | 'body-sm'
+  | 'body-dense'
   | 'label'
   | 'figure'
   | 'date';
@@ -148,6 +170,14 @@ export const typeScale: Readonly<Record<TypeStepName, TypeStep>> = {
     caps: false,
     tabularNumerals: false,
   },
+  'body-dense': {
+    fontFamily: 'Sora',
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: 400,
+    caps: false,
+    tabularNumerals: false,
+  },
   label: {
     fontFamily: 'DM Mono',
     fontSize: 12,
@@ -175,6 +205,13 @@ export const typeScale: Readonly<Record<TypeStepName, TypeStep>> = {
   },
 };
 
+export const breakpoints = {
+  wide: 720,
+  split: 1280,
+} as const satisfies Record<string, number>;
+
+const ROOT_FONT_SIZE = 16;
+
 const fontVariable = (family: FontFamily): string =>
   `--font-${family.toLowerCase().replaceAll(' ', '-')}`;
 
@@ -201,5 +238,9 @@ export function themeDeclarations(): Readonly<Record<string, string>> {
   const type = Object.entries(typeScale).flatMap(([name, step]) =>
     Object.entries(typeDeclarations(name, step)),
   );
-  return Object.fromEntries([...colors, ...faces, ...type]);
+  const widths = Object.entries(breakpoints).map(([name, width]): [string, string] => [
+    `--breakpoint-${name}`,
+    `${String(width / ROOT_FONT_SIZE)}rem`,
+  ]);
+  return Object.fromEntries([...colors, ...faces, ...type, ...widths]);
 }

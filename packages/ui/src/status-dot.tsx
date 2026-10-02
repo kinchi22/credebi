@@ -12,7 +12,7 @@ export function StatusDot({ tone, label }: StatusDotProps): ReactNode {
 
   return (
     <span className="inline-flex items-center gap-2">
-      <span aria-hidden="true" className={`h-2 w-2 rounded-full ${toneClass}`} />
+      <span aria-hidden="true" className={`h-2 w-2 rounded ${toneClass}`} />
       <span>{label}</span>
     </span>
   );

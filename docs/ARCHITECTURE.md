@@ -154,6 +154,7 @@ Raise the TypeScript major only together with `typescript-eslint`.
 | Dates                | An instant is stored in UTC as `timestamptz` and converted only at display. A calendar day -- the day an entry is posted -- is a `date`: it holds no time, so there is nothing to convert. ADR-0010. |
 | Transaction boundary | A repository method that writes one aggregate is atomic by itself and may open a transaction to be so. Any boundary wider than one aggregate is owned by the use case, and a repository never opens one. ADR-0011. |
 | Authorization        | Checked at the use case entry point. Controllers pass the auth context, which `sessionProcedure` resolves from the `session` cookie; a use case given none answers `UNAUTHENTICATED`, 401. Every repository method over user data takes the `userId`, and another User's row is `NOT_FOUND`. ADR-0021. |
+| Signed-in pages      | The `(signed-in)` layout checks the session before it renders anything and sends a signed-out request to sign-in, so neither a visit nor a client-side navigation paints the signed-in app. A layout is given no path, so the proxy forwards the request's path and query in `x-requested-path` and the layout builds the return path from it with `signInPathFor`. Each page keeps `orSignIn` around the calls it makes. ADR-0021. |
 | Structure            | Feature-first: layers inside features, not features inside layers.     |
 | Migrations           | Generated SQL committed with the schema change, on the milestone that needs it, and backwards compatible with Current Production. Applied from CI after the owner approves, and before the Production deployment carrying it can be promoted. CI asks for that approval only when a file under `packages/db/drizzle/` changed since the last commit the production database was migrated at. ADR-0024. |
 | Dynamic imports      | Forbidden everywhere, the composition root included. ADR-0002.         |
@@ -240,6 +241,21 @@ A read is not a write. The Entry search is a plain `GET` form, so its criteria
 travel in the URL's query and the page reads them on the render path: a search
 is reloadable, bookmarkable and walkable with the back button, and no Server
 Action is involved.
+
+One read is the exception, because only the browser knows today: the server
+has no clock that is the User's calendar day. A visit to Entry search with no
+query searches the last month and leaves its URL as it is. The page checks the
+session itself and sends a signed-out visit to sign-in, then the browser
+computes the range with `defaultSearchRange` and fetches the results through the
+`searchDefaultRange` Server Action. The action parses its argument as any action
+does and calls the same `entries.search` procedure. Pressing Search puts the
+criteria into the query, and from there the page reads them on the render path
+as above.
+
+A date preset is the same `GET`. The browser computes each preset's range from
+its own day with the preset functions of `@repo/core/entries`, and choosing one
+fills From and To and submits the form, so the range lands in the query exactly
+as if the User had typed it and pressed Search.
 
 ## Dates on the wire
 

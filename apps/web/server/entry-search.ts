@@ -1,5 +1,6 @@
 import {
   parseSearchQuery,
+  searchCriteriaSchema,
   type PostedEntry,
   type SearchCriteriaInput,
   type SearchQuery,
@@ -37,4 +38,17 @@ export async function answerEntrySearch(
   }
 
   return parsed.ok ? { outcome: 'answered', criteria, entries } : { outcome: 'refused', criteria };
+}
+
+const defaultRangeSchema = searchCriteriaSchema.pick({ from: true, to: true }).required();
+
+export async function answerDefaultRangeSearch(
+  search: SearchForEntries,
+  range: unknown,
+): Promise<EntrySearchAnswer> {
+  const parsed = defaultRangeSchema.safeParse(range);
+  if (!parsed.success) {
+    return { outcome: 'refused', criteria: {} };
+  }
+  return answerEntrySearch(search, parsed.data);
 }

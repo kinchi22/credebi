@@ -30,6 +30,10 @@ describe('typeClasses', () => {
     expect(typeClasses.figure).toBe('text-figure font-mono tabular-nums');
   });
 
+  it('sets the dense body step of the entry form in Sora', () => {
+    expect(typeClasses['body-dense']).toBe('text-body-dense font-sans');
+  });
+
   it('sets labels in DM Mono capitals and body text in Sora', () => {
     expect(typeClasses.label).toBe('text-label font-mono uppercase');
     expect(typeClasses.body).toBe('text-body font-sans');

@@ -1,35 +1,66 @@
 'use client';
 
-import { ENTRY_FORM_FIELDS, entryFormModeSchema } from '@repo/contracts';
-import { type ReactNode } from 'react';
+import { entryFormModeSchema, sideSchema, type Side } from '@repo/contracts';
+import { type AccountCode } from '@repo/core/entries';
+import { typeClasses } from '@repo/ui/type-classes';
+import { useState, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import {
-  AccountSelect,
+  AccountPicker,
+  AccountRow,
+  ChooseAccountButton,
+  useAccountSheet,
+  type AccountChoice,
+} from './account-picker';
+import {
   AmountInput,
+  ENTRY_FORM_GRID,
   EntryFormShell,
+  type EntryFormParts,
   type EntryFormProps,
 } from './entry-form';
-import { FIELD } from './control-classes';
+
+const NOTHING_CHOSEN: AccountChoice = { debit: undefined, credit: undefined };
+
+function TwoLineFields({ id, heading, refusal, submitButton }: EntryFormParts): ReactNode {
+  const [chosen, setChosen] = useState<AccountChoice>(NOTHING_CHOSEN);
+  const sheet = useAccountSheet();
+
+  const choose = (side: Side, account: AccountCode): void => {
+    setChosen((current) => ({ ...current, [side]: account }));
+  };
+
+  const isChosen = (side: Side, account: AccountCode): boolean => chosen[side] === account;
+
+  return (
+    <div className={ENTRY_FORM_GRID}>
+      <div className="flex min-w-0 flex-col gap-3">
+        {heading}
+        <div className={`flex flex-col ${typeClasses['body-dense']}`}>
+          {sideSchema.options.map((side) => (
+            <div key={side}>
+              <ChooseAccountButton side={side} account={chosen[side]} sheet={sheet} />
+              <AccountRow side={side} account={chosen[side]} />
+            </div>
+          ))}
+        </div>
+        <div className="flex items-end gap-3">
+          <div className="min-w-0 grow">
+            <AmountInput id={`${id}-amount`} label={en.twoLineForm.amount} />
+          </div>
+          {submitButton}
+        </div>
+        {refusal}
+      </div>
+      <AccountPicker id={id} isChosen={isChosen} onPick={choose} sheet={sheet} />
+    </div>
+  );
+}
 
 export function TwoLineEntryForm({ action }: EntryFormProps): ReactNode {
   return (
     <EntryFormShell action={action} mode={entryFormModeSchema.enum['two-line']}>
-      {(id) => (
-        <div className="flex flex-wrap items-end gap-3">
-          <div className={FIELD}>
-            <label htmlFor={`${id}-debit-account`}>{en.twoLineForm.debitAccount}</label>
-            <AccountSelect id={`${id}-debit-account`} name={ENTRY_FORM_FIELDS.debitAccount} />
-          </div>
-          <div className={FIELD}>
-            <label htmlFor={`${id}-credit-account`}>{en.twoLineForm.creditAccount}</label>
-            <AccountSelect id={`${id}-credit-account`} name={ENTRY_FORM_FIELDS.creditAccount} />
-          </div>
-          <div className={FIELD}>
-            <label htmlFor={`${id}-amount`}>{en.twoLineForm.amount}</label>
-            <AmountInput id={`${id}-amount`} />
-          </div>
-        </div>
-      )}
+      {(parts) => <TwoLineFields {...parts} />}
     </EntryFormShell>
   );
 }

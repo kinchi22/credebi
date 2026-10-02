@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { contrastRatio } from './contrast';
 import {
+  breakpoints,
   CONTROL_EDGE_MINIMUM,
   controlEdgePairs,
   fontFaces,
@@ -40,12 +41,22 @@ describe('the declared pairs', () => {
       textPairs.filter((pair) => pair.background === background).map((pair) => pair.foreground);
 
     expect(foregroundsOn('white')).toEqual(
-      expect.arrayContaining(['ink', 'slate', 'mint-deep', 'mint-deeper', 'rust', 'ochre']),
+      expect.arrayContaining([
+        'ink',
+        'slate',
+        'mint-deep',
+        'mint-deeper',
+        'rust',
+        'ochre',
+        'cobalt',
+        'gold',
+      ]),
     );
     expect(foregroundsOn('mist')).toEqual(foregroundsOn('white'));
     expect(foregroundsOn('ink')).toEqual(['frost', 'sage']);
     expect(foregroundsOn('ink-raised')).toEqual(['frost', 'sage']);
     expect(foregroundsOn('mint')).toEqual(['ink']);
+    expect(foregroundsOn('fog')).toEqual(['slate']);
   });
 
   it('checks the control edge and the focus ring on every ground', () => {
@@ -56,6 +67,7 @@ describe('the declared pairs', () => {
       { foreground: 'mint-deep', background: 'mist' },
       { foreground: 'mint', background: 'ink' },
       { foreground: 'mint', background: 'ink-raised' },
+      { foreground: 'pewter', background: 'white' },
     ]);
   });
 });
@@ -75,13 +87,42 @@ describe('the semantic tokens', () => {
       'accent-text': 'mint-deep',
       'accent-text-hover': 'mint-deeper',
       border: 'fog',
+      band: 'fog',
       'border-control': 'steel',
       danger: 'rust',
       warning: 'ochre',
       positive: 'mint-deep',
       focus: 'mint-deep',
       'focus-on-dark': 'mint',
+      debit: 'cobalt',
+      credit: 'gold',
+      'border-google': 'pewter',
+      'google-blue': 'azure',
+      'google-green': 'leaf',
+      'google-yellow': 'amber',
+      'google-red': 'scarlet',
     });
+  });
+
+  it("keeps Google's sign-in edge and the four colours of its G exactly as Google publishes them", () => {
+    expect(palette[semanticColors['border-google']]).toBe('#747775');
+    expect(palette[semanticColors['google-blue']]).toBe('#4285F4');
+    expect(palette[semanticColors['google-green']]).toBe('#34A853');
+    expect(palette[semanticColors['google-yellow']]).toBe('#FBBC05');
+    expect(palette[semanticColors['google-red']]).toBe('#EA4335');
+  });
+
+  it('sets Debit in a blue and Credit in a gold that each read as text on the ground', () => {
+    expect(palette[semanticColors.debit]).toBe('#2B63B8');
+    expect(palette[semanticColors.credit]).toBe('#7F6500');
+    expect(ratio(semanticColors.debit, semanticColors.ground)).toBeGreaterThanOrEqual(TEXT_MINIMUM);
+    expect(ratio(semanticColors.credit, semanticColors.ground)).toBeGreaterThanOrEqual(TEXT_MINIMUM);
+  });
+});
+
+describe('the breakpoints', () => {
+  it('holds two breakpoints, wide at 720px and split at 1280px', () => {
+    expect(breakpoints).toEqual({ wide: 720, split: 1280 });
   });
 });
 
@@ -123,13 +164,21 @@ describe('themeDeclarations', () => {
     expect(declarations['--text-body--letter-spacing']).toBeUndefined();
   });
 
-  it('declares nothing but the colours, the faces and the type scale', () => {
+  it('declares each breakpoint in rem, the unit of the breakpoints Tailwind keeps', () => {
+    expect(themeDeclarations()['--breakpoint-wide']).toBe('45rem');
+    expect(themeDeclarations()['--breakpoint-split']).toBe('80rem');
+  });
+
+  it('declares nothing but the colours, the faces, the type scale and the breakpoints', () => {
     const declarations = themeDeclarations();
     const colours = Object.keys(semanticColors).length;
     const faces = Object.keys(fontFaces).length;
     const typeSteps = Object.values(typeScale);
     const spacing = typeSteps.filter((step) => step.letterSpacing !== undefined).length;
-    expect(Object.keys(declarations)).toHaveLength(colours + faces + typeSteps.length * 3 + spacing);
+    const widths = Object.keys(breakpoints).length;
+    expect(Object.keys(declarations)).toHaveLength(
+      colours + faces + typeSteps.length * 3 + spacing + widths,
+    );
   });
 });
 
@@ -156,6 +205,7 @@ describe('the type scale', () => {
       h2: { ...sora, fontSize: 20, lineHeight: 28, fontWeight: 600 },
       body: { ...sora, fontSize: 15, lineHeight: 24, fontWeight: 400 },
       'body-sm': { ...sora, fontSize: 14, lineHeight: 20, fontWeight: 400 },
+      'body-dense': { ...sora, fontSize: 13, lineHeight: 20, fontWeight: 400 },
       label: {
         ...dmMono,
         fontSize: 12,

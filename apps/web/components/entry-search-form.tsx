@@ -1,21 +1,49 @@
+'use client';
+
 import { SEARCH_CRITERIA_FIELDS, type SearchCriteriaInput } from '@repo/contracts';
-import { CHART_OF_ACCOUNTS } from '@repo/core/entries';
+import { CHART_OF_ACCOUNTS, type DayRange } from '@repo/core/entries';
 import { PANEL } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
-import { useId, type ReactNode } from 'react';
+import { useId, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
+import { flushSync } from 'react-dom';
 import { en } from '../messages/en';
 import { ENTRY_SEARCH_PATH } from '../server/return-path';
-import { CONTROL, FIELD, PRIMARY_BUTTON } from './control-classes';
+import { useBrowserToday } from './browser-today';
+import { CONTROL, DATE_CONTROL, FIELD, PRIMARY_BUTTON } from './control-classes';
+import { DatePresets, DatePresetsSheet } from './date-presets';
 
 export type EntrySearchFormProps = {
   readonly criteria: SearchCriteriaInput;
 };
 
+const RANGE_DAY = `${DATE_CONTROL} w-full min-w-0 wide:w-auto`;
+
+function keepingADay(set: (day: string) => void): (event: ChangeEvent<HTMLInputElement>) => void {
+  return (event) => {
+    if (event.target.value !== '') {
+      set(event.target.value);
+    }
+  };
+}
+
 export function EntrySearchForm({ criteria }: EntrySearchFormProps): ReactNode {
   const id = useId();
+  const [from, setFrom] = useState(criteria.from ?? '');
+  const [to, setTo] = useState(criteria.to ?? '');
+  const form = useRef<HTMLFormElement>(null);
+  const today = useBrowserToday();
+
+  const searchPreset = (range: DayRange): void => {
+    flushSync(() => {
+      setFrom(range.from);
+      setTo(range.to);
+    });
+    form.current?.requestSubmit();
+  };
 
   return (
     <form
+      ref={form}
       aria-labelledby={`${id}-title`}
       action={ENTRY_SEARCH_PATH}
       method="get"
@@ -28,25 +56,32 @@ export function EntrySearchForm({ criteria }: EntrySearchFormProps): ReactNode {
         {en.entrySearch.title}
       </h2>
 
-      <div className={FIELD}>
-        <label htmlFor={`${id}-from`}>{en.entrySearch.from}</label>
-        <input
-          id={`${id}-from`}
-          name={SEARCH_CRITERIA_FIELDS.from}
-          type="date"
-          defaultValue={criteria.from ?? ''}
-          className={`${CONTROL} ${typeClasses.date}`}
-        />
-      </div>
-      <div className={FIELD}>
-        <label htmlFor={`${id}-to`}>{en.entrySearch.to}</label>
-        <input
-          id={`${id}-to`}
-          name={SEARCH_CRITERIA_FIELDS.to}
-          type="date"
-          defaultValue={criteria.to ?? ''}
-          className={`${CONTROL} ${typeClasses.date}`}
-        />
+      <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-end gap-3 wide:contents">
+        <div className={FIELD}>
+          <label htmlFor={`${id}-from`}>{en.entrySearch.from}</label>
+          <input
+            id={`${id}-from`}
+            name={SEARCH_CRITERIA_FIELDS.from}
+            type="date"
+            value={from}
+            onChange={keepingADay(setFrom)}
+            required
+            className={RANGE_DAY}
+          />
+        </div>
+        <div className={FIELD}>
+          <label htmlFor={`${id}-to`}>{en.entrySearch.to}</label>
+          <input
+            id={`${id}-to`}
+            name={SEARCH_CRITERIA_FIELDS.to}
+            type="date"
+            value={to}
+            onChange={keepingADay(setTo)}
+            required
+            className={RANGE_DAY}
+          />
+        </div>
+        <DatePresetsSheet today={today} onChoose={searchPreset} />
       </div>
 
       <div className={FIELD}>
@@ -83,6 +118,8 @@ export function EntrySearchForm({ criteria }: EntrySearchFormProps): ReactNode {
       >
         {en.entrySearch.submit}
       </button>
+
+      <DatePresets today={today} onChoose={searchPreset} />
     </form>
   );
 }

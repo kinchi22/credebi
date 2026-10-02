@@ -6,6 +6,7 @@ export const typeClasses: Readonly<Record<TypeStepName, string>> = {
   h2: 'text-h2 font-sans',
   body: 'text-body font-sans',
   'body-sm': 'text-body-sm font-sans',
+  'body-dense': 'text-body-dense font-sans',
   label: 'text-label font-mono uppercase',
   figure: 'text-figure font-mono tabular-nums',
   date: 'text-date font-mono tabular-nums',

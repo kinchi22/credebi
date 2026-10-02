@@ -3,6 +3,7 @@
 
 @theme {
   --color-*: initial;
+  --breakpoint-*: initial;
   --color-surface: #FFFFFF;
   --color-ground: #F2F8F5;
   --color-text: #0B2B2A;
@@ -15,12 +16,20 @@
   --color-accent-text: #0B7A5E;
   --color-accent-text-hover: #09644D;
   --color-border: #E1ECE8;
+  --color-band: #E1ECE8;
   --color-border-control: #78948F;
   --color-danger: #B4400F;
   --color-warning: #A15C00;
   --color-positive: #0B7A5E;
   --color-focus: #0B7A5E;
   --color-focus-on-dark: #2FD0A2;
+  --color-debit: #2B63B8;
+  --color-credit: #7F6500;
+  --color-border-google: #747775;
+  --color-google-blue: #4285F4;
+  --color-google-green: #34A853;
+  --color-google-yellow: #FBBC05;
+  --color-google-red: #EA4335;
   --font-sans: var(--font-sora);
   --font-mono: var(--font-dm-mono);
   --text-display: 32px;
@@ -40,6 +49,9 @@
   --text-body-sm: 14px;
   --text-body-sm--line-height: 20px;
   --text-body-sm--font-weight: 400;
+  --text-body-dense: 13px;
+  --text-body-dense--line-height: 20px;
+  --text-body-dense--font-weight: 400;
   --text-label: 12px;
   --text-label--line-height: 16px;
   --text-label--font-weight: 400;
@@ -50,11 +62,20 @@
   --text-date: 13px;
   --text-date--line-height: 20px;
   --text-date--font-weight: 400;
+  --breakpoint-wide: 45rem;
+  --breakpoint-split: 80rem;
 }
 
 @layer base {
   :focus-visible {
     outline: 2px solid var(--color-focus);
     outline-offset: 2px;
+  }
+
+  button:enabled,
+  [role="tab"]:not(:disabled, [aria-disabled="true"]),
+  input:is([type="radio"], [type="checkbox"]):enabled,
+  label:has(input:is([type="radio"], [type="checkbox"]):enabled) {
+    cursor: pointer;
   }
 }

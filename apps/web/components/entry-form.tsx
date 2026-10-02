@@ -1,7 +1,6 @@
 'use client';
 
 import { ENTRY_FORM_FIELDS, type DomainErrorCode, type EntryFormMode } from '@repo/contracts';
-import { CHART_OF_ACCOUNTS } from '@repo/core/entries';
 import { PANEL } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import {
@@ -15,8 +14,8 @@ import {
   type SubmitEvent,
 } from 'react';
 import { en } from '../messages/en';
-import { CONTROL, FIELD, PRIMARY_BUTTON } from './control-classes';
-import { DANGER_TEXT } from './text-classes';
+import { useBrowserToday } from './browser-today';
+import { CONTROL, DATE_CONTROL, DENSE_FIELD, PRIMARY_BUTTON } from './control-classes';
 
 export type EntryFormState =
   | { readonly outcome: 'idle' }
@@ -29,9 +28,16 @@ export type EntryFormProps = {
   readonly action: EntryFormAction;
 };
 
+export type EntryFormParts = {
+  readonly id: string;
+  readonly heading: ReactNode;
+  readonly refusal: ReactNode;
+  readonly submitButton: ReactNode;
+};
+
 type EntryFormShellProps = EntryFormProps & {
   readonly mode: EntryFormMode;
-  readonly children: (id: string) => ReactNode;
+  readonly children: (parts: EntryFormParts) => ReactNode;
 };
 
 type ShellState = {
@@ -55,36 +61,20 @@ const REFUSAL: Readonly<Record<EntryFormMode, Readonly<Record<DomainErrorCode, s
   'multi-line': refusalsWith(en.multiLineForm.invalid),
 };
 
-export function AccountSelect({
-  id,
-  name,
-}: {
-  readonly id: string;
-  readonly name: string;
-}): ReactNode {
-  return (
-    <select id={id} name={name} required defaultValue="" className={CONTROL}>
-      <option value="" disabled>
-        {en.entryForm.chooseAccount}
-      </option>
-      {CHART_OF_ACCOUNTS.map((code) => (
-        <option key={code} value={code}>
-          {en.accounts[code]}
-        </option>
-      ))}
-    </select>
-  );
-}
+export const ENTRY_FORM_GRID =
+  'grid items-start gap-6 wide:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] split:grid-cols-[25rem_minmax(0,1fr)]';
 
 type AmountInputProps = {
   readonly id: string;
+  readonly label: string;
   readonly onAmountChange?: (amount: string) => void;
 };
 
-export function AmountInput({ id, onAmountChange }: AmountInputProps): ReactNode {
+export function AmountInput({ id, label, onAmountChange }: AmountInputProps): ReactNode {
   return (
     <input
       id={id}
+      aria-label={label}
       name={ENTRY_FORM_FIELDS.amount}
       onChange={
         onAmountChange === undefined
@@ -97,7 +87,7 @@ export function AmountInput({ id, onAmountChange }: AmountInputProps): ReactNode
       inputMode="numeric"
       pattern="[0-9]+"
       required
-      className={`${CONTROL} text-right ${typeClasses.figure}`}
+      className={`${CONTROL} w-full min-w-0 text-right ${typeClasses.figure}`}
     />
   );
 }
@@ -112,6 +102,7 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
   );
   const form = useRef<HTMLFormElement>(null);
   const id = useId();
+  const today = useBrowserToday();
 
   useEffect(() => {
     if (state.outcome === 'saved') {
@@ -127,34 +118,25 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
     });
   };
 
-  return (
-    <form
-      ref={form}
-      aria-labelledby={`${id}-title`}
-      onSubmit={submit}
-      className={`flex flex-col gap-3 ${PANEL}`}
-    >
-      <h2
-        id={`${id}-title`}
-        className={`${typeClasses.label} text-text-muted`}
-      >
+  const heading = (
+    <>
+      <h2 id={`${id}-title`} className={`${typeClasses.label} text-text-muted`}>
         {en.entryForm.title}
       </h2>
 
-      <input type="hidden" name={ENTRY_FORM_FIELDS.entryFormMode} value={mode} />
-
-      <div className="flex flex-wrap gap-3">
-        <div className={FIELD}>
+      <div className="flex flex-wrap gap-3 wide:grid wide:grid-cols-[9.25rem_minmax(0,1fr)]">
+        <div className={DENSE_FIELD}>
           <label htmlFor={`${id}-date`}>{en.entryForm.date}</label>
           <input
             id={`${id}-date`}
             name={ENTRY_FORM_FIELDS.entryDate}
             type="date"
+            defaultValue={today}
             required
-            className={`${CONTROL} ${typeClasses.date}`}
+            className={DATE_CONTROL}
           />
         </div>
-        <div className={`${FIELD} grow`}>
+        <div className={`${DENSE_FIELD} grow`}>
           <label htmlFor={`${id}-memo`}>{en.entryForm.memo}</label>
           <input
             id={`${id}-memo`}
@@ -165,22 +147,32 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
           />
         </div>
       </div>
+    </>
+  );
 
-      <Fragment key={resetKey}>{children(id)}</Fragment>
+  const refusal =
+    state.outcome === 'rejected' ? (
+      <p role="alert" className={`min-w-0 flex-1 text-danger ${typeClasses['body-dense']}`}>
+        {REFUSAL[mode][state.code]}
+      </p>
+    ) : null;
 
-      {state.outcome === 'rejected' ? (
-        <p role="alert" className={DANGER_TEXT}>
-          {REFUSAL[mode][state.code]}
-        </p>
-      ) : null}
+  const submitButton = (
+    <button type="submit" disabled={pending} className={`shrink-0 ${PRIMARY_BUTTON}`}>
+      {pending ? en.entryForm.pending : en.entryForm.submit}
+    </button>
+  );
 
-      <button
-        type="submit"
-        disabled={pending}
-        className={`self-start ${PRIMARY_BUTTON}`}
-      >
-        {pending ? en.entryForm.pending : en.entryForm.submit}
-      </button>
+  return (
+    <form
+      ref={form}
+      aria-labelledby={`${id}-title`}
+      onSubmit={submit}
+      className={`flex flex-col gap-3 ${PANEL}`}
+    >
+      <input type="hidden" name={ENTRY_FORM_FIELDS.entryFormMode} value={mode} />
+
+      <Fragment key={resetKey}>{children({ id, heading, refusal, submitButton })}</Fragment>
     </form>
   );
 }
