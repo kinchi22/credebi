@@ -379,13 +379,18 @@ Hierarchy comes from tonal layers, not shadows: `surface` panels with a
   primary button; below it Debit and Credit are tabs drawn as the Date presets
   sheet's, then a `Find an account` search field, then the shown Side's Accounts
   grouped by Account type, narrowed to those whose name holds the text typed, or
-  `No account matches` and the text when none does. Choosing an Account on one
-  Side while the other has none shows the other Side's tab. `Done`, Escape or a
-  click on the scrim closes it, and focus returns to the button that opened it.
+  `No account matches` and the text when none does. The tab names the Side, so
+  no Side heading is shown above the Accounts, though each column from `wide` up
+  keeps one. Choosing an Account on one Side while the other has none shows the
+  other Side's tab. `Done`, Escape or a click on the scrim closes it, and focus
+  returns to the button that opened it.
 - **Link.** `accent-text`, underlined, and `accent-text-hover` under the
   pointer.
 - **Input.** `surface` fill, `text`, a `border-control` edge. The spec's
   component properties have no border colour, so the edge is stated here only.
+  A date Input drops the browser's own drawing, so it is as tall as the text
+  Input beside it: the entry form's Date beside Memo, and Entry search's From
+  and To.
 - **Sidebar.** Dark: a `ground-dark` ground, `text-on-dark` text,
   `text-muted-on-dark` links, and the active item on `ground-dark-raised`. The
   logo there is the horizontal Lockup in the reverse tone. Sign out sits at the

@@ -127,6 +127,7 @@ type SideChoicesProps = {
   readonly isChosen: (account: AccountCode) => boolean;
   readonly onPick: (account: AccountCode, chosen: boolean) => void;
   readonly onInvalid?: () => void;
+  readonly nameShown: boolean;
 };
 
 function SideChoices({
@@ -137,6 +138,7 @@ function SideChoices({
   isChosen,
   onPick,
   onInvalid,
+  nameShown,
 }: SideChoicesProps): ReactNode {
   const choicesId = `${id}-${side}-accounts`;
 
@@ -146,7 +148,10 @@ function SideChoices({
       aria-labelledby={`${choicesId}-name`}
       className={`flex min-w-0 flex-col gap-2 border-t-2 ${SIDE_TONE[side].edge} px-3 pt-2 pb-3`}
     >
-      <p id={`${choicesId}-name`} className={`${typeClasses.label} text-text-muted`}>
+      <p
+        id={`${choicesId}-name`}
+        className={nameShown ? `${typeClasses.label} text-text-muted` : 'sr-only'}
+      >
         {control.groupName[side]}
       </p>
       {accountTypesInOrder(side).map((type) => {
@@ -197,6 +202,7 @@ function AccountColumns({ id, multiple = false, isChosen, onPick }: AccountPicke
           side={side}
           control={multiple ? PICK_MANY : PICK_ONE}
           matches={matchesEveryAccount}
+          nameShown
           isChosen={(account) => isChosen(side, account)}
           onPick={(account, chosen) => {
             onPick(side, account, chosen);
@@ -273,6 +279,7 @@ function AccountSheetDialog({ multiple = false, isChosen, onPick, sheet }: Accou
                 side={side}
                 control={multiple ? PICK_MANY : PICK_ONE}
                 matches={matches}
+                nameShown={false}
                 isChosen={(account) => isChosen(side, account)}
                 onPick={(account, chosen) => {
                   pick(side, account, chosen);
