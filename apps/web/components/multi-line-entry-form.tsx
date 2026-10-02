@@ -1,21 +1,31 @@
 'use client';
 
-import { ENTRY_FORM_FIELDS, entryFormModeSchema, type Side } from '@repo/contracts';
+import {
+  ENTRY_FORM_FIELDS,
+  entryFormModeSchema,
+  type DomainError,
+  type Money,
+  type Result,
+  type Side,
+} from '@repo/contracts';
 import {
   draftLinesInOrder,
   draftTotals,
   type AccountCode,
   type DraftLine,
+  type DraftTotals,
 } from '@repo/core/entries';
-import { TrashIcon } from '@repo/ui';
+import { isZeroMoney } from '@repo/core/money';
+import { CloseIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useState, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { AccountPicker, AddAccountButton, useAccountSheet } from './account-picker';
 import { formatAmount } from './amount';
-import { DENSE_FIELD, ICON_CONTROL } from './control-classes';
+import { DENSE_FIELD } from './control-classes';
 import {
   AmountInput,
+  ENTRY_FORM_GRID,
   EntryFormShell,
   type EntryFormParts,
   type EntryFormProps,
@@ -32,31 +42,71 @@ const isLine =
   (line: ChosenLine): boolean =>
     line.side === side && line.account === account;
 
-function DraftTotalsSummary({ lines }: { readonly lines: readonly DraftLine[] }): ReactNode {
-  const totals = draftTotals(lines);
-  if (!totals.ok) {
-    return (
-      <p className={`${DANGER_TEXT} ${typeClasses['body-dense']}`}>{en.multiLineForm.tooLarge}</p>
-    );
-  }
+const LINE_GRID = 'grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-3';
+const AMOUNT_COLUMN = 'flex min-w-0 gap-1';
+const REMOVE_COLUMN = 'w-8 shrink-0 wide:w-6';
 
-  const rows = [
-    { testId: 'debit-total', label: en.multiLineForm.debitTotal, amount: totals.value.debit },
-    { testId: 'credit-total', label: en.multiLineForm.creditTotal, amount: totals.value.credit },
-    { testId: 'difference', label: en.multiLineForm.difference, amount: totals.value.difference },
-  ];
+type SideTotalProps = {
+  readonly side: Side;
+  readonly amount: Money;
+  readonly ruled: boolean;
+};
 
+const SIDE_TOTAL: Readonly<Record<Side, { readonly testId: string; readonly label: string }>> = {
+  debit: { testId: 'debit-total', label: en.multiLineForm.debitTotal },
+  credit: { testId: 'credit-total', label: en.multiLineForm.creditTotal },
+};
+
+function SideTotal({ side, amount, ruled }: SideTotalProps): ReactNode {
   return (
-    <dl className={`grid grid-cols-[auto_8rem] gap-x-3 ${typeClasses['body-dense']}`}>
-      {rows.map((row) => (
-        <div key={row.testId} className="contents">
-          <dt>{row.label}</dt>
-          <dd data-testid={row.testId} className={`text-right ${typeClasses.figure}`}>
-            {formatAmount(row.amount)}
-          </dd>
-        </div>
-      ))}
-    </dl>
+    <p
+      className={`${LINE_GRID} items-baseline border-t border-dashed border-border pt-1.5 pb-1 ${ruled ? '' : 'wide:border-t-0'} ${typeClasses['body-dense']}`}
+    >
+      <span className="text-text-muted">{SIDE_TOTAL[side].label}</span>
+      <span className={AMOUNT_COLUMN}>
+        <span
+          data-testid={SIDE_TOTAL[side].testId}
+          className={`min-w-0 grow border border-transparent px-2 text-right ${typeClasses.figure}`}
+        >
+          {formatAmount(amount)}
+        </span>
+        <span aria-hidden="true" className={REMOVE_COLUMN} />
+      </span>
+    </p>
+  );
+}
+
+type DifferenceRowProps = {
+  readonly totals: Result<DraftTotals, DomainError>;
+  readonly refusal: ReactNode;
+  readonly submitButton: ReactNode;
+};
+
+function DifferenceRow({ totals, refusal, submitButton }: DifferenceRowProps): ReactNode {
+  return (
+    <div className="flex flex-col gap-2 border-t-3 border-double border-text pt-2.5">
+      <div className="flex items-center gap-3">
+        {totals.ok ? (
+          <p className="flex min-w-0 grow items-baseline gap-2.5">
+            <span className={`${typeClasses.label} text-text-muted`}>
+              {en.multiLineForm.difference}
+            </span>
+            <span
+              data-testid="difference"
+              className={`${typeClasses.figure} ${isZeroMoney(totals.value.difference) ? 'text-text' : 'text-warning'}`}
+            >
+              {formatAmount(totals.value.difference)}
+            </span>
+          </p>
+        ) : (
+          <p className={`min-w-0 grow ${DANGER_TEXT} ${typeClasses['body-dense']}`}>
+            {en.multiLineForm.tooLarge}
+          </p>
+        )}
+        {submitButton}
+      </div>
+      {refusal}
+    </div>
   );
 }
 
@@ -73,7 +123,7 @@ function LineFields({ id, line, onAmountChange, onRemove }: LineFieldsProps): Re
   return (
     <fieldset
       aria-label={`${en.sides[line.side]} ${en.accounts[line.account]}`}
-      className={`grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] items-end gap-3 py-1 ${typeClasses['body-dense']}`}
+      className={`${LINE_GRID} items-end py-1 ${typeClasses['body-dense']}`}
     >
       <input type="hidden" name={ENTRY_FORM_FIELDS.account} value={line.account} />
       <input type="hidden" name={ENTRY_FORM_FIELDS.side} value={line.side} />
@@ -83,7 +133,7 @@ function LineFields({ id, line, onAmountChange, onRemove }: LineFieldsProps): Re
         </span>
         <span className="font-semibold break-words">{en.accounts[line.account]}</span>
       </p>
-      <div className="flex min-w-0 items-end gap-1">
+      <div className={`${AMOUNT_COLUMN} items-end`}>
         <div className={`${DENSE_FIELD} min-w-0 grow`}>
           <label htmlFor={`${lineId}-amount`}>{en.multiLineForm.amount}</label>
           <AmountInput id={`${lineId}-amount`} onAmountChange={onAmountChange} />
@@ -92,9 +142,9 @@ function LineFields({ id, line, onAmountChange, onRemove }: LineFieldsProps): Re
           type="button"
           aria-label={en.multiLineForm.remove}
           onClick={onRemove}
-          className={`shrink-0 ${ICON_CONTROL}`}
+          className={`${REMOVE_COLUMN} inline-flex h-7.5 items-center justify-center rounded text-text-muted hover:text-text`}
         >
-          <TrashIcon />
+          <CloseIcon />
         </button>
       </div>
     </fieldset>
@@ -122,18 +172,17 @@ function MultiLineFields({ id, heading, refusal, submitButton }: EntryFormParts)
   const isChosen = (side: Side, account: AccountCode): boolean =>
     chosen.some(isLine(side, account));
 
+  const totals = draftTotals(chosen);
+
   return (
-    <div className="grid items-start gap-6 wide:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+    <div className={ENTRY_FORM_GRID}>
       <div className="flex min-w-0 flex-col gap-3">
         {heading}
-        <div className="flex flex-col">
+        <div className="flex flex-col divide-y divide-border">
           {SIDES.map((side) => {
             const lines = draftLinesInOrder(chosen).filter((line) => line.side === side);
             return (
-              <div
-                key={side}
-                className={`flex flex-col border-b border-border ${lines.length === 0 ? 'wide:border-b-0' : ''}`}
-              >
+              <div key={side} className="flex flex-col">
                 <div className="flex flex-col divide-y divide-dashed divide-border">
                   {lines.map((line) => (
                     <LineFields
@@ -150,15 +199,14 @@ function MultiLineFields({ id, heading, refusal, submitButton }: EntryFormParts)
                   ))}
                 </div>
                 <AddAccountButton side={side} sheet={sheet} />
+                {totals.ok ? (
+                  <SideTotal side={side} amount={totals.value[side]} ruled={lines.length > 0} />
+                ) : null}
               </div>
             );
           })}
         </div>
-        <DraftTotalsSummary lines={chosen} />
-        <div className="flex flex-wrap items-center justify-end gap-3">
-          {refusal}
-          {submitButton}
-        </div>
+        <DifferenceRow totals={totals} refusal={refusal} submitButton={submitButton} />
       </div>
       <AccountPicker id={id} multiple isChosen={isChosen} onPick={pick} sheet={sheet} />
     </div>
