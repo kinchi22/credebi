@@ -87,7 +87,7 @@ export function AmountInput({ id, label, onAmountChange }: AmountInputProps): Re
       inputMode="numeric"
       pattern="[0-9]+"
       required
-      className={`${CONTROL} text-right ${typeClasses.figure}`}
+      className={`${CONTROL} w-full min-w-0 text-right ${typeClasses.figure}`}
     />
   );
 }
