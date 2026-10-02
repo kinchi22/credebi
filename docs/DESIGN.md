@@ -362,11 +362,14 @@ Hierarchy comes from tonal layers, not shadows: `surface` panels with a
   marked as chosen: From and To state the range. Below `wide` the row is not
   shown: a secondary button holding a calendar icon, named `Choose a period`,
   sits beside From and To and opens the presets as a full-screen modal dialog on
-  the `ground`. A `surface` bar holds its title and a close icon, and below it
-  the four categories are tabs, the shown one underlined in `accent` and set in
-  `accent-text`, semibold. Each tab lists its choices as the panel does, with
-  each year above its row; choosing one closes the sheet. Escape or the close
-  icon closes it without choosing, and focus returns to the button.
+  the `ground`. The button is square and as tall as From and To: it keeps an
+  Input's edge and vertical padding, pads its sides by that same amount, and
+  its icon is as tall as an Input's line. A `surface` bar holds its title and a
+  close icon, and below it the four categories are tabs, the shown one
+  underlined in `accent` and set in `accent-text`, semibold. Each tab lists its
+  choices as the panel does, with each year above its row; choosing one closes
+  the sheet. Escape or the close icon closes it without choosing, and focus
+  returns to the button.
 - **Account sheet.** From `wide` up the Accounts to choose from sit right of the
   entry form, Debit and Credit side by side. Below `wide` they leave the form:
   each Side shows `Add debit account` or `Add credit account`, a text button in
