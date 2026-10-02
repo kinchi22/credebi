@@ -278,7 +278,7 @@ function SideChoices({
                       onPick(code, event.target.checked);
                     }}
                     onInvalid={onInvalid}
-                    className="peer absolute inset-0 m-0 cursor-pointer appearance-none opacity-0"
+                    className="peer absolute inset-0 m-0 appearance-none opacity-0"
                   />
                   <span className={look.choice}>{en.accounts[code]}</span>
                 </label>

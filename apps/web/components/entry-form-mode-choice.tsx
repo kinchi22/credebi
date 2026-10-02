@@ -106,7 +106,7 @@ export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps
                 onChange={change}
                 aria-labelledby={`${id}-${mode}-name`}
                 aria-describedby={`${id}-${mode}-description`}
-                className="peer absolute inset-0 m-0 cursor-pointer appearance-none opacity-0 disabled:cursor-default"
+                className="peer absolute inset-0 m-0 appearance-none opacity-0"
               />
               <span
                 className={`row-span-3 grid grid-rows-subgrid rounded px-3 py-2 ${selected === mode ? CHOSEN_SEGMENT : 'text-text-muted'} peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus peer-disabled:opacity-50`}

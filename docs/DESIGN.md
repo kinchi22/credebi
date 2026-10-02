@@ -509,6 +509,11 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   the scrim or following a link closes it, and focus returns to `Menu`.
 - **Focus.** A 2px ring on every focusable element: `focus` on a light ground,
   `focus-on-dark` on a dark one.
+- **Pointer.** Every enabled control a click acts on shows the pointer cursor:
+  a button, a tab, a radio or checkbox and the label that wraps one. One base
+  rule in `apps/web/app/globals.css` gives it, so no component sets a cursor of
+  its own. A disabled control keeps the default cursor. Links have the pointer
+  already.
 - **Status.** `positive` for healthy, `warning` for degraded, `danger` for a
   refusal or an error.
 
