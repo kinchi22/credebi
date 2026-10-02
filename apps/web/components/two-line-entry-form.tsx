@@ -12,7 +12,6 @@ import {
   useAccountSheet,
   type AccountChoice,
 } from './account-picker';
-import { DENSE_FIELD } from './control-classes';
 import {
   AmountInput,
   ENTRY_FORM_GRID,
@@ -46,9 +45,8 @@ function TwoLineFields({ id, heading, refusal, submitButton }: EntryFormParts): 
           ))}
         </div>
         <div className="flex items-end gap-3">
-          <div className={`${DENSE_FIELD} min-w-0 grow`}>
-            <label htmlFor={`${id}-amount`}>{en.twoLineForm.amount}</label>
-            <AmountInput id={`${id}-amount`} />
+          <div className="min-w-0 grow">
+            <AmountInput id={`${id}-amount`} label={en.twoLineForm.amount} />
           </div>
           {submitButton}
         </div>

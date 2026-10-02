@@ -429,25 +429,28 @@ Hierarchy comes from tonal layers, not shadows: `surface` panels with a
 - **Date and Memo.** From `wide` up they share one row: Date in a 148px
   column, Memo filling the rest. Below `wide` they wrap, Date at its own width
   and Memo growing beside it.
-- **Entry form dividers.** In both Entry form modes a `border` hairline runs
-  under Date and Memo, before the Accounts. In Multi-line mode the lines of one
-  Side are divided by dashed `border` hairlines, and a dashed one sits above
-  the Side's total, below its `+ Add … account`; from `wide` up, where that
-  button is not shown, a Side with no line draws no dashed rule above its
-  total. A solid `border` hairline separates the Debit Side from the Credit
-  Side, and a 3px double rule in `text` sits above the Difference row.
-- **Multi-line line.** Two columns at all widths, about 6:4, the Account's the
-  wider: the left stacks the Side, in `label` and the Side's colour, over the
-  Account name, semibold and wrapping; the right holds the amount field and,
-  beside it, the Remove button.
+- **Entry form dividers.** In both Entry form modes a 2px rule in the Side's
+  colour sits above each Side: above its row in Two-line mode, above its block
+  in Multi-line mode. In Multi-line mode the lines of one Side have no rule
+  between them, and a dashed `border` hairline sits above the Side's total,
+  below its `+ Add … account`; from `wide` up, where that button is not shown,
+  a Side with no line draws no dashed rule above its total. A 3px double rule
+  in `text` sits above the Difference row.
+- **Amount field.** In both Entry form modes no visible label and no
+  placeholder: its accessible name is `Amount`.
+- **Multi-line line.** Each Side's block is headed once by the Side, in
+  `label` and the Side's colour, and its lines name no Side. Two columns at all
+  widths, about 6:4, the Account's the wider: the left holds the Account name,
+  semibold and wrapping; the right holds the amount field and, beside it, the
+  Remove button.
 - **Multi-line totals.** At every width each Side ends with its own total,
   `Debit total` or `Credit total` in `body-dense` and `text-muted`, its amount
   in `figure` on the line grid, right-aligned with the lines' amounts and
   leaving the Remove button's column empty. Below both Sides the Difference row
   holds `Difference`, in `label` and `text-muted`, and its amount in `figure`,
   on the left and `Add entry` on the right, with a refusal below them. The
-  amount is in `warning` while it is not 0, and in `text`, with no word beside
-  it, at 0. When the amounts add up to more than an amount can hold, the
+  amount is in `warning` and bold while it is not 0, and in `text`, plain and
+  with no word beside it, at 0. When the amounts add up to more than an amount can hold, the
   `danger` message takes the Difference's place and neither Side shows a
   total.
 - **Remove button.** A bare × icon in `text-muted`, `text` under the pointer,

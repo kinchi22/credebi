@@ -137,7 +137,7 @@ export function ChooseAccountButton({ side, account, sheet }: ChooseAccountButto
       onClick={(event) => {
         sheet.openOn(side, event.currentTarget);
       }}
-      className="flex min-h-10 w-full items-center gap-3 border-b border-border py-1 text-left disabled:opacity-50 wide:hidden"
+      className={`flex min-h-10 w-full items-center gap-3 border-t-2 py-1 text-left disabled:opacity-50 wide:hidden ${SIDE_TONE[side].edge}`}
     >
       <AccountRowContent side={side} account={account} placeholderInSideTone />
       {account === undefined ? null : (
@@ -156,7 +156,7 @@ type AccountRowProps = {
 
 export function AccountRow({ side, account }: AccountRowProps): ReactNode {
   return (
-    <div className="hidden items-center gap-3 border-b border-border py-1 wide:flex">
+    <div className={`hidden items-center gap-3 border-t-2 py-1 wide:flex ${SIDE_TONE[side].edge}`}>
       <AccountRowContent side={side} account={account} placeholderInSideTone={false} />
     </div>
   );

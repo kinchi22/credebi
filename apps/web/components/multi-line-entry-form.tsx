@@ -22,7 +22,6 @@ import { useState, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { AccountPicker, AddAccountButton, useAccountSheet } from './account-picker';
 import { formatAmount } from './amount';
-import { DENSE_FIELD } from './control-classes';
 import {
   AmountInput,
   ENTRY_FORM_GRID,
@@ -93,7 +92,7 @@ function DifferenceRow({ totals, refusal, submitButton }: DifferenceRowProps): R
             </span>
             <span
               data-testid="difference"
-              className={`${typeClasses.figure} ${isZeroMoney(totals.value.difference) ? 'text-text' : 'text-warning'}`}
+              className={`${typeClasses.figure} ${isZeroMoney(totals.value.difference) ? 'text-text' : 'font-bold text-warning'}`}
             >
               {formatAmount(totals.value.difference)}
             </span>
@@ -123,20 +122,20 @@ function LineFields({ id, line, onAmountChange, onRemove }: LineFieldsProps): Re
   return (
     <fieldset
       aria-label={`${en.sides[line.side]} ${en.accounts[line.account]}`}
-      className={`${LINE_GRID} items-end py-1 ${typeClasses['body-dense']}`}
+      className={`${LINE_GRID} items-center py-1 ${typeClasses['body-dense']}`}
     >
       <input type="hidden" name={ENTRY_FORM_FIELDS.account} value={line.account} />
       <input type="hidden" name={ENTRY_FORM_FIELDS.side} value={line.side} />
-      <p aria-hidden className="flex min-w-0 flex-col self-center">
-        <span className={`${typeClasses.label} leading-5 ${SIDE_TONE[line.side].text}`}>
-          {en.sides[line.side]}
-        </span>
-        <span className="font-semibold break-words">{en.accounts[line.account]}</span>
+      <p aria-hidden className="min-w-0 font-semibold break-words">
+        {en.accounts[line.account]}
       </p>
-      <div className={`${AMOUNT_COLUMN} items-end`}>
-        <div className={`${DENSE_FIELD} min-w-0 grow`}>
-          <label htmlFor={`${lineId}-amount`}>{en.multiLineForm.amount}</label>
-          <AmountInput id={`${lineId}-amount`} onAmountChange={onAmountChange} />
+      <div className={`${AMOUNT_COLUMN} items-center`}>
+        <div className="min-w-0 grow">
+          <AmountInput
+            id={`${lineId}-amount`}
+            label={en.multiLineForm.amount}
+            onAmountChange={onAmountChange}
+          />
         </div>
         <button
           type="button"
@@ -178,12 +177,15 @@ function MultiLineFields({ id, heading, refusal, submitButton }: EntryFormParts)
     <div className={ENTRY_FORM_GRID}>
       <div className="flex min-w-0 flex-col gap-3">
         {heading}
-        <div className="flex flex-col divide-y divide-border">
+        <div className="flex flex-col">
           {SIDES.map((side) => {
             const lines = draftLinesInOrder(chosen).filter((line) => line.side === side);
             return (
-              <div key={side} className="flex flex-col">
-                <div className="flex flex-col divide-y divide-dashed divide-border">
+              <div key={side} className={`flex flex-col border-t-2 pt-2 ${SIDE_TONE[side].edge}`}>
+                <p aria-hidden className={`${typeClasses.label} pb-1 ${SIDE_TONE[side].text}`}>
+                  {en.sides[side]}
+                </p>
+                <div className="flex flex-col">
                   {lines.map((line) => (
                     <LineFields
                       key={`${line.side}-${line.account}`}
