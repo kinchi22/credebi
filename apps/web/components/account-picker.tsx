@@ -8,11 +8,12 @@ import {
   type AccountCode,
 } from '@repo/core/entries';
 import { typeClasses } from '@repo/ui/type-classes';
-import { useState, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { CONTROL, PRIMARY_BUTTON } from './control-classes';
+import { useHydrated } from './hydrated';
 import { useModalDialog, type ModalDialog } from './modal-dialog';
-import { SheetTabs } from './sheet-tabs';
+import { SheetBar, SheetTabs } from './sheet';
 import { SIDE_TONE, SIDES } from './side-classes';
 import { useWide } from './wide';
 
@@ -26,12 +27,12 @@ export type AccountPickerProps = {
   readonly sheet: AccountSheet;
 };
 
-export type AccountSheet = {
-  readonly dialog: ModalDialog;
-  readonly shown: Side;
-  readonly show: (side: Side) => void;
+export type AccountSheet = Omit<ModalDialog, 'show'> & {
+  readonly id: string;
+  readonly side: Side;
+  readonly setSide: (side: Side) => void;
   readonly query: string;
-  readonly find: (query: string) => void;
+  readonly setQuery: (query: string) => void;
   readonly openOn: (side: Side, opener: HTMLElement | null) => void;
 };
 
@@ -64,7 +65,7 @@ const PICK_MANY: PickControl = {
 
 const otherSide = (side: Side): Side => (side === 'debit' ? 'credit' : 'debit');
 
-const EVERY_ACCOUNT = (): boolean => true;
+const matchesEveryAccount = (): boolean => true;
 
 const nameContains =
   (query: string) =>
@@ -72,20 +73,22 @@ const nameContains =
     en.accounts[account].toLowerCase().includes(query.trim().toLowerCase());
 
 export function useAccountSheet(): AccountSheet {
-  const dialog = useModalDialog();
-  const [shown, show] = useState<Side>('debit');
-  const [query, find] = useState('');
+  const id = useId();
+  const { show, ...dialog } = useModalDialog();
+  const [side, setSide] = useState<Side>('debit');
+  const [query, setQuery] = useState('');
 
   return {
-    dialog,
-    shown,
-    show,
+    ...dialog,
+    id,
+    side,
+    setSide,
     query,
-    find,
-    openOn: (side, opener) => {
-      if (dialog.show(opener)) {
-        show(side);
-        find('');
+    setQuery,
+    openOn: (on, opener) => {
+      if (show(opener)) {
+        setSide(on);
+        setQuery('');
       }
     },
   };
@@ -97,13 +100,18 @@ type AddAccountButtonProps = {
 };
 
 export function AddAccountButton({ side, sheet }: AddAccountButtonProps): ReactNode {
+  const hydrated = useHydrated();
+
   return (
     <button
       type="button"
+      aria-expanded={sheet.open}
+      aria-controls={sheet.id}
+      disabled={!hydrated}
       onClick={(event) => {
         sheet.openOn(side, event.currentTarget);
       }}
-      className={`inline-flex h-10 items-center gap-1 self-start ${typeClasses['body-sm']} font-semibold ${SIDE_TONE[side].text} wide:hidden`}
+      className={`inline-flex h-10 items-center gap-1 self-start ${typeClasses['body-sm']} font-semibold ${SIDE_TONE[side].text} disabled:opacity-50 wide:hidden`}
     >
       <span aria-hidden="true">+</span>
       {en.accountSheet.add[side]}
@@ -188,7 +196,7 @@ function AccountColumns({ id, multiple = false, isChosen, onPick }: AccountPicke
           id={id}
           side={side}
           control={multiple ? PICK_MANY : PICK_ONE}
-          matches={EVERY_ACCOUNT}
+          matches={matchesEveryAccount}
           isChosen={(account) => isChosen(side, account)}
           onPick={(account, chosen) => {
             onPick(side, account, chosen);
@@ -199,40 +207,39 @@ function AccountColumns({ id, multiple = false, isChosen, onPick }: AccountPicke
   );
 }
 
-function AccountSheetDialog({ id, multiple = false, isChosen, onPick, sheet }: AccountPickerProps): ReactNode {
-  const sheetId = `${id}-account-sheet`;
-  const tabId = (side: Side): string => `${sheetId}-${side}-tab`;
-  const panelId = (side: Side): string => `${sheetId}-${side}-panel`;
+function AccountSheetDialog({ multiple = false, isChosen, onPick, sheet }: AccountPickerProps): ReactNode {
+  const tabId = (side: Side): string => `${sheet.id}-${side}-tab`;
+  const panelId = (side: Side): string => `${sheet.id}-${side}-panel`;
+  const titleId = `${sheet.id}-title`;
+  const matches = nameContains(sheet.query);
   const hasAccount = (side: Side): boolean =>
     CHART_OF_ACCOUNTS.some((account) => isChosen(side, account));
 
   const pick = (side: Side, account: AccountCode, chosen: boolean): void => {
     onPick(side, account, chosen);
     if (chosen && !hasAccount(otherSide(side))) {
-      sheet.show(otherSide(side));
+      sheet.setSide(otherSide(side));
     }
   };
 
   return (
     <dialog
-      {...sheet.dialog.dialogProps}
-      id={sheetId}
-      aria-labelledby={`${sheetId}-title`}
+      {...sheet.dialogProps}
+      id={sheet.id}
+      aria-labelledby={titleId}
+      onClick={sheet.closeOnScrim}
       className="mx-0 mt-auto mb-0 h-[calc(100%-4rem)] max-h-none w-full max-w-none rounded-t border-0 bg-ground p-0 text-text backdrop:bg-ground-dark/60"
     >
       <div className="flex h-full flex-col">
-        <div className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-surface px-4">
-          <h2 id={`${sheetId}-title`} className={`${typeClasses.body} font-semibold`}>
-            {en.accountSheet.title}
-          </h2>
-          <button type="button" onClick={sheet.dialog.close} className={PRIMARY_BUTTON}>
+        <SheetBar titleId={titleId} title={en.accountSheet.title}>
+          <button type="button" onClick={sheet.close} className={PRIMARY_BUTTON}>
             {en.accountSheet.done}
           </button>
-        </div>
+        </SheetBar>
         <SheetTabs
           tabs={SIDES}
-          shown={sheet.shown}
-          onShow={sheet.show}
+          shown={sheet.side}
+          onShow={sheet.setSide}
           tabId={tabId}
           panelId={panelId}
           label={(side) => en.sides[side]}
@@ -244,7 +251,7 @@ function AccountSheetDialog({ id, multiple = false, isChosen, onPick, sheet }: A
             placeholder={en.accountSheet.find}
             value={sheet.query}
             onChange={(event) => {
-              sheet.find(event.target.value);
+              sheet.setQuery(event.target.value);
             }}
             onKeyDown={(event) => {
               if (event.key === 'Enter') event.preventDefault();
@@ -259,13 +266,13 @@ function AccountSheetDialog({ id, multiple = false, isChosen, onPick, sheet }: A
               id={panelId(side)}
               role="tabpanel"
               aria-labelledby={tabId(side)}
-              className={sheet.shown === side ? 'block' : 'hidden'}
+              className={sheet.side === side ? 'block' : 'hidden'}
             >
               <SideChoices
-                id={sheetId}
+                id={sheet.id}
                 side={side}
                 control={multiple ? PICK_MANY : PICK_ONE}
-                matches={nameContains(sheet.query)}
+                matches={matches}
                 isChosen={(account) => isChosen(side, account)}
                 onPick={(account, chosen) => {
                   pick(side, account, chosen);
@@ -276,6 +283,11 @@ function AccountSheetDialog({ id, multiple = false, isChosen, onPick, sheet }: A
               />
             </div>
           ))}
+          {CHART_OF_ACCOUNTS.some(matches) ? null : (
+            <p className="px-4 py-3 text-text-muted">
+              {en.accountSheet.noMatch} &quot;{sheet.query.trim()}&quot;.
+            </p>
+          )}
         </div>
       </div>
     </dialog>

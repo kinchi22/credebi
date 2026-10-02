@@ -23,6 +23,23 @@ const STEPS: Readonly<Record<string, (index: number, count: number) => number>> 
   End: (_index, count) => count - 1,
 };
 
+export type SheetBarProps = {
+  readonly titleId: string;
+  readonly title: string;
+  readonly children: ReactNode;
+};
+
+export function SheetBar({ titleId, title, children }: SheetBarProps): ReactNode {
+  return (
+    <div className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-surface px-4">
+      <h2 id={titleId} className={`${typeClasses.body} font-semibold`}>
+        {title}
+      </h2>
+      {children}
+    </div>
+  );
+}
+
 export function SheetTabs<Tab extends string>({
   tabs,
   shown,

@@ -25,7 +25,7 @@ import {
 import { en } from '../messages/en';
 import { BUTTON } from './control-classes';
 import { useModalDialog } from './modal-dialog';
-import { SheetTabs } from './sheet-tabs';
+import { SheetBar, SheetTabs } from './sheet';
 
 type Category = keyof typeof en.datePresets.categories;
 
@@ -343,6 +343,7 @@ export function DatePresetsSheet({ today, onChoose }: DatePresetsProps): ReactNo
   };
 
   const tabId = (category: Category): string => `${id}-${category}-tab`;
+  const titleId = `${id}-title`;
   const Choices = CHOICES[shown];
 
   return (
@@ -363,15 +364,12 @@ export function DatePresetsSheet({ today, onChoose }: DatePresetsProps): ReactNo
       <dialog
         {...sheet.dialogProps}
         id={id}
-        aria-labelledby={`${id}-title`}
+        aria-labelledby={titleId}
         className="m-0 h-full max-h-none w-full max-w-none border-0 bg-ground p-0 text-text"
       >
         {sheet.open && today !== undefined ? (
           <div className="flex h-full flex-col">
-            <div className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-surface px-4">
-              <h2 id={`${id}-title`} className={`${typeClasses.body} font-semibold`}>
-                {en.datePresets.choosePeriod}
-              </h2>
+            <SheetBar titleId={titleId} title={en.datePresets.choosePeriod}>
               <button
                 type="button"
                 aria-label={en.datePresets.close}
@@ -380,7 +378,7 @@ export function DatePresetsSheet({ today, onChoose }: DatePresetsProps): ReactNo
               >
                 <CloseIcon />
               </button>
-            </div>
+            </SheetBar>
             <SheetTabs
               tabs={CATEGORIES}
               shown={shown}

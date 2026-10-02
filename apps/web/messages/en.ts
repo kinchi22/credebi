@@ -126,6 +126,7 @@ export const en = {
     title: 'Choose accounts',
     done: 'Done',
     find: 'Find an account',
+    noMatch: 'No account matches',
     add: {
       debit: 'Add debit account',
       credit: 'Add credit account',
