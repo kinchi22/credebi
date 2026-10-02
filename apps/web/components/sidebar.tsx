@@ -1,13 +1,13 @@
 'use client';
 
 import { Logo, SignOutIcon } from '@repo/ui';
-import { breakpoints } from '@repo/ui/tokens';
 import { typeClasses } from '@repo/ui/type-classes';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { type ReactNode, type RefObject, useEffect, useId, useRef, useState } from 'react';
+import { type ReactNode, type RefObject, useId, useRef, useState } from 'react';
 import { en } from '../messages/en';
 import { ENTRY_SEARCH_PATH, SETTINGS_PATH, SIGNED_IN_HOME } from '../server/return-path';
+import { useCloseWhenWide } from './close-when-wide';
 
 export type SidebarProps = {
   readonly signOut: () => Promise<void>;
@@ -26,7 +26,6 @@ const LINKS = [
 ] as const;
 
 const LOGO_HEIGHT = 40;
-const WIDE_QUERY = `(min-width: ${String(breakpoints.wide)}px)`;
 
 const ON_DARK_FOCUS = 'focus-visible:outline-focus-on-dark';
 const LINK = `flex items-center rounded px-3 py-2 ${ON_DARK_FOCUS}`;
@@ -82,16 +81,7 @@ export function Sidebar({ signOut }: SidebarProps): ReactNode {
     drawer.current?.close();
   };
 
-  useEffect(() => {
-    const wide = window.matchMedia(WIDE_QUERY);
-    const closeWhenWide = (): void => {
-      if (wide.matches) drawer.current?.close();
-    };
-    wide.addEventListener('change', closeWhenWide);
-    return () => {
-      wide.removeEventListener('change', closeWhenWide);
-    };
-  }, []);
+  useCloseWhenWide(drawer);
 
   return (
     <>

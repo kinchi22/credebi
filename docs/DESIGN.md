@@ -303,7 +303,14 @@ Hierarchy comes from tonal layers, not shadows: `surface` panels with a
   with a `border` edge and no shadow, one row per year, scrolled to the year of
   today. The year, quarter and month that hold today are set in `accent-text`,
   semibold and underlined in `accent`; a Relative choice never is. No choice is
-  marked as chosen: From and To state the range.
+  marked as chosen: From and To state the range. Below `wide` the row is not
+  shown: a secondary button holding a calendar icon, named `Choose a period`,
+  sits beside From and To and opens the presets as a full-screen modal dialog on
+  the `ground`. A `surface` bar holds its title and a close icon, and below it
+  the four categories are tabs, the shown one underlined in `accent` and set in
+  `accent-text`, semibold. Each tab lists its choices as the panel does, with
+  each year above its row; choosing one closes the sheet. Escape or the close
+  icon closes it without choosing, and focus returns to the button.
 - **Link.** `accent-text`, underlined, and `accent-text-hover` under the
   pointer.
 - **Input.** `surface` fill, `text`, a `border-control` edge. The spec's
