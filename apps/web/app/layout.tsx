@@ -14,7 +14,10 @@ const sora = localFont({
 });
 
 const dmMono = localFont({
-  src: [{ path: './fonts/DMMono-Regular.woff2', weight: '400', style: 'normal' }],
+  src: [
+    { path: './fonts/DMMono-Regular.woff2', weight: '400', style: 'normal' },
+    { path: './fonts/DMMono-Medium.woff2', weight: '500', style: 'normal' },
+  ],
   variable: '--font-dm-mono',
   display: 'swap',
 });
