@@ -66,6 +66,7 @@ describe('the declared pairs', () => {
       { foreground: 'mint-deep', background: 'mist' },
       { foreground: 'mint', background: 'ink' },
       { foreground: 'mint', background: 'ink-raised' },
+      { foreground: 'pewter', background: 'white' },
     ]);
   });
 });
@@ -93,7 +94,20 @@ describe('the semantic tokens', () => {
       'focus-on-dark': 'mint',
       debit: 'cobalt',
       credit: 'gold',
+      'border-google': 'pewter',
+      'google-blue': 'azure',
+      'google-green': 'leaf',
+      'google-yellow': 'amber',
+      'google-red': 'scarlet',
     });
+  });
+
+  it("keeps Google's sign-in edge and the four colours of its G exactly as Google publishes them", () => {
+    expect(palette[semanticColors['border-google']]).toBe('#747775');
+    expect(palette[semanticColors['google-blue']]).toBe('#4285F4');
+    expect(palette[semanticColors['google-green']]).toBe('#34A853');
+    expect(palette[semanticColors['google-yellow']]).toBe('#FBBC05');
+    expect(palette[semanticColors['google-red']]).toBe('#EA4335');
   });
 
   it('sets Debit in a blue and Credit in a gold that each read as text on the ground', () => {

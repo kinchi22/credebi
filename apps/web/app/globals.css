@@ -24,6 +24,11 @@
   --color-focus-on-dark: #2FD0A2;
   --color-debit: #2B63B8;
   --color-credit: #7F6500;
+  --color-border-google: #747775;
+  --color-google-blue: #4285F4;
+  --color-google-green: #34A853;
+  --color-google-yellow: #FBBC05;
+  --color-google-red: #EA4335;
   --font-sans: var(--font-sora);
   --font-mono: var(--font-dm-mono);
   --text-display: 32px;

@@ -24,6 +24,11 @@ colors:
   ochre: "#A15C00"
   cobalt: "#2B63B8"
   gold: "#7F6500"
+  pewter: "#747775"
+  azure: "#4285F4"
+  leaf: "#34A853"
+  amber: "#FBBC05"
+  scarlet: "#EA4335"
   surface: "{colors.white}"
   ground: "{colors.mist}"
   text: "{colors.ink}"
@@ -44,6 +49,11 @@ colors:
   focus-on-dark: "{colors.mint}"
   debit: "{colors.cobalt}"
   credit: "{colors.gold}"
+  border-google: "{colors.pewter}"
+  google-blue: "{colors.azure}"
+  google-green: "{colors.leaf}"
+  google-yellow: "{colors.amber}"
+  google-red: "{colors.scarlet}"
 typography:
   display:
     fontFamily: Sora
@@ -121,6 +131,11 @@ components:
   input:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.text}"
+  button-google:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.text}"
+  sign-in-card:
+    backgroundColor: "{colors.surface}"
 ---
 
 # Credebi design
@@ -176,6 +191,11 @@ a palette colour.
 | `ochre`       | `#A15C00` | warning                                    |
 | `cobalt`      | `#2B63B8` | Debit                                      |
 | `gold`        | `#7F6500` | Credit                                     |
+| `pewter`      | `#747775` | the Google sign-in button's edge           |
+| `azure`       | `#4285F4` | the Google G, blue                         |
+| `leaf`        | `#34A853` | the Google G, green                        |
+| `amber`       | `#FBBC05` | the Google G, yellow                       |
+| `scarlet`     | `#EA4335` | the Google G, red                          |
 
 `mint-deep` was `#0E9A76`, which reads 3.6:1 on white and 3.3:1 on mist, below
 AA for text. `#0B7A5E` reads 5.3:1 and 4.9:1.
@@ -210,6 +230,11 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `focus-on-dark`      | `mint`      | the 2px focus ring on a dark ground   |
 | `debit`              | `cobalt`    | a Debit amount or label               |
 | `credit`             | `gold`      | a Credit amount or label              |
+| `border-google`      | `pewter`    | the Google sign-in button's edge      |
+| `google-blue`        | `azure`     | the Google G's blue arc               |
+| `google-green`       | `leaf`      | the Google G's green arc              |
+| `google-yellow`      | `amber`     | the Google G's yellow arc             |
+| `google-red`         | `scarlet`   | the Google G's red arc                |
 
 `debit` and `credit` back up position, Debit on the left and Credit on the
 right; they never carry a Side alone. Neither is green or red, so neither reads
@@ -218,6 +243,11 @@ apart from `warning`'s ochre (ΔE76 21.5) and `danger`'s rust (ΔE76 43): a
 Credit amount never reads as a warning. As text, `debit` reads 5.87:1 on
 `surface` and 5.45:1 on `ground`; `credit` reads 5.58:1 on `surface` and 5.19:1
 on `ground`.
+
+`pewter`, `azure`, `leaf`, `amber` and `scarlet` are Google's, not Credebi's:
+Google's sign-in branding fixes the button's edge and the four colours of its
+G, so they are kept exactly and used nowhere else. The G's colours are a mark's
+fills, not text or edges, and carry no contrast pair.
 
 The tokens module declares the pairs that must meet a contrast minimum, and a
 unit test checks every one:
@@ -228,7 +258,7 @@ unit test checks every one:
   `ground-dark` and `ground-dark-raised`; `ink` on `mint`.
 - **Control edges, 3:1.** `steel` and `mint-deep` on `white` and on `mist`;
   `mint`, the `focus-on-dark` ring, on `ink` and on `ink-raised` (7.66:1 on
-  `ink`).
+  `ink`); `pewter`, the Google sign-in button's edge, on `white` (4.53:1).
 
 A new text colour or ground is added to these pairs in the same change.
 
@@ -285,13 +315,26 @@ Hierarchy comes from tonal layers, not shadows: `surface` panels with a
 ## Components
 
 - **Primary button.** `accent` fill with `text`. White on mint reads 2.0:1 and
-  is never used. It is kept for a page's main action: the entry form's submit,
-  Entry search's submit and "Sign in with Google". Every other button on a
-  light ground is secondary. A transparent edge as wide as an Input's border
+  is never used. It is kept for a page's main action: the entry form's submit
+  and Entry search's submit. Every other button on a light ground is
+  secondary, except the Google sign-in button. A transparent edge as wide as an Input's border
   makes it as tall as the Input it sits beside: Entry search's submit beside
   the memo field, and the entry form's submit beside the amount field in
   Two-line mode.
 - **Secondary button.** `surface` fill, `text`, a `border-control` edge.
+- **Google sign-in button.** "Sign in with Google" follows Google's sign-in
+  branding rather than the primary button: a `surface` fill, `text`, a
+  `border-google` edge, 40px tall and as wide as the Sign in card, with Google's
+  four-colour G, 18px, before its text. The G is hidden from assistive
+  technology, so the button's name is its text alone.
+- **Sign in card.** The sign-in page's one panel, centred on the `ground` both
+  ways. It is the panel's look, as `PANEL` in `packages/ui` draws it, with
+  roomier padding: 400px wide and 40px of padding from `wide` up; below `wide`
+  as wide as the page gutter allows, with 28px above and below and 20px at the
+  sides. Inside, 24px apart: the stacked Lockup, the `Sign in` heading (an `h1`
+  element set in the `h2` step, centred), the failure line when sign-in failed,
+  centred, the Google sign-in button, and, where test sign-in is offered, the
+  `Test sign-in` form below a dashed `border` rule with 20px above it.
 - **Quiet button on dark.** No fill and no border: `text-muted-on-dark` text,
   `text-on-dark` under the pointer, and the `focus-on-dark` ring. It is Sign out
   in the Sidebar, an exit icon in `currentColor` before its text.
