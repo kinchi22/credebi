@@ -57,7 +57,7 @@ export function EntrySearchForm({ criteria }: EntrySearchFormProps): ReactNode {
       </h2>
 
       <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-end gap-3 wide:contents">
-        <div className={`${FIELD} min-w-0`}>
+        <div className={FIELD}>
           <label htmlFor={`${id}-from`}>{en.entrySearch.from}</label>
           <input
             id={`${id}-from`}
@@ -69,7 +69,7 @@ export function EntrySearchForm({ criteria }: EntrySearchFormProps): ReactNode {
             className={`${CONTROL} ${DATE_CONTROL}`}
           />
         </div>
-        <div className={`${FIELD} min-w-0`}>
+        <div className={FIELD}>
           <label htmlFor={`${id}-to`}>{en.entrySearch.to}</label>
           <input
             id={`${id}-to`}

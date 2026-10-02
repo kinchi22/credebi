@@ -17,7 +17,7 @@ import {
 
 const NOTHING_CHOSEN: AccountChoice = { debit: undefined, credit: undefined };
 
-function TwoLineFields({ id, heading, refusal, submit }: EntryFormParts): ReactNode {
+function TwoLineFields({ id, heading, refusal, submitButton }: EntryFormParts): ReactNode {
   const [chosen, setChosen] = useState<AccountChoice>(NOTHING_CHOSEN);
 
   const choose = (side: Side, account: AccountCode): void => {
@@ -50,7 +50,7 @@ function TwoLineFields({ id, heading, refusal, submit }: EntryFormParts): ReactN
             <label htmlFor={`${id}-amount`}>{en.twoLineForm.amount}</label>
             <AmountInput id={`${id}-amount`} />
           </div>
-          {submit}
+          {submitButton}
         </div>
         {refusal}
       </div>

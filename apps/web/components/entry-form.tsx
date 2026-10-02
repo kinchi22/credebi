@@ -32,7 +32,7 @@ export type EntryFormParts = {
   readonly id: string;
   readonly heading: ReactNode;
   readonly refusal: ReactNode;
-  readonly submit: ReactNode;
+  readonly submitButton: ReactNode;
 };
 
 type EntryFormShellProps = EntryFormProps & {
@@ -105,7 +105,7 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
     }
   }, [state]);
 
-  const submitFields = (event: SubmitEvent<HTMLFormElement>): void => {
+  const submit = (event: SubmitEvent<HTMLFormElement>): void => {
     event.preventDefault();
     const fields = new FormData(event.currentTarget);
     startTransition(() => {
@@ -152,8 +152,8 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
       </p>
     ) : null;
 
-  const submit = (
-    <button type="submit" disabled={pending} className={`ml-auto shrink-0 ${PRIMARY_BUTTON}`}>
+  const submitButton = (
+    <button type="submit" disabled={pending} className={`shrink-0 ${PRIMARY_BUTTON}`}>
       {pending ? en.entryForm.pending : en.entryForm.submit}
     </button>
   );
@@ -162,12 +162,12 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
     <form
       ref={form}
       aria-labelledby={`${id}-title`}
-      onSubmit={submitFields}
+      onSubmit={submit}
       className={`flex flex-col gap-3 ${PANEL}`}
     >
       <input type="hidden" name={ENTRY_FORM_FIELDS.entryFormMode} value={mode} />
 
-      <Fragment key={resetKey}>{children({ id, heading, refusal, submit })}</Fragment>
+      <Fragment key={resetKey}>{children({ id, heading, refusal, submitButton })}</Fragment>
     </form>
   );
 }
