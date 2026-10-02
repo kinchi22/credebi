@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { ENTRY_SEARCH_PATH, pathWithQuery, returnPath, signInPath } from './return-path';
+import {
+  ENTRY_SEARCH_PATH,
+  REQUESTED_PATH_HEADER,
+  pathWithQuery,
+  requestedPath,
+  returnPath,
+  signInPath,
+  signInPathFor,
+} from './return-path';
 
 describe('returnPath', () => {
   it.each([
@@ -73,5 +81,36 @@ describe('pathWithQuery', () => {
     expect(returnPath(pathWithQuery(ENTRY_SEARCH_PATH, { from: '2026-06-01' }))).toBe(
       '/entries/search?from=2026-06-01',
     );
+  });
+});
+
+describe('requestedPath', () => {
+  it('is the path and query of the request', () => {
+    expect(requestedPath(new URL('http://app.test/entries/search?from=2026-06-01'))).toBe(
+      '/entries/search?from=2026-06-01',
+    );
+  });
+
+  it('is the path alone when the request has no query', () => {
+    expect(requestedPath(new URL('http://app.test/settings'))).toBe('/settings');
+  });
+});
+
+describe('signInPathFor', () => {
+  const forwarded = (value: string): Headers =>
+    new Headers({ [REQUESTED_PATH_HEADER]: value });
+
+  it('sends the visitor to sign in, remembering the page the request asked for', () => {
+    expect(signInPathFor(forwarded('/entries/search?from=2026-06-01'))).toBe(
+      '/sign-in?returnTo=%2Fentries%2Fsearch%3Ffrom%3D2026-06-01',
+    );
+  });
+
+  it('returns to the entries page when the request carries no path', () => {
+    expect(signInPathFor(new Headers())).toBe('/sign-in?returnTo=%2Fentries');
+  });
+
+  it('returns to the entries page when the forwarded path leaves this origin', () => {
+    expect(signInPathFor(forwarded('//evil.test/steal'))).toBe('/sign-in?returnTo=%2Fentries');
   });
 });

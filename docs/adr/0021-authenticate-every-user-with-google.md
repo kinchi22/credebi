@@ -67,8 +67,10 @@ Core 3.1.3.7 lets TLS stand in for it; the adapter asks, with
   A Session whose User has no Identity does not slide; that User is the smoke
   User below. A page cannot set a cookie while it renders, so Next's proxy
   (`apps/web/proxy.ts`) sets the cookie again for 30 days on every read request
-  that carries it, and the cookie slides with the Session. It reads nothing:
-  the table decides whether the token still signs anyone in. Writes, and
+  that carries it, and the cookie slides with the Session. It reads no
+  session: the table decides whether the token still signs anyone in. It also
+  forwards each request's path and query to the render in a request header, so
+  the signed-in layout can send a signed-out request to sign-in and back. Writes, and
   anything under `/sign-in` or `/auth`, set or clear the cookie themselves and
   are left alone.
 - Signing out deletes the row, so it takes effect at once, and any session can be
