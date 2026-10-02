@@ -472,8 +472,9 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   `Choose a period` is.
 - **Entries list.** Laid out the same at every width, in Entries and in Entry
   search. Its panel shows no `Entries` heading, which is visually hidden, not
-  removed, so the region is still named `Entries`. Each Entry sits below a
-  full-width `border` hairline. Its first row holds the date in `date` and
+  removed, so the region is still named `Entries`. A full-width `border`
+  hairline parts each Entry from the one above; the first has none and starts
+  at the panel's padding. Its first row holds the date in `date` and
   `text-muted`, the memo semibold and filling the space, and the Entry's total
   on the right in `figure`, medium. Below it two equal columns, Debit and Credit,
   Credit's behind a `border` hairline, each headed by the Side in `label` and

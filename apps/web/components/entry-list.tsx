@@ -112,7 +112,7 @@ function ListedEntry({
     <div
       role="rowgroup"
       data-testid="entry"
-      className={`${PANEL_BLEED} grid ${layout.grid} border-t border-border py-4 ${typeClasses['body-dense']}`}
+      className={`${PANEL_BLEED} grid ${layout.grid} border-t border-border py-4 first:border-t-0 first:pt-0 ${typeClasses['body-dense']}`}
     >
       <div role="row" className="contents">
         <div role="cell" className="col-span-full row-start-1 pb-2">
