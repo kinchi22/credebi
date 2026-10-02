@@ -11,11 +11,13 @@ export type SheetTabsProps<Tab extends string> = {
   readonly tabId: (tab: Tab) => string;
   readonly panelId: (tab: Tab) => string;
   readonly label: (tab: Tab) => string;
+  readonly shownTone?: (tab: Tab) => string;
 };
 
 const TAB = `flex-1 border-b-2 py-3 ${typeClasses['body-sm']}`;
 const IDLE_TAB = `${TAB} border-border text-text-muted`;
-const SHOWN_TAB = `${TAB} border-accent font-semibold text-accent-text`;
+const ACCENT_TONE = 'border-accent text-accent-text';
+const shownTab = (tone: string): string => `${TAB} ${tone} font-semibold`;
 
 const STEPS: Readonly<Record<string, (index: number, count: number) => number>> = {
   ArrowLeft: (index, count) => (index + count - 1) % count,
@@ -66,6 +68,7 @@ export function SheetTabs<Tab extends string>({
   tabId,
   panelId,
   label,
+  shownTone,
 }: SheetTabsProps<Tab>): ReactNode {
   const buttons = useRef<Partial<Record<Tab, HTMLButtonElement | null>>>({});
 
@@ -100,7 +103,7 @@ export function SheetTabs<Tab extends string>({
           onKeyDown={(event) => {
             move(event, index);
           }}
-          className={shown === tab ? SHOWN_TAB : IDLE_TAB}
+          className={shown === tab ? shownTab(shownTone?.(tab) ?? ACCENT_TONE) : IDLE_TAB}
         >
           {label(tab)}
         </button>

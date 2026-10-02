@@ -56,6 +56,7 @@ describe('the declared pairs', () => {
     expect(foregroundsOn('ink')).toEqual(['frost', 'sage']);
     expect(foregroundsOn('ink-raised')).toEqual(['frost', 'sage']);
     expect(foregroundsOn('mint')).toEqual(['ink']);
+    expect(foregroundsOn('fog')).toEqual(['slate']);
   });
 
   it('checks the control edge and the focus ring on every ground', () => {
@@ -86,6 +87,7 @@ describe('the semantic tokens', () => {
       'accent-text': 'mint-deep',
       'accent-text-hover': 'mint-deeper',
       border: 'fog',
+      band: 'fog',
       'border-control': 'steel',
       danger: 'rust',
       warning: 'ochre',
@@ -119,8 +121,8 @@ describe('the semantic tokens', () => {
 });
 
 describe('the breakpoints', () => {
-  it('holds one breakpoint, wide, at 720px', () => {
-    expect(breakpoints).toEqual({ wide: 720 });
+  it('holds two breakpoints, wide at 720px and split at 1280px', () => {
+    expect(breakpoints).toEqual({ wide: 720, split: 1280 });
   });
 });
 
@@ -162,8 +164,9 @@ describe('themeDeclarations', () => {
     expect(declarations['--text-body--letter-spacing']).toBeUndefined();
   });
 
-  it('declares the wide breakpoint in rem, the unit of the breakpoints Tailwind keeps', () => {
+  it('declares each breakpoint in rem, the unit of the breakpoints Tailwind keeps', () => {
     expect(themeDeclarations()['--breakpoint-wide']).toBe('45rem');
+    expect(themeDeclarations()['--breakpoint-split']).toBe('80rem');
   });
 
   it('declares nothing but the colours, the faces, the type scale and the breakpoints', () => {
