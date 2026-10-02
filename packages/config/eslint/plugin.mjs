@@ -53,6 +53,7 @@ const isBlank = (text) => text.trim() === '';
 const MARKUP_ATTRIBUTES = new Set([
   'aria-controls',
   'aria-current',
+  'aria-describedby',
   'aria-hidden',
   'aria-labelledby',
   'className',

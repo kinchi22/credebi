@@ -50,6 +50,10 @@ export const en = {
       'two-line': 'Two-line mode',
       'multi-line': 'Multi-line mode',
     },
+    entryFormModeDescriptions: {
+      'two-line': 'One Debit account, one Credit account, one amount.',
+      'multi-line': 'Any number of Entry lines, each on its own Side.',
+    },
     saved: 'Saved',
     notSaved: 'Your choice was not saved, so your Entry form mode is unchanged. Try again.',
   },

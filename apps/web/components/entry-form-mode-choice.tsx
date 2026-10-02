@@ -1,6 +1,11 @@
 'use client';
 
-import { entryFormModeSchema, type DomainErrorCode, type EntryFormMode } from '@repo/contracts';
+import {
+  entryFormModeSchema,
+  type DomainErrorCode,
+  type EntryFormMode,
+  type Side,
+} from '@repo/contracts';
 import { useId, useState, useTransition, type ChangeEvent, type ReactNode } from 'react';
 import { typeClasses } from '@repo/ui/type-classes';
 import { en } from '../messages/en';
@@ -17,6 +22,50 @@ export type EntryFormModeChoiceProps = {
 };
 
 type Status = 'idle' | EntryFormModeChange['outcome'];
+
+type Bar = { readonly side: Side; readonly width: number };
+
+const BAR_HEIGHT = 4;
+const BAR_PITCH = 9;
+const DRAWING_WIDTH = 72;
+
+const MODE_BARS: Readonly<Record<EntryFormMode, readonly Bar[]>> = {
+  'two-line': [
+    { side: 'debit', width: 56 },
+    { side: 'credit', width: 56 },
+  ],
+  'multi-line': [
+    { side: 'debit', width: 64 },
+    { side: 'debit', width: 40 },
+    { side: 'credit', width: 52 },
+    { side: 'credit', width: 28 },
+  ],
+};
+
+const BAR_FILL: Readonly<Record<Side, string>> = {
+  debit: 'fill-debit',
+  credit: 'fill-credit',
+};
+
+function ModeDrawing({ mode }: { readonly mode: EntryFormMode }): ReactNode {
+  const bars = MODE_BARS[mode];
+  const height = (bars.length - 1) * BAR_PITCH + BAR_HEIGHT;
+  return (
+    <svg aria-hidden="true" width={DRAWING_WIDTH} height={height}>
+      {bars.map((bar, index) => (
+        <rect
+          key={index}
+          x={0}
+          y={index * BAR_PITCH}
+          width={bar.width}
+          height={BAR_HEIGHT}
+          rx={BAR_HEIGHT / 2}
+          className={BAR_FILL[bar.side]}
+        />
+      ))}
+    </svg>
+  );
+}
 
 export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps): ReactNode {
   const [selected, setSelected] = useState(chosen);
@@ -47,9 +96,9 @@ export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps
         <legend className={`float-left p-0 ${LEGEND}`}>
           {en.settingsPage.entryFormMode}
         </legend>
-        <div className="flex self-start rounded border border-border-control bg-surface p-0.5 wide:self-auto">
+        <div className="flex self-stretch rounded border border-border-control bg-surface p-0.5 wide:max-w-md wide:self-auto">
           {entryFormModeSchema.options.map((mode) => (
-            <label key={mode} className={`relative flex ${typeClasses['body-sm']}`}>
+            <label key={mode} className={`relative flex flex-1 basis-0 ${typeClasses['body-sm']}`}>
               <input
                 type="radio"
                 name={id}
@@ -57,10 +106,21 @@ export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps
                 checked={selected === mode}
                 disabled={pending}
                 onChange={change}
+                aria-labelledby={`${id}-${mode}-name`}
+                aria-describedby={`${id}-${mode}-description`}
                 className="peer absolute inset-0 m-0 cursor-pointer appearance-none opacity-0 disabled:cursor-default"
               />
-              <span className="rounded px-3 py-1 text-text-muted peer-checked:bg-accent/15 peer-checked:font-semibold peer-checked:text-text peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus peer-disabled:opacity-50">
-                {en.settingsPage.entryFormModes[mode]}
+              <span className="flex flex-1 flex-col gap-2 rounded px-3 py-2 text-text-muted peer-checked:bg-accent/15 peer-checked:text-text peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus peer-disabled:opacity-50">
+                <ModeDrawing mode={mode} />
+                <span
+                  id={`${id}-${mode}-name`}
+                  className={selected === mode ? 'font-semibold' : undefined}
+                >
+                  {en.settingsPage.entryFormModes[mode]}
+                </span>
+                <span id={`${id}-${mode}-description`} className={typeClasses['body-dense']}>
+                  {en.settingsPage.entryFormModeDescriptions[mode]}
+                </span>
               </span>
             </label>
           ))}
