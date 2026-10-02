@@ -7,13 +7,14 @@ import {
   accountTypesInOrder,
   type AccountCode,
 } from '@repo/core/entries';
+import { ChevronIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useId, useState, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { CONTROL, PRIMARY_BUTTON } from './control-classes';
 import { useHydrated } from './hydrated';
 import { useModalDialog, type ModalDialog } from './modal-dialog';
-import { SheetBar, SheetTabs } from './sheet';
+import { SheetBar, SheetCloseButton, SheetTabs } from './sheet';
 import { SIDE_TONE, SIDES } from './side-classes';
 import { useWide } from './wide';
 
@@ -116,6 +117,63 @@ export function AddAccountButton({ side, sheet }: AddAccountButtonProps): ReactN
       <span aria-hidden="true">+</span>
       {en.accountSheet.add[side]}
     </button>
+  );
+}
+
+type ChooseAccountButtonProps = {
+  readonly side: Side;
+  readonly account: AccountCode | undefined;
+  readonly sheet: AccountSheet;
+};
+
+export function ChooseAccountButton({ side, account, sheet }: ChooseAccountButtonProps): ReactNode {
+  const hydrated = useHydrated();
+
+  return (
+    <button
+      type="button"
+      aria-label={en.accountSheet.choose[side]}
+      aria-expanded={sheet.open}
+      aria-controls={sheet.id}
+      disabled={!hydrated}
+      onClick={(event) => {
+        sheet.openOn(side, event.currentTarget);
+      }}
+      className="flex min-h-10 w-full items-center gap-3 border-b border-border py-1 text-left disabled:opacity-50 wide:hidden"
+    >
+      <AccountRowContent side={side} account={account} />
+      {account === undefined ? null : (
+        <span className="shrink-0 text-text-muted">
+          <ChevronIcon />
+        </span>
+      )}
+    </button>
+  );
+}
+
+type AccountRowProps = {
+  readonly side: Side;
+  readonly account: AccountCode | undefined;
+};
+
+export function AccountRow({ side, account }: AccountRowProps): ReactNode {
+  return (
+    <div className="hidden items-center gap-3 border-b border-border py-1 wide:flex">
+      <AccountRowContent side={side} account={account} />
+    </div>
+  );
+}
+
+function AccountRowContent({ side, account }: AccountRowProps): ReactNode {
+  return (
+    <>
+      <span className={`w-16 shrink-0 ${typeClasses.label} leading-5 ${SIDE_TONE[side].text}`}>
+        {en.sides[side]}
+      </span>
+      <span className={`min-w-0 grow ${account === undefined ? 'text-text-muted' : 'font-semibold'}`}>
+        {account === undefined ? en.entryForm.chooseAccount : en.accounts[account]}
+      </span>
+    </>
   );
 }
 
@@ -223,7 +281,12 @@ function AccountSheetDialog({ multiple = false, isChosen, onPick, sheet }: Accou
 
   const pick = (side: Side, account: AccountCode, chosen: boolean): void => {
     onPick(side, account, chosen);
-    if (chosen && !hasAccount(otherSide(side))) {
+    if (multiple || !chosen) {
+      return;
+    }
+    if (hasAccount(otherSide(side))) {
+      sheet.close();
+    } else {
       sheet.setSide(otherSide(side));
     }
   };
@@ -238,9 +301,13 @@ function AccountSheetDialog({ multiple = false, isChosen, onPick, sheet }: Accou
     >
       <div className="flex h-full flex-col">
         <SheetBar titleId={titleId} title={en.accountSheet.title}>
-          <button type="button" onClick={sheet.close} className={PRIMARY_BUTTON}>
-            {en.accountSheet.done}
-          </button>
+          {multiple ? (
+            <button type="button" onClick={sheet.close} className={PRIMARY_BUTTON}>
+              {en.accountSheet.done}
+            </button>
+          ) : (
+            <SheetCloseButton label={en.accountSheet.close} onClose={sheet.close} />
+          )}
         </SheetBar>
         <SheetTabs
           tabs={SIDES}

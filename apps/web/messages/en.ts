@@ -125,11 +125,16 @@ export const en = {
   accountSheet: {
     title: 'Choose accounts',
     done: 'Done',
+    close: 'Close',
     find: 'Find an account',
     noMatch: 'No account matches',
     add: {
       debit: 'Add debit account',
       credit: 'Add credit account',
+    },
+    choose: {
+      debit: 'Choose debit account',
+      credit: 'Choose credit account',
     },
   },
   entryList: {
