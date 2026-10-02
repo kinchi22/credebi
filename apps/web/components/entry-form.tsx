@@ -66,13 +66,15 @@ export const ENTRY_FORM_GRID =
 
 type AmountInputProps = {
   readonly id: string;
+  readonly label: string;
   readonly onAmountChange?: (amount: string) => void;
 };
 
-export function AmountInput({ id, onAmountChange }: AmountInputProps): ReactNode {
+export function AmountInput({ id, label, onAmountChange }: AmountInputProps): ReactNode {
   return (
     <input
       id={id}
+      aria-label={label}
       name={ENTRY_FORM_FIELDS.amount}
       onChange={
         onAmountChange === undefined
@@ -122,7 +124,7 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
         {en.entryForm.title}
       </h2>
 
-      <div className="flex flex-wrap gap-3 border-b border-border pb-3 wide:grid wide:grid-cols-[9.25rem_minmax(0,1fr)]">
+      <div className="flex flex-wrap gap-3 wide:grid wide:grid-cols-[9.25rem_minmax(0,1fr)]">
         <div className={DENSE_FIELD}>
           <label htmlFor={`${id}-date`}>{en.entryForm.date}</label>
           <input
