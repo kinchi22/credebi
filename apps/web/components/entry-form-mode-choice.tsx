@@ -49,7 +49,7 @@ function ModeDrawing({ mode }: { readonly mode: EntryFormMode }): ReactNode {
   const bars = MODE_BARS[mode];
   const height = (bars.length - 1) * BAR_PITCH + BAR_HEIGHT;
   return (
-    <svg aria-hidden="true" width={DRAWING_WIDTH} height={height}>
+    <svg aria-hidden="true" width={DRAWING_WIDTH} height={height} className="self-start">
       {bars.map((bar, index) => (
         <rect
           key={index}
@@ -94,9 +94,9 @@ export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps
         <legend className={`float-left p-0 ${LEGEND}`}>
           {en.settingsPage.entryFormMode}
         </legend>
-        <div className="flex self-stretch rounded border border-border-control bg-surface p-0.5 wide:max-w-md wide:self-auto">
+        <div className="grid auto-cols-fr grid-flow-col grid-rows-[auto_auto_auto] gap-y-2 self-stretch rounded border border-border-control bg-surface p-0.5 wide:max-w-2xl wide:flex-1 wide:self-auto">
           {entryFormModeSchema.options.map((mode) => (
-            <label key={mode} className={`relative flex flex-1 basis-0 ${typeClasses['body-sm']}`}>
+            <label key={mode} className={`relative row-span-3 grid grid-rows-subgrid ${typeClasses['body-sm']}`}>
               <input
                 type="radio"
                 name={id}
@@ -109,7 +109,7 @@ export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps
                 className="peer absolute inset-0 m-0 cursor-pointer appearance-none opacity-0 disabled:cursor-default"
               />
               <span
-                className={`flex flex-1 flex-col gap-2 rounded px-3 py-2 ${selected === mode ? CHOSEN_SEGMENT : 'text-text-muted'} peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus peer-disabled:opacity-50`}
+                className={`row-span-3 grid grid-rows-subgrid rounded px-3 py-2 ${selected === mode ? CHOSEN_SEGMENT : 'text-text-muted'} peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus peer-disabled:opacity-50`}
               >
                 <ModeDrawing mode={mode} />
                 <span
