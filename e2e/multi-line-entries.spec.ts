@@ -1,22 +1,30 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
+  accountSheet,
   accountTick,
   accountTicks,
   ACCOUNTS,
+  addAccountButton,
   addLine,
   amountShown,
+  closeAccountSheet,
   DAY,
   entryForm,
+  expectSheetOnSide,
+  findAnAccount,
   lineGroup,
   lineGroups,
   listedEntry,
+  openAccountSheet,
   SIDES,
   submitMultiLineEntry,
+  submitMultiLineEntryOnPhone,
   TWELVE_THOUSAND_FIVE_HUNDRED,
 } from './entries';
 import { signIn } from './session';
 import { setEntryFormMode } from './settings';
+import { PHONE } from './viewport';
 
 async function openMultiLineForm(page: Page): Promise<Locator> {
   await signIn(page);
@@ -151,4 +159,69 @@ test('refuses an Entry whose debits and credits differ', async ({ page }) => {
   await page.reload();
   await expect(page.getByRole('region', { name: 'Entries' })).toBeVisible();
   await expect(listedEntry(page, memo)).toHaveCount(0);
+});
+
+test('hides the Account checkboxes at 390px until Add debit account or Add credit account opens Choose accounts on that Side, narrowed by Find an account', async ({ page }) => {
+  const form = await openMultiLineForm(page);
+  await page.setViewportSize(PHONE);
+
+  for (const side of SIDES) {
+    await expect(addAccountButton(form, side)).toBeVisible();
+    await expect(page.getByRole('group', { name: `${side} accounts`, exact: true })).toBeHidden();
+  }
+
+  const sheet = await openAccountSheet(form, 'Debit');
+  await expectSheetOnSide(sheet, 'Debit');
+  await expect(accountTicks(sheet, 'Debit').getByRole('checkbox')).toHaveCount(ACCOUNTS.length);
+  await expect(accountTicks(sheet, 'Credit')).toBeHidden();
+
+  await findAnAccount(sheet).fill('es');
+  await expect(accountTicks(sheet, 'Debit').getByRole('checkbox')).toHaveCount(2);
+  await expect(accountTick(sheet, 'Debit', 'Sales')).toBeVisible();
+  await expect(accountTick(sheet, 'Debit', 'Expenses')).toBeVisible();
+
+  await closeAccountSheet(sheet);
+  await openAccountSheet(form, 'Credit');
+  await expectSheetOnSide(accountSheet(page), 'Credit');
+});
+
+test('selects the Debit tab at 390px once a Credit Account is ticked while Debit has none, keeps the tab while Credit has one, and shows a line per ticked Account after Done', async ({ page }) => {
+  const form = await openMultiLineForm(page);
+  await page.setViewportSize(PHONE);
+
+  const sheet = await openAccountSheet(form, 'Credit');
+  await accountTick(sheet, 'Credit', 'Cash').check();
+  await expectSheetOnSide(sheet, 'Debit');
+
+  await accountTick(sheet, 'Debit', 'Expenses').check();
+  await expectSheetOnSide(sheet, 'Debit');
+  await accountTick(sheet, 'Debit', 'Capital').check();
+  await expectSheetOnSide(sheet, 'Debit');
+
+  await closeAccountSheet(sheet);
+  await expect(lineGroups(form)).toHaveCount(3);
+  await expect(lineGroup(form, 'Credit', 'Cash')).toBeVisible();
+  await expect(lineGroup(form, 'Debit', 'Expenses')).toBeVisible();
+  await expect(lineGroup(form, 'Debit', 'Capital')).toBeVisible();
+});
+
+test('lists a Multi-line mode Entry added at 390px through Choose accounts', async ({ page }) => {
+  const memo = `Supplies on account ${randomUUID()}`;
+  const form = await openMultiLineForm(page);
+  await page.setViewportSize(PHONE);
+
+  await submitMultiLineEntryOnPhone(form, {
+    day: DAY,
+    memo,
+    lines: [
+      { side: 'Debit', account: 'Expenses', amount: '12500' },
+      { side: 'Credit', account: 'Cash', amount: '12000' },
+      { side: 'Credit', account: 'Accounts payable', amount: '500' },
+    ],
+  });
+
+  const entry = listedEntry(page, memo);
+  await expect(entry).toHaveCount(1);
+  await expect(entry.getByTestId('entry-line')).toHaveCount(3);
+  await expect(entry.getByTestId('entry-total')).toContainText(TWELVE_THOUSAND_FIVE_HUNDRED);
 });
