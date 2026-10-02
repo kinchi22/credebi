@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
-  accountSheet,
   accountTick,
   accountTicks,
   ACCOUNTS,
@@ -167,12 +166,13 @@ test('hides the Account checkboxes at 390px until Add debit account or Add credi
 
   for (const side of SIDES) {
     await expect(addAccountButton(form, side)).toBeVisible();
-    await expect(page.getByRole('group', { name: `${side} accounts`, exact: true })).toBeHidden();
+    await expect(accountTicks(page, side)).toBeHidden();
   }
 
   const sheet = await openAccountSheet(form, 'Debit');
   await expectSheetOnSide(sheet, 'Debit');
   await expect(accountTicks(sheet, 'Debit').getByRole('checkbox')).toHaveCount(ACCOUNTS.length);
+  await expect(sheet.getByText('Recent')).toHaveCount(0);
   await expect(accountTicks(sheet, 'Credit')).toBeHidden();
 
   await findAnAccount(sheet).fill('es');
@@ -181,8 +181,8 @@ test('hides the Account checkboxes at 390px until Add debit account or Add credi
   await expect(accountTick(sheet, 'Debit', 'Expenses')).toBeVisible();
 
   await closeAccountSheet(sheet);
-  await openAccountSheet(form, 'Credit');
-  await expectSheetOnSide(accountSheet(page), 'Credit');
+  const reopened = await openAccountSheet(form, 'Credit');
+  await expectSheetOnSide(reopened, 'Credit');
 });
 
 test('selects the Debit tab at 390px once a Credit Account is ticked while Debit has none, keeps the tab while Credit has one, and shows a line per ticked Account after Done', async ({ page }) => {

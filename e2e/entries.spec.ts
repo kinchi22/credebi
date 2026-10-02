@@ -4,7 +4,6 @@ import {
   accountChoice,
   accountChoices,
   ACCOUNTS,
-  accountSheet,
   addAccountButton,
   AMOUNT,
   closeAccountSheet,
@@ -107,13 +106,14 @@ test('hides the Account pickers at 390px until Add debit account or Add credit a
 
   for (const side of SIDES) {
     await expect(addAccountButton(form, side)).toBeVisible();
-    await expect(page.getByRole('radiogroup', { name: `${side} account`, exact: true })).toBeHidden();
+    await expect(accountChoices(page, side)).toBeHidden();
   }
-  await expect(accountSheet(page)).toBeHidden();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
 
   const sheet = await openAccountSheet(form, 'Credit');
   await expectSheetOnSide(sheet, 'Credit');
   await expect(findAnAccount(sheet)).toBeVisible();
+  await expect(sheet.getByText('Recent')).toHaveCount(0);
   await expect(accountChoices(sheet, 'Credit').getByRole('radio')).toHaveCount(ACCOUNTS.length);
   await expect(accountChoices(sheet, 'Debit')).toBeHidden();
 
@@ -124,11 +124,11 @@ test('hides the Account pickers at 390px until Add debit account or Add credit a
 
   await closeAccountSheet(sheet);
   for (const side of SIDES) {
-    await expect(page.getByRole('radiogroup', { name: `${side} account`, exact: true })).toBeHidden();
+    await expect(accountChoices(page, side)).toBeHidden();
   }
 
-  await openAccountSheet(form, 'Debit');
-  await expectSheetOnSide(sheet, 'Debit');
+  const reopened = await openAccountSheet(form, 'Debit');
+  await expectSheetOnSide(reopened, 'Debit');
 });
 
 test('narrows the Accounts in Choose accounts at 390px to those whose name contains the text typed in Find an account', async ({ page }) => {

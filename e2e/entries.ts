@@ -44,13 +44,13 @@ export const entryForm = (page: Page): Locator => page.getByRole('form', { name:
 export const entrySearchForm = (page: Page): Locator =>
   page.getByRole('form', { name: 'Search entries' });
 
-export const accountChoices = (form: Locator, side: Side): Locator =>
+export const accountChoices = (form: Page | Locator, side: Side): Locator =>
   form.getByRole('radiogroup', { name: `${side} account`, exact: true });
 
 export const accountChoice = (form: Locator, side: Side, account: Account): Locator =>
   accountChoices(form, side).getByRole('radio', { name: account, exact: true });
 
-export const accountTicks = (form: Locator, side: Side): Locator =>
+export const accountTicks = (form: Page | Locator, side: Side): Locator =>
   form.getByRole('group', { name: `${side} accounts`, exact: true });
 
 export const accountTick = (form: Locator, side: Side, account: Account): Locator =>
@@ -67,9 +67,6 @@ export const lineGroups = (form: Locator): Locator =>
 export const addAccountButton = (form: Locator, side: Side): Locator =>
   form.getByRole('button', { name: `Add ${side.toLowerCase()} account`, exact: true });
 
-export const accountSheet = (page: Page): Locator =>
-  page.getByRole('dialog', { name: 'Choose accounts', exact: true });
-
 export const sheetTab = (sheet: Locator, side: Side): Locator =>
   sheet.getByRole('tablist').getByRole('tab', { name: side, exact: true });
 
@@ -78,7 +75,7 @@ export const findAnAccount = (sheet: Locator): Locator =>
 
 export async function openAccountSheet(form: Locator, side: Side): Promise<Locator> {
   await addAccountButton(form, side).click();
-  const sheet = accountSheet(form.page());
+  const sheet = form.page().getByRole('dialog', { name: 'Choose accounts', exact: true });
   await expect(sheet).toBeVisible();
   return sheet;
 }
@@ -89,11 +86,9 @@ export async function closeAccountSheet(sheet: Locator): Promise<void> {
 }
 
 export async function expectSheetOnSide(sheet: Locator, side: Side): Promise<void> {
-  await expect(sheetTab(sheet, side)).toHaveAttribute('aria-selected', 'true');
-  await expect(sheetTab(sheet, side === 'Debit' ? 'Credit' : 'Debit')).toHaveAttribute(
-    'aria-selected',
-    'false',
-  );
+  for (const tab of SIDES) {
+    await expect(sheetTab(sheet, tab)).toHaveAttribute('aria-selected', String(tab === side));
+  }
 }
 
 export const listedEntry = (page: Page, memo: string): Locator =>
