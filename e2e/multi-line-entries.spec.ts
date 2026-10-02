@@ -7,7 +7,6 @@ import {
   addAccountButton,
   addLine,
   amountShown,
-  closeAccountSheet,
   DAY,
   entryForm,
   expectSheetOnSide,
@@ -16,6 +15,8 @@ import {
   lineGroups,
   listedEntry,
   openAccountSheet,
+  pressDone,
+  sheetTab,
   SIDES,
   submitMultiLineEntry,
   submitMultiLineEntryOnPhone,
@@ -180,25 +181,31 @@ test('hides the Account checkboxes at 390px until Add debit account or Add credi
   await expect(accountTick(sheet, 'Debit', 'Sales')).toBeVisible();
   await expect(accountTick(sheet, 'Debit', 'Expenses')).toBeVisible();
 
-  await closeAccountSheet(sheet);
+  await pressDone(sheet);
   const reopened = await openAccountSheet(form, 'Credit');
   await expectSheetOnSide(reopened, 'Credit');
 });
 
-test('selects the Debit tab at 390px once a Credit Account is ticked while Debit has none, keeps the tab while Credit has one, and shows a line per ticked Account after Done', async ({ page }) => {
+test('keeps the tab on the ticked Side at 390px, whether or not the other Side has an Account, and shows a line per ticked Account after Done', async ({ page }) => {
   const form = await openMultiLineForm(page);
   await page.setViewportSize(PHONE);
 
   const sheet = await openAccountSheet(form, 'Credit');
+  await expectSheetOnSide(sheet, 'Credit');
   await accountTick(sheet, 'Credit', 'Cash').check();
-  await expectSheetOnSide(sheet, 'Debit');
+  await expect(accountTick(sheet, 'Credit', 'Cash')).toBeChecked();
+  await expectSheetOnSide(sheet, 'Credit');
 
+  await sheetTab(sheet, 'Debit').click();
+  await expectSheetOnSide(sheet, 'Debit');
   await accountTick(sheet, 'Debit', 'Expenses').check();
+  await expect(accountTick(sheet, 'Debit', 'Expenses')).toBeChecked();
   await expectSheetOnSide(sheet, 'Debit');
   await accountTick(sheet, 'Debit', 'Capital').check();
+  await expect(accountTick(sheet, 'Debit', 'Capital')).toBeChecked();
   await expectSheetOnSide(sheet, 'Debit');
 
-  await closeAccountSheet(sheet);
+  await pressDone(sheet);
   await expect(lineGroups(form)).toHaveCount(3);
   await expect(lineGroup(form, 'Credit', 'Cash')).toBeVisible();
   await expect(lineGroup(form, 'Debit', 'Expenses')).toBeVisible();

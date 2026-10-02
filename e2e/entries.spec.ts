@@ -6,16 +6,21 @@ import {
   ACCOUNTS,
   addAccountButton,
   AMOUNT,
-  closeAccountSheet,
+  chooseAccountButton,
+  closeButton,
   DAY,
+  doneButton,
   entryForm,
   expectDebitAndCreditColumns,
   expectSheetOnSide,
   findAnAccount,
   listedEntry,
-  openAccountSheet,
+  NO_ACCOUNT_CHOSEN,
+  openTwoLineAccountSheet,
   sheetTab,
   SIDES,
+  type Account,
+  type Side,
   submitTwoLineEntry,
   submitTwoLineEntryOnPhone,
   TWELVE_THOUSAND_FIVE_HUNDRED,
@@ -38,6 +43,33 @@ async function expectListedAsSubmitted(entry: Locator): Promise<void> {
   await expect(lines.nth(1)).toContainText(TWELVE_THOUSAND_FIVE_HUNDRED);
 
   await expect(entry.getByTestId('entry-total')).toContainText(TWELVE_THOUSAND_FIVE_HUNDRED);
+}
+
+async function pressClose(page: Page, sheet: Locator): Promise<void> {
+  await closeButton(sheet).click();
+  await expect(sheet).toBeHidden();
+  for (const each of SIDES) {
+    await expect(accountChoices(page, each)).toBeHidden();
+  }
+}
+
+async function expectRows(
+  form: Locator,
+  chosen: Readonly<Record<Side, Account | undefined>>,
+): Promise<void> {
+  for (const side of SIDES) {
+    const row = chooseAccountButton(form, side);
+    const account = chosen[side];
+    if (account === undefined) {
+      await expect(row).toContainText(NO_ACCOUNT_CHOSEN);
+    } else {
+      await expect(row).toContainText(account);
+      await expect(row).not.toContainText(NO_ACCOUNT_CHOSEN);
+    }
+    for (const other of ACCOUNTS.filter((name) => name !== account)) {
+      await expect(row).not.toContainText(other);
+    }
+  }
 }
 
 async function openTwoLineForm(page: Page): Promise<Locator> {
@@ -100,17 +132,19 @@ test('shows the Debit and Credit pickers side by side on a wide window, with no 
   }
 });
 
-test('hides the Account pickers at 390px until Add debit account or Add credit account opens Choose accounts on that Side', async ({ page }) => {
+test('hides the Account pickers at 390px until Choose debit account or Choose credit account opens Choose accounts on that Side', async ({ page }) => {
   const form = await openTwoLineForm(page);
   await page.setViewportSize(PHONE);
 
+  await expectRows(form, { Debit: undefined, Credit: undefined });
   for (const side of SIDES) {
-    await expect(addAccountButton(form, side)).toBeVisible();
+    await expect(chooseAccountButton(form, side)).toBeVisible();
+    await expect(addAccountButton(form, side)).toBeHidden();
     await expect(accountChoices(page, side)).toBeHidden();
   }
   await expect(page.getByRole('dialog')).toHaveCount(0);
 
-  const sheet = await openAccountSheet(form, 'Credit');
+  const sheet = await openTwoLineAccountSheet(form, 'Credit');
   await expectSheetOnSide(sheet, 'Credit');
   await expect(findAnAccount(sheet)).toBeVisible();
   await expect(sheet.getByText('Recent')).toHaveCount(0);
@@ -122,20 +156,37 @@ test('hides the Account pickers at 390px until Add debit account or Add credit a
   await expect(accountChoices(sheet, 'Debit').getByRole('radio')).toHaveCount(ACCOUNTS.length);
   await expect(accountChoices(sheet, 'Credit')).toBeHidden();
 
-  await closeAccountSheet(sheet);
-  for (const side of SIDES) {
-    await expect(accountChoices(page, side)).toBeHidden();
-  }
-
-  const reopened = await openAccountSheet(form, 'Debit');
+  await pressClose(page, sheet);
+  const reopened = await openTwoLineAccountSheet(form, 'Debit');
   await expectSheetOnSide(reopened, 'Debit');
+});
+
+test('has no Done button in Choose accounts at 390px in Two-line mode, and its Close button closes it keeping the Accounts chosen', async ({ page }) => {
+  const form = await openTwoLineForm(page);
+  await page.setViewportSize(PHONE);
+
+  const sheet = await openTwoLineAccountSheet(form, 'Debit');
+  await expect(closeButton(sheet)).toBeVisible();
+  await expect(doneButton(sheet)).toBeHidden();
+
+  await accountChoice(sheet, 'Debit', 'Cash').check();
+  await expectSheetOnSide(sheet, 'Credit');
+
+  await pressClose(page, sheet);
+  await expectRows(form, { Debit: 'Cash', Credit: undefined });
+
+  const reopened = await openTwoLineAccountSheet(form, 'Credit');
+  await expectSheetOnSide(reopened, 'Credit');
+  await expect(accountChoices(reopened, 'Credit').getByRole('radio', { checked: true })).toHaveCount(0);
+  await sheetTab(reopened, 'Debit').click();
+  await expect(accountChoice(reopened, 'Debit', 'Cash')).toBeChecked();
 });
 
 test('narrows the Accounts in Choose accounts at 390px to those whose name contains the text typed in Find an account', async ({ page }) => {
   const form = await openTwoLineForm(page);
   await page.setViewportSize(PHONE);
 
-  const sheet = await openAccountSheet(form, 'Debit');
+  const sheet = await openTwoLineAccountSheet(form, 'Debit');
   await findAnAccount(sheet).fill('es');
 
   const debit = accountChoices(sheet, 'Debit');
@@ -147,28 +198,53 @@ test('narrows the Accounts in Choose accounts at 390px to those whose name conta
   }
 });
 
-test('selects the Credit tab at 390px once a Debit Account is chosen while Credit has none, keeps the tab while the other Side has one, and shows the chosen Accounts in the form after Done', async ({ page }) => {
+test('selects the Credit tab at 390px once a Debit Account is chosen while Credit has none, and closes Choose accounts once both Sides have one, showing each in its row', async ({ page }) => {
   const form = await openTwoLineForm(page);
   await page.setViewportSize(PHONE);
 
-  const sheet = await openAccountSheet(form, 'Debit');
+  const sheet = await openTwoLineAccountSheet(form, 'Debit');
   await accountChoice(sheet, 'Debit', 'Cash').check();
   await expectSheetOnSide(sheet, 'Credit');
 
   await accountChoice(sheet, 'Credit', 'Expenses').check();
-  await expectSheetOnSide(sheet, 'Credit');
+  await expect(sheet).toBeHidden();
+  await expectRows(form, { Debit: 'Cash', Credit: 'Expenses' });
+});
 
-  await sheetTab(sheet, 'Debit').click();
-  await accountChoice(sheet, 'Debit', 'Sales').check();
+test('selects the Debit tab at 390px once a Credit Account is chosen while Debit has none', async ({ page }) => {
+  const form = await openTwoLineForm(page);
+  await page.setViewportSize(PHONE);
+
+  const sheet = await openTwoLineAccountSheet(form, 'Credit');
+  await accountChoice(sheet, 'Credit', 'Sales').check();
   await expectSheetOnSide(sheet, 'Debit');
-  await expect(accountChoice(sheet, 'Debit', 'Sales')).toBeChecked();
 
-  await closeAccountSheet(sheet);
-  const shownInForm = (account: string): Locator =>
-    form.getByText(account, { exact: true }).filter({ visible: true });
-  await expect(shownInForm('Sales')).toHaveCount(1);
-  await expect(shownInForm('Expenses')).toHaveCount(1);
-  await expect(shownInForm('Cash')).toHaveCount(0);
+  await accountChoice(sheet, 'Debit', 'Cash').check();
+  await expect(sheet).toBeHidden();
+  await expectRows(form, { Debit: 'Cash', Credit: 'Sales' });
+});
+
+test('closes Choose accounts at 390px when an Account is changed on one Side while both Sides already have one', async ({ page }) => {
+  const form = await openTwoLineForm(page);
+  await page.setViewportSize(PHONE);
+
+  const first = await openTwoLineAccountSheet(form, 'Debit');
+  await accountChoice(first, 'Debit', 'Cash').check();
+  await accountChoice(first, 'Credit', 'Expenses').check();
+  await expect(first).toBeHidden();
+
+  const debit = await openTwoLineAccountSheet(form, 'Debit');
+  await expectSheetOnSide(debit, 'Debit');
+  await expect(accountChoice(debit, 'Debit', 'Cash')).toBeChecked();
+  await accountChoice(debit, 'Debit', 'Sales').check();
+  await expect(debit).toBeHidden();
+  await expectRows(form, { Debit: 'Sales', Credit: 'Expenses' });
+
+  const credit = await openTwoLineAccountSheet(form, 'Credit');
+  await expectSheetOnSide(credit, 'Credit');
+  await accountChoice(credit, 'Credit', 'Capital').check();
+  await expect(credit).toBeHidden();
+  await expectRows(form, { Debit: 'Sales', Credit: 'Capital' });
 });
 
 test('lists a Two-line mode Entry added at 390px through Choose accounts', async ({ page }) => {

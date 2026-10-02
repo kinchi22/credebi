@@ -67,23 +67,45 @@ export const lineGroups = (form: Locator): Locator =>
 export const addAccountButton = (form: Locator, side: Side): Locator =>
   form.getByRole('button', { name: `Add ${side.toLowerCase()} account`, exact: true });
 
+export const chooseAccountButton = (form: Locator, side: Side): Locator =>
+  form.getByRole('button', { name: `Choose ${side.toLowerCase()} account`, exact: true });
+
+export const NO_ACCOUNT_CHOSEN = 'Choose an account';
+
 export const sheetTab = (sheet: Locator, side: Side): Locator =>
   sheet.getByRole('tablist').getByRole('tab', { name: side, exact: true });
 
 export const findAnAccount = (sheet: Locator): Locator =>
   sheet.getByRole('searchbox', { name: 'Find an account', exact: true });
 
-export async function openAccountSheet(form: Locator, side: Side): Promise<Locator> {
-  await addAccountButton(form, side).click();
-  const sheet = form.page().getByRole('dialog', { name: 'Choose accounts', exact: true });
+const accountSheet = (page: Page): Locator =>
+  page.getByRole('dialog', { name: 'Choose accounts', exact: true });
+
+async function openSheetWith(button: Locator): Promise<Locator> {
+  await button.click();
+  const sheet = accountSheet(button.page());
   await expect(sheet).toBeVisible();
   return sheet;
 }
 
-export async function closeAccountSheet(sheet: Locator): Promise<void> {
-  await sheet.getByRole('button', { name: 'Done', exact: true }).click();
+export async function openAccountSheet(form: Locator, side: Side): Promise<Locator> {
+  return openSheetWith(addAccountButton(form, side));
+}
+
+export async function openTwoLineAccountSheet(form: Locator, side: Side): Promise<Locator> {
+  return openSheetWith(chooseAccountButton(form, side));
+}
+
+export const doneButton = (sheet: Locator): Locator =>
+  sheet.getByRole('button', { name: 'Done', exact: true });
+
+export async function pressDone(sheet: Locator): Promise<void> {
+  await doneButton(sheet).click();
   await expect(sheet).toBeHidden();
 }
+
+export const closeButton = (sheet: Locator): Locator =>
+  sheet.getByRole('button', { name: 'Close', exact: true });
 
 export async function expectSheetOnSide(sheet: Locator, side: Side): Promise<void> {
   for (const tab of SIDES) {
@@ -116,11 +138,11 @@ export async function submitTwoLineEntryOnPhone(
   entry: TwoLineEntry,
 ): Promise<void> {
   await fillHeading(form, entry);
-  const sheet = await openAccountSheet(form, 'Debit');
+  const sheet = await openTwoLineAccountSheet(form, 'Debit');
   await accountChoice(sheet, 'Debit', entry.debitAccount).check();
-  await sheetTab(sheet, 'Credit').click();
+  await expectSheetOnSide(sheet, 'Credit');
   await accountChoice(sheet, 'Credit', entry.creditAccount).check();
-  await closeAccountSheet(sheet);
+  await expect(sheet).toBeHidden();
   await form.getByLabel('Amount').fill(entry.amount);
   await submit(form);
 }
@@ -128,7 +150,7 @@ export async function submitTwoLineEntryOnPhone(
 export async function addLineOnPhone(form: Locator, line: Line): Promise<void> {
   const sheet = await openAccountSheet(form, line.side);
   await accountTick(sheet, line.side, line.account).check();
-  await closeAccountSheet(sheet);
+  await pressDone(sheet);
   await lineGroup(form, line.side, line.account).getByLabel('Amount').fill(line.amount);
 }
 
