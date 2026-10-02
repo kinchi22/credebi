@@ -40,6 +40,17 @@ describe('the global stylesheet', () => {
     ]);
   });
 
+  it('gives the pointer cursor to every enabled button, tab and choice, and to the label that wraps a choice', () => {
+    const pointerRule = /([^{}]+)\{\s*cursor:\s*pointer;\s*\}/u.exec(stylesheet);
+    const selectors = (pointerRule?.[1] ?? '').split(/,\s*(?![^()]*\))/u).map((selector) => selector.trim());
+    expect(selectors).toEqual([
+      'button:enabled',
+      '[role="tab"]:not(:disabled, [aria-disabled="true"])',
+      'input:is([type="radio"], [type="checkbox"]):enabled',
+      'label:has(input:is([type="radio"], [type="checkbox"]):enabled)',
+    ]);
+  });
+
   it('imports Tailwind', () => {
     expect(stylesheet).toMatch(/^@import "tailwindcss";$/mu);
   });

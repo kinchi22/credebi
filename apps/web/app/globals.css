@@ -71,4 +71,11 @@
     outline: 2px solid var(--color-focus);
     outline-offset: 2px;
   }
+
+  button:enabled,
+  [role="tab"]:not(:disabled, [aria-disabled="true"]),
+  input:is([type="radio"], [type="checkbox"]):enabled,
+  label:has(input:is([type="radio"], [type="checkbox"]):enabled) {
+    cursor: pointer;
+  }
 }
