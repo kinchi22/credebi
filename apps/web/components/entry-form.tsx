@@ -14,6 +14,7 @@ import {
   type SubmitEvent,
 } from 'react';
 import { en } from '../messages/en';
+import { useBrowserToday } from './browser-today';
 import { CONTROL, DENSE_FIELD, PRIMARY_BUTTON } from './control-classes';
 
 export type EntryFormState =
@@ -30,7 +31,8 @@ export type EntryFormProps = {
 export type EntryFormParts = {
   readonly id: string;
   readonly heading: ReactNode;
-  readonly footer: ReactNode;
+  readonly refusal: ReactNode;
+  readonly submit: ReactNode;
 };
 
 type EntryFormShellProps = EntryFormProps & {
@@ -95,6 +97,7 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
   );
   const form = useRef<HTMLFormElement>(null);
   const id = useId();
+  const today = useBrowserToday();
 
   useEffect(() => {
     if (state.outcome === 'saved') {
@@ -102,7 +105,7 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
     }
   }, [state]);
 
-  const submit = (event: SubmitEvent<HTMLFormElement>): void => {
+  const submitFields = (event: SubmitEvent<HTMLFormElement>): void => {
     event.preventDefault();
     const fields = new FormData(event.currentTarget);
     startTransition(() => {
@@ -123,6 +126,7 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
             id={`${id}-date`}
             name={ENTRY_FORM_FIELDS.entryDate}
             type="date"
+            defaultValue={today}
             required
             className={`${CONTROL} ${typeClasses.date}`}
           />
@@ -141,29 +145,29 @@ export function EntryFormShell({ action, mode, children }: EntryFormShellProps):
     </>
   );
 
-  const footer = (
-    <div className={`flex flex-wrap items-center gap-3 ${typeClasses['body-dense']}`}>
-      {state.outcome === 'rejected' ? (
-        <p role="alert" className="min-w-0 flex-1 text-danger">
-          {REFUSAL[mode][state.code]}
-        </p>
-      ) : null}
-      <button type="submit" disabled={pending} className={`ml-auto ${PRIMARY_BUTTON}`}>
-        {pending ? en.entryForm.pending : en.entryForm.submit}
-      </button>
-    </div>
+  const refusal =
+    state.outcome === 'rejected' ? (
+      <p role="alert" className={`min-w-0 flex-1 text-danger ${typeClasses['body-dense']}`}>
+        {REFUSAL[mode][state.code]}
+      </p>
+    ) : null;
+
+  const submit = (
+    <button type="submit" disabled={pending} className={`ml-auto shrink-0 ${PRIMARY_BUTTON}`}>
+      {pending ? en.entryForm.pending : en.entryForm.submit}
+    </button>
   );
 
   return (
     <form
       ref={form}
       aria-labelledby={`${id}-title`}
-      onSubmit={submit}
+      onSubmit={submitFields}
       className={`flex flex-col gap-3 ${PANEL}`}
     >
       <input type="hidden" name={ENTRY_FORM_FIELDS.entryFormMode} value={mode} />
 
-      <Fragment key={resetKey}>{children({ id, heading, footer })}</Fragment>
+      <Fragment key={resetKey}>{children({ id, heading, refusal, submit })}</Fragment>
     </form>
   );
 }

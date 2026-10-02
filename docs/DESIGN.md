@@ -287,7 +287,10 @@ Hierarchy comes from tonal layers, not shadows: `surface` panels with a
 - **Primary button.** `accent` fill with `text`. White on mint reads 2.0:1 and
   is never used. It is kept for a page's main action: the entry form's submit,
   Entry search's submit and "Sign in with Google". Every other button on a
-  light ground is secondary.
+  light ground is secondary. A transparent edge as wide as an Input's border
+  makes it as tall as the Input it sits beside: Entry search's submit stands at
+  the end of the Memo row, and the Two-line form's submit at the end of the
+  Amount row.
 - **Secondary button.** `surface` fill, `text`, a `border-control` edge.
 - **Quiet button on dark.** No fill and no border: `text-muted-on-dark` text,
   `text-on-dark` under the pointer, and the `focus-on-dark` ring. It is Sign out
