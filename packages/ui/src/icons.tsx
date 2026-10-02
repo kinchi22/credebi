@@ -66,6 +66,15 @@ export function TrashIcon(): ReactNode {
   );
 }
 
+export function SearchIcon(): ReactNode {
+  return (
+    <StrokeIcon size={16}>
+      <circle cx="11" cy="11" r="7" />
+      <path d="M20 20l-4-4" />
+    </StrokeIcon>
+  );
+}
+
 export function MenuIcon(): ReactNode {
   return (
     <StrokeIcon size={20}>

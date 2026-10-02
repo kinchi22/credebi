@@ -37,6 +37,7 @@ export const semanticColors = {
   'accent-text': 'mint-deep',
   'accent-text-hover': 'mint-deeper',
   border: 'fog',
+  band: 'fog',
   'border-control': 'steel',
   danger: 'rust',
   warning: 'ochre',
@@ -85,6 +86,7 @@ export const textPairs: readonly ColorPair[] = [
   { foreground: 'frost', background: 'ink-raised' },
   { foreground: 'sage', background: 'ink-raised' },
   { foreground: 'ink', background: 'mint' },
+  { foreground: 'slate', background: 'fog' },
 ];
 
 export const controlEdgePairs: readonly ColorPair[] = [
@@ -205,6 +207,7 @@ export const typeScale: Readonly<Record<TypeStepName, TypeStep>> = {
 
 export const breakpoints = {
   wide: 720,
+  split: 1280,
 } as const satisfies Record<string, number>;
 
 const ROOT_FONT_SIZE = 16;

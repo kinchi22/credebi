@@ -41,6 +41,7 @@ colors:
   accent-text: "{colors.mint-deep}"
   accent-text-hover: "{colors.mint-deeper}"
   border: "{colors.fog}"
+  band: "{colors.fog}"
   border-control: "{colors.steel}"
   danger: "{colors.rust}"
   warning: "{colors.ochre}"
@@ -185,7 +186,7 @@ a palette colour.
 | `white`       | `#FFFFFF` | panels                                     |
 | `slate`       | `#4A6461` | muted text                                 |
 | `sage`        | `#9FC4BC` | muted text on ink                          |
-| `fog`         | `#E1ECE8` | dividers, panel edges                      |
+| `fog`         | `#E1ECE8` | dividers, panel edges, Account-type bands  |
 | `steel`       | `#78948F` | control edges                              |
 | `rust`        | `#B4400F` | danger                                     |
 | `ochre`       | `#A15C00` | warning                                    |
@@ -222,6 +223,7 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `accent-text`        | `mint-deep` | links, accent text on a light ground  |
 | `accent-text-hover`  | `mint-deeper` | a link under the pointer            |
 | `border`             | `fog`       | dividers, panel edges                 |
+| `band`               | `fog`       | an Account-type heading's tinted band |
 | `border-control`     | `steel`     | inputs, secondary buttons             |
 | `danger`             | `rust`      | refusals, errors                      |
 | `warning`            | `ochre`     | a degraded health status              |
@@ -255,7 +257,8 @@ unit test checks every one:
 - **Text, 4.5:1.** `ink`, `slate`, `mint-deep`, `mint-deeper`, `rust`,
   `ochre`, `cobalt` and `gold` on `white` and on `mist`; `frost` and `sage` on
   `ink` and on `ink-raised`, which is `text-on-dark` and `text-muted-on-dark` on
-  `ground-dark` and `ground-dark-raised`; `ink` on `mint`.
+  `ground-dark` and `ground-dark-raised`; `ink` on `mint`; `slate` on `fog`,
+  which is `text-muted` on a `band` (5.28:1).
 - **Control edges, 3:1.** `steel` and `mint-deep` on `white` and on `mist`;
   `mint`, the `focus-on-dark` ring, on `ink` and on `ink-raised` (7.66:1 on
   `ink`); `pewter`, the Google sign-in button's edge, on `white` (4.53:1).
@@ -296,13 +299,16 @@ woff2 files through `next/font/local`, and the share image reads Sora as TTF, as
 
 ## Layout
 
-The design has one breakpoint, `wide`, at 720px. The stylesheet declares it as
-`--breakpoint-wide: 45rem`, which is 720px at the root's 16px and is in rem like
-Tailwind's own breakpoints, so they sort together. `breakpoints` in the tokens
-module holds it, and the utilities take it as the `wide:` variant: a style
-written bare is the narrow layout, and `wide:` sets the layout from 720px up.
-The stylesheet resets `--breakpoint-*` to `initial`, as it does the colours, so
-Tailwind's default breakpoints do not exist and `wide` is the only one.
+The design has two breakpoints: `wide`, at 720px, and `split`, at 1280px. The
+stylesheet declares them as `--breakpoint-wide: 45rem` and
+`--breakpoint-split: 80rem`, which are 720px and 1280px at the root's 16px and
+are in rem like Tailwind's own breakpoints, so they sort together.
+`breakpoints` in the tokens module holds them, and the utilities take them as
+the `wide:` and `split:` variants: a style written bare is the narrow layout,
+`wide:` sets the layout from 720px up and `split:` from 1280px up. `split` is
+where the wide Account picker puts Debit and Credit side by side. The
+stylesheet resets `--breakpoint-*` to `initial`, as it does the colours, so
+Tailwind's default breakpoints do not exist and these two are the only ones.
 
 The signed-in page's `main` fills the width at every size: below `wide` the
 whole screen, and from `wide` up all of it beside the Sidebar, with no maximum
@@ -377,8 +383,22 @@ Hierarchy comes from tonal layers, not shadows: `surface` panels with a
   choices as the panel does, with each year above its row; choosing one closes
   the sheet. Escape or the close icon closes it without choosing, and focus
   returns to the button.
-- **Account sheet.** From `wide` up the Accounts to choose from sit right of the
-  entry form, Debit and Credit side by side. Below `wide` they leave the form
+- **Account picker.** From `wide` up the Accounts to choose from sit right of
+  the entry form in a `ground` panel with a `border` edge. At its top a
+  `surface` strip holds a `Find an account` search field with a search icon
+  inside its start, narrowing both Sides as the Account sheet's does, with the
+  same `No account matches` line. From `wide` to below `split` one Side is
+  shown at a time under `Debit` and `Credit` tabs, drawn as the Account sheet's
+  but with the shown tab underlined and set in its Side's colour; when a hidden
+  Side's required Account is missing on submit, its tab is shown. From `split`
+  up there are no tabs and the two Sides sit side by side, Credit's column
+  behind a `border` hairline. Each Side is headed by its name in `label` and the
+  Side's colour over a 2px rule in that colour. Each Account type's name, in
+  `label` and `text-muted`, is a full-width `band`, and its Accounts sit after
+  it as chips that wrap, so many Accounts list across rather than down: a chip
+  has no fill and a transparent edge, and a chosen one a `surface` fill, an
+  `accent-text` edge and semibold text.
+- **Account sheet.** Below `wide` the Accounts leave the form
   and open `Choose accounts` as a modal dialog rising from the foot of the page
   to 64px below its top, on the `ground` over a `ground-dark` scrim at 60%. In
   Multi-line mode each Side opens it with `Add debit account` or

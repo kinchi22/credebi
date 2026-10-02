@@ -16,6 +16,7 @@
   --color-accent-text: #0B7A5E;
   --color-accent-text-hover: #09644D;
   --color-border: #E1ECE8;
+  --color-band: #E1ECE8;
   --color-border-control: #78948F;
   --color-danger: #B4400F;
   --color-warning: #A15C00;
@@ -62,6 +63,7 @@
   --text-date--line-height: 20px;
   --text-date--font-weight: 400;
   --breakpoint-wide: 45rem;
+  --breakpoint-split: 80rem;
 }
 
 @layer base {

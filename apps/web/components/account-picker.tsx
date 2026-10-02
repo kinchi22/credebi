@@ -7,7 +7,7 @@ import {
   CHART_OF_ACCOUNTS,
   type AccountCode,
 } from '@repo/core/entries';
-import { ChevronIcon } from '@repo/ui';
+import { ChevronIcon, SearchIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useId, useState, type ReactNode } from 'react';
 import { en } from '../messages/en';
@@ -65,8 +65,6 @@ const PICK_MANY: PickControl = {
 };
 
 const otherSide = (side: Side): Side => (side === 'debit' ? 'credit' : 'debit');
-
-const matchesEveryAccount = (): boolean => true;
 
 const nameContains =
   (query: string) =>
@@ -190,71 +188,85 @@ function AccountRowContent({
 }
 
 type SideChoicesProps = {
-  readonly id: string;
   readonly side: Side;
   readonly control: PickControl;
   readonly matches: (account: AccountCode) => boolean;
   readonly isChosen: (account: AccountCode) => boolean;
   readonly onPick: (account: AccountCode, chosen: boolean) => void;
   readonly onInvalid?: () => void;
-  readonly nameShown: boolean;
+  readonly inColumns: boolean;
 };
 
+const FOCUSED_CHOICE =
+  'peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus';
+
+const SHEET_CHOICE = `grow rounded px-2 py-1 text-text peer-checked:bg-accent/15 peer-checked:font-semibold ${FOCUSED_CHOICE}`;
+
+const CHIP = `rounded border border-transparent px-1.5 py-1 text-text peer-checked:border-accent-text peer-checked:bg-surface peer-checked:font-semibold ${FOCUSED_CHOICE}`;
+
+const TYPE_BAND = `-mx-3 bg-band px-3 py-1 ${typeClasses.label} text-text-muted`;
+
 function SideChoices({
-  id,
   side,
   control,
   matches,
   isChosen,
   onPick,
   onInvalid,
-  nameShown,
+  inColumns,
 }: SideChoicesProps): ReactNode {
-  const choicesId = `${id}-${side}-accounts`;
+  const typeId = useId();
 
   return (
     <div
       role={control.groupRole}
-      aria-labelledby={`${choicesId}-name`}
+      aria-label={control.groupName[side]}
       className={`flex min-w-0 flex-col gap-2 border-t-2 ${SIDE_TONE[side].edge} px-3 pt-2 pb-3`}
     >
-      <p
-        id={`${choicesId}-name`}
-        className={nameShown ? `${typeClasses.label} text-text-muted` : 'sr-only'}
-      >
-        {control.groupName[side]}
-      </p>
+      {inColumns ? (
+        <p aria-hidden="true" className={`${typeClasses.label} ${SIDE_TONE[side].text}`}>
+          {en.sides[side]}
+        </p>
+      ) : null}
       {ACCOUNT_TYPES.map((type) => {
         const accounts = CHART_OF_ACCOUNTS.filter((code) => ACCOUNT_TYPE_OF[code] === type);
         return (
           <div
             key={type}
             role="group"
-            aria-labelledby={`${choicesId}-${type}`}
+            aria-labelledby={`${typeId}-${type}`}
             className={accounts.some(matches) ? 'flex flex-col gap-1' : 'hidden'}
           >
-            <p id={`${choicesId}-${type}`} className={`${typeClasses.label} text-text-muted`}>
+            <p
+              id={`${typeId}-${type}`}
+              className={inColumns ? TYPE_BAND : `${typeClasses.label} text-text-muted`}
+            >
               {en.accountTypes[type]}
             </p>
-            {accounts.map((code) => (
-              <label key={code} className={matches(code) ? 'relative flex' : 'hidden'}>
-                <input
-                  type={control.inputType}
-                  name={control.fieldName?.[side]}
-                  value={code}
-                  required={control.fieldName !== undefined}
-                  checked={isChosen(code)}
-                  onChange={(event) => {
-                    onPick(code, event.target.checked);
-                  }}
-                  onInvalid={onInvalid}
-                  className="peer absolute inset-0 m-0 cursor-pointer appearance-none opacity-0"
-                />
-                <span className="grow rounded px-2 py-1 text-text peer-checked:bg-accent/15 peer-checked:font-semibold peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus">
-                  {en.accounts[code]}
-                </span>
-              </label>
-            ))}
+            <div className={inColumns ? 'flex flex-wrap gap-x-3 gap-y-0.5' : 'flex flex-col gap-1'}>
+              {accounts.map((code) => (
+                <label
+                  key={code}
+                  className={
+                    matches(code) ? `relative ${inColumns ? 'inline-flex' : 'flex'}` : 'hidden'
+                  }
+                >
+                  <input
+                    type={control.inputType}
+                    name={control.fieldName?.[side]}
+                    value={code}
+                    required={control.fieldName !== undefined}
+                    checked={isChosen(code)}
+                    onChange={(event) => {
+                      onPick(code, event.target.checked);
+                    }}
+                    onInvalid={onInvalid}
+                    className="peer absolute inset-0 m-0 cursor-pointer appearance-none opacity-0"
+                  />
+                  <span className={inColumns ? CHIP : SHEET_CHOICE}>{en.accounts[code]}</span>
+                </label>
+              ))}
+            </div>
           </div>
         );
       })}
@@ -262,23 +274,95 @@ function SideChoices({
   );
 }
 
-function AccountColumns({ id, multiple = false, isChosen, onPick }: AccountPickerProps): ReactNode {
+type FindAnAccountProps = {
+  readonly query: string;
+  readonly setQuery: (query: string) => void;
+  readonly className?: string;
+};
+
+function FindAnAccount({ query, setQuery, className = '' }: FindAnAccountProps): ReactNode {
   return (
-    <div className={`hidden min-w-0 grid-cols-2 rounded border border-border bg-ground wide:grid ${typeClasses['body-dense']}`}>
-      {SIDES.map((side) => (
-        <SideChoices
-          key={side}
-          id={id}
-          side={side}
-          control={multiple ? PICK_MANY : PICK_ONE}
-          matches={matchesEveryAccount}
-          nameShown
-          isChosen={(account) => isChosen(side, account)}
-          onPick={(account, chosen) => {
-            onPick(side, account, chosen);
-          }}
+    <input
+      type="search"
+      aria-label={en.accountSheet.find}
+      placeholder={en.accountSheet.find}
+      value={query}
+      onChange={(event) => {
+        setQuery(event.target.value);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') event.preventDefault();
+      }}
+      className={`${CONTROL} w-full ${className}`}
+    />
+  );
+}
+
+function NoMatch({ query }: { readonly query: string }): ReactNode {
+  return CHART_OF_ACCOUNTS.some(nameContains(query)) ? null : (
+    <p className="px-4 py-3 text-text-muted">
+      {en.accountSheet.noMatch} &quot;{query.trim()}&quot;.
+    </p>
+  );
+}
+
+const sideTone = (side: Side): string => `${SIDE_TONE[side].edge} ${SIDE_TONE[side].text}`;
+
+function AccountColumns({ id, multiple = false, isChosen, onPick }: AccountPickerProps): ReactNode {
+  const [shown, setShown] = useState<Side>('debit');
+  const [query, setQuery] = useState('');
+  const tabId = (side: Side): string => `${id}-${side}-tab`;
+  const panelId = (side: Side): string => `${id}-${side}-panel`;
+  const hasAccount = (side: Side): boolean =>
+    CHART_OF_ACCOUNTS.some((account) => isChosen(side, account));
+
+  return (
+    <div
+      className={`hidden min-w-0 flex-col overflow-hidden rounded border border-border bg-ground wide:flex ${typeClasses['body-dense']}`}
+    >
+      <div className="relative flex items-center border-b border-border bg-surface px-4 py-3">
+        <span className="pointer-events-none absolute left-7 flex text-text-muted">
+          <SearchIcon />
+        </span>
+        <FindAnAccount query={query} setQuery={setQuery} className="pl-8" />
+      </div>
+      <div className="split:hidden">
+        <SheetTabs
+          tabs={SIDES}
+          shown={shown}
+          onShow={setShown}
+          tabId={tabId}
+          panelId={panelId}
+          label={(side) => en.sides[side]}
+          shownTone={sideTone}
         />
-      ))}
+      </div>
+      <div className="grid split:grid-cols-2">
+        {SIDES.map((side, index) => (
+          <div
+            key={side}
+            id={panelId(side)}
+            role="tabpanel"
+            aria-labelledby={tabId(side)}
+            className={`min-w-0 ${shown === side ? 'block' : 'hidden'} split:block ${index > 0 ? 'split:border-l split:border-border' : ''}`}
+          >
+            <SideChoices
+              side={side}
+              control={multiple ? PICK_MANY : PICK_ONE}
+              matches={nameContains(query)}
+              inColumns
+              isChosen={(account) => isChosen(side, account)}
+              onPick={(account, chosen) => {
+                onPick(side, account, chosen);
+              }}
+              onInvalid={() => {
+                if (hasAccount(shown)) setShown(side);
+              }}
+            />
+          </div>
+        ))}
+      </div>
+      <NoMatch query={query} />
     </div>
   );
 }
@@ -330,19 +414,7 @@ function AccountSheetDialog({ multiple = false, isChosen, onPick, sheet }: Accou
           label={(side) => en.sides[side]}
         />
         <div className="shrink-0 border-b border-border bg-surface px-4 py-3">
-          <input
-            type="search"
-            aria-label={en.accountSheet.find}
-            placeholder={en.accountSheet.find}
-            value={sheet.query}
-            onChange={(event) => {
-              sheet.setQuery(event.target.value);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') event.preventDefault();
-            }}
-            className={`${CONTROL} w-full`}
-          />
+          <FindAnAccount query={sheet.query} setQuery={sheet.setQuery} />
         </div>
         <div className={`min-h-0 grow overflow-y-auto ${typeClasses['body-dense']}`}>
           {SIDES.map((side) => (
@@ -354,11 +426,10 @@ function AccountSheetDialog({ multiple = false, isChosen, onPick, sheet }: Accou
               className={sheet.side === side ? 'block' : 'hidden'}
             >
               <SideChoices
-                id={sheet.id}
                 side={side}
                 control={multiple ? PICK_MANY : PICK_ONE}
                 matches={matches}
-                nameShown={false}
+                inColumns={false}
                 isChosen={(account) => isChosen(side, account)}
                 onPick={(account, chosen) => {
                   pick(side, account, chosen);
@@ -369,11 +440,7 @@ function AccountSheetDialog({ multiple = false, isChosen, onPick, sheet }: Accou
               />
             </div>
           ))}
-          {CHART_OF_ACCOUNTS.some(matches) ? null : (
-            <p className="px-4 py-3 text-text-muted">
-              {en.accountSheet.noMatch} &quot;{sheet.query.trim()}&quot;.
-            </p>
-          )}
+          <NoMatch query={sheet.query} />
         </div>
       </div>
     </dialog>
