@@ -123,7 +123,7 @@ function ListedEntry({
             <span className="min-w-0 grow font-semibold">{entry.memo}</span>{' '}
             <span className="shrink-0">
               <span className="sr-only">{en.entryList.total} </span>
-              <span data-testid="entry-total" className={`${typeClasses.figure} font-bold`}>
+              <span data-testid="entry-total" className={`${typeClasses.figure} font-medium`}>
                 {formatAmount(entry.total)}
               </span>
             </span>

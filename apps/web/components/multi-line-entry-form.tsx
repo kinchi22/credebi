@@ -92,7 +92,7 @@ function DifferenceRow({ totals, refusal, submitButton }: DifferenceRowProps): R
             </span>
             <span
               data-testid="difference"
-              className={`${typeClasses.figure} ${isZeroMoney(totals.value.difference) ? 'text-text' : 'font-bold text-warning'}`}
+              className={`${typeClasses.figure} ${isZeroMoney(totals.value.difference) ? 'text-text' : 'font-medium text-warning'}`}
             >
               {formatAmount(totals.value.difference)}
             </span>

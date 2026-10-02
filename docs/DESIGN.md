@@ -269,7 +269,9 @@ A new text colour or ground is added to these pairs in the same change.
 
 Headings and body text are set in **Sora**: SemiBold for headings, Regular for
 reading. Labels, figures and dates are set in **DM Mono** Regular, so every
-column of amounts lines up. Nothing is set below 12px.
+column of amounts lines up, and a figure that must stand out, such as an Entry's
+total or a Difference that is not zero, is DM Mono Medium, weight 500
+(`font-medium`), never bold. Nothing is set below 12px.
 
 | Step      | Face             | Size / line height | Letter spacing | Also             |
 | --------- | ---------------- | ------------------ | -------------- | ---------------- |
@@ -458,7 +460,7 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   leaving the Remove button's column empty. Below both Sides the Difference row
   holds `Difference`, in `label` and `text-muted`, and its amount in `figure`,
   on the left and `Add entry` on the right, with a refusal below them. The
-  amount is in `warning` and bold while it is not 0, and in `text`, plain and
+  amount is in `warning` and medium while it is not 0, and in `text`, plain and
   with no word beside it, at 0. When the amounts add up to more than an amount can hold, the
   `danger` message takes the Difference's place and neither Side shows a
   total.
@@ -473,7 +475,7 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   removed, so the region is still named `Entries`. Each Entry sits below a
   full-width `border` hairline. Its first row holds the date in `date` and
   `text-muted`, the memo semibold and filling the space, and the Entry's total
-  on the right in `figure`, bold. Below it two equal columns, Debit and Credit,
+  on the right in `figure`, medium. Below it two equal columns, Debit and Credit,
   Credit's behind a `border` hairline, each headed by the Side in `label` and
   the Side's colour over a 2px rule in that colour. In `body-dense`, each line
   is one row, the Account name on the left and its amount on the right in
