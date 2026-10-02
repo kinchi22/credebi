@@ -10,7 +10,7 @@ import {
   type DayRange,
   type RelativePreset,
 } from '@repo/core/entries';
-import { CalendarIcon, CloseIcon } from '@repo/ui';
+import { CalendarIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import {
   useEffect,
@@ -25,7 +25,7 @@ import {
 import { en } from '../messages/en';
 import { BUTTON, ICON_CONTROL } from './control-classes';
 import { useModalDialog } from './modal-dialog';
-import { SheetBar, SheetTabs } from './sheet';
+import { SheetBar, SheetCloseButton, SheetTabs } from './sheet';
 
 type Category = keyof typeof en.datePresets.categories;
 
@@ -370,14 +370,7 @@ export function DatePresetsSheet({ today, onChoose }: DatePresetsProps): ReactNo
         {sheet.open && today !== undefined ? (
           <div className="flex h-full flex-col">
             <SheetBar titleId={titleId} title={en.datePresets.choosePeriod}>
-              <button
-                type="button"
-                aria-label={en.datePresets.close}
-                onClick={sheet.close}
-                className="-mr-2 inline-flex size-10 items-center justify-center rounded text-text"
-              >
-                <CloseIcon />
-              </button>
+              <SheetCloseButton label={en.datePresets.close} onClose={sheet.close} />
             </SheetBar>
             <SheetTabs
               tabs={CATEGORIES}

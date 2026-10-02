@@ -50,6 +50,14 @@ export function CloseIcon(): ReactNode {
   );
 }
 
+export function ChevronIcon(): ReactNode {
+  return (
+    <StrokeIcon size={16}>
+      <path d="M9 6l6 6-6 6" />
+    </StrokeIcon>
+  );
+}
+
 export function TrashIcon(): ReactNode {
   return (
     <StrokeIcon size={20}>
