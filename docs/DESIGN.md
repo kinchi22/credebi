@@ -304,8 +304,15 @@ written bare is the narrow layout, and `wide:` sets the layout from 720px up.
 The stylesheet resets `--breakpoint-*` to `initial`, as it does the colours, so
 Tailwind's default breakpoints do not exist and `wide` is the only one.
 
-Below `wide` the page gutter is 16px and a panel sits directly in it, with no
-box nested inside the panel; from `wide` up the gutter is 32px.
+The signed-in page's `main` fills the width at every size: below `wide` the
+whole screen, and from `wide` up all of it beside the Sidebar, with no maximum
+width. Below `wide` the page gutter is 16px and a panel sits directly in it,
+with no box nested inside the panel; from `wide` up the gutter is 40px above and
+below and 56px at the sides.
+
+A panel, as `PANEL` in `packages/ui` draws it, is padded 8px below `wide` and
+16px from `wide` up. `PANEL_BLEED` follows that padding, so the Entries rows
+reach the panel's edges at every width.
 
 ## Elevation & Depth
 
@@ -405,6 +412,10 @@ Hierarchy comes from tonal layers, not shadows: `surface` panels with a
 - **Icon button.** A secondary button holding a stroke icon in place of text,
   with an accessible name: square and as tall as the Input beside it, as
   `Choose a period` is. It is `Remove`, a trash icon, on each Multi-line line.
+- **Entries list.** Its panel shows no `Entries` heading and its table no
+  `Entry` column header, at every width; only `Debit` and `Credit` head their
+  columns. Both are visually hidden, not removed: the region is still named
+  `Entries` and the column header `Entry` for assistive technology.
 - **Link.** `accent-text`, underlined, and `accent-text-hover` under the
   pointer.
 - **Input.** `surface` fill, `text`, a `border-control` edge. The spec's

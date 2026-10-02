@@ -29,8 +29,8 @@ const AMOUNT = `ml-auto text-right ${typeClasses.figure}`;
 function ColumnHeaders(): ReactNode {
   return (
     <div role="row" className={`${ROW} pb-2 ${typeClasses.label}`}>
-      <span role="columnheader" className="sr-only text-text-muted wide:not-sr-only">
-        {en.entryList.entry}
+      <span role="columnheader" className="sr-only wide:not-sr-only">
+        <span className="sr-only">{en.entryList.entry}</span>
       </span>
       {SIDES.map((side) => (
         <span
@@ -90,7 +90,7 @@ function ListedEntry({ entry }: { readonly entry: PostedEntry }): ReactNode {
 
 export function EntryList({ entries }: EntryListProps): ReactNode {
   return (
-    <Panel title={en.entryList.title}>
+    <Panel title={en.entryList.title} titleHidden>
       {entries.length === 0 ? (
         <p className={MUTED_TEXT}>{en.entryList.empty}</p>
       ) : (
