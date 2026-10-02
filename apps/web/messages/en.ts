@@ -140,7 +140,6 @@ export const en = {
   entryList: {
     title: 'Entries',
     empty: 'No entries yet.',
-    entry: 'Entry',
     total: 'Total',
   },
   accounts: {

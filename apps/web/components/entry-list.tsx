@@ -22,21 +22,51 @@ const linesOn = (entry: PostedEntry, side: Side): readonly EntryLineInput[] =>
 const hasOneLinePerSide = (entry: PostedEntry): boolean =>
   SIDES.every((side) => linesOn(entry, side).length === 1);
 
-const ROW = `${PANEL_BLEED} grid grid-cols-2 gap-x-4 wide:grid-cols-[minmax(0,1fr)_minmax(0,13rem)_minmax(0,13rem)]`;
-const ENTRY_CELL = 'col-span-2 min-w-0 wide:col-span-1';
-const AMOUNT = `ml-auto text-right ${typeClasses.figure}`;
+type Layout = {
+  readonly grid: string;
+  readonly heading: Readonly<Record<Side, string>>;
+  readonly lines: Readonly<Record<Side, string>>;
+  readonly lineAmount: string;
+};
 
-function ColumnHeaders(): ReactNode {
+const CREDIT_DIVIDER = 'border-l border-l-border';
+
+const COMPACT: Layout = {
+  grid: 'grid-cols-[5rem_minmax(0,1fr)_5rem_minmax(0,1fr)]',
+  heading: {
+    debit: 'col-start-1 row-start-2 border-t-2 py-2 pl-4',
+    credit: `col-start-3 row-start-2 border-t-2 py-2 pl-4 ${CREDIT_DIVIDER}`,
+  },
+  lines: {
+    debit: 'col-start-2 row-start-2 border-t-2 py-2 pr-4',
+    credit: 'col-start-4 row-start-2 border-t-2 py-2 pr-4',
+  },
+  lineAmount: 'sr-only',
+};
+
+const STACKED: Layout = {
+  grid: 'grid-cols-2',
+  heading: {
+    debit: 'col-start-1 row-start-2 border-t-2 px-4 pt-2',
+    credit: `col-start-2 row-start-2 border-t-2 px-4 pt-2 ${CREDIT_DIVIDER}`,
+  },
+  lines: {
+    debit: 'col-start-1 row-start-3 px-4 pb-1',
+    credit: `col-start-2 row-start-3 px-4 pb-1 ${CREDIT_DIVIDER}`,
+  },
+  lineAmount: `ml-auto text-right ${typeClasses.figure}`,
+};
+
+const SIDE_HEADING = `${typeClasses.label} leading-5`;
+
+function SideHeadings({ layout, named }: { readonly layout: Layout; readonly named: boolean }): ReactNode {
   return (
-    <div role="row" className={`${ROW} pb-2 ${typeClasses.label}`}>
-      <span role="columnheader" className="sr-only wide:not-sr-only">
-        <span className="sr-only">{en.entryList.entry}</span>
-      </span>
+    <div role={named ? 'row' : undefined} aria-hidden={named ? undefined : true} className="contents">
       {SIDES.map((side) => (
         <span
           key={side}
-          role="columnheader"
-          className={`border-b-2 pb-1 ${SIDE_TONE[side].edge} ${SIDE_TONE[side].text}`}
+          role={named ? 'columnheader' : undefined}
+          className={`${layout.heading[side]} ${SIDE_HEADING} ${SIDE_TONE[side].edge} ${SIDE_TONE[side].text}`}
         >
           {en.sides[side]}
         </span>
@@ -45,14 +75,24 @@ function ColumnHeaders(): ReactNode {
   );
 }
 
-function SideLines({ entry, side }: { readonly entry: PostedEntry; readonly side: Side }): ReactNode {
+function SideLines({
+  entry,
+  side,
+  layout,
+}: {
+  readonly entry: PostedEntry;
+  readonly side: Side;
+  readonly layout: Layout;
+}): ReactNode {
   return (
-    <div role="cell" className="min-w-0">
+    <div role="cell" className={`min-w-0 ${layout.lines[side]} ${SIDE_TONE[side].edge}`}>
       <ul>
         {linesOn(entry, side).map((line, index) => (
-          <li key={index} data-testid="entry-line" className="flex flex-wrap items-baseline gap-x-2">
+          <li key={index} data-testid="entry-line" className="flex items-baseline gap-x-3 py-1">
             <span className="min-w-0">{accountName(line.account)}</span>{' '}
-            <span className={`${AMOUNT} ${SIDE_TONE[side].text}`}>{formatAmount(line.amount)}</span>
+            <span className={`${layout.lineAmount} ${SIDE_TONE[side].text}`}>
+              {formatAmount(line.amount)}
+            </span>
           </li>
         ))}
       </ul>
@@ -60,30 +100,42 @@ function SideLines({ entry, side }: { readonly entry: PostedEntry; readonly side
   );
 }
 
-function ListedEntry({ entry }: { readonly entry: PostedEntry }): ReactNode {
+function ListedEntry({
+  entry,
+  headsColumns,
+}: {
+  readonly entry: PostedEntry;
+  readonly headsColumns: boolean;
+}): ReactNode {
+  const layout = hasOneLinePerSide(entry) ? COMPACT : STACKED;
   return (
     <div
-      role="row"
+      role="rowgroup"
       data-testid="entry"
-      className={`${ROW} gap-y-1 border-t border-border py-3 ${typeClasses['body-sm']}`}
+      className={`${PANEL_BLEED} grid ${layout.grid} border-t border-border py-4 ${typeClasses['body-dense']}`}
     >
-      <div role="cell" className={ENTRY_CELL}>
-        <p className="flex flex-wrap items-baseline gap-x-3">
-          <time dateTime={entry.entryDate} className={`${typeClasses.date} text-text-muted`}>
-            {entry.entryDate}
-          </time>{' '}
-          <span className="min-w-0 font-semibold">{entry.memo}</span>
-        </p>
-        <p className={hasOneLinePerSide(entry) ? 'sr-only' : `flex gap-2 ${MUTED_TEXT}`}>
-          <span>{en.entryList.total}</span>{' '}
-          <span data-testid="entry-total" className={typeClasses.figure}>
-            {formatAmount(entry.total)}
-          </span>
-        </p>
+      <div role="row" className="contents">
+        <div role="cell" className="col-span-full row-start-1 pb-2">
+          <p className={`flex items-baseline gap-x-3.5 ${typeClasses['body-sm']}`}>
+            <time dateTime={entry.entryDate} className={`${typeClasses.date} shrink-0 text-text-muted`}>
+              {entry.entryDate}
+            </time>{' '}
+            <span className="min-w-0 grow font-semibold">{entry.memo}</span>{' '}
+            <span className="shrink-0">
+              <span className="sr-only">{en.entryList.total} </span>
+              <span data-testid="entry-total" className={`${typeClasses.figure} font-bold`}>
+                {formatAmount(entry.total)}
+              </span>
+            </span>
+          </p>
+        </div>
       </div>
-      {SIDES.map((side) => (
-        <SideLines key={side} entry={entry} side={side} />
-      ))}
+      <SideHeadings layout={layout} named={headsColumns} />
+      <div role="row" className="contents">
+        {SIDES.map((side) => (
+          <SideLines key={side} entry={entry} side={side} layout={layout} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -95,9 +147,8 @@ export function EntryList({ entries }: EntryListProps): ReactNode {
         <p className={MUTED_TEXT}>{en.entryList.empty}</p>
       ) : (
         <div role="table" aria-label={en.entryList.title}>
-          <ColumnHeaders />
-          {entries.map((entry) => (
-            <ListedEntry key={entry.id} entry={entry} />
+          {entries.map((entry, index) => (
+            <ListedEntry key={entry.id} entry={entry} headsColumns={index === 0} />
           ))}
         </div>
       )}

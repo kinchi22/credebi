@@ -468,10 +468,21 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
 - **Icon button.** A secondary button holding a stroke icon in place of text,
   with an accessible name: square and as tall as the Input beside it, as
   `Choose a period` is.
-- **Entries list.** Its panel shows no `Entries` heading and its table no
-  `Entry` column header, at every width; only `Debit` and `Credit` head their
-  columns. Both are visually hidden, not removed: the region is still named
-  `Entries` and the column header `Entry` for assistive technology.
+- **Entries list.** Laid out the same at every width, in Entries and in Entry
+  search. Its panel shows no `Entries` heading, which is visually hidden, not
+  removed, so the region is still named `Entries`. Each Entry sits below a
+  full-width `border` hairline. Its first row holds the date in `date` and
+  `text-muted`, the memo semibold and filling the space, and the Entry's total
+  on the right in `figure`, bold. Below it two equal columns, Debit and Credit,
+  Credit's behind a `border` hairline, each headed by the Side in `label` and
+  the Side's colour over a 2px rule in that colour. In `body-dense`, each line
+  is one row, the Account name on the left and its amount on the right in
+  `figure` and the Side's colour. An Entry with one Account on each Side puts
+  the Account name beside its Side's name and shows no line amount: the total
+  states it, and the line's amount stays for assistive technology. There is no
+  shared header row: the first Entry's Side names are the table's `Debit` and
+  `Credit` column headers, and every later Entry's are hidden from assistive
+  technology.
 - **Link.** `accent-text`, underlined, and `accent-text-hover` under the
   pointer.
 - **Input.** `surface` fill, `text`, a `border-control` edge. The spec's
