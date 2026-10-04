@@ -15,3 +15,5 @@ export const DANGER_BUTTON = `rounded border border-transparent bg-danger px-3 p
 export const BARE_ICON_BUTTON = 'inline-flex items-center justify-center rounded text-text-muted hover:text-text';
 export const ROW_ICON_BUTTON = `-my-1.5 size-8 shrink-0 wide:-my-0.5 wide:size-6 ${BARE_ICON_BUTTON}`;
 export const PRIMARY_BUTTON = `rounded border border-transparent bg-accent px-3 py-1 ${typeClasses['body-sm']} font-semibold text-text disabled:opacity-50`;
+export const CONFIRMATION_DIALOG = 'm-auto w-[calc(100%-2rem)] max-w-100 rounded border border-border bg-surface p-0 text-text backdrop:bg-ground-dark/60';
+export const CONFIRMATION_PANEL = 'flex flex-col gap-4 p-4 wide:p-6';

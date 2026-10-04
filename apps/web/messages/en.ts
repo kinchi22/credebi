@@ -157,6 +157,12 @@ export const en = {
       UNAUTHENTICATED: 'You are signed out. Sign in again to edit an entry.',
     },
   },
+  discardChanges: {
+    title: 'Discard changes',
+    body: 'Your changes to this entry have not been saved and will be lost.',
+    keep: 'Keep editing',
+    confirm: 'Discard',
+  },
   deleteEntry: {
     open: 'Delete',
     title: 'Delete entry',

@@ -353,7 +353,8 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
 - **Danger button.** `danger` fill, `surface` text, semibold, with a
   transparent edge as wide as a secondary button's, so the two stand the same
   height side by side. It is kept for the action a confirmation dialog asks
-  about when that action takes something away: `Delete` in `Delete entry`.
+  about when that action takes something away: `Delete` in `Delete entry`
+  and `Discard` in `Discard changes`.
 - **Google sign-in button.** "Sign in with Google" follows Google's sign-in
   branding rather than the primary button: a `surface` fill, `text`, a
   `border-google` edge, 40px tall and as wide as the Sign in card, with Google's
@@ -531,8 +532,16 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   its submit is a primary button reading `Save`, and `Saving...` while it runs.
   A refusal shows in place, as the entry form's does, and the dialog stays open
   with the input. Focus starts on Date. Below `wide` the Account sheet opens
-  above it. `Close`, Escape or a click on the scrim closes it, and focus returns
-  to the button that opened it.
+  above it. `Close`, Escape or a click on the scrim closes it at once when the
+  form holds what it opened with, and focus returns to the button that opened
+  it; when the form holds changes, they open `Discard changes` instead.
+- **Discard changes dialog.** `Discard changes` is a confirmation dialog over
+  `Edit entry`, whose thing is a sentence saying the changes will be lost, in
+  `body-sm`. `Keep editing` stands where `Cancel` does and takes focus first,
+  and `Discard` is the danger button. `Keep editing`, Escape or a click on its
+  scrim closes it and returns to the edit with the input kept, focus back where
+  it was. `Discard` closes both dialogs, changes nothing, and focus returns to
+  the Entry's `Edit`.
 - **Link.** `accent-text`, underlined, and `accent-text-hover` under the
   pointer.
 - **Input.** `surface` fill, `text`, a `border-control` edge. The spec's
