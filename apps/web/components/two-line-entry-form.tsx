@@ -1,7 +1,7 @@
 'use client';
 
-import { entryFormModeSchema, sideSchema, type Side } from '@repo/contracts';
-import { type AccountCode } from '@repo/core/entries';
+import { entryFormModeSchema, sideSchema, type PostedEntry, type Side } from '@repo/contracts';
+import { isAccountCode, type AccountCode } from '@repo/core/entries';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useState, type ReactNode } from 'react';
 import { en } from '../messages/en';
@@ -22,8 +22,18 @@ import {
 
 const NOTHING_CHOSEN: AccountChoice = { debit: undefined, credit: undefined };
 
-function TwoLineFields({ id, heading, refusal, submitButton }: EntryFormParts): ReactNode {
-  const [chosen, setChosen] = useState<AccountChoice>(NOTHING_CHOSEN);
+const accountOn = (entry: PostedEntry, side: Side): AccountCode | undefined => {
+  const account = entry.lines.find((line) => line.side === side)?.account;
+  return account !== undefined && isAccountCode(account) ? account : undefined;
+};
+
+const choiceOf = (entry: PostedEntry | undefined): AccountChoice =>
+  entry === undefined
+    ? NOTHING_CHOSEN
+    : { debit: accountOn(entry, 'debit'), credit: accountOn(entry, 'credit') };
+
+function TwoLineFields({ id, entry, heading, refusal, submitButton }: EntryFormParts): ReactNode {
+  const [chosen, setChosen] = useState<AccountChoice>(() => choiceOf(entry));
   const sheet = useAccountSheet();
 
   const choose = (side: Side, account: AccountCode): void => {
@@ -46,7 +56,11 @@ function TwoLineFields({ id, heading, refusal, submitButton }: EntryFormParts): 
         </div>
         <div className="flex items-end gap-3">
           <div className="min-w-0 grow">
-            <AmountInput id={`${id}-amount`} label={en.twoLineForm.amount} />
+            <AmountInput
+              id={`${id}-amount`}
+              label={en.twoLineForm.amount}
+              defaultValue={entry === undefined ? undefined : String(entry.total)}
+            />
           </div>
           {submitButton}
         </div>
@@ -57,9 +71,9 @@ function TwoLineFields({ id, heading, refusal, submitButton }: EntryFormParts): 
   );
 }
 
-export function TwoLineEntryForm({ action }: EntryFormProps): ReactNode {
+export function TwoLineEntryForm({ action, editing }: EntryFormProps): ReactNode {
   return (
-    <EntryFormShell action={action} mode={entryFormModeSchema.enum['two-line']}>
+    <EntryFormShell action={action} editing={editing} mode={entryFormModeSchema.enum['two-line']}>
       {(parts) => <TwoLineFields {...parts} />}
     </EntryFormShell>
   );

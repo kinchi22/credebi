@@ -142,6 +142,21 @@ export const en = {
     empty: 'No entries yet.',
     total: 'Total',
   },
+  editEntry: {
+    open: 'Edit',
+    title: 'Edit entry',
+    close: 'Close',
+    save: 'Save',
+    pending: 'Saving...',
+    refusals: {
+      INVALID_INPUT: 'The entry was not saved. Check the date, the memo, the accounts and the amounts.',
+      UNBALANCED: 'Debits and credits must balance. Check the amount on each side.',
+      NOT_FOUND: 'This entry is no longer here. Reload the page.',
+      CONFLICT: 'This entry was changed elsewhere, perhaps in another tab. Reload the page.',
+      DEPENDENCY_UNAVAILABLE: 'The entry could not be saved just now. Try again.',
+      UNAUTHENTICATED: 'You are signed out. Sign in again to edit an entry.',
+    },
+  },
   deleteEntry: {
     open: 'Delete',
     title: 'Delete entry',

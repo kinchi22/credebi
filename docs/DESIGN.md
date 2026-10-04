@@ -518,6 +518,20 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   buttons are disabled and the dialog does not close. It is `Delete entry`,
   opened by an Entry's `Delete`, whose thing is the Entry's date in `date` and
   `text-muted`, memo, semibold, and total in `figure`, as its row shows them.
+- **Edit entry dialog.** `Edit entry`, opened by an Entry's `Edit`, holds the
+  entry form filled with the Entry. Below `wide` it is a full-screen modal
+  dialog on the `ground`, as the Date presets sheet is: a `surface` bar holds
+  its title and a close icon named `Close`, and the form scrolls below it. From
+  `wide` up it is centred over a `ground-dark` scrim at 60%, a `surface` panel
+  with a `border` edge, as wide as the page content and at most as tall as the
+  viewport less 64px, with the same bar on top and the form scrolling inside
+  it, padded 24px, the form and the Account picker side by side as on Entries.
+  The form has no `New entry` heading, since the dialog's title names it, and
+  its submit is a primary button reading `Save`, and `Saving...` while it runs.
+  A refusal shows in place, as the entry form's does, and the dialog stays open
+  with the input. Focus starts on Date. Below `wide` the Account sheet opens
+  above it. `Close`, Escape or a click on the scrim closes it, and focus returns
+  to the button that opened it.
 - **Link.** `accent-text`, underlined, and `accent-text-hover` under the
   pointer.
 - **Input.** `surface` fill, `text`, a `border-control` edge. The spec's

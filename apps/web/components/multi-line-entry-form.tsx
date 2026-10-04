@@ -5,12 +5,14 @@ import {
   entryFormModeSchema,
   type DomainError,
   type Money,
+  type PostedEntry,
   type Result,
   type Side,
 } from '@repo/contracts';
 import {
   draftLinesInOrder,
   draftTotals,
+  isAccountCode,
   type AccountCode,
   type DraftLine,
   type DraftTotals,
@@ -41,6 +43,13 @@ const isLine =
   (side: Side, account: AccountCode) =>
   (line: ChosenLine): boolean =>
     line.side === side && line.account === account;
+
+const linesOf = (entry: PostedEntry | undefined): readonly ChosenLine[] =>
+  (entry?.lines ?? []).flatMap((line) =>
+    isAccountCode(line.account)
+      ? [{ side: line.side, account: line.account, amount: String(line.amount) }]
+      : [],
+  );
 
 const LINE_GRID = 'grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-3';
 const AMOUNT_COLUMN = 'flex min-w-0 gap-1';
@@ -135,6 +144,7 @@ function LineFields({ id, line, onAmountChange, onRemove }: LineFieldsProps): Re
           <AmountInput
             id={`${lineId}-amount`}
             label={en.multiLineForm.amount}
+            defaultValue={line.amount}
             onAmountChange={onAmountChange}
           />
         </div>
@@ -151,8 +161,8 @@ function LineFields({ id, line, onAmountChange, onRemove }: LineFieldsProps): Re
   );
 }
 
-function MultiLineFields({ id, heading, refusal, submitButton }: EntryFormParts): ReactNode {
-  const [chosen, setChosen] = useState<readonly ChosenLine[]>([]);
+function MultiLineFields({ id, entry, heading, refusal, submitButton }: EntryFormParts): ReactNode {
+  const [chosen, setChosen] = useState<readonly ChosenLine[]>(() => linesOf(entry));
   const sheet = useAccountSheet();
 
   const pick = (side: Side, account: AccountCode, ticked: boolean): void => {
@@ -216,9 +226,13 @@ function MultiLineFields({ id, heading, refusal, submitButton }: EntryFormParts)
   );
 }
 
-export function MultiLineEntryForm({ action }: EntryFormProps): ReactNode {
+export function MultiLineEntryForm({ action, editing }: EntryFormProps): ReactNode {
   return (
-    <EntryFormShell action={action} mode={entryFormModeSchema.enum['multi-line']}>
+    <EntryFormShell
+      action={action}
+      editing={editing}
+      mode={entryFormModeSchema.enum['multi-line']}
+    >
       {(parts) => <MultiLineFields {...parts} />}
     </EntryFormShell>
   );

@@ -1,4 +1,4 @@
-import { type EntryLineInput, type PostedEntry, type Side } from '@repo/contracts';
+import { type EntryFormMode, type PostedEntry, type Side } from '@repo/contracts';
 import { isAccountCode, type AccountCode } from '@repo/core/entries';
 import { Panel, PANEL_BLEED } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
@@ -6,23 +6,24 @@ import { type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { formatAmount } from './amount';
 import { DeleteEntry, type DeleteEntryAction } from './delete-entry';
+import { EditEntry, hasOneLinePerSide, linesOn, type EditEntryAction } from './edit-entry';
 import { SIDE_TONE, SIDES } from './side-classes';
 import { MUTED_TEXT } from './text-classes';
 
+export type EntryControls = {
+  readonly entryFormMode: EntryFormMode;
+  readonly editEntry: EditEntryAction;
+  readonly deleteEntry: DeleteEntryAction;
+};
+
 export type EntryListProps = {
   readonly entries: readonly PostedEntry[];
-  readonly deleteEntry: DeleteEntryAction;
+  readonly controls: EntryControls;
 };
 
 const ACCOUNT_NAMES: Readonly<Record<AccountCode, string>> = en.accounts;
 
 const accountName = (code: string): string => (isAccountCode(code) ? ACCOUNT_NAMES[code] : code);
-
-const linesOn = (entry: PostedEntry, side: Side): readonly EntryLineInput[] =>
-  entry.lines.filter((line) => line.side === side);
-
-const hasOneLinePerSide = (entry: PostedEntry): boolean =>
-  SIDES.every((side) => linesOn(entry, side).length === 1);
 
 type Layout = {
   readonly grid: string;
@@ -105,11 +106,11 @@ function SideLines({
 function ListedEntry({
   entry,
   headsColumns,
-  deleteEntry,
+  controls,
 }: {
   readonly entry: PostedEntry;
   readonly headsColumns: boolean;
-  readonly deleteEntry: DeleteEntryAction;
+  readonly controls: EntryControls;
 }): ReactNode {
   const layout = hasOneLinePerSide(entry) ? COMPACT : STACKED;
   return (
@@ -132,7 +133,12 @@ function ListedEntry({
               </span>
             </span>
           </p>
-          <DeleteEntry entry={entry} action={deleteEntry} />
+          <EditEntry
+            entry={entry}
+            entryFormMode={controls.entryFormMode}
+            action={controls.editEntry}
+          />
+          <DeleteEntry entry={entry} action={controls.deleteEntry} />
         </div>
       </div>
       <SideHeadings layout={layout} named={headsColumns} />
@@ -145,7 +151,7 @@ function ListedEntry({
   );
 }
 
-export function EntryList({ entries, deleteEntry }: EntryListProps): ReactNode {
+export function EntryList({ entries, controls }: EntryListProps): ReactNode {
   return (
     <Panel title={en.entryList.title} titleHidden>
       {entries.length === 0 ? (
@@ -157,7 +163,7 @@ export function EntryList({ entries, deleteEntry }: EntryListProps): ReactNode {
               key={entry.id}
               entry={entry}
               headsColumns={index === 0}
-              deleteEntry={deleteEntry}
+              controls={controls}
             />
           ))}
         </div>
