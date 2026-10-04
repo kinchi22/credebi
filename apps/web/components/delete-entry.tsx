@@ -6,7 +6,13 @@ import { typeClasses } from '@repo/ui/type-classes';
 import { useId, useState, useTransition, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { formatAmount } from './amount';
-import { BUTTON, DANGER_BUTTON, ROW_ICON_BUTTON } from './control-classes';
+import {
+  BUTTON,
+  CONFIRMATION_DIALOG,
+  CONFIRMATION_PANEL,
+  DANGER_BUTTON,
+  ROW_ICON_BUTTON,
+} from './control-classes';
 import { useModalDialog } from './modal-dialog';
 import { DANGER_TEXT } from './text-classes';
 
@@ -70,10 +76,10 @@ export function DeleteEntry({ entry, action }: DeleteEntryProps): ReactNode {
             dialog.closeOnScrim(event);
           }
         }}
-        className="m-auto w-[calc(100%-2rem)] max-w-100 rounded border border-border bg-surface p-0 text-text backdrop:bg-ground-dark/60"
+        className={CONFIRMATION_DIALOG}
       >
         {dialog.open ? (
-          <div className="flex flex-col gap-4 p-4 wide:p-6">
+          <div className={CONFIRMATION_PANEL}>
             <h2 id={titleId} className={typeClasses.h2}>
               {en.deleteEntry.title}
             </h2>
