@@ -9,6 +9,7 @@ import {
   TWELVE_THOUSAND_FIVE_HUNDRED,
   type TwoLineEntry,
 } from './entries';
+import { fromField, resultFor, results, search, toField } from './entry-search';
 import { ENTRY_SEARCH_PATH as SEARCH, ENTRY_SEARCH_WITH_QUERY, ENTRY_SEARCH_WITHOUT_QUERY } from './routes';
 import { signIn, signInForSmoke } from './session';
 import { PHONE } from './viewport';
@@ -16,10 +17,6 @@ import { PHONE } from './viewport';
 const TODAY = '2026-09-15';
 
 const PLUS_MINUS = '\u00B1';
-
-const EARLIEST = '2000-01-01';
-
-const LATEST = '2099-12-31';
 
 const CATEGORIES = ['Year', 'Quarter', 'Month', 'Relative'] as const;
 
@@ -38,15 +35,6 @@ const posting = (
   amount: AMOUNT,
 });
 
-const results = (page: Page): Locator => page.getByRole('region', { name: 'Results' });
-
-const resultFor = (page: Page, memo: string): Locator =>
-  results(page).getByTestId('entry').filter({ hasText: memo });
-
-const fromField = (page: Page): Locator => entrySearchForm(page).getByLabel('From', { exact: true });
-
-const toField = (page: Page): Locator => entrySearchForm(page).getByLabel('To', { exact: true });
-
 const datePresets = (page: Page): Locator =>
   page.getByRole('group', { name: 'Date presets', exact: true });
 
@@ -58,29 +46,6 @@ const presetChoice = (scope: Page | Locator, name: string): Locator =>
 
 const pressedChoices = (page: Page): Locator =>
   page.getByRole('main').locator('[aria-pressed="true"]');
-
-type Criteria = {
-  readonly from?: string;
-  readonly to?: string;
-  readonly account?: string;
-  readonly memo?: string;
-};
-
-async function search(page: Page, criteria: Criteria): Promise<void> {
-  const form = entrySearchForm(page);
-  await expect(form).toBeVisible();
-
-  await fromField(page).fill(criteria.from ?? EARLIEST);
-  await toField(page).fill(criteria.to ?? LATEST);
-  if (criteria.account !== undefined) {
-    await form.getByLabel('Account', { exact: true }).selectOption(criteria.account);
-  }
-  if (criteria.memo !== undefined) {
-    await form.getByLabel('Memo', { exact: true }).fill(criteria.memo);
-  }
-
-  await form.getByRole('button', { name: 'Search' }).click();
-}
 
 async function expectRange(page: Page, first: string, last: string): Promise<void> {
   await expect(fromField(page)).toHaveValue(first);
