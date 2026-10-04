@@ -4,6 +4,7 @@ import { isErr, isOk, type EntryId, type Money, type UserId } from '@repo/contra
 import { createDatabase } from '@repo/db';
 import { type LogFields, type Logger } from '../../logging/ports/logger';
 import { makeEntry, type Entry, type EntryDraft } from '../domain/entry';
+import { makeReversal, type Reversal } from '../domain/reversal';
 import { NO_CRITERIA, type SearchCriteria } from '../domain/search-criteria';
 import { createPostgresEntryRepository } from './postgres-entry-repository';
 
@@ -70,6 +71,14 @@ function entry(overrides: Partial<EntryDraft> & { readonly createdAt?: Date } = 
   );
   expect(isOk(made), 'test setup built an entry that breaks a rule').toBe(true);
   return isOk(made) ? made.value : ({} as Entry);
+}
+
+function reversalOf(original: Entry): Reversal {
+  sequence += 1;
+  return makeReversal(original, {
+    id: `01920000-0000-7000-8000-${sequence.toString().padStart(12, '0')}` as EntryId,
+    createdAt: new Date('2026-10-04T09:00:00.000Z'),
+  });
 }
 
 async function found(
@@ -514,5 +523,127 @@ describe('createPostgresEntryRepository', () => {
     );
 
     await expect(refused).rejects.toMatchObject({ cause: { code: '23502' } });
+  });
+  it('reads one Entry by id for its User, with its lines, and says it is not reversed', async () => {
+    const saved = entry({
+      lines: [
+        { account: 'cash', side: 'credit', amount: 5000 as Money },
+        { account: 'expense', side: 'debit', amount: 12500 as Money },
+        { account: 'cash', side: 'credit', amount: 7500 as Money },
+      ],
+    });
+    await repository.save(ADA, saved);
+    await repository.save(ADA, entry({ memo: 'Another' }));
+
+    expect(await repository.find(ADA, saved.id)).toEqual({
+      ok: true,
+      value: { entry: saved, reversed: false },
+    });
+  });
+
+  it('answers not found for an id no Entry has, for another User\'s Entry and for a Reversal', async () => {
+    const graces = entry();
+    await repository.save(GRACE, graces);
+    const adas = entry();
+    await repository.save(ADA, adas);
+    const reversal = reversalOf(adas);
+    await repository.saveReversal(ADA, reversal);
+
+    for (const id of [entry().id, graces.id, reversal.id]) {
+      const result = await repository.find(ADA, id);
+      expect(isErr(result) && result.error.code).toBe('NOT_FOUND');
+    }
+  });
+
+  it('reads an Entry with a Reversal as reversed', async () => {
+    const saved = entry();
+    await repository.save(ADA, saved);
+    await repository.saveReversal(ADA, reversalOf(saved));
+
+    expect(await repository.find(ADA, saved.id)).toEqual({
+      ok: true,
+      value: { entry: saved, reversed: true },
+    });
+  });
+
+  it('stores a Reversal linked to the Entry it reverses, with its lines', async () => {
+    const saved = entry();
+    await repository.save(ADA, saved);
+    const reversal = reversalOf(saved);
+
+    expect(isOk(await repository.saveReversal(ADA, reversal))).toBe(true);
+
+    const rows = await database.execute<{ reverses: string; lines: number }>(
+      sql`select reverses_entry_id as reverses, (select count(*)::int from entry_lines where entry_id = entries.id) as lines from entries where id = ${reversal.id}`,
+    );
+    expect(rows.rows).toEqual([{ reverses: saved.id, lines: 2 }]);
+  });
+
+  it('refuses a second Reversal of one Entry as a conflict, and keeps the first alone', async () => {
+    const saved = entry();
+    await repository.save(ADA, saved);
+    await repository.saveReversal(ADA, reversalOf(saved));
+
+    const second = await repository.saveReversal(ADA, reversalOf(saved));
+
+    expect(isErr(second) && second.error.code).toBe('CONFLICT');
+    expect(await countEntries()).toBe(2);
+    expect(logged).toEqual([]);
+  });
+
+  it('refuses a second Reversal written beside the first in the database itself', async () => {
+    const saved = entry();
+    await repository.save(ADA, saved);
+    await repository.saveReversal(ADA, reversalOf(saved));
+
+    const refused = database.execute(
+      sql`insert into entries (id, user_id, entry_date, memo, created_at, reverses_entry_id) values ('01920000-0000-7000-8000-0000000000fe', ${ADA}, '2026-09-15', 'Again', now(), ${saved.id})`,
+    );
+
+    await expect(refused).rejects.toMatchObject({ cause: { code: '23505' } });
+  });
+
+  it('reports a Reversal the database cannot store as unavailable, and writes none of it', async () => {
+    const saved = entry();
+    await repository.save(ADA, saved);
+    const reversal = reversalOf(saved);
+    const refused: Reversal = {
+      ...reversal,
+      lines: reversal.lines.map((line, index) =>
+        index === 1 ? { ...line, amount: Number.NaN as Money } : line,
+      ),
+    };
+
+    const result = await repository.saveReversal(ADA, refused);
+
+    expect(isErr(result) && result.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+    expect(await countEntries()).toBe(1);
+    expect(logged.map((fields) => fields.event)).toEqual(['entries.save_failed']);
+  });
+
+  it('leaves out a Reversal and the Entry it reverses, with no Search criteria and with each', async () => {
+    const kept = entry({ entryDate: '2026-06-15', memo: 'Kept rent' });
+    const doomed = entry({ entryDate: '2026-06-15', memo: 'Doomed rent' });
+    await repository.save(ADA, kept);
+    await repository.save(ADA, doomed);
+    await repository.saveReversal(ADA, reversalOf(doomed));
+
+    expect(await memosFound(NO_CRITERIA)).toEqual(['Kept rent']);
+    expect(await memosFound({ from: '2026-06-01', to: '2026-06-30' })).toEqual(['Kept rent']);
+    expect(await memosFound({ account: 'cash' })).toEqual(['Kept rent']);
+    expect(await memosFound({ memo: 'rent' })).toEqual(['Kept rent']);
+  });
+
+  it('reports an unreachable database when reading one Entry or saving a Reversal', async () => {
+    const saved = entry();
+    const read = await dead.find(ADA, saved.id);
+    const written = await dead.saveReversal(ADA, reversalOf(saved));
+
+    expect(isErr(read) && read.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+    expect(isErr(written) && written.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+    expect(logged.map((fields) => fields.event)).toEqual([
+      'entries.find_failed',
+      'entries.save_failed',
+    ]);
   });
 });

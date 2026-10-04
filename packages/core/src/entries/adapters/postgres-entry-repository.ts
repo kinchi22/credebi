@@ -1,5 +1,18 @@
-import { and, asc, desc, eq, exists, gte, ilike, lte, type SQL } from 'drizzle-orm';
-import { QueryBuilder } from 'drizzle-orm/pg-core';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  exists,
+  gte,
+  ilike,
+  isNull,
+  lte,
+  not,
+  getTableColumns,
+  type SQL,
+} from 'drizzle-orm';
+import { alias, QueryBuilder } from 'drizzle-orm/pg-core';
 import {
   domainError,
   err,
@@ -17,7 +30,8 @@ import { type Logger } from '../../logging/ports/logger';
 import { money } from '../../money/domain/money';
 import { makeEntry, type AccountCode, type Entry, type EntryDraft } from '../domain/entry';
 import { type SearchCriteria } from '../domain/search-criteria';
-import { type EntryRepository } from '../ports/entry-repository';
+import { reversedAlready, type Reversal } from '../domain/reversal';
+import { type EntryRepository, type FoundEntry } from '../ports/entry-repository';
 
 export type PostgresEntryRepository = EntryRepository & {
   close: () => Promise<void>;
@@ -32,35 +46,114 @@ export function createPostgresEntryRepository(
 ): PostgresEntryRepository {
   const { database, close } = createDatabase(connectionString);
 
+  const insert = (userId: UserId, entry: Entry, reverses: EntryId | null): Promise<void> =>
+    database.transaction(async (transaction) => {
+      await transaction.insert(schema.entries).values({
+        id: entry.id,
+        userId,
+        entryDate: entry.entryDate,
+        memo: entry.memo,
+        createdAt: entry.createdAt,
+        reversesEntryId: reverses,
+      });
+      await transaction.insert(schema.entryLines).values(
+        entry.lines.map((line, index) => ({
+          entryId: entry.id,
+          lineNumber: index + 1,
+          account: line.account,
+          side: line.side,
+          amount: line.amount,
+        })),
+      );
+    });
+
+  const logSaveFailed = (entry: Entry, error: unknown, message: string): void => {
+    logger.error(
+      { event: 'entries.save_failed', entryId: entry.id, error: describeError(error) },
+      message,
+    );
+  };
+
+  const restoreOrReport = (
+    row: EntryRow,
+    lineRows: readonly LineRow[],
+  ): Result<Entry, DomainError> => {
+    const entry = restore(row, lineRows);
+    if (!entry.ok) {
+      logger.error(
+        { event: 'entries.stored_entry_invalid', entryId: row.id, reason: entry.error.message },
+        'A stored entry breaks a rule, so the read did not answer.',
+      );
+    }
+    return entry;
+  };
+
   return {
     save: async (userId: UserId, entry: Entry): Promise<Result<void, DomainError>> => {
       try {
-        await database.transaction(async (transaction) => {
-          await transaction.insert(schema.entries).values({
-            id: entry.id,
-            userId,
-            entryDate: entry.entryDate,
-            memo: entry.memo,
-            createdAt: entry.createdAt,
-          });
-          await transaction.insert(schema.entryLines).values(
-            entry.lines.map((line, index) => ({
-              entryId: entry.id,
-              lineNumber: index + 1,
-              account: line.account,
-              side: line.side,
-              amount: line.amount,
-            })),
-          );
-        });
+        await insert(userId, entry, null);
         return ok(undefined);
       } catch (error) {
-        logger.error(
-          { event: 'entries.save_failed', entryId: entry.id, error: describeError(error) },
-          'An entry could not be stored.',
-        );
+        logSaveFailed(entry, error, 'An entry could not be stored.');
         return unavailable('The entry could not be stored.');
       }
+    },
+
+    saveReversal: async (
+      userId: UserId,
+      reversal: Reversal,
+    ): Promise<Result<void, DomainError>> => {
+      try {
+        await insert(userId, reversal, reversal.reverses);
+        return ok(undefined);
+      } catch (error) {
+        if (violates(error, REVERSED_ONCE)) {
+          return reversedAlready(reversal.reverses);
+        }
+        logSaveFailed(reversal, error, 'A reversal could not be stored.');
+        return unavailable('The reversal could not be stored.');
+      }
+    },
+
+    find: async (userId: UserId, id: EntryId): Promise<Result<FoundEntry, DomainError>> => {
+      let entryRows: (EntryRow & { readonly reversed: boolean })[];
+      let lineRows: LineRow[];
+      try {
+        entryRows = await database
+          .select({
+            ...getTableColumns(schema.entries),
+            reversed: reversed(schema.entries.id).mapWith(Boolean),
+          })
+          .from(schema.entries)
+          .where(
+            and(
+              eq(schema.entries.id, id),
+              eq(schema.entries.userId, userId),
+              isNull(schema.entries.reversesEntryId),
+            ),
+          );
+        lineRows = await database
+          .select()
+          .from(schema.entryLines)
+          .where(eq(schema.entryLines.entryId, id))
+          .orderBy(asc(schema.entryLines.lineNumber));
+      } catch (error) {
+        logger.error(
+          { event: 'entries.find_failed', entryId: id, error: describeError(error) },
+          'An entry could not be read.',
+        );
+        return unavailable('The entry could not be read.');
+      }
+
+      const [row] = entryRows;
+      if (row === undefined) {
+        return err(domainError('NOT_FOUND', `No entry ${id} is visible to this User.`));
+      }
+      const entry = restoreOrReport(row, lineRows);
+      if (!entry.ok) {
+        return entry;
+      }
+      return ok({ entry: entry.value, reversed: row.reversed });
     },
 
     search: async (
@@ -109,12 +202,8 @@ export function createPostgresEntryRepository(
 
       const entries: Entry[] = [];
       for (const row of entryRows) {
-        const entry = restore(row, linesByEntry.get(row.id) ?? []);
+        const entry = restoreOrReport(row, linesByEntry.get(row.id) ?? []);
         if (!entry.ok) {
-          logger.error(
-            { event: 'entries.stored_entry_invalid', entryId: row.id, reason: entry.error.message },
-            'A stored entry breaks a rule, so the search did not answer.',
-          );
           return entry;
         }
         entries.push(entry.value);
@@ -129,9 +218,35 @@ export function createPostgresEntryRepository(
 const unavailable = (message: string): Err<DomainError> =>
   err(domainError('DEPENDENCY_UNAVAILABLE', message));
 
+const REVERSED_ONCE = 'entries_reverses_entry_id_unique';
+
+function violates(thrown: unknown, constraint: string): boolean {
+  let current: unknown = thrown;
+  while (current instanceof Error) {
+    if (Reflect.get(current, 'constraint') === constraint) {
+      return true;
+    }
+    current = current.cause;
+  }
+  return false;
+}
+
+const reversing = alias(schema.entries, 'reversing');
+
+function reversed(id: typeof schema.entries.id): SQL {
+  return exists(
+    new QueryBuilder()
+      .select({ id: reversing.id })
+      .from(reversing)
+      .where(eq(reversing.reversesEntryId, id)),
+  );
+}
+
 function matches(userId: UserId, criteria: SearchCriteria): SQL | undefined {
   return and(
     eq(schema.entries.userId, userId),
+    isNull(schema.entries.reversesEntryId),
+    not(reversed(schema.entries.id)),
     ...(criteria.from === undefined ? [] : [gte(schema.entries.entryDate, criteria.from)]),
     ...(criteria.to === undefined ? [] : [lte(schema.entries.entryDate, criteria.to)]),
     ...(criteria.account === undefined ? [] : [touches(criteria.account)]),

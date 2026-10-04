@@ -22,6 +22,7 @@ import { useState, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { AccountPicker, AddAccountButton, useAccountSheet } from './account-picker';
 import { formatAmount } from './amount';
+import { BARE_ICON_BUTTON } from './control-classes';
 import {
   AmountInput,
   ENTRY_FORM_GRID,
@@ -141,7 +142,7 @@ function LineFields({ id, line, onAmountChange, onRemove }: LineFieldsProps): Re
           type="button"
           aria-label={en.multiLineForm.remove}
           onClick={onRemove}
-          className={`${REMOVE_COLUMN} inline-flex h-7.5 items-center justify-center rounded text-text-muted hover:text-text`}
+          className={`${REMOVE_COLUMN} h-7.5 ${BARE_ICON_BUTTON}`}
         >
           <CloseIcon />
         </button>

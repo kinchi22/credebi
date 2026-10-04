@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  deleteEntryInputSchema,
   entryDateSchema,
   entryIdSchema,
   entryLineSchema,
@@ -70,6 +71,17 @@ describe('entryLineSchema', () => {
     expect(
       entryLineSchema.safeParse({ account: 'cash', side: 'credit', amount: 12.5 }).success,
     ).toBe(false);
+  });
+});
+
+describe('deleteEntryInputSchema', () => {
+  it('carries the id of the Entry to delete', () => {
+    expect(deleteEntryInputSchema.parse({ id: ENTRY_ID })).toEqual({ id: ENTRY_ID });
+  });
+
+  it('refuses an input whose id is missing or not an Entry id', () => {
+    expect(deleteEntryInputSchema.safeParse({}).success).toBe(false);
+    expect(deleteEntryInputSchema.safeParse({ id: 'not-an-id' }).success).toBe(false);
   });
 });
 
