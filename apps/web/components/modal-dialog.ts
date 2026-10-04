@@ -12,8 +12,17 @@ export type ModalDialog = {
   };
 };
 
-function useCloseWhenWide(close: () => void): void {
+export type ModalDialogOptions = {
+  readonly closesWhenWide: boolean;
+};
+
+const SHEET: ModalDialogOptions = { closesWhenWide: true };
+
+function useCloseWhenWide(close: () => void, closesWhenWide: boolean): void {
   useEffect(() => {
+    if (!closesWhenWide) {
+      return undefined;
+    }
     const wide = window.matchMedia(WIDE_QUERY);
     const closeWhenWide = (): void => {
       if (wide.matches) close();
@@ -22,10 +31,10 @@ function useCloseWhenWide(close: () => void): void {
     return () => {
       wide.removeEventListener('change', closeWhenWide);
     };
-  }, [close]);
+  }, [close, closesWhenWide]);
 }
 
-export function useModalDialog(): ModalDialog {
+export function useModalDialog({ closesWhenWide }: ModalDialogOptions = SHEET): ModalDialog {
   const [open, setOpen] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const opener = useRef<HTMLElement | null>(null);
@@ -38,7 +47,7 @@ export function useModalDialog(): ModalDialog {
     from?.focus();
   }, []);
 
-  useCloseWhenWide(close);
+  useCloseWhenWide(close, closesWhenWide);
 
   return {
     open,
@@ -54,6 +63,11 @@ export function useModalDialog(): ModalDialog {
     closeOnScrim: (event) => {
       if (event.target === event.currentTarget) close();
     },
-    dialogProps: { ref: dialog, onClose: close },
+    dialogProps: {
+      ref: dialog,
+      onClose: () => {
+        if (dialog.current?.open !== true) close();
+      },
+    },
   };
 }

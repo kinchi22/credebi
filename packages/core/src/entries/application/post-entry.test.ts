@@ -25,6 +25,8 @@ function inMemoryEntries(): EntryRepository {
       stored.push({ userId, entry });
       return Promise.resolve(ok(undefined));
     },
+    saveReversal: () => Promise.resolve(err(domainError('CONFLICT', 'Not posted here.'))),
+    find: () => Promise.resolve(err(domainError('NOT_FOUND', 'Not read here.'))),
     search: (userId: UserId): Promise<Result<readonly Entry[], DomainError>> =>
       Promise.resolve(
         ok(stored.filter((row) => row.userId === userId).map((row) => row.entry)),
@@ -37,6 +39,8 @@ const GRACE: AuthContext = { userId: '01920000-0000-7000-8000-0000000000a2' as U
 
 const unavailableEntries: EntryRepository = {
   save: () => Promise.resolve(err(domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.'))),
+  saveReversal: () => Promise.resolve(err(domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.'))),
+  find: () => Promise.resolve(err(domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.'))),
   search: () => Promise.resolve(ok([])),
 };
 

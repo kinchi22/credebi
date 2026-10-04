@@ -10,6 +10,7 @@ import { answerEntrySearch } from '../../../../../server/entry-search';
 import { ENTRY_SEARCH_PATH, pathWithQuery, signInPath } from '../../../../../server/return-path';
 import { createCaller } from '../../../../../server/root-router';
 import { orSignIn } from '../../../../../server/sign-in-redirect';
+import { deleteEntry, editEntry } from '../actions';
 import { searchDefaultRange } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -32,18 +33,27 @@ export default async function EntrySearchPage({
     if (!(await caller.auth.signedIn())) {
       redirect(signInPath(ENTRY_SEARCH_PATH));
     }
-    return <EntrySearchColdVisit search={searchDefaultRange} />;
+    const { entryFormMode } = await orSignIn(caller.settings.read(), path);
+    return (
+      <EntrySearchColdVisit
+        search={searchDefaultRange}
+        controls={{ entryFormMode, editEntry, deleteEntry }}
+      />
+    );
   }
 
-  const answer = await answerEntrySearch(
-    (criteria) => orSignIn(caller.entries.search(criteria), path),
-    query,
-  );
+  const [settings, answer] = await Promise.all([
+    orSignIn(caller.settings.read(), path),
+    answerEntrySearch((criteria) => orSignIn(caller.entries.search(criteria), path), query),
+  ]);
 
   return (
     <>
       <EntrySearchForm criteria={answer.criteria} />
-      <EntrySearchOutcome answer={answer} />
+      <EntrySearchOutcome
+        answer={answer}
+        controls={{ entryFormMode: settings.entryFormMode, editEntry, deleteEntry }}
+      />
     </>
   );
 }

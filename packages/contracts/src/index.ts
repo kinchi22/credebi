@@ -33,6 +33,8 @@ export {
 } from './health';
 
 export type {
+  DeleteEntryInput,
+  EditEntryInput,
   EntryId,
   EntryLineInput,
   PostEntryInput,
@@ -46,6 +48,8 @@ export {
   ENTRY_FORM_FIELDS,
   SEARCH_CRITERIA_FIELDS,
   amountTextSchema,
+  deleteEntryInputSchema,
+  editEntryInputSchema,
   entryDateSchema,
   entryIdSchema,
   entryLineSchema,

@@ -10,7 +10,7 @@ import { createContext } from '../../../../server/context';
 import { SIGNED_IN_HOME } from '../../../../server/return-path';
 import { createCaller } from '../../../../server/root-router';
 import { orSignIn } from '../../../../server/sign-in-redirect';
-import { postEntry } from './actions';
+import { deleteEntry, editEntry, postEntry } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,7 +34,10 @@ export default async function EntriesPage(): Promise<ReactNode> {
   return (
     <>
       <EntryForm action={postEntry} />
-      <EntryList entries={entries} />
+      <EntryList
+        entries={entries}
+        controls={{ entryFormMode: settings.entryFormMode, editEntry, deleteEntry }}
+      />
     </>
   );
 }

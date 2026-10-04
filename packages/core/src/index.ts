@@ -31,6 +31,12 @@ export {
   createPostEntry,
   type PostEntry,
   type PostEntryDependencies,
+  createDeleteEntry,
+  type DeleteEntry,
+  type DeleteEntryDependencies,
+  createEditEntry,
+  type EditEntry,
+  type EditEntryDependencies,
   NO_CRITERIA,
   makeSearchCriteria,
   type SearchCriteria,
@@ -39,6 +45,7 @@ export {
   type SearchEntries,
   type SearchEntriesDependencies,
   type EntryRepository,
+  type UnitOfWork,
 } from './entries/index';
 
 export {

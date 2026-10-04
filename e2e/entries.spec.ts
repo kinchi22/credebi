@@ -10,6 +10,7 @@ import {
   closeButton,
   DAY,
   doneButton,
+  entries,
   entryForm,
   expectDebitAndCreditColumns,
   expectSheetOnSide,
@@ -28,8 +29,6 @@ import {
 import { signIn, signInForSmoke } from './session';
 import { setEntryFormMode } from './settings';
 import { PHONE } from './viewport';
-
-const entries = (page: Page): Locator => page.getByRole('region', { name: 'Entries' });
 
 async function expectListedAsSubmitted(entry: Locator): Promise<void> {
   await expect(entry).toHaveCount(1);

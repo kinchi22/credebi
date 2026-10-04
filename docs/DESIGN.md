@@ -113,6 +113,9 @@ components:
   button-secondary:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.text}"
+  button-danger:
+    backgroundColor: "{colors.danger}"
+    textColor: "{colors.surface}"
   button-quiet-on-dark:
     textColor: "{colors.text-muted-on-dark}"
   button-quiet-on-dark-hover:
@@ -341,11 +344,17 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
 - **Primary button.** `accent` fill with `text`. White on mint reads 2.0:1 and
   is never used. It is kept for a page's main action: the entry form's submit
   and Entry search's submit. Every other button on a light ground is
-  secondary, except the Google sign-in button. A transparent edge as wide as an Input's border
+  secondary, except the Google sign-in button, the danger button and the bare
+  icon buttons named below. A transparent edge as wide as an Input's border
   makes it as tall as the Input it sits beside: Entry search's submit beside
   the memo field, and the entry form's submit beside the amount field in
   Two-line mode.
 - **Secondary button.** `surface` fill, `text`, a `border-control` edge.
+- **Danger button.** `danger` fill, `surface` text, semibold, with a
+  transparent edge as wide as a secondary button's, so the two stand the same
+  height side by side. It is kept for the action a confirmation dialog asks
+  about when that action takes something away: `Delete` in `Delete entry`
+  and `Discard` in `Discard changes`.
 - **Google sign-in button.** "Sign in with Google" follows Google's sign-in
   branding rather than the primary button: a `surface` fill, `text`, a
   `border-google` edge, 40px tall and as wide as the Sign in card, with Google's
@@ -490,6 +499,49 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   shared header row: the first Entry's Side names are the table's `Debit` and
   `Credit` column headers, and every later Entry's are hidden from assistive
   technology.
+- **Entry row actions.** At the end of each Entry's first row, after its
+  total, `Edit` and then `Delete` are bare icon buttons, drawn as the Remove
+  button: a stroke icon in `text-muted`, `text` under the pointer, no fill and
+  no border, a pencil for `Edit` and a trash can for `Delete`, each named by
+  its action rather than by text. They are 32px square below `wide` and 24px
+  from `wide` up, and they do not make the row taller than its text. They sit
+  there at every width, in Entries and in Entry search.
+- **Confirmation dialog.** A modal dialog centred on the page over a
+  `ground-dark` scrim at 60%: a `surface` panel with a `border` edge, 400px
+  wide at most and as wide as the 16px page gutter allows below that, padded
+  16px below `wide` and 24px from `wide` up, its parts 16px apart. It holds its
+  title, an `h2` element in the `h2` step, then the thing it asks about between
+  `border` hairlines, then, when the action failed, the refusal in `danger`,
+  then its buttons at the end of the last row: the secondary `Cancel` and the
+  danger button after it. Focus starts on `Cancel`.
+  Escape, `Cancel` or a click on the scrim closes it and changes nothing, and
+  focus returns to the button that opened it; while the action runs both
+  buttons are disabled and the dialog does not close. It is `Delete entry`,
+  opened by an Entry's `Delete`, whose thing is the Entry's date in `date` and
+  `text-muted`, memo, semibold, and total in `figure`, as its row shows them.
+- **Edit entry dialog.** `Edit entry`, opened by an Entry's `Edit`, holds the
+  entry form filled with the Entry. Below `wide` it is a full-screen modal
+  dialog on the `ground`, as the Date presets sheet is: a `surface` bar holds
+  its title and a close icon named `Close`, and the form scrolls below it. From
+  `wide` up it is centred over a `ground-dark` scrim at 60%, a `surface` panel
+  with a `border` edge, as wide as the page content -- its edges on the page's
+  56px side gutters, beside the Sidebar, never over it -- and at most as tall
+  as the viewport less 64px, with the same bar on top and the form scrolling inside
+  it, padded 24px, the form and the Account picker side by side as on Entries.
+  The form has no `New entry` heading, since the dialog's title names it, and
+  its submit is a primary button reading `Save`, and `Saving...` while it runs.
+  A refusal shows in place, as the entry form's does, and the dialog stays open
+  with the input. Focus starts on Date. Below `wide` the Account sheet opens
+  above it. `Close`, Escape or a click on the scrim closes it at once when the
+  form holds what it opened with, and focus returns to the button that opened
+  it; when the form holds changes, they open `Discard changes` instead.
+- **Discard changes dialog.** `Discard changes` is a confirmation dialog over
+  `Edit entry`, whose thing is a sentence saying the changes will be lost, in
+  `body-sm`. `Keep editing` stands where `Cancel` does and takes focus first,
+  and `Discard` is the danger button. `Keep editing`, Escape or a click on its
+  scrim closes it and returns to the edit with the input kept, focus back where
+  it was. `Discard` closes both dialogs, changes nothing, and focus returns to
+  the Entry's `Edit`.
 - **Link.** `accent-text`, underlined, and `accent-text-hover` under the
   pointer.
 - **Input.** `surface` fill, `text`, a `border-control` edge. The spec's
