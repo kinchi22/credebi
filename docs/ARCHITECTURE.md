@@ -54,7 +54,7 @@ status in the ADR itself.
 | [ADR-0012: Run the specs against a real database](adr/0012-run-the-specs-against-a-real-database.md) | Accepted |
 | [ADR-0013: Land a migration before the milestone that needs it](adr/0013-land-a-migration-before-the-milestone-that-needs-it.md) | Superseded by ADR-0024 |
 | [ADR-0015: Model accounts as data](adr/0015-model-accounts-as-data.md) | Deferred |
-| [ADR-0016: Correct an entry by reversal](adr/0016-correct-an-entry-by-reversal.md) | Deferred |
+| [ADR-0016: Correct an entry by reversal](adr/0016-correct-an-entry-by-reversal.md) | Accepted |
 | [ADR-0017: Authenticate before the MVP](adr/0017-authenticate-before-the-mvp.md) | Superseded by ADR-0021 |
 | [ADR-0018: Log infrastructure failures through a port](adr/0018-log-infrastructure-failures-through-a-port.md) | Accepted |
 | [ADR-0020: Keep `health.get` as the deployment's healthcheck](adr/0020-keep-health-get-as-the-healthcheck.md) | Accepted |
