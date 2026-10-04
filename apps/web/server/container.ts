@@ -4,6 +4,7 @@ import {
   createBeginGoogleSignIn,
   createChangeEntryFormMode,
   createDeleteEntry,
+  createEditEntry,
   createFinishGoogleSignIn,
   createGetHealth,
   createGetSettings,
@@ -15,6 +16,7 @@ import {
   type BeginGoogleSignIn,
   type ChangeEntryFormMode,
   type DeleteEntry,
+  type EditEntry,
   type FinishGoogleSignIn,
   type GetHealth,
   type GetSettings,
@@ -30,6 +32,7 @@ import {
   createPostgresHealthProbe,
   createPostgresSessionRepository,
   createPostgresSettingsRepository,
+  createPostgresUnitOfWork,
   createPostgresUserRepository,
   hashSessionToken,
   newSessionToken,
@@ -42,6 +45,7 @@ export type Container = {
   readonly getHealth: GetHealth;
   readonly postEntry: PostEntry;
   readonly searchEntries: SearchEntries;
+  readonly editEntry: EditEntry;
   readonly deleteEntry: DeleteEntry;
   readonly getSettings: GetSettings;
   readonly changeEntryFormMode: ChangeEntryFormMode;
@@ -83,6 +87,12 @@ export function createContainer({ databaseUrl, google, testSignIn }: Env): Conta
       now: () => new Date(),
     }),
     searchEntries: createSearchEntries({ entries }),
+    editEntry: createEditEntry({
+      entries,
+      unitOfWork: createPostgresUnitOfWork(databaseUrl, logger),
+      newEntryId: () => entryIdSchema.parse(uuidv7()),
+      now: () => new Date(),
+    }),
     deleteEntry: createDeleteEntry({
       entries,
       newEntryId: () => entryIdSchema.parse(uuidv7()),

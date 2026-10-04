@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   deleteEntryInputSchema,
+  editEntryInputSchema,
   entryDateSchema,
   entryIdSchema,
   entryLineSchema,
@@ -99,6 +100,25 @@ describe('postEntryInputSchema', () => {
   it('refuses an input missing its lines or its day', () => {
     expect(postEntryInputSchema.safeParse({ ...input, lines: undefined }).success).toBe(false);
     expect(postEntryInputSchema.safeParse({ ...input, entryDate: undefined }).success).toBe(false);
+  });
+});
+
+describe('editEntryInputSchema', () => {
+  const input = {
+    id: ENTRY_ID,
+    entryDate: '2026-09-15',
+    memo: 'Office supplies',
+    lines: [{ account: 'cash', side: 'credit', amount: 12500 }],
+  };
+
+  it('carries the id of the Entry to edit and the Entry draft that replaces it', () => {
+    expect(editEntryInputSchema.parse(input)).toEqual(input);
+  });
+
+  it('refuses an input whose id is missing or not an Entry id, or whose draft is incomplete', () => {
+    expect(editEntryInputSchema.safeParse({ ...input, id: undefined }).success).toBe(false);
+    expect(editEntryInputSchema.safeParse({ ...input, id: 'not-an-id' }).success).toBe(false);
+    expect(editEntryInputSchema.safeParse({ ...input, lines: undefined }).success).toBe(false);
   });
 });
 

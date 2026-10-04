@@ -6,7 +6,7 @@ import { typeClasses } from '@repo/ui/type-classes';
 import { useId, useState, useTransition, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { formatAmount } from './amount';
-import { BARE_ICON_BUTTON, BUTTON, DANGER_BUTTON } from './control-classes';
+import { BUTTON, DANGER_BUTTON, ROW_ICON_BUTTON } from './control-classes';
 import { useModalDialog } from './modal-dialog';
 import { DANGER_TEXT } from './text-classes';
 
@@ -20,8 +20,6 @@ export type DeleteEntryProps = {
   readonly entry: PostedEntry;
   readonly action: DeleteEntryAction;
 };
-
-const ROW_ICON_BUTTON = `-my-1.5 size-8 shrink-0 wide:-my-0.5 wide:size-6 ${BARE_ICON_BUTTON}`;
 
 export function DeleteEntry({ entry, action }: DeleteEntryProps): ReactNode {
   const titleId = useId();

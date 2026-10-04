@@ -1,5 +1,6 @@
 import {
   deleteEntryInputSchema,
+  editEntryInputSchema,
   postEntryInputSchema,
   postedEntrySchema,
   searchCriteriaSchema,
@@ -26,6 +27,17 @@ export const entriesRouter = router({
     .output(postedEntrySchema)
     .mutation(async ({ ctx, input }) => {
       const result = await ctx.container.postEntry(ctx.auth, input);
+      if (!result.ok) {
+        throw toTrpcError(result.error);
+      }
+      return toPostedEntry(result.value);
+    }),
+
+  edit: sessionProcedure
+    .input(editEntryInputSchema)
+    .output(postedEntrySchema)
+    .mutation(async ({ ctx, input: { id, ...draft } }) => {
+      const result = await ctx.container.editEntry(ctx.auth, id, draft);
       if (!result.ok) {
         throw toTrpcError(result.error);
       }

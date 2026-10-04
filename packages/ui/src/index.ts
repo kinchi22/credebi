@@ -14,6 +14,7 @@ export {
   CloseIcon,
   GoogleMark,
   MenuIcon,
+  PencilIcon,
   SearchIcon,
   SignOutIcon,
   TrashIcon,

@@ -12,7 +12,8 @@ import {
   getTableColumns,
   type SQL,
 } from 'drizzle-orm';
-import { alias, QueryBuilder } from 'drizzle-orm/pg-core';
+import { type NodePgQueryResultHKT } from 'drizzle-orm/node-postgres';
+import { alias, QueryBuilder, type PgDatabase } from 'drizzle-orm/pg-core';
 import {
   domainError,
   err,
@@ -24,7 +25,7 @@ import {
   type Result,
   type UserId,
 } from '@repo/contracts';
-import { createDatabase, schema } from '@repo/db';
+import { createDatabase, schema, type Schema } from '@repo/db';
 import { describeError } from '../../logging/domain/describe-error';
 import { type Logger } from '../../logging/ports/logger';
 import { money } from '../../money/domain/money';
@@ -34,8 +35,10 @@ import { reversedAlready, type Reversal } from '../domain/reversal';
 import { type EntryRepository, type FoundEntry } from '../ports/entry-repository';
 
 export type PostgresEntryRepository = EntryRepository & {
-  close: () => Promise<void>;
+  readonly close: () => Promise<void>;
 };
+
+export type PostgresExecutor = PgDatabase<NodePgQueryResultHKT, Schema>;
 
 type EntryRow = typeof schema.entries.$inferSelect;
 type LineRow = typeof schema.entryLines.$inferSelect;
@@ -45,7 +48,10 @@ export function createPostgresEntryRepository(
   logger: Logger,
 ): PostgresEntryRepository {
   const { database, close } = createDatabase(connectionString);
+  return { ...postgresEntriesOn(database, logger), close };
+}
 
+export function postgresEntriesOn(database: PostgresExecutor, logger: Logger): EntryRepository {
   const insert = (userId: UserId, entry: Entry, reverses: EntryId | null): Promise<void> =>
     database.transaction(async (transaction) => {
       await transaction.insert(schema.entries).values({
@@ -210,8 +216,6 @@ export function createPostgresEntryRepository(
       }
       return ok(entries);
     },
-
-    close,
   };
 }
 

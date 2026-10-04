@@ -1,12 +1,22 @@
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
-import { isErr, isOk, type EntryId, type Money, type UserId } from '@repo/contracts';
+import {
+  domainError,
+  err,
+  isErr,
+  isOk,
+  ok,
+  type EntryId,
+  type Money,
+  type UserId,
+} from '@repo/contracts';
 import { createDatabase } from '@repo/db';
 import { type LogFields, type Logger } from '../../logging/ports/logger';
 import { makeEntry, type Entry, type EntryDraft } from '../domain/entry';
 import { makeReversal, type Reversal } from '../domain/reversal';
 import { NO_CRITERIA, type SearchCriteria } from '../domain/search-criteria';
 import { createPostgresEntryRepository } from './postgres-entry-repository';
+import { createPostgresUnitOfWork } from './postgres-unit-of-work';
 
 const databaseUrl = process.env['TEST_DATABASE_URL'];
 if (databaseUrl === undefined) {
@@ -27,10 +37,18 @@ const logger: Logger = {
 
 const repository = createPostgresEntryRepository(databaseUrl, logger);
 const dead = createPostgresEntryRepository(UNREACHABLE_URL, logger);
+const unitOfWork = createPostgresUnitOfWork(databaseUrl, logger);
+const deadUnitOfWork = createPostgresUnitOfWork(UNREACHABLE_URL, logger);
 const { database, close } = createDatabase(databaseUrl);
 
 afterAll(async () => {
-  await Promise.all([repository.close(), dead.close(), close()]);
+  await Promise.all([
+    repository.close(),
+    dead.close(),
+    unitOfWork.close(),
+    deadUnitOfWork.close(),
+    close(),
+  ]);
 });
 
 const ADA = '01920000-0000-7000-8000-0000000000a1' as UserId;
@@ -645,5 +663,79 @@ describe('createPostgresEntryRepository', () => {
       'entries.find_failed',
       'entries.save_failed',
     ]);
+  });
+});
+
+describe('createPostgresUnitOfWork', () => {
+  it('commits a unit of work as one: the Reversal and the replacement are both stored', async () => {
+    const original = entry({ memo: 'Original' });
+    await repository.save(ADA, original);
+    const replacement = entry({ memo: 'Replacement' });
+
+    const done = await unitOfWork.run(async (entries) => {
+      const reversed = await entries.saveReversal(ADA, reversalOf(original));
+      if (!reversed.ok) return reversed;
+      const saved = await entries.save(ADA, replacement);
+      return saved.ok ? ok(replacement.id) : saved;
+    });
+
+    expect(done).toEqual(ok(replacement.id));
+    expect(await found()).toEqual([replacement]);
+    expect(await countEntries()).toBe(3);
+  });
+
+  it('rolls a unit of work back when the database refuses the replacement: no Reversal is left behind (ADR-0011)', async () => {
+    const original = entry({ memo: 'Original' });
+    await repository.save(ADA, original);
+
+    const done = await unitOfWork.run(async (entries) => {
+      const reversed = await entries.saveReversal(ADA, reversalOf(original));
+      if (!reversed.ok) return reversed;
+      return entries.save(ADA, { ...entry({ memo: 'Replacement' }), id: original.id });
+    });
+
+    expect(isErr(done) && done.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+    expect(await countEntries()).toBe(1);
+    expect(await repository.find(ADA, original.id)).toEqual(
+      ok({ entry: original, reversed: false }),
+    );
+    expect(logged.map((fields) => fields.event)).toEqual(['entries.save_failed']);
+  });
+
+  it('rolls a unit of work back when the work answers with a refusal, and answers with it', async () => {
+    const original = entry();
+    await repository.save(ADA, original);
+    const refusal = err(domainError('CONFLICT', 'Refused by the work.'));
+
+    const done = await unitOfWork.run(async (entries) => {
+      await entries.saveReversal(ADA, reversalOf(original));
+      return refusal;
+    });
+
+    expect(done).toEqual(refusal);
+    expect(await countEntries()).toBe(1);
+    expect(logged).toEqual([]);
+  });
+
+  it('refuses a second Reversal inside a unit of work as a conflict, and stores nothing of it', async () => {
+    const original = entry();
+    await repository.save(ADA, original);
+    await repository.saveReversal(ADA, reversalOf(original));
+
+    const done = await unitOfWork.run(async (entries) => {
+      const reversed = await entries.saveReversal(ADA, reversalOf(original));
+      if (!reversed.ok) return reversed;
+      return entries.save(ADA, entry({ memo: 'Replacement' }));
+    });
+
+    expect(isErr(done) && done.error.code).toBe('CONFLICT');
+    expect(await countEntries()).toBe(2);
+  });
+
+  it('reports an unreachable database to a unit of work as unavailable, never by throwing', async () => {
+    const done = await deadUnitOfWork.run((entries) => entries.save(ADA, entry()));
+
+    expect(isErr(done) && done.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+    expect(logged.map((fields) => fields.event)).toEqual(['entries.unit_of_work_failed']);
   });
 });
