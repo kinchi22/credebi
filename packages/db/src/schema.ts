@@ -1,4 +1,5 @@
 import {
+  type AnyPgColumn,
   bigint,
   date,
   index,
@@ -54,6 +55,9 @@ export const entries = pgTable(
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
+    reversesEntryId: uuid('reverses_entry_id')
+      .unique()
+      .references((): AnyPgColumn => entries.id),
   },
   (table) => [index('entries_user_id_idx').on(table.userId)],
 );
