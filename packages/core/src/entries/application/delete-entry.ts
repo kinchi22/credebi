@@ -1,6 +1,6 @@
-import { domainError, err, type DomainError, type EntryId, type Result } from '@repo/contracts';
+import { type DomainError, type EntryId, type Result } from '@repo/contracts';
 import { requireUser, type AuthContext } from '../../auth/domain/auth-context';
-import { makeReversal } from '../domain/reversal';
+import { makeReversal, reversedAlready } from '../domain/reversal';
 import { type EntryRepository } from '../ports/entry-repository';
 
 export type DeleteEntryDependencies = {
@@ -27,7 +27,7 @@ export function createDeleteEntry({
       return found;
     }
     if (found.value.reversed) {
-      return err(domainError('CONFLICT', `Entry ${id} is reversed already.`));
+      return reversedAlready(id);
     }
 
     const reversal = makeReversal(found.value.entry, { id: newEntryId(), createdAt: now() });

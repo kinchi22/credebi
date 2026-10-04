@@ -86,7 +86,6 @@ async function found(
   criteria: SearchCriteria = NO_CRITERIA,
 ): Promise<readonly Entry[]> {
   const result = await repository.search(userId, criteria);
-
   expect(isOk(result)).toBe(true);
   return isOk(result) ? result.value : [];
 }

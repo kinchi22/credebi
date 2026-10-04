@@ -11,4 +11,6 @@ export const DATE_CONTROL = `${CONTROL} appearance-none ${typeClasses.date}`;
 export const ICON_CONTROL = `${CONTROL_FRAME} inline-flex items-center justify-center px-1 disabled:opacity-50`;
 export const LEGEND = `${typeClasses['body-sm']} font-semibold`;
 export const BUTTON = `rounded border border-border-control bg-surface px-3 py-1 ${typeClasses['body-sm']} text-text disabled:opacity-50`;
+export const DANGER_BUTTON = `rounded border border-transparent bg-danger px-3 py-1 ${typeClasses['body-sm']} font-semibold text-surface disabled:opacity-50`;
+export const BARE_ICON_BUTTON = 'inline-flex items-center justify-center rounded text-text-muted hover:text-text';
 export const PRIMARY_BUTTON = `rounded border border-transparent bg-accent px-3 py-1 ${typeClasses['body-sm']} font-semibold text-text disabled:opacity-50`;

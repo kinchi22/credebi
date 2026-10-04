@@ -6,7 +6,7 @@ import { typeClasses } from '@repo/ui/type-classes';
 import { useId, useState, useTransition, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { formatAmount } from './amount';
-import { BUTTON } from './control-classes';
+import { BARE_ICON_BUTTON, BUTTON, DANGER_BUTTON } from './control-classes';
 import { useModalDialog } from './modal-dialog';
 import { DANGER_TEXT } from './text-classes';
 
@@ -21,10 +21,7 @@ export type DeleteEntryProps = {
   readonly action: DeleteEntryAction;
 };
 
-const ROW_ICON_BUTTON =
-  '-my-1.5 inline-flex size-8 shrink-0 items-center justify-center rounded text-text-muted hover:text-text wide:-my-0.5 wide:size-6';
-
-const DANGER_BUTTON = `rounded border border-transparent bg-danger px-3 py-1 ${typeClasses['body-sm']} font-semibold text-surface disabled:opacity-50`;
+const ROW_ICON_BUTTON = `-my-1.5 size-8 shrink-0 wide:-my-0.5 wide:size-6 ${BARE_ICON_BUTTON}`;
 
 export function DeleteEntry({ entry, action }: DeleteEntryProps): ReactNode {
   const titleId = useId();
@@ -82,7 +79,6 @@ export function DeleteEntry({ entry, action }: DeleteEntryProps): ReactNode {
             <h2 id={titleId} className={typeClasses.h2}>
               {en.deleteEntry.title}
             </h2>
-            <p className={typeClasses['body-sm']}>{en.deleteEntry.question}</p>
             <p className={`flex items-baseline gap-x-3 border-y border-border py-2 ${typeClasses['body-sm']}`}>
               <time dateTime={entry.entryDate} className={`${typeClasses.date} shrink-0 text-text-muted`}>
                 {entry.entryDate}

@@ -509,10 +509,10 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   `ground-dark` scrim at 60%: a `surface` panel with a `border` edge, 400px
   wide at most and as wide as the 16px page gutter allows below that, padded
   16px below `wide` and 24px from `wide` up, its parts 16px apart. It holds its
-  title, an `h2` element in the `h2` step, a one-line question, then the thing
-  it asks about between `border` hairlines, then, when the action failed, the
-  refusal in `danger`, then its buttons at the end of the last row: the
-  secondary `Cancel` and the danger button after it. Focus starts on `Cancel`.
+  title, an `h2` element in the `h2` step, then the thing it asks about between
+  `border` hairlines, then, when the action failed, the refusal in `danger`,
+  then its buttons at the end of the last row: the secondary `Cancel` and the
+  danger button after it. Focus starts on `Cancel`.
   Escape, `Cancel` or a click on the scrim closes it and changes nothing, and
   focus returns to the button that opened it; while the action runs both
   buttons are disabled and the dialog does not close. It is `Delete entry`,

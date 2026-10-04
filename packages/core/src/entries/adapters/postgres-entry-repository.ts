@@ -30,7 +30,7 @@ import { type Logger } from '../../logging/ports/logger';
 import { money } from '../../money/domain/money';
 import { makeEntry, type AccountCode, type Entry, type EntryDraft } from '../domain/entry';
 import { type SearchCriteria } from '../domain/search-criteria';
-import { type Reversal } from '../domain/reversal';
+import { reversedAlready, type Reversal } from '../domain/reversal';
 import { type EntryRepository, type FoundEntry } from '../ports/entry-repository';
 
 export type PostgresEntryRepository = EntryRepository & {
@@ -67,11 +67,25 @@ export function createPostgresEntryRepository(
       );
     });
 
-  const logSaveFailed = (entry: Entry, error: unknown): void => {
+  const logSaveFailed = (entry: Entry, error: unknown, message: string): void => {
     logger.error(
       { event: 'entries.save_failed', entryId: entry.id, error: describeError(error) },
-      'An entry could not be stored.',
+      message,
     );
+  };
+
+  const restoreOrReport = (
+    row: EntryRow,
+    lineRows: readonly LineRow[],
+  ): Result<Entry, DomainError> => {
+    const entry = restore(row, lineRows);
+    if (!entry.ok) {
+      logger.error(
+        { event: 'entries.stored_entry_invalid', entryId: row.id, reason: entry.error.message },
+        'A stored entry breaks a rule, so the read did not answer.',
+      );
+    }
+    return entry;
   };
 
   return {
@@ -80,7 +94,7 @@ export function createPostgresEntryRepository(
         await insert(userId, entry, null);
         return ok(undefined);
       } catch (error) {
-        logSaveFailed(entry, error);
+        logSaveFailed(entry, error, 'An entry could not be stored.');
         return unavailable('The entry could not be stored.');
       }
     },
@@ -94,9 +108,9 @@ export function createPostgresEntryRepository(
         return ok(undefined);
       } catch (error) {
         if (violates(error, REVERSED_ONCE)) {
-          return err(domainError('CONFLICT', `Entry ${reversal.reverses} is reversed already.`));
+          return reversedAlready(reversal.reverses);
         }
-        logSaveFailed(reversal, error);
+        logSaveFailed(reversal, error, 'A reversal could not be stored.');
         return unavailable('The reversal could not be stored.');
       }
     },
@@ -135,12 +149,8 @@ export function createPostgresEntryRepository(
       if (row === undefined) {
         return err(domainError('NOT_FOUND', `No entry ${id} is visible to this User.`));
       }
-      const entry = restore(row, lineRows);
+      const entry = restoreOrReport(row, lineRows);
       if (!entry.ok) {
-        logger.error(
-          { event: 'entries.stored_entry_invalid', entryId: row.id, reason: entry.error.message },
-          'A stored entry breaks a rule, so the read did not answer.',
-        );
         return entry;
       }
       return ok({ entry: entry.value, reversed: row.reversed });
@@ -192,12 +202,8 @@ export function createPostgresEntryRepository(
 
       const entries: Entry[] = [];
       for (const row of entryRows) {
-        const entry = restore(row, linesByEntry.get(row.id) ?? []);
+        const entry = restoreOrReport(row, linesByEntry.get(row.id) ?? []);
         if (!entry.ok) {
-          logger.error(
-            { event: 'entries.stored_entry_invalid', entryId: row.id, reason: entry.error.message },
-            'A stored entry breaks a rule, so the search did not answer.',
-          );
           return entry;
         }
         entries.push(entry.value);

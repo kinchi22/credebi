@@ -145,7 +145,6 @@ export const en = {
   deleteEntry: {
     open: 'Delete',
     title: 'Delete entry',
-    question: 'Delete this entry? It leaves your entries and Entry search.',
     confirm: 'Delete',
     pending: 'Deleting...',
     cancel: 'Cancel',
