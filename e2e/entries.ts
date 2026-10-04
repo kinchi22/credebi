@@ -39,6 +39,8 @@ export type MultiLineEntry = Heading & {
   readonly lines: readonly Line[];
 };
 
+export const entries = (page: Page): Locator => page.getByRole('region', { name: 'Entries' });
+
 export const entryForm = (page: Page): Locator => page.getByRole('form', { name: 'New entry' });
 
 export const entrySearchForm = (page: Page): Locator =>
