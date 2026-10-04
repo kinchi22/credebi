@@ -8,6 +8,7 @@ import {
   addLine,
   amountShown,
   DAY,
+  entries,
   entryForm,
   expectSheetOnSide,
   findAnAccount,
@@ -157,7 +158,7 @@ test('refuses an Entry whose debits and credits differ', async ({ page }) => {
   await expect(form.getByRole('alert')).toContainText(/balance/i);
 
   await page.reload();
-  await expect(page.getByRole('region', { name: 'Entries' })).toBeVisible();
+  await expect(entries(page)).toBeVisible();
   await expect(listedEntry(page, memo)).toHaveCount(0);
 });
 

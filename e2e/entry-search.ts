@@ -1,9 +1,9 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import { entrySearchForm } from './entries';
 
-export const EARLIEST = '2000-01-01';
+const EARLIEST = '2000-01-01';
 
-export const LATEST = '2099-12-31';
+const LATEST = '2099-12-31';
 
 export const results = (page: Page): Locator => page.getByRole('region', { name: 'Results' });
 
@@ -16,7 +16,7 @@ export const fromField = (page: Page): Locator =>
 export const toField = (page: Page): Locator =>
   entrySearchForm(page).getByLabel('To', { exact: true });
 
-export type Criteria = {
+type Criteria = {
   readonly from?: string;
   readonly to?: string;
   readonly account?: string;
