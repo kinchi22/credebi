@@ -1,15 +1,15 @@
 'use client';
 
-import { type EntryFormMode, type EntryLineInput, type PostedEntry, type Side } from '@repo/contracts';
+import { type EntryFormMode, type PostedEntry } from '@repo/contracts';
 import { PencilIcon } from '@repo/ui';
 import { useId, type ReactNode } from 'react';
 import { en } from '../messages/en';
-import { BARE_ICON_BUTTON } from './control-classes';
+import { ROW_ICON_BUTTON } from './control-classes';
 import { type EntryFormProps, type EntryFormState } from './entry-form';
+import { hasOneLinePerSide } from './entry-lines';
 import { useModalDialog } from './modal-dialog';
 import { MultiLineEntryForm } from './multi-line-entry-form';
 import { SheetBar, SheetCloseButton } from './sheet';
-import { SIDES } from './side-classes';
 import { TwoLineEntryForm } from './two-line-entry-form';
 
 export type EditEntryAction = (
@@ -23,14 +23,6 @@ export type EditEntryProps = {
   readonly entryFormMode: EntryFormMode;
   readonly action: EditEntryAction;
 };
-
-export const ROW_ICON_BUTTON = `-my-1.5 size-8 shrink-0 wide:-my-0.5 wide:size-6 ${BARE_ICON_BUTTON}`;
-
-export const linesOn = (entry: PostedEntry, side: Side): readonly EntryLineInput[] =>
-  entry.lines.filter((line) => line.side === side);
-
-export const hasOneLinePerSide = (entry: PostedEntry): boolean =>
-  SIDES.every((side) => linesOn(entry, side).length === 1);
 
 const FORM_BY_MODE: Readonly<Record<EntryFormMode, (props: EntryFormProps) => ReactNode>> = {
   'two-line': TwoLineEntryForm,

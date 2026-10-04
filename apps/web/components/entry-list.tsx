@@ -6,7 +6,8 @@ import { type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { formatAmount } from './amount';
 import { DeleteEntry, type DeleteEntryAction } from './delete-entry';
-import { EditEntry, hasOneLinePerSide, linesOn, type EditEntryAction } from './edit-entry';
+import { EditEntry, type EditEntryAction } from './edit-entry';
+import { hasOneLinePerSide, linesOn } from './entry-lines';
 import { SIDE_TONE, SIDES } from './side-classes';
 import { MUTED_TEXT } from './text-classes';
 

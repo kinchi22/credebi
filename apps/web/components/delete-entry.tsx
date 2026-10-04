@@ -6,8 +6,7 @@ import { typeClasses } from '@repo/ui/type-classes';
 import { useId, useState, useTransition, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { formatAmount } from './amount';
-import { BUTTON, DANGER_BUTTON } from './control-classes';
-import { ROW_ICON_BUTTON } from './edit-entry';
+import { BUTTON, DANGER_BUTTON, ROW_ICON_BUTTON } from './control-classes';
 import { useModalDialog } from './modal-dialog';
 import { DANGER_TEXT } from './text-classes';
 
