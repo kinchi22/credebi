@@ -42,7 +42,11 @@ export type { PostEntry, PostEntryDependencies } from './application/post-entry'
 export { createDeleteEntry } from './application/delete-entry';
 export type { DeleteEntry, DeleteEntryDependencies } from './application/delete-entry';
 
+export { createEditEntry } from './application/edit-entry';
+export type { EditEntry, EditEntryDependencies } from './application/edit-entry';
+
 export { createSearchEntries } from './application/search-entries';
 export type { SearchEntries, SearchEntriesDependencies } from './application/search-entries';
 
 export type { EntryRepository, FoundEntry } from './ports/entry-repository';
+export type { TransactionalWork, UnitOfWork } from './ports/unit-of-work';

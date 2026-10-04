@@ -34,6 +34,7 @@ export {
 
 export type {
   DeleteEntryInput,
+  EditEntryInput,
   EntryId,
   EntryLineInput,
   PostEntryInput,
@@ -48,6 +49,7 @@ export {
   SEARCH_CRITERIA_FIELDS,
   amountTextSchema,
   deleteEntryInputSchema,
+  editEntryInputSchema,
   entryDateSchema,
   entryIdSchema,
   entryLineSchema,

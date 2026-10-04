@@ -36,6 +36,12 @@ export const deleteEntryInputSchema = z.object({
 
 export type DeleteEntryInput = z.infer<typeof deleteEntryInputSchema>;
 
+export const editEntryInputSchema = postEntryInputSchema.extend({
+  id: entryIdSchema,
+});
+
+export type EditEntryInput = z.infer<typeof editEntryInputSchema>;
+
 export const postedEntrySchema = z.object({
   id: entryIdSchema,
   entryDate: entryDateSchema,
