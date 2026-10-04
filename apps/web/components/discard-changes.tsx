@@ -22,9 +22,16 @@ export function DiscardChanges({ dialog, onDiscard }: DiscardChangesProps): Reac
   return (
     <dialog
       {...dialog.dialogProps}
+      tabIndex={-1}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          dialog.close();
+        }
+      }}
       aria-labelledby={titleId}
       onClick={dialog.closeOnScrim}
-      className={CONFIRMATION_DIALOG}
+      className={`${CONFIRMATION_DIALOG} outline-none`}
     >
       {dialog.open ? (
         <div className={CONFIRMATION_PANEL}>

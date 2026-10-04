@@ -353,7 +353,8 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
 - **Danger button.** `danger` fill, `surface` text, semibold, with a
   transparent edge as wide as a secondary button's, so the two stand the same
   height side by side. It is kept for the action a confirmation dialog asks
-  about when that action takes something away: `Delete` in `Delete entry`.
+  about when that action takes something away: `Delete` in `Delete entry`
+  and `Discard` in `Discard changes`.
 - **Google sign-in button.** "Sign in with Google" follows Google's sign-in
   branding rather than the primary button: a `surface` fill, `text`, a
   `border-google` edge, 40px tall and as wide as the Sign in card, with Google's

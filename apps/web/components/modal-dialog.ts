@@ -63,6 +63,11 @@ export function useModalDialog({ closesWhenWide }: ModalDialogOptions = SHEET): 
     closeOnScrim: (event) => {
       if (event.target === event.currentTarget) close();
     },
-    dialogProps: { ref: dialog, onClose: close },
+    dialogProps: {
+      ref: dialog,
+      onClose: () => {
+        if (dialog.current?.open !== true) close();
+      },
+    },
   };
 }
