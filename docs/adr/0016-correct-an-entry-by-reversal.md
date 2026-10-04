@@ -1,7 +1,8 @@
 # ADR-0016: Correct an entry by reversal
 
-**Status:** Deferred
+**Status:** Accepted
 **Date:** 2026-09-16
+**Adopted:** 2026-10-04, PR #PRNUM
 **Trigger:** A criterion asks to change or remove an entry that is already
 posted.
 
@@ -26,19 +27,29 @@ then.
   reversal is an ordinary entry whose lines are the original's with `debit` and
   `credit` swapped, so the pair sums to nothing on every account.
 - The use case builds the reversal from the original, so the caller supplies an
-  `EntryId` and a date, not a set of lines.
-- An entry may be reversed once. The list marks both the reversal and the entry
-  it reverses.
-- A correction is then a reversal followed by a new, correct entry.
+  `EntryId`, not a set of lines. The reversal takes the original's day, so a
+  balance as of any day reads as though the original had never been posted.
+- An entry may be reversed once, which a unique `reverses_entry_id` enforces,
+  and a reversal is never reversed.
+- A correction is a reversal and a new, correct entry, written together or not
+  at all. A correction that would change nothing writes neither.
+- Neither a reversal nor the entry it reverses is listed or found by a search.
+  The UI calls a reversal "delete" and a correction "edit": the ledger keeps its
+  audit trail, and the person sees the book they meant to keep.
 
 ## Consequences
 
-A typo is permanent and visible, together with the entry that cancels it. That
-is the intended property, and it is also what a person will complain about the
-first time they mistype a memo.
+A typo is permanent, together with the entry that cancels it, and hidden: the
+audit trail is in the database, not on the screen. Showing it is a criterion of
+its own.
 
-The list grows two rows per correction, so it will eventually need a way to hide
-reversed pairs. That is a listing criterion, not this one.
+Every correction adds two rows that every read must skip. Skipping is an anti
+join on the indexed `reverses_entry_id`, and a replacement is not linked to the
+entry it replaced, so no chain is ever walked: the current entry is the one
+nothing reverses.
+
+A correction writes two aggregates, which is the use case ADR-0011 waits for to
+give the use case a transaction boundary of its own.
 
 Nothing stops a hand-written reversal that does not match its original. The link
 records intent; the balance is what makes the pair meaningful.
