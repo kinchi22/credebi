@@ -34,6 +34,8 @@ const ADA = '01920000-0000-7000-8000-0000000000a1' as UserId;
 
 const holding = (searched: EntryRepository['search']): EntryRepository => ({
   save: () => Promise.resolve(ok(undefined)),
+  saveReversal: () => Promise.resolve(ok(undefined)),
+  find: () => Promise.resolve(err(domainError('NOT_FOUND', 'Not read here.'))),
   search: searched,
 });
 

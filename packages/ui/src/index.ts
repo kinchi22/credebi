@@ -16,4 +16,5 @@ export {
   MenuIcon,
   SearchIcon,
   SignOutIcon,
+  TrashIcon,
 } from './icons';

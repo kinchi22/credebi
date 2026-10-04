@@ -1,4 +1,5 @@
 import {
+  deleteEntryInputSchema,
   postEntryInputSchema,
   postedEntrySchema,
   searchCriteriaSchema,
@@ -30,4 +31,11 @@ export const entriesRouter = router({
       }
       return toPostedEntry(result.value);
     }),
+
+  delete: sessionProcedure.input(deleteEntryInputSchema).mutation(async ({ ctx, input }) => {
+    const result = await ctx.container.deleteEntry(ctx.auth, input.id);
+    if (!result.ok) {
+      throw toTrpcError(result.error);
+    }
+  }),
 });

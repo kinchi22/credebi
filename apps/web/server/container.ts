@@ -3,6 +3,7 @@ import { domainError, entryIdSchema, err, userIdSchema } from '@repo/contracts';
 import {
   createBeginGoogleSignIn,
   createChangeEntryFormMode,
+  createDeleteEntry,
   createFinishGoogleSignIn,
   createGetHealth,
   createGetSettings,
@@ -13,6 +14,7 @@ import {
   createTestSignIn,
   type BeginGoogleSignIn,
   type ChangeEntryFormMode,
+  type DeleteEntry,
   type FinishGoogleSignIn,
   type GetHealth,
   type GetSettings,
@@ -40,6 +42,7 @@ export type Container = {
   readonly getHealth: GetHealth;
   readonly postEntry: PostEntry;
   readonly searchEntries: SearchEntries;
+  readonly deleteEntry: DeleteEntry;
   readonly getSettings: GetSettings;
   readonly changeEntryFormMode: ChangeEntryFormMode;
   readonly resolveSession: ResolveSession;
@@ -80,6 +83,11 @@ export function createContainer({ databaseUrl, google, testSignIn }: Env): Conta
       now: () => new Date(),
     }),
     searchEntries: createSearchEntries({ entries }),
+    deleteEntry: createDeleteEntry({
+      entries,
+      newEntryId: () => entryIdSchema.parse(uuidv7()),
+      now: () => new Date(),
+    }),
     getSettings: createGetSettings({ settings }),
     changeEntryFormMode: createChangeEntryFormMode({ settings }),
     resolveSession: createResolveSession({ sessions, hashSessionToken, now: () => new Date() }),

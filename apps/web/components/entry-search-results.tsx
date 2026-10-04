@@ -3,8 +3,9 @@ import { typeClasses } from '@repo/ui/type-classes';
 import { useId, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { type EntrySearchAnswer } from '../server/entry-search';
-import { DANGER_TEXT, MUTED_TEXT } from './text-classes';
+import { type DeleteEntryAction } from './delete-entry';
 import { EntryList } from './entry-list';
+import { DANGER_TEXT, MUTED_TEXT } from './text-classes';
 
 type ResultsRegionProps = {
   readonly busy: boolean;
@@ -29,15 +30,16 @@ function ResultsRegion({ busy, children }: ResultsRegionProps): ReactNode {
 
 export type EntrySearchResultsProps = {
   readonly entries: readonly PostedEntry[];
+  readonly deleteEntry: DeleteEntryAction;
 };
 
-export function EntrySearchResults({ entries }: EntrySearchResultsProps): ReactNode {
+export function EntrySearchResults({ entries, deleteEntry }: EntrySearchResultsProps): ReactNode {
   return (
     <ResultsRegion busy={false}>
       {entries.length === 0 ? (
         <p className={MUTED_TEXT}>{en.entrySearch.nothingMatched}</p>
       ) : (
-        <EntryList entries={entries} />
+        <EntryList entries={entries} deleteEntry={deleteEntry} />
       )}
     </ResultsRegion>
   );
@@ -55,14 +57,15 @@ export function EntrySearchPending(): ReactNode {
 
 export type EntrySearchOutcomeProps = {
   readonly answer: EntrySearchAnswer;
+  readonly deleteEntry: DeleteEntryAction;
 };
 
-export function EntrySearchOutcome({ answer }: EntrySearchOutcomeProps): ReactNode {
+export function EntrySearchOutcome({ answer, deleteEntry }: EntrySearchOutcomeProps): ReactNode {
   return answer.outcome === 'refused' ? (
     <p role="alert" className={DANGER_TEXT}>
       {en.entrySearch.refused}
     </p>
   ) : (
-    <EntrySearchResults entries={answer.entries} />
+    <EntrySearchResults entries={answer.entries} deleteEntry={deleteEntry} />
   );
 }

@@ -39,7 +39,10 @@ export type {
 export { createPostEntry } from './application/post-entry';
 export type { PostEntry, PostEntryDependencies } from './application/post-entry';
 
+export { createDeleteEntry } from './application/delete-entry';
+export type { DeleteEntry, DeleteEntryDependencies } from './application/delete-entry';
+
 export { createSearchEntries } from './application/search-entries';
 export type { SearchEntries, SearchEntriesDependencies } from './application/search-entries';
 
-export type { EntryRepository } from './ports/entry-repository';
+export type { EntryRepository, FoundEntry } from './ports/entry-repository';

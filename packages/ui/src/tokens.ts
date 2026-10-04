@@ -86,6 +86,7 @@ export const textPairs: readonly ColorPair[] = [
   { foreground: 'frost', background: 'ink-raised' },
   { foreground: 'sage', background: 'ink-raised' },
   { foreground: 'ink', background: 'mint' },
+  { foreground: 'white', background: 'rust' },
   { foreground: 'slate', background: 'fog' },
 ];
 

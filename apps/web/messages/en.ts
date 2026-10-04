@@ -142,6 +142,22 @@ export const en = {
     empty: 'No entries yet.',
     total: 'Total',
   },
+  deleteEntry: {
+    open: 'Delete',
+    title: 'Delete entry',
+    question: 'Delete this entry? It leaves your entries and Entry search.',
+    confirm: 'Delete',
+    pending: 'Deleting...',
+    cancel: 'Cancel',
+    refusals: {
+      INVALID_INPUT: 'This entry could not be deleted. Reload the page and try again.',
+      NOT_FOUND: 'This entry is no longer here. Reload the page.',
+      CONFLICT: 'This entry was changed elsewhere, perhaps in another tab. Reload the page.',
+      DEPENDENCY_UNAVAILABLE: 'The entry could not be deleted just now. Try again.',
+      UNBALANCED: 'This entry could not be deleted. Reload the page and try again.',
+      UNAUTHENTICATED: 'You are signed out. Sign in again to delete an entry.',
+    },
+  },
   accounts: {
     cash: 'Cash',
     payable: 'Accounts payable',

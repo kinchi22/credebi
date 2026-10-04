@@ -10,6 +10,7 @@ import { answerEntrySearch } from '../../../../../server/entry-search';
 import { ENTRY_SEARCH_PATH, pathWithQuery, signInPath } from '../../../../../server/return-path';
 import { createCaller } from '../../../../../server/root-router';
 import { orSignIn } from '../../../../../server/sign-in-redirect';
+import { deleteEntry } from '../actions';
 import { searchDefaultRange } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -32,7 +33,7 @@ export default async function EntrySearchPage({
     if (!(await caller.auth.signedIn())) {
       redirect(signInPath(ENTRY_SEARCH_PATH));
     }
-    return <EntrySearchColdVisit search={searchDefaultRange} />;
+    return <EntrySearchColdVisit search={searchDefaultRange} deleteEntry={deleteEntry} />;
   }
 
   const answer = await answerEntrySearch(
@@ -43,7 +44,7 @@ export default async function EntrySearchPage({
   return (
     <>
       <EntrySearchForm criteria={answer.criteria} />
-      <EntrySearchOutcome answer={answer} />
+      <EntrySearchOutcome answer={answer} deleteEntry={deleteEntry} />
     </>
   );
 }

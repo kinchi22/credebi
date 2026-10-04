@@ -5,11 +5,13 @@ import { typeClasses } from '@repo/ui/type-classes';
 import { type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { formatAmount } from './amount';
+import { DeleteEntry, type DeleteEntryAction } from './delete-entry';
 import { SIDE_TONE, SIDES } from './side-classes';
 import { MUTED_TEXT } from './text-classes';
 
 export type EntryListProps = {
   readonly entries: readonly PostedEntry[];
+  readonly deleteEntry: DeleteEntryAction;
 };
 
 const ACCOUNT_NAMES: Readonly<Record<AccountCode, string>> = en.accounts;
@@ -103,9 +105,11 @@ function SideLines({
 function ListedEntry({
   entry,
   headsColumns,
+  deleteEntry,
 }: {
   readonly entry: PostedEntry;
   readonly headsColumns: boolean;
+  readonly deleteEntry: DeleteEntryAction;
 }): ReactNode {
   const layout = hasOneLinePerSide(entry) ? COMPACT : STACKED;
   return (
@@ -115,8 +119,8 @@ function ListedEntry({
       className={`${PANEL_BLEED} grid ${layout.grid} border-t border-border py-4 first:border-t-0 first:pt-0 ${typeClasses['body-dense']}`}
     >
       <div role="row" className="contents">
-        <div role="cell" className="col-span-full row-start-1 pb-2">
-          <p className={`flex items-baseline gap-x-3.5 ${typeClasses['body-sm']}`}>
+        <div role="cell" className="col-span-full row-start-1 flex items-start gap-x-2 pb-2">
+          <p className={`flex min-w-0 grow items-baseline gap-x-3.5 ${typeClasses['body-sm']}`}>
             <time dateTime={entry.entryDate} className={`${typeClasses.date} shrink-0 text-text-muted`}>
               {entry.entryDate}
             </time>{' '}
@@ -128,6 +132,7 @@ function ListedEntry({
               </span>
             </span>
           </p>
+          <DeleteEntry entry={entry} action={deleteEntry} />
         </div>
       </div>
       <SideHeadings layout={layout} named={headsColumns} />
@@ -140,7 +145,7 @@ function ListedEntry({
   );
 }
 
-export function EntryList({ entries }: EntryListProps): ReactNode {
+export function EntryList({ entries, deleteEntry }: EntryListProps): ReactNode {
   return (
     <Panel title={en.entryList.title} titleHidden>
       {entries.length === 0 ? (
@@ -148,7 +153,12 @@ export function EntryList({ entries }: EntryListProps): ReactNode {
       ) : (
         <div role="table" aria-label={en.entryList.title}>
           {entries.map((entry, index) => (
-            <ListedEntry key={entry.id} entry={entry} headsColumns={index === 0} />
+            <ListedEntry
+              key={entry.id}
+              entry={entry}
+              headsColumns={index === 0}
+              deleteEntry={deleteEntry}
+            />
           ))}
         </div>
       )}
