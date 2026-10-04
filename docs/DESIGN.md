@@ -523,8 +523,9 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   dialog on the `ground`, as the Date presets sheet is: a `surface` bar holds
   its title and a close icon named `Close`, and the form scrolls below it. From
   `wide` up it is centred over a `ground-dark` scrim at 60%, a `surface` panel
-  with a `border` edge, as wide as the page content and at most as tall as the
-  viewport less 64px, with the same bar on top and the form scrolling inside
+  with a `border` edge, as wide as the page content -- its edges on the page's
+  56px side gutters, beside the Sidebar, never over it -- and at most as tall
+  as the viewport less 64px, with the same bar on top and the form scrolling inside
   it, padded 24px, the form and the Account picker side by side as on Entries.
   The form has no `New entry` heading, since the dialog's title names it, and
   its submit is a primary button reading `Save`, and `Saving...` while it runs.

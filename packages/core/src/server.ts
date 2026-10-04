@@ -5,6 +5,8 @@ export type { PostgresHealthProbe } from './health/adapters/postgres-health-prob
 
 export { createPostgresEntryRepository } from './entries/adapters/postgres-entry-repository';
 export type { PostgresEntryRepository } from './entries/adapters/postgres-entry-repository';
+export { createPostgresUnitOfWork } from './entries/adapters/postgres-unit-of-work';
+export type { PostgresUnitOfWork } from './entries/adapters/postgres-unit-of-work';
 
 export { createPostgresSettingsRepository } from './settings/adapters/postgres-settings-repository';
 export type { PostgresSettingsRepository } from './settings/adapters/postgres-settings-repository';

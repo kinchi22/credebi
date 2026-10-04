@@ -53,7 +53,7 @@ export function EditEntry({ entry, entryFormMode, action }: EditEntryProps): Rea
         {...dialog.dialogProps}
         aria-labelledby={titleId}
         onClick={dialog.closeOnScrim}
-        className="m-0 h-full max-h-none w-full max-w-none border-0 bg-ground p-0 text-text backdrop:bg-ground-dark/60 wide:m-auto wide:h-auto wide:max-h-[calc(100dvh-4rem)] wide:w-[calc(100%-4rem)] wide:rounded wide:border wide:border-border wide:bg-surface"
+        className="m-0 h-full max-h-none w-full max-w-none border-0 bg-ground p-0 text-text backdrop:bg-ground-dark/60 wide:my-auto wide:mr-14 wide:ml-[17.5rem] wide:h-auto wide:max-h-[calc(100dvh-4rem)] wide:w-auto wide:rounded wide:border wide:border-border wide:bg-surface"
       >
         {dialog.open ? (
           <div className="flex h-full flex-col wide:h-auto wide:max-h-[calc(100dvh-4rem)]">

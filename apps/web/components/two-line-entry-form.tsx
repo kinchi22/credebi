@@ -19,11 +19,12 @@ import {
   type EntryFormParts,
   type EntryFormProps,
 } from './entry-form';
+import { linesOn } from './entry-lines';
 
 const NOTHING_CHOSEN: AccountChoice = { debit: undefined, credit: undefined };
 
 const accountOn = (entry: PostedEntry, side: Side): AccountCode | undefined => {
-  const account = entry.lines.find((line) => line.side === side)?.account;
+  const account = linesOn(entry, side)[0]?.account;
   return account !== undefined && isAccountCode(account) ? account : undefined;
 };
 

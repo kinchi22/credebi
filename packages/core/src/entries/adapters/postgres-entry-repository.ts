@@ -33,20 +33,12 @@ import { makeEntry, type AccountCode, type Entry, type EntryDraft } from '../dom
 import { type SearchCriteria } from '../domain/search-criteria';
 import { reversedAlready, type Reversal } from '../domain/reversal';
 import { type EntryRepository, type FoundEntry } from '../ports/entry-repository';
-import { type UnitOfWork } from '../ports/unit-of-work';
 
 export type PostgresEntryRepository = EntryRepository & {
-  readonly unitOfWork: UnitOfWork;
   readonly close: () => Promise<void>;
 };
 
-type Executor = PgDatabase<NodePgQueryResultHKT, Schema>;
-
-class RolledBack extends Error {
-  constructor(readonly refusal: Err<DomainError>) {
-    super(refusal.error.message);
-  }
-}
+export type PostgresExecutor = PgDatabase<NodePgQueryResultHKT, Schema>;
 
 type EntryRow = typeof schema.entries.$inferSelect;
 type LineRow = typeof schema.entryLines.$inferSelect;
@@ -56,36 +48,10 @@ export function createPostgresEntryRepository(
   logger: Logger,
 ): PostgresEntryRepository {
   const { database, close } = createDatabase(connectionString);
-
-  return {
-    ...entriesOver(database, logger),
-
-    unitOfWork: async (work) => {
-      try {
-        return await database.transaction(async (transaction) => {
-          const done = await work(entriesOver(transaction, logger));
-          if (!done.ok) {
-            throw new RolledBack(done);
-          }
-          return done;
-        });
-      } catch (thrown) {
-        if (thrown instanceof RolledBack) {
-          return thrown.refusal;
-        }
-        logger.error(
-          { event: 'entries.unit_of_work_failed', error: describeError(thrown) },
-          'A unit of work on the entries could not commit.',
-        );
-        return unavailable('The change to the entries could not be stored.');
-      }
-    },
-
-    close,
-  };
+  return { ...postgresEntriesOn(database, logger), close };
 }
 
-function entriesOver(database: Executor, logger: Logger): EntryRepository {
+export function postgresEntriesOn(database: PostgresExecutor, logger: Logger): EntryRepository {
   const insert = (userId: UserId, entry: Entry, reverses: EntryId | null): Promise<void> =>
     database.transaction(async (transaction) => {
       await transaction.insert(schema.entries).values({

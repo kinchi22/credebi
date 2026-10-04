@@ -31,12 +31,6 @@ export function createEditEntry({
       return userId;
     }
 
-    const createdAt = now();
-    const replacement = makeEntry(draft, { id: newEntryId(), createdAt });
-    if (!replacement.ok) {
-      return replacement;
-    }
-
     const found = await entries.find(userId.value, id);
     if (!found.ok) {
       return found;
@@ -49,8 +43,14 @@ export function createEditEntry({
       return ok(entry);
     }
 
+    const createdAt = now();
+    const replacement = makeEntry(draft, { id: newEntryId(), createdAt });
+    if (!replacement.ok) {
+      return replacement;
+    }
+
     const reversal = makeReversal(entry, { id: newEntryId(), createdAt });
-    return unitOfWork(async (transactional) => {
+    return unitOfWork.run(async (transactional) => {
       const reversing = await transactional.saveReversal(userId.value, reversal);
       if (!reversing.ok) {
         return reversing;

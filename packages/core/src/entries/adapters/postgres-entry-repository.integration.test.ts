@@ -16,6 +16,7 @@ import { makeEntry, type Entry, type EntryDraft } from '../domain/entry';
 import { makeReversal, type Reversal } from '../domain/reversal';
 import { NO_CRITERIA, type SearchCriteria } from '../domain/search-criteria';
 import { createPostgresEntryRepository } from './postgres-entry-repository';
+import { createPostgresUnitOfWork } from './postgres-unit-of-work';
 
 const databaseUrl = process.env['TEST_DATABASE_URL'];
 if (databaseUrl === undefined) {
@@ -36,10 +37,18 @@ const logger: Logger = {
 
 const repository = createPostgresEntryRepository(databaseUrl, logger);
 const dead = createPostgresEntryRepository(UNREACHABLE_URL, logger);
+const unitOfWork = createPostgresUnitOfWork(databaseUrl, logger);
+const deadUnitOfWork = createPostgresUnitOfWork(UNREACHABLE_URL, logger);
 const { database, close } = createDatabase(databaseUrl);
 
 afterAll(async () => {
-  await Promise.all([repository.close(), dead.close(), close()]);
+  await Promise.all([
+    repository.close(),
+    dead.close(),
+    unitOfWork.close(),
+    deadUnitOfWork.close(),
+    close(),
+  ]);
 });
 
 const ADA = '01920000-0000-7000-8000-0000000000a1' as UserId;
@@ -655,13 +664,15 @@ describe('createPostgresEntryRepository', () => {
       'entries.save_failed',
     ]);
   });
+});
 
+describe('createPostgresUnitOfWork', () => {
   it('commits a unit of work as one: the Reversal and the replacement are both stored', async () => {
     const original = entry({ memo: 'Original' });
     await repository.save(ADA, original);
     const replacement = entry({ memo: 'Replacement' });
 
-    const done = await repository.unitOfWork(async (entries) => {
+    const done = await unitOfWork.run(async (entries) => {
       const reversed = await entries.saveReversal(ADA, reversalOf(original));
       if (!reversed.ok) return reversed;
       const saved = await entries.save(ADA, replacement);
@@ -677,7 +688,7 @@ describe('createPostgresEntryRepository', () => {
     const original = entry({ memo: 'Original' });
     await repository.save(ADA, original);
 
-    const done = await repository.unitOfWork(async (entries) => {
+    const done = await unitOfWork.run(async (entries) => {
       const reversed = await entries.saveReversal(ADA, reversalOf(original));
       if (!reversed.ok) return reversed;
       return entries.save(ADA, { ...entry({ memo: 'Replacement' }), id: original.id });
@@ -696,7 +707,7 @@ describe('createPostgresEntryRepository', () => {
     await repository.save(ADA, original);
     const refusal = err(domainError('CONFLICT', 'Refused by the work.'));
 
-    const done = await repository.unitOfWork(async (entries) => {
+    const done = await unitOfWork.run(async (entries) => {
       await entries.saveReversal(ADA, reversalOf(original));
       return refusal;
     });
@@ -711,7 +722,7 @@ describe('createPostgresEntryRepository', () => {
     await repository.save(ADA, original);
     await repository.saveReversal(ADA, reversalOf(original));
 
-    const done = await repository.unitOfWork(async (entries) => {
+    const done = await unitOfWork.run(async (entries) => {
       const reversed = await entries.saveReversal(ADA, reversalOf(original));
       if (!reversed.ok) return reversed;
       return entries.save(ADA, entry({ memo: 'Replacement' }));
@@ -722,7 +733,7 @@ describe('createPostgresEntryRepository', () => {
   });
 
   it('reports an unreachable database to a unit of work as unavailable, never by throwing', async () => {
-    const done = await dead.unitOfWork((entries) => entries.save(ADA, entry()));
+    const done = await deadUnitOfWork.run((entries) => entries.save(ADA, entry()));
 
     expect(isErr(done) && done.error.code).toBe('DEPENDENCY_UNAVAILABLE');
     expect(logged.map((fields) => fields.event)).toEqual(['entries.unit_of_work_failed']);

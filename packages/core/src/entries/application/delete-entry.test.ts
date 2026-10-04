@@ -5,74 +5,27 @@ import {
   isErr,
   isOk,
   ok,
-  type DomainError,
   type EntryId,
   type Money,
-  type Result,
   type UserId,
 } from '@repo/contracts';
 import { SIGNED_OUT, type AuthContext } from '../../auth/domain/auth-context';
 import { type Entry, type EntryDraft } from '../domain/entry';
 import { type Reversal } from '../domain/reversal';
 import { NO_CRITERIA } from '../domain/search-criteria';
-import { type EntryRepository, type FoundEntry } from '../ports/entry-repository';
+import { type EntryRepository } from '../ports/entry-repository';
 import { createDeleteEntry } from './delete-entry';
+import { inMemoryEntries } from './in-memory-entries';
 import { createPostEntry } from './post-entry';
 import { createSearchEntries } from './search-entries';
 
-type Stored = {
-  readonly userId: UserId;
-  readonly entry: Entry;
-  readonly reverses?: EntryId;
-};
-
-function inMemoryEntries(): EntryRepository {
-  const stored: Stored[] = [];
-  const reversed = (id: EntryId): boolean => stored.some((row) => row.reverses === id);
-  return {
-    save: (userId, entry) => {
-      stored.push({ userId, entry });
-      return Promise.resolve(ok(undefined));
-    },
-    saveReversal: (userId, reversal: Reversal) => {
-      if (reversed(reversal.reverses)) {
-        return Promise.resolve(err(domainError('CONFLICT', 'Reversed already.')));
-      }
-      stored.push({ userId, entry: reversal, reverses: reversal.reverses });
-      return Promise.resolve(ok(undefined));
-    },
-    find: (userId, id): Promise<Result<FoundEntry, DomainError>> => {
-      const row = stored.find(
-        (candidate) =>
-          candidate.entry.id === id &&
-          candidate.userId === userId &&
-          candidate.reverses === undefined,
-      );
-      return Promise.resolve(
-        row === undefined
-          ? err(domainError('NOT_FOUND', 'No such entry.'))
-          : ok({ entry: row.entry, reversed: reversed(id) }),
-      );
-    },
-    search: (userId) =>
-      Promise.resolve(
-        ok(
-          stored
-            .filter(
-              (row) =>
-                row.userId === userId && row.reverses === undefined && !reversed(row.entry.id),
-            )
-            .map((row) => row.entry),
-        ),
-      ),
-  };
-}
+const inMemoryRepository = (): EntryRepository => inMemoryEntries().entries;
 
 function recordingReversals(): {
   readonly entries: EntryRepository;
   readonly reversals: Reversal[];
 } {
-  const entries = inMemoryEntries();
+  const entries = inMemoryRepository();
   const reversals: Reversal[] = [];
   return {
     entries: {
@@ -100,7 +53,7 @@ const DRAFT: EntryDraft = {
   ],
 };
 
-function books(entries: EntryRepository = inMemoryEntries()): {
+function books(entries: EntryRepository = inMemoryRepository()): {
   readonly post: (auth: AuthContext, memo: string) => Promise<Entry>;
   readonly deleteEntry: ReturnType<typeof createDeleteEntry>;
   readonly memos: (auth: AuthContext) => Promise<readonly string[]>;
@@ -220,7 +173,7 @@ describe('createDeleteEntry', () => {
   it('answers dependency unavailable when the Entry cannot be read', async () => {
     const down = domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.');
     const { deleteEntry } = books({
-      ...inMemoryEntries(),
+      ...inMemoryRepository(),
       find: () => Promise.resolve(err(down)),
     });
 
@@ -229,7 +182,7 @@ describe('createDeleteEntry', () => {
 
   it('answers dependency unavailable when the Reversal cannot be saved, and the Entry stays', async () => {
     const down = domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.');
-    const entries = inMemoryEntries();
+    const entries = inMemoryRepository();
     const { post, deleteEntry, memos } = books({
       ...entries,
       saveReversal: () => Promise.resolve(err(down)),
@@ -238,5 +191,18 @@ describe('createDeleteEntry', () => {
 
     expect(await deleteEntry(ADA, kept.id)).toEqual(err(down));
     expect(await memos(ADA)).toEqual(['Kept']);
+  });
+
+  it('lets only one of two Deletes of one Entry at once succeed, and the other answers conflict', async () => {
+    const { post, deleteEntry, memos } = books();
+    const doomed = await post(ADA, 'Posted by mistake');
+
+    const deletions = await Promise.all([deleteEntry(ADA, doomed.id), deleteEntry(ADA, doomed.id)]);
+
+    expect(deletions.map((deleted) => (isErr(deleted) ? deleted.error.code : 'OK'))).toEqual([
+      'OK',
+      'CONFLICT',
+    ]);
+    expect(await memos(ADA)).toEqual([]);
   });
 });

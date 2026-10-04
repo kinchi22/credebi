@@ -5,4 +5,6 @@ export type TransactionalWork<T> = (
   entries: EntryRepository,
 ) => Promise<Result<T, DomainError>>;
 
-export type UnitOfWork = <T>(work: TransactionalWork<T>) => Promise<Result<T, DomainError>>;
+export type UnitOfWork = {
+  readonly run: <T>(work: TransactionalWork<T>) => Promise<Result<T, DomainError>>;
+};

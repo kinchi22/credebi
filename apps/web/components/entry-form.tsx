@@ -32,7 +32,7 @@ type EntryFormAction = (previous: EntryFormState, form: FormData) => Promise<Ent
 export type EditedEntry = {
   readonly entry: PostedEntry;
   readonly titleId: string;
-  readonly onSaved: () => void;
+  readonly onSaved: (form: HTMLFormElement | null) => void;
 };
 
 export type EntryFormProps = {
@@ -74,17 +74,51 @@ const REFUSAL: Readonly<Record<EntryFormMode, Readonly<Record<DomainErrorCode, s
   'multi-line': refusalsWith(en.multiLineForm.invalid),
 };
 
-const refusalFor = (
+type FormVariant = {
+  readonly entry: PostedEntry | undefined;
+  readonly labelledBy: string | undefined;
+  readonly frame: string;
+  readonly submit: string;
+  readonly pending: string;
+  readonly refusals: Readonly<Record<DomainErrorCode, string>>;
+  readonly entryDate: string | undefined;
+  readonly autoFocus: boolean;
+  readonly onSaved: (form: HTMLFormElement | null) => void;
+};
+
+const resetForm = (form: HTMLFormElement | null): void => {
+  form?.reset();
+};
+
+function variantFor(
   mode: EntryFormMode,
   editing: EditedEntry | undefined,
-  code: DomainErrorCode,
-): string => (editing === undefined ? REFUSAL[mode][code] : en.editEntry.refusals[code]);
-
-function submitLabel(editing: EditedEntry | undefined, pending: boolean): string {
+  today: string | undefined,
+): FormVariant {
   if (editing === undefined) {
-    return pending ? en.entryForm.pending : en.entryForm.submit;
+    return {
+      entry: undefined,
+      labelledBy: undefined,
+      frame: PANEL,
+      submit: en.entryForm.submit,
+      pending: en.entryForm.pending,
+      refusals: REFUSAL[mode],
+      entryDate: today,
+      autoFocus: false,
+      onSaved: resetForm,
+    };
   }
-  return pending ? en.editEntry.pending : en.editEntry.save;
+  return {
+    entry: editing.entry,
+    labelledBy: editing.titleId,
+    frame: '',
+    submit: en.editEntry.save,
+    pending: en.editEntry.pending,
+    refusals: en.editEntry.refusals,
+    entryDate: editing.entry.entryDate,
+    autoFocus: true,
+    onSaved: editing.onSaved,
+  };
 }
 
 export const ENTRY_FORM_GRID =
@@ -142,15 +176,11 @@ export function EntryFormShell({
   const id = useId();
   const today = useBrowserToday();
 
-  const onSaved = editing?.onSaved;
+  const variant = variantFor(mode, editing, today);
+  const { onSaved } = variant;
   useEffect(() => {
-    if (state.outcome !== 'saved') {
-      return;
-    }
-    if (onSaved === undefined) {
-      form.current?.reset();
-    } else {
-      onSaved();
+    if (state.outcome === 'saved') {
+      onSaved(form.current);
     }
   }, [state, onSaved]);
 
@@ -164,7 +194,7 @@ export function EntryFormShell({
 
   const heading = (
     <>
-      {editing === undefined ? (
+      {variant.labelledBy === undefined ? (
         <h2 id={`${id}-title`} className={`${typeClasses.label} text-text-muted`}>
           {en.entryForm.title}
         </h2>
@@ -177,8 +207,8 @@ export function EntryFormShell({
             id={`${id}-date`}
             name={ENTRY_FORM_FIELDS.entryDate}
             type="date"
-            defaultValue={editing?.entry.entryDate ?? today}
-            autoFocus={editing !== undefined}
+            defaultValue={variant.entryDate}
+            autoFocus={variant.autoFocus}
             required
             className={DATE_CONTROL}
           />
@@ -189,7 +219,7 @@ export function EntryFormShell({
             id={`${id}-memo`}
             name={ENTRY_FORM_FIELDS.memo}
             type="text"
-            defaultValue={editing?.entry.memo}
+            defaultValue={variant.entry?.memo}
             required
             className={CONTROL}
           />
@@ -201,27 +231,27 @@ export function EntryFormShell({
   const refusal =
     state.outcome === 'rejected' ? (
       <p role="alert" className={`min-w-0 flex-1 text-danger ${typeClasses['body-dense']}`}>
-        {refusalFor(mode, editing, state.code)}
+        {variant.refusals[state.code]}
       </p>
     ) : null;
 
   const submitButton = (
     <button type="submit" disabled={pending} className={`shrink-0 ${PRIMARY_BUTTON}`}>
-      {submitLabel(editing, pending)}
+      {pending ? variant.pending : variant.submit}
     </button>
   );
 
   return (
     <form
       ref={form}
-      aria-labelledby={editing?.titleId ?? `${id}-title`}
+      aria-labelledby={variant.labelledBy ?? `${id}-title`}
       onSubmit={submit}
-      className={`flex flex-col gap-3 ${editing === undefined ? PANEL : ''}`}
+      className={`flex flex-col gap-3 ${variant.frame}`}
     >
       <input type="hidden" name={ENTRY_FORM_FIELDS.entryFormMode} value={mode} />
 
       <Fragment key={resetKey}>
-        {children({ id, entry: editing?.entry, heading, refusal, submitButton })}
+        {children({ id, entry: variant.entry, heading, refusal, submitButton })}
       </Fragment>
     </form>
   );

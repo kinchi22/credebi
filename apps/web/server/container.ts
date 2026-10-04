@@ -32,6 +32,7 @@ import {
   createPostgresHealthProbe,
   createPostgresSessionRepository,
   createPostgresSettingsRepository,
+  createPostgresUnitOfWork,
   createPostgresUserRepository,
   hashSessionToken,
   newSessionToken,
@@ -88,7 +89,7 @@ export function createContainer({ databaseUrl, google, testSignIn }: Env): Conta
     searchEntries: createSearchEntries({ entries }),
     editEntry: createEditEntry({
       entries,
-      unitOfWork: entries.unitOfWork,
+      unitOfWork: createPostgresUnitOfWork(databaseUrl, logger),
       newEntryId: () => entryIdSchema.parse(uuidv7()),
       now: () => new Date(),
     }),

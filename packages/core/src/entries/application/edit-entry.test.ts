@@ -5,90 +5,18 @@ import {
   isErr,
   isOk,
   ok,
-  type DomainError,
   type EntryId,
   type Money,
-  type Result,
   type UserId,
 } from '@repo/contracts';
 import { SIGNED_OUT, type AuthContext } from '../../auth/domain/auth-context';
 import { type Entry, type EntryDraft } from '../domain/entry';
 import { NO_CRITERIA } from '../domain/search-criteria';
-import { type EntryRepository, type FoundEntry } from '../ports/entry-repository';
-import { type UnitOfWork } from '../ports/unit-of-work';
 import { createDeleteEntry } from './delete-entry';
 import { createEditEntry } from './edit-entry';
+import { inMemoryEntries, type InMemoryEntries, type StoredEntry } from './in-memory-entries';
 import { createPostEntry } from './post-entry';
 import { createSearchEntries } from './search-entries';
-
-type Row = {
-  readonly userId: UserId;
-  readonly entry: Entry;
-  readonly reverses?: EntryId;
-};
-
-function repositoryOver(rows: Row[]): EntryRepository {
-  const reversed = (id: EntryId): boolean => rows.some((row) => row.reverses === id);
-  return {
-    save: (userId, entry) => {
-      rows.push({ userId, entry });
-      return Promise.resolve(ok(undefined));
-    },
-    saveReversal: (userId, reversal) => {
-      if (reversed(reversal.reverses)) {
-        return Promise.resolve(err(domainError('CONFLICT', 'Reversed already.')));
-      }
-      rows.push({ userId, entry: reversal, reverses: reversal.reverses });
-      return Promise.resolve(ok(undefined));
-    },
-    find: (userId, id): Promise<Result<FoundEntry, DomainError>> => {
-      const row = rows.find(
-        (candidate) =>
-          candidate.entry.id === id &&
-          candidate.userId === userId &&
-          candidate.reverses === undefined,
-      );
-      return Promise.resolve(
-        row === undefined
-          ? err(domainError('NOT_FOUND', 'No such entry.'))
-          : ok({ entry: row.entry, reversed: reversed(id) }),
-      );
-    },
-    search: (userId) =>
-      Promise.resolve(
-        ok(
-          rows
-            .filter(
-              (row) =>
-                row.userId === userId && row.reverses === undefined && !reversed(row.entry.id),
-            )
-            .map((row) => row.entry),
-        ),
-      ),
-  };
-}
-
-type InMemoryBooks = {
-  readonly rows: readonly Row[];
-  readonly entries: EntryRepository;
-  readonly unitOfWork: UnitOfWork;
-};
-
-function inMemoryBooks(inTransaction: Partial<EntryRepository> = {}): InMemoryBooks {
-  const rows: Row[] = [];
-  return {
-    rows,
-    entries: repositoryOver(rows),
-    unitOfWork: async (work) => {
-      const working = [...rows];
-      const done = await work({ ...repositoryOver(working), ...inTransaction });
-      if (done.ok) {
-        rows.splice(0, rows.length, ...working);
-      }
-      return done;
-    },
-  };
-}
 
 const NOW = new Date('2026-10-04T09:00:00.000Z');
 
@@ -115,8 +43,8 @@ const REWRITTEN: EntryDraft = {
 
 const UNKNOWN_ID = '01920000-0000-7000-8000-0000000000ff' as EntryId;
 
-function useCases(books: InMemoryBooks = inMemoryBooks()): {
-  readonly rows: readonly Row[];
+function useCases(books: InMemoryEntries = inMemoryEntries()): {
+  readonly rows: readonly StoredEntry[];
   readonly post: (auth: AuthContext, memo: string) => Promise<Entry>;
   readonly editEntry: ReturnType<typeof createEditEntry>;
   readonly deleteEntry: ReturnType<typeof createDeleteEntry>;
@@ -250,12 +178,13 @@ describe('createEditEntry', () => {
     expect(await visible(ADA)).toEqual([original]);
   });
 
-  it('answers not found for an id no Entry has', async () => {
+  it('answers not found for an id no Entry has, though the draft breaks a rule too', async () => {
     const { editEntry } = useCases();
 
-    const edited = await editEntry(ADA, UNKNOWN_ID, REWRITTEN);
-
-    expect(isErr(edited) && edited.error.code).toBe('NOT_FOUND');
+    for (const draft of [REWRITTEN, { ...REWRITTEN, memo: '' }]) {
+      const edited = await editEntry(ADA, UNKNOWN_ID, draft);
+      expect(isErr(edited) && edited.error.code).toBe('NOT_FOUND');
+    }
   });
 
   it("answers not found for another User's Entry, and leaves it in their books", async () => {
@@ -281,12 +210,12 @@ describe('createEditEntry', () => {
     expect(rows).toHaveLength(2);
   });
 
-  it('answers conflict for an Entry reversed already, though the draft changes nothing, and writes nothing', async () => {
+  it('answers conflict for an Entry reversed already, whether the draft changes nothing or breaks a rule, and writes nothing', async () => {
     const { rows, post, editEntry, deleteEntry } = useCases();
     const original = await post(ADA, 'Office supplies');
     await deleteEntry(ADA, original.id);
 
-    for (const draft of [REWRITTEN, DRAFT]) {
+    for (const draft of [REWRITTEN, DRAFT, { ...REWRITTEN, memo: '' }]) {
       const edited = await editEntry(ADA, original.id, draft);
       expect(isErr(edited) && edited.error).toEqual({
         code: 'CONFLICT',
@@ -298,7 +227,7 @@ describe('createEditEntry', () => {
 
   it('answers dependency unavailable when the Entry cannot be read', async () => {
     const down = domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.');
-    const books = inMemoryBooks();
+    const books = inMemoryEntries();
     const { editEntry } = useCases({
       ...books,
       entries: { ...books.entries, find: () => Promise.resolve(err(down)) },
@@ -310,7 +239,7 @@ describe('createEditEntry', () => {
   it('leaves the Entry visible and writes nothing when the replacement cannot be saved', async () => {
     const down = domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.');
     const { rows, post, editEntry, visible } = useCases(
-      inMemoryBooks({ save: () => Promise.resolve(err(down)) }),
+      inMemoryEntries({ save: () => Promise.resolve(err(down)) }),
     );
     const original = await post(ADA, 'Office supplies');
 
@@ -323,7 +252,7 @@ describe('createEditEntry', () => {
     const refused = domainError('CONFLICT', 'Reversed already.');
     const saved: Entry[] = [];
     const { rows, post, editEntry, visible } = useCases(
-      inMemoryBooks({
+      inMemoryEntries({
         saveReversal: () => Promise.resolve(err(refused)),
         save: (_userId, entry) => {
           saved.push(entry);
