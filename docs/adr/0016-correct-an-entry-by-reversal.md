@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-09-16
-**Adopted:** 2026-10-04, PR #PRNUM
+**Adopted:** 2026-10-04, PR #240
 **Trigger:** A criterion asks to change or remove an entry that is already
 posted.
 
