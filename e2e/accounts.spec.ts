@@ -5,6 +5,7 @@ import {
   accountType,
   ACCOUNT_TYPES,
   activeFrom,
+  activeUntil,
   addAccount,
   addGroup,
   confirmDelete,
@@ -16,7 +17,6 @@ import {
   expectRefused,
   grip,
   grips,
-  offered,
   offeredType,
   openAdd,
   openDelete,
@@ -24,10 +24,14 @@ import {
   row,
   save,
   showEndedAccounts,
-  STARTING_ACCOUNTS,
-  submit,
+  pressSave,
 } from './accounts';
-import { AMOUNT, entryForm, entrySearchForm, listedEntry, postEntries } from './entries';
+import {
+  accountChoice,
+  ACCOUNTS,
+  AMOUNT,
+  type Account,
+  entryForm, entrySearchForm, listedEntry, postEntries } from './entries';
 import { ENTRY_SEARCH_PATH } from './routes';
 import { signIn } from './session';
 import { PHONE } from './viewport';
@@ -48,8 +52,8 @@ async function expectAfterReload(page: Page, check: () => Promise<void>): Promis
 async function postToday(
   page: Page,
   memo: string,
-  debitAccount: 'Cash' | 'Expenses',
-  creditAccount: 'Cash' | 'Sales',
+  debitAccount: Account,
+  creditAccount: Account,
 ): Promise<void> {
   const day = await dayInBrowser(page);
   await postEntries(page, [{ day, memo, debitAccount, creditAccount, amount: AMOUNT }]);
@@ -76,8 +80,8 @@ async function expectWithinPhone(page: Page, locator: Locator): Promise<void> {
 test('gives a new User Cash, Accounts payable, Capital, Sales and Expenses, one under each Account type, in the Accounts section of Settings', async ({ page }) => {
   await openSettings(page);
 
-  for (const type of ACCOUNT_TYPES) {
-    await expectOrder(accountType(page, type), [STARTING_ACCOUNTS[type]]);
+  for (const [index, type] of ACCOUNT_TYPES.entries()) {
+    await expectOrder(accountType(page, type), [ACCOUNTS[index] ?? '']);
   }
 });
 
@@ -113,9 +117,9 @@ test('shows the start day of an Account that starts in the future, and the entry
   await page.goto('/entries');
   const form = entryForm(page);
   await expect(form.getByLabel('Date')).toHaveValue(await dayInBrowser(page));
-  await expect(offered(form, 'Debit', 'Cash')).toHaveCount(1);
-  await expect(offered(form, 'Debit', 'Savings')).toHaveCount(0);
-  await expect(offered(form, 'Credit', 'Savings')).toHaveCount(0);
+  await expect(accountChoice(form, 'Debit', 'Cash')).toHaveCount(1);
+  await expect(accountChoice(form, 'Debit', 'Savings')).toHaveCount(0);
+  await expect(accountChoice(form, 'Credit', 'Savings')).toHaveCount(0);
 });
 
 test('shows the new name of a renamed Account on an Entry that names it', async ({ page }) => {
@@ -216,7 +220,7 @@ test('refuses a duplicate Account name, and a duplicate Account group name withi
 
   const account = await openAdd(page, 'Expenses', 'account');
   await account.getByLabel('Name', { exact: true }).fill('CASH');
-  await submit(account);
+  await pressSave(account);
   await expectRefused(account);
   await expect(account.getByLabel('Name', { exact: true })).toHaveValue('CASH');
   await account.getByRole('button', { name: 'Cancel', exact: true }).click();
@@ -224,7 +228,7 @@ test('refuses a duplicate Account name, and a duplicate Account group name withi
 
   const group = await openAdd(page, 'Assets', 'group');
   await group.getByLabel('Name', { exact: true }).fill('bank');
-  await submit(group);
+  await pressSave(group);
   await expectRefused(group);
   await group.getByRole('button', { name: 'Cancel', exact: true }).click();
   await expect(group).toBeHidden();
@@ -233,7 +237,7 @@ test('refuses a duplicate Account name, and a duplicate Account group name withi
 
   const renamed = await openEdit(page, 'Revenue', 'Sales');
   await renamed.getByLabel('Name', { exact: true }).fill('expenses');
-  await submit(renamed);
+  await pressSave(renamed);
   await expectRefused(renamed);
 
   await page.reload();
@@ -320,20 +324,20 @@ test('offers in the entry form only the Accounts active on the Entry\'s day, fol
 
   await page.goto('/entries');
   const form = entryForm(page);
-  await expect(offered(form, 'Debit', 'Cash')).toHaveCount(1);
-  await expect(offered(form, 'Debit', 'Old wallet')).toHaveCount(0);
-  await expect(offered(form, 'Debit', 'Savings')).toHaveCount(0);
+  await expect(accountChoice(form, 'Debit', 'Cash')).toHaveCount(1);
+  await expect(accountChoice(form, 'Debit', 'Old wallet')).toHaveCount(0);
+  await expect(accountChoice(form, 'Debit', 'Savings')).toHaveCount(0);
 
   await form.getByLabel('Date').fill(past);
-  await expect(offered(form, 'Debit', 'Old wallet')).toHaveCount(1);
-  await expect(offered(form, 'Credit', 'Old wallet')).toHaveCount(1);
-  await expect(offered(form, 'Debit', 'Cash')).toHaveCount(0);
-  await expect(offered(form, 'Debit', 'Savings')).toHaveCount(0);
+  await expect(accountChoice(form, 'Debit', 'Old wallet')).toHaveCount(1);
+  await expect(accountChoice(form, 'Credit', 'Old wallet')).toHaveCount(1);
+  await expect(accountChoice(form, 'Debit', 'Cash')).toHaveCount(0);
+  await expect(accountChoice(form, 'Debit', 'Savings')).toHaveCount(0);
 
   await form.getByLabel('Date').fill(future);
-  await expect(offered(form, 'Debit', 'Savings')).toHaveCount(1);
-  await expect(offered(form, 'Debit', 'Cash')).toHaveCount(1);
-  await expect(offered(form, 'Debit', 'Old wallet')).toHaveCount(0);
+  await expect(accountChoice(form, 'Debit', 'Savings')).toHaveCount(1);
+  await expect(accountChoice(form, 'Debit', 'Cash')).toHaveCount(1);
+  await expect(accountChoice(form, 'Debit', 'Old wallet')).toHaveCount(0);
 });
 
 test('offers in the entry form each Account group as a heading over its Accounts, in the User\'s order', async ({ page }) => {
@@ -366,21 +370,25 @@ test('refuses an Active period change that would leave a shown Entry outside it'
 
   await page.goto('/settings');
   const dialog = await openEdit(page, 'Assets', 'Cash');
+  const start = await activeFrom(dialog).inputValue();
   await activeFrom(dialog).fill(tomorrow);
-  await submit(dialog);
+  await pressSave(dialog);
   await expectRefused(dialog);
 
   await page.reload();
   const reopened = await openEdit(page, 'Assets', 'Cash');
-  await expect(activeFrom(reopened)).not.toHaveValue(tomorrow);
-  await reopened.getByLabel('Active until', { exact: true }).fill(today);
+  await expect(activeFrom(reopened)).toHaveValue(start);
+  await expect(activeUntil(reopened)).toHaveValue('');
+  await activeUntil(reopened).fill(today);
   await save(reopened);
 
-  await page.goto('/entries');
-  await expect(listedEntry(page, memo)).toHaveCount(1);
+  await page.reload();
+  const kept = await openEdit(page, 'Assets', 'Cash');
+  await expect(activeFrom(kept)).toHaveValue(start);
+  await expect(activeUntil(kept)).toHaveValue(today);
 });
 
-test('lists an ended Account in the Account filter of Entry search', async ({ page }) => {
+test('lists an ended Account, last, in the Account filter of Entry search', async ({ page }) => {
   await openSettings(page);
   await addAccount(page, 'Assets', {
     name: 'Old wallet',
@@ -392,9 +400,10 @@ test('lists an ended Account in the Account filter of Entry search', async ({ pa
   const filter = entrySearchForm(page).getByLabel('Account', { exact: true });
   await expect(filter.getByRole('option', { name: 'Old wallet', exact: true })).toHaveCount(1);
   await expect(filter.getByRole('option', { name: 'Cash', exact: true })).toHaveCount(1);
+  await expect(filter.getByRole('option').last()).toHaveText('Old wallet');
 });
 
-test('adds, edits and deletes an Account in the Accounts section at 390px', async ({ page }) => {
+test('adds, edits and deletes an Account and an Account group in the Accounts section at 390px', async ({ page }) => {
   await signIn(page);
   await page.setViewportSize(PHONE);
   await page.goto('/settings');
@@ -417,6 +426,23 @@ test('adds, edits and deletes an Account in the Accounts section at 390px', asyn
   await expectWithinPhone(page, deleted);
   await confirmDelete(deleted);
   await expect(deleted).toBeHidden();
+
+  const addedGroup = await openAdd(page, 'Assets', 'group');
+  await expectWithinPhone(page, addedGroup);
+  await addedGroup.getByLabel('Name', { exact: true }).fill('Bank');
+  await save(addedGroup);
+  await expectOrder(accountType(page, 'Assets'), ['Cash', 'Bank']);
+
+  const editedGroup = await openEdit(page, 'Assets', 'Bank', 'group');
+  await expectWithinPhone(page, editedGroup);
+  await editedGroup.getByLabel('Name', { exact: true }).fill('Banks');
+  await save(editedGroup);
+  await expectOrder(accountType(page, 'Assets'), ['Cash', 'Banks']);
+
+  const deletedGroup = await openDelete(page, 'Assets', 'Banks', 'group');
+  await expectWithinPhone(page, deletedGroup);
+  await confirmDelete(deletedGroup);
+  await expect(deletedGroup).toBeHidden();
 
   await page.reload();
   await expectOrder(accountType(page, 'Assets'), ['Cash']);

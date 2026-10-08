@@ -49,7 +49,7 @@ export const entrySearchForm = (page: Page): Locator =>
 export const accountChoices = (form: Page | Locator, side: Side): Locator =>
   form.getByRole('radiogroup', { name: `${side} account`, exact: true });
 
-export const accountChoice = (form: Locator, side: Side, account: Account): Locator =>
+export const accountChoice = (form: Locator, side: Side, account: string): Locator =>
   accountChoices(form, side).getByRole('radio', { name: account, exact: true });
 
 export const accountTicks = (form: Page | Locator, side: Side): Locator =>

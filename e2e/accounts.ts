@@ -5,15 +5,7 @@ export const ACCOUNT_TYPES = ['Assets', 'Liabilities', 'Equity', 'Revenue', 'Exp
 
 export type AccountType = (typeof ACCOUNT_TYPES)[number];
 
-export const STARTING_ACCOUNTS: Readonly<Record<AccountType, string>> = {
-  Assets: 'Cash',
-  Liabilities: 'Accounts payable',
-  Equity: 'Capital',
-  Revenue: 'Sales',
-  Expenses: 'Expenses',
-};
-
-export type NodeKind = 'account' | 'group';
+export type Kind = 'account' | 'group';
 
 export type AccountFields = {
   readonly name?: string;
@@ -55,18 +47,18 @@ const rowButton = (scope: Locator, name: string, action: 'Edit' | 'Delete'): Loc
 const dialogNamed = (page: Page, name: string): Locator =>
   page.getByRole('dialog', { name, exact: true });
 
-export const addDialog = (page: Page, kind: NodeKind): Locator =>
+const addDialog = (page: Page, kind: Kind): Locator =>
   dialogNamed(page, `Add ${kind}`);
 
-export const editDialog = (page: Page, kind: NodeKind): Locator =>
+const editDialog = (page: Page, kind: Kind): Locator =>
   dialogNamed(page, `Edit ${kind}`);
 
-export const deleteDialog = (page: Page, kind: NodeKind): Locator =>
+const deleteDialog = (page: Page, kind: Kind): Locator =>
   dialogNamed(page, `Delete ${kind}`);
 
-export const groupField = (dialog: Locator): Locator => dialog.getByLabel('Group', { exact: true });
+const groupField = (dialog: Locator): Locator => dialog.getByLabel('Group', { exact: true });
 
-export const chosenGroup = (dialog: Locator): Locator => groupField(dialog).locator('option:checked');
+const chosenGroup = (dialog: Locator): Locator => groupField(dialog).locator('option:checked');
 
 export const activeFrom = (dialog: Locator): Locator =>
   dialog.getByLabel('Active from', { exact: true });
@@ -84,19 +76,19 @@ async function fill(dialog: Locator, fields: AccountFields): Promise<void> {
   if (fields.activeUntil !== undefined) await activeUntil(dialog).fill(fields.activeUntil);
 }
 
-export async function openAdd(page: Page, type: AccountType, kind: NodeKind): Promise<Locator> {
+export async function openAdd(page: Page, type: AccountType, kind: Kind): Promise<Locator> {
   await button(accountType(page, type), `Add ${kind}`).click();
   const dialog = addDialog(page, kind);
   await expect(dialog).toBeVisible();
   return dialog;
 }
 
-export async function submit(dialog: Locator): Promise<void> {
+export async function pressSave(dialog: Locator): Promise<void> {
   await button(dialog, 'Save').click();
 }
 
 export async function save(dialog: Locator): Promise<void> {
-  await submit(dialog);
+  await pressSave(dialog);
   await expect(dialog).toBeHidden();
 }
 
@@ -129,7 +121,7 @@ export async function openEdit(
   page: Page,
   type: AccountType,
   name: string,
-  kind: NodeKind = 'account',
+  kind: Kind = 'account',
 ): Promise<Locator> {
   await rowButton(accountType(page, type), name, 'Edit').click();
   const dialog = editDialog(page, kind);
@@ -152,7 +144,7 @@ export async function openDelete(
   page: Page,
   type: AccountType,
   name: string,
-  kind: NodeKind = 'account',
+  kind: Kind = 'account',
 ): Promise<Locator> {
   await rowButton(accountType(page, type), name, 'Delete').click();
   const dialog = deleteDialog(page, kind);
@@ -199,9 +191,10 @@ export async function drag(page: Page, from: Locator, onto: Locator): Promise<vo
   const b = centre(end);
   await page.mouse.move(a.x, a.y);
   await page.mouse.down();
-  await page.mouse.move(a.x, a.y + (b.y > a.y ? 8 : -8), { steps: 4 });
+  const direction = b.y > a.y ? 1 : -1;
+  await page.mouse.move(a.x, a.y + direction * 8, { steps: 4 });
   await page.mouse.move(b.x, b.y, { steps: 20 });
-  await page.mouse.move(b.x, b.y + (b.y > a.y ? 2 : -2), { steps: 2 });
+  await page.mouse.move(b.x, b.y + (direction * end.height) / 4, { steps: 4 });
   await page.mouse.up();
 }
 
@@ -213,9 +206,6 @@ export async function dayInBrowser(page: Page, daysFromToday = 0): Promise<strin
     return `${String(day.getFullYear()).padStart(4, '0')}-${two(day.getMonth() + 1)}-${two(day.getDate())}`;
   }, daysFromToday);
 }
-
-export const offered = (form: Locator, side: Side, name: string): Locator =>
-  accountChoices(form, side).getByRole('radio', { name, exact: true });
 
 export const offeredType = (form: Locator, side: Side, type: AccountType): Locator =>
   accountChoices(form, side).getByRole('group', { name: type, exact: true });
