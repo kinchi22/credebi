@@ -41,7 +41,7 @@ export type PostgresEntryRepository = EntryRepository & {
 export type PostgresExecutor = PgDatabase<NodePgQueryResultHKT, Schema>;
 
 type EntryRow = typeof schema.entries.$inferSelect;
-type LineRow = typeof schema.entryLines.$inferSelect;
+type LineRow = Omit<typeof schema.entryLines.$inferSelect, 'accountId'>;
 
 export function createPostgresEntryRepository(
   connectionString: string,
