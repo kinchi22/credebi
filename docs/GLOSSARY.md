@@ -13,14 +13,16 @@ no term is defined in more than one.
 | Term             | Meaning                                                                     |
 | ---------------- | --------------------------------------------------------------------------- |
 | ADR              | A numbered file under `docs/adr/` holding an architectural decision that is hard to reverse, surprising without context and the result of a real trade-off. Indexed from `docs/ARCHITECTURE.md`. |
-| Account          | What an Entry line is posted against, named by a code from the Chart of accounts. |
+| Account          | What an Entry line is posted against: one User's, named by them, under one Account type, either directly or inside one Account group. Never has children. Removed only while no Entry line names it, a hidden Reversal pair included; otherwise retired by its end date. ADR-0026. |
+| Account group    | A heading in a User's Chart of accounts that holds Accounts and nothing else, directly under one Account type, which its Accounts share. Never posted to, and its kind is fixed when it is made, so an Account never becomes one. Removed only while empty. The issue's word "sub category" means this and is not used. ADR-0026. |
+| Active period    | The calendar days an Account may be named on: from its start day, inclusive, to its end day, inclusive, or open-ended when it has none. An Entry line names an Account only on a day its Active period holds, so the entry form offers only those Accounts, and a change that would leave a shown Entry outside it is refused. A new Account's start defaults to today; the five a User starts with start on the day the User was created. The issue's words "usage start/end date" mean this and are not used. ADR-0026. |
 | Account type     | One of asset, liability, equity, revenue and expense: the fixed vocabulary of double-entry bookkeeping every Account belongs to. Never the owner's to change. |
 | Adapter          | A concrete implementation of a Port. The only place infrastructure appears.  |
 | Aggregate        | The entity a repository loads and saves as one thing, together with the entities it owns. An Entry owns its Entry lines. A write of one aggregate is atomic; ADR-0011. |
 | Auth context     | Who a request is made by: the User its Session belongs to, or nobody. A controller resolves it from the session cookie and passes it on; a use case that touches a User's data checks it at its entry point, and without a User answers `UNAUTHENTICATED`, mapped to 401. ADR-0021. |
 | Balanced         | The property that makes an Entry postable: its debit amounts sum to its credit amounts. Checked in `domain/`, never in SQL. |
 | Branded type     | A primitive carrying a compile-time name, so two `number`s stop being interchangeable. Erased at runtime. |
-| Chart of accounts | The set of Accounts an Entry line may name. A constant in `domain/` today -- `cash`, `payable`, `capital`, `sales`, `expense` -- until ADR-0015 is adopted. |
+| Chart of accounts | One User's Accounts and Account groups, arranged under the five Account types in the order the User drags them into, and kept at `/settings`. A User starts with five Accounts -- Cash, Accounts payable, Capital, Sales, Expenses -- one directly under each Account type. ADR-0026. |
 | Component        | A checked dependency of the system, as reported by the health slice.         |
 | Composition root | `apps/web/server/container.ts`. The only place implementations are chosen.   |
 | Contract         | A zod schema plus its inferred type, in `packages/contracts`.                |
@@ -53,7 +55,7 @@ no term is defined in more than one.
 | Production deployment | An artifact Vercel built for a `main` commit with the Production environment's configuration. It exists; it receives traffic only once promoted. ADR-0024. |
 | Promotion        | Assigning the production domains to a Production deployment, which makes it Current Production. Automatic once its Deployment Checks pass. ADR-0024. |
 | Public surface   | The entry points a package lists in its `exports` field.                     |
-| Settings         | A User's preferences for how the app behaves for them, kept with the User so they follow them to any device, and changed at `/settings`. The issue's word "config" means this and is not used. The Entry form mode is the only one today. |
+| Settings         | A User's preferences for how the app behaves for them, kept with the User so they follow them to any device, and changed at `/settings`. The issue's word "config" means this and is not used. The Entry form mode is the only one today; the Chart of accounts is kept on the same page, though it is the User's books rather than a preference. |
 | Sidebar          | The navigation on every signed-in page, and on no other: links to Entries, Entry search and Settings, with signing out at its end. Rendered by the layout the signed-in pages share. |
 | Shared kernel    | Vocabulary several features depend on, held in `core/src/<name>/domain` with no ports or adapters. `money` is the only one. |
 | Result           | `Ok<T>` or `Err<E>`. The return type of any domain operation that can fail. |

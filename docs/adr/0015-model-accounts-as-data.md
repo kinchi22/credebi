@@ -1,6 +1,6 @@
 # ADR-0015: Model accounts as data
 
-**Status:** Deferred
+**Status:** Superseded by ADR-0026
 **Date:** 2026-09-16
 **Trigger:** A criterion needs an account the fixed chart does not name, or the
 owner needs to rename, add or retire one.

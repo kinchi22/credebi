@@ -53,7 +53,7 @@ status in the ADR itself.
 | [ADR-0011: Make an aggregate write atomic](adr/0011-make-an-aggregate-write-atomic.md) | Accepted |
 | [ADR-0012: Run the specs against a real database](adr/0012-run-the-specs-against-a-real-database.md) | Accepted |
 | [ADR-0013: Land a migration before the milestone that needs it](adr/0013-land-a-migration-before-the-milestone-that-needs-it.md) | Superseded by ADR-0024 |
-| [ADR-0015: Model accounts as data](adr/0015-model-accounts-as-data.md) | Deferred |
+| [ADR-0015: Model accounts as data](adr/0015-model-accounts-as-data.md) | Superseded by ADR-0026 |
 | [ADR-0016: Correct an entry by reversal](adr/0016-correct-an-entry-by-reversal.md) | Accepted |
 | [ADR-0017: Authenticate before the MVP](adr/0017-authenticate-before-the-mvp.md) | Superseded by ADR-0021 |
 | [ADR-0018: Log infrastructure failures through a port](adr/0018-log-infrastructure-failures-through-a-port.md) | Accepted |
@@ -61,6 +61,7 @@ status in the ADR itself.
 | [ADR-0021: Authenticate every user with Google](adr/0021-authenticate-every-user-with-google.md) | Accepted |
 | [ADR-0024: Promote a Production deployment only after its migration](adr/0024-promote-production-only-after-its-migration.md) | Accepted |
 | [ADR-0025: Ban comments in code](adr/0025-ban-comments-in-code.md) | Accepted |
+| [ADR-0026: Keep a chart of accounts per User](adr/0026-keep-a-chart-of-accounts-per-user.md) | Deferred |
 
 ## Package layout
 
