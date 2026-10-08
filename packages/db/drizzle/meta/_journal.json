@@ -36,6 +36,13 @@
       "when": 1791099105804,
       "tag": "0004_entries_reverses_entry_id",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791487461824,
+      "tag": "0005_accounts",
+      "breakpoints": true
     }
   ]
 }
