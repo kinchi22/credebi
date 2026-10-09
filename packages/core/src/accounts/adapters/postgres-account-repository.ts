@@ -14,7 +14,7 @@ import {
 } from '@repo/contracts';
 import { createDatabase, schema } from '@repo/db';
 import { databaseFailure, UNIQUE_VIOLATION } from '../../auth/adapters/database-failure';
-import { shownEntry } from '../../entries/adapters/postgres-entry-repository';
+import { shownEntry } from '../../entries/adapters/shown-entry';
 import { describeError } from '../../logging/domain/describe-error';
 import { type LogFields, type Logger } from '../../logging/ports/logger';
 import { type Account, type AccountGroup, type Chart } from '../domain/account';

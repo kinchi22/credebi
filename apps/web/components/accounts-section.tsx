@@ -9,6 +9,7 @@ import {
   type AccountType,
   type ChartOutput,
 } from '@repo/contracts';
+import { hasEndedBy } from '@repo/core/accounts';
 import { GripIcon, PencilIcon, TrashIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useId, useState, type ReactNode } from 'react';
@@ -42,7 +43,7 @@ type RowActions = {
 };
 
 const mayHaveEnded = (account: AccountOutput, today: string | undefined): boolean =>
-  account.activeUntil !== null && (today === undefined || account.activeUntil < today);
+  today === undefined ? account.activeUntil !== null : hasEndedBy(account, today);
 
 const startsLater = (account: AccountOutput, today: string | undefined): boolean =>
   today !== undefined && account.activeFrom > today;

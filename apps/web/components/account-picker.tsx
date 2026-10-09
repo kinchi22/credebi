@@ -9,6 +9,7 @@ import {
   type AccountOutput,
   type AccountType,
   type ChartOutput,
+  type PostedEntry,
   type Side,
 } from '@repo/contracts';
 import { ACCOUNT_TYPES, isActiveOn } from '@repo/core/accounts';
@@ -73,7 +74,12 @@ const PICK_MANY: PickControl = {
   fieldName: undefined,
 };
 
-export function chartOn(chart: ChartOutput, day: string | undefined): ChartOutput {
+export type Offered = {
+  readonly chart: ChartOutput;
+  readonly ids: ReadonlySet<AccountId>;
+};
+
+function chartOn(chart: ChartOutput, day: string | undefined): ChartOutput {
   if (day === undefined || day === '') {
     return chart;
   }
@@ -84,6 +90,11 @@ export function chartOn(chart: ChartOutput, day: string | undefined): ChartOutpu
     const accounts = node.accounts.filter((account) => isActiveOn(account, day));
     return accounts.length === 0 ? [] : [{ ...node, accounts }];
   });
+}
+
+export function offeredOn(chart: ChartOutput, day: string | undefined): Offered {
+  const offered = chartOn(chart, day);
+  return { chart: offered, ids: new Set(accountsIn(offered).map((account) => account.id)) };
 }
 
 const otherSide = (side: Side): Side => (side === 'debit' ? 'credit' : 'debit');
@@ -589,6 +600,29 @@ function NoActiveAccount(): ReactNode {
   return (
     <p className={`rounded border border-border bg-ground px-4 py-3 ${typeClasses['body-dense']}`}>
       {en.accountSheet.noActiveAccount}{' '}
+      <Link href={SETTINGS_PATH} className={LINK}>
+        {en.accountSheet.settingsLink}
+      </Link>
+    </p>
+  );
+}
+
+type OutsideActivePeriodProps = {
+  readonly entry: PostedEntry | undefined;
+  readonly offered: Offered;
+};
+
+export function OutsideActivePeriod({ entry, offered }: OutsideActivePeriodProps): ReactNode {
+  const outside = [
+    ...new Set(
+      (entry?.lines ?? [])
+        .filter((line) => !offered.ids.has(line.account))
+        .map((line) => line.accountName),
+    ),
+  ];
+  return outside.length === 0 ? null : (
+    <p className={`min-w-0 text-danger ${typeClasses['body-dense']}`}>
+      {en.accountSheet.outsideActivePeriod} {outside.join(', ')}.{' '}
       <Link href={SETTINGS_PATH} className={LINK}>
         {en.accountSheet.settingsLink}
       </Link>

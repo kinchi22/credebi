@@ -6,7 +6,7 @@ import {
   type DomainError,
   type Result,
 } from '@repo/contracts';
-import { type Account } from './account';
+import { type Account, type Chart } from './account';
 
 export type ActivePeriod = Pick<Account, 'activeFrom' | 'activeUntil'>;
 
@@ -49,6 +49,13 @@ export function checkActiveOn(
           `Account "${inactive.name}" is not active on ${day}, outside its Active period.`,
         ),
       );
+}
+
+export function changesActivePeriod({ accounts }: Chart, edited: Account): boolean {
+  const stored = accounts.find((account) => account.id === edited.id);
+  return (
+    stored?.activeFrom !== edited.activeFrom || stored.activeUntil !== edited.activeUntil
+  );
 }
 
 export function checkKeepsShownEntries(

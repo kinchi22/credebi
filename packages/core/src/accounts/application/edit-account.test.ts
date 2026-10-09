@@ -140,6 +140,27 @@ describe('createEditAccount', () => {
     expect(edited.ok && edited.value.activeUntil).toBe('2026-09-20');
   });
 
+  it('renames and moves an Account whose unchanged Active period already leaves a shown Entry outside it', async () => {
+    const { editAccount, showInEntry } = useCases();
+    showInEntry(CASH.id, '2026-01-15');
+
+    const edited = await editAccount(
+      ADA,
+      renamed({ activeFrom: CASH.activeFrom, activeUntil: CASH.activeUntil }),
+    );
+
+    expect(edited.ok && edited.value.name).toBe('Wallet');
+  });
+
+  it('refuses with IN_USE an Account whose Active period already leaves a shown Entry outside it, once that period changes', async () => {
+    const { editAccount, showInEntry } = useCases();
+    showInEntry(CASH.id, '2026-01-15');
+
+    const edited = await editAccount(ADA, renamed({ activeFrom: '2026-08-01', activeUntil: null }));
+
+    expect(!edited.ok && edited.error.code).toBe('IN_USE');
+  });
+
   it('changes an Active period freely when only hidden Entries name the Account', async () => {
     const { editAccount, nameInEntry } = useCases();
     nameInEntry(CASH.id);

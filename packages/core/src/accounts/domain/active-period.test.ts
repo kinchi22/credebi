@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { domainError, err, ok, type AccountId } from '@repo/contracts';
 import { type Account } from './account';
 import {
+  changesActivePeriod,
   checkActiveOn,
   checkKeepsShownEntries,
   endedLast,
@@ -107,6 +108,27 @@ describe('checkActiveOn', () => {
 
   it('judges only the Accounts the lines name', () => {
     expect(checkActiveOn(chart, '2026-10-15', [SAVINGS.id])).toEqual(ok(undefined));
+  });
+});
+
+describe('changesActivePeriod', () => {
+  const chart = { accounts: [CASH, OLD_WALLET], groups: [] };
+
+  it('is false when only the name, description or place changes', () => {
+    expect(
+      changesActivePeriod(chart, { ...OLD_WALLET, name: 'Purse', description: 'Coins', position: 9 }),
+    ).toBe(false);
+  });
+
+  it('is true when the start day or the end day changes', () => {
+    expect(changesActivePeriod(chart, { ...OLD_WALLET, activeFrom: '2026-08-02' })).toBe(true);
+    expect(changesActivePeriod(chart, { ...OLD_WALLET, activeUntil: '2026-08-30' })).toBe(true);
+    expect(changesActivePeriod(chart, { ...CASH, activeUntil: '2026-12-31' })).toBe(true);
+    expect(changesActivePeriod(chart, { ...OLD_WALLET, activeUntil: null })).toBe(true);
+  });
+
+  it('is true for an Account the chart does not hold', () => {
+    expect(changesActivePeriod(chart, SAVINGS)).toBe(true);
   });
 });
 

@@ -17,7 +17,8 @@ import {
   AccountPicker,
   AccountRow,
   ChooseAccountButton,
-  chartOn,
+  OutsideActivePeriod,
+  offeredOn,
   useAccountSheet,
   type AccountChoice,
 } from './account-picker';
@@ -61,9 +62,9 @@ function TwoLineFields({
 }: TwoLineFieldsProps): ReactNode {
   const [picked, setPicked] = useState<AccountChoice>(() => choiceOf(chart, entry));
   const sheet = useAccountSheet();
-  const offered = chartOn(chart, day);
+  const offered = offeredOn(chart, day);
   const offeredAccount = (account: AccountOutput | undefined): AccountOutput | undefined =>
-    accountsIn(offered).find((candidate) => candidate.id === account?.id);
+    account !== undefined && offered.ids.has(account.id) ? account : undefined;
   const chosen: AccountChoice = {
     debit: offeredAccount(picked.debit),
     credit: offeredAccount(picked.credit),
@@ -82,7 +83,9 @@ function TwoLineFields({
         <div className={`flex flex-col ${typeClasses['body-dense']}`}>
           {sideSchema.options.map((side) => (
             <div key={side}>
-              <ChooseAccountButton side={side} account={chosen[side]} sheet={sheet} />
+              {offered.ids.size === 0 ? null : (
+                <ChooseAccountButton side={side} account={chosen[side]} sheet={sheet} />
+              )}
               <AccountRow side={side} account={chosen[side]} />
             </div>
           ))}
@@ -97,9 +100,10 @@ function TwoLineFields({
           </div>
           {submitButton}
         </div>
+        <OutsideActivePeriod entry={entry} offered={offered} />
         {refusal}
       </div>
-      <AccountPicker id={id} chart={offered} isChosen={isChosen} onPick={choose} sheet={sheet} />
+      <AccountPicker id={id} chart={offered.chart} isChosen={isChosen} onPick={choose} sheet={sheet} />
     </div>
   );
 }

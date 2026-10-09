@@ -4,7 +4,6 @@ import {
   ENTRY_FORM_FIELDS,
   entryFormModeSchema,
   type AccountId,
-  accountsIn,
   type AccountOutput,
   type ChartOutput,
   type DomainError,
@@ -24,7 +23,13 @@ import { CloseIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useState, type ReactNode } from 'react';
 import { en } from '../messages/en';
-import { AccountPicker, AddAccountButton, chartOn, useAccountSheet } from './account-picker';
+import {
+  AccountPicker,
+  AddAccountButton,
+  OutsideActivePeriod,
+  offeredOn,
+  useAccountSheet,
+} from './account-picker';
 import { formatAmount } from './amount';
 import { BARE_ICON_BUTTON } from './control-classes';
 import {
@@ -180,10 +185,8 @@ function MultiLineFields({
 }: MultiLineFieldsProps): ReactNode {
   const [picked, setPicked] = useState<readonly ChosenLine[]>(() => linesOf(entry));
   const sheet = useAccountSheet();
-  const offered = chartOn(chart, day);
-  const chosen = picked.filter((line) =>
-    accountsIn(offered).some((account) => account.id === line.account),
-  );
+  const offered = offeredOn(chart, day);
+  const chosen = picked.filter((line) => offered.ids.has(line.account));
 
   const remove = (side: Side, account: AccountId): void => {
     setPicked((current) => current.filter((line) => !isLine(side, account)(line)));
@@ -238,7 +241,7 @@ function MultiLineFields({
                     />
                   ))}
                 </div>
-                <AddAccountButton side={side} sheet={sheet} />
+                {offered.ids.size === 0 ? null : <AddAccountButton side={side} sheet={sheet} />}
                 {totals.ok ? (
                   <SideTotal side={side} amount={totals.value[side]} ruled={lines.length > 0} />
                 ) : null}
@@ -246,11 +249,12 @@ function MultiLineFields({
             );
           })}
         </div>
+        <OutsideActivePeriod entry={entry} offered={offered} />
         <DifferenceRow totals={totals} refusal={refusal} submitButton={submitButton} />
       </div>
       <AccountPicker
         id={id}
-        chart={offered}
+        chart={offered.chart}
         multiple
         isChosen={isChosen}
         onPick={pick}

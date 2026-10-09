@@ -8,13 +8,12 @@ import {
   ilike,
   isNull,
   lte,
-  not,
   getTableColumns,
   sql,
   type SQL,
 } from 'drizzle-orm';
 import { type NodePgQueryResultHKT } from 'drizzle-orm/node-postgres';
-import { alias, QueryBuilder, type PgDatabase } from 'drizzle-orm/pg-core';
+import { QueryBuilder, type PgDatabase } from 'drizzle-orm/pg-core';
 import {
   domainError,
   err,
@@ -35,6 +34,7 @@ import { money } from '../../money/domain/money';
 import { makeEntry, type Entry, type EntryDraft } from '../domain/entry';
 import { type SearchCriteria } from '../domain/search-criteria';
 import { reversedAlready, type Reversal } from '../domain/reversal';
+import { reversed, shownEntry } from './shown-entry';
 import { type EntryRepository, type FoundEntry } from '../ports/entry-repository';
 
 export type PostgresEntryRepository = EntryRepository & {
@@ -257,21 +257,6 @@ function violates(thrown: unknown, constraint: string): boolean {
     current = current.cause;
   }
   return false;
-}
-
-const reversing = alias(schema.entries, 'reversing');
-
-function reversed(id: typeof schema.entries.id): SQL {
-  return exists(
-    new QueryBuilder()
-      .select({ id: reversing.id })
-      .from(reversing)
-      .where(eq(reversing.reversesEntryId, id)),
-  );
-}
-
-export function shownEntry(): SQL | undefined {
-  return and(isNull(schema.entries.reversesEntryId), not(reversed(schema.entries.id)));
 }
 
 function matches(userId: UserId, criteria: SearchCriteria): SQL | undefined {

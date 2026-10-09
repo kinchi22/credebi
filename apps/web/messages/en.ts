@@ -220,6 +220,8 @@ export const en = {
     find: 'Find an account',
     noMatch: 'No account matches',
     noActiveAccount: 'No account is active on this day.',
+    outsideActivePeriod:
+      'This entry cannot be saved on this day, because it is outside the Active period of',
     settingsLink: 'Change when your accounts are active in Settings',
     add: {
       debit: 'Add debit account',
@@ -242,7 +244,8 @@ export const en = {
     save: 'Save',
     pending: 'Saving...',
     refusals: {
-      INVALID_INPUT: 'The entry was not saved. Check the date, the memo, the accounts and the amounts.',
+      INVALID_INPUT:
+        'The entry was not saved. Check the date, the memo, the accounts -- each active on the entry\'s day -- and the amounts.',
       UNBALANCED: 'Debits and credits must balance. Check the amount on each side.',
       NOT_FOUND: 'This entry is no longer here. Reload the page.',
       CONFLICT: 'This entry was changed elsewhere, perhaps in another tab. Reload the page.',
