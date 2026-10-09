@@ -8,15 +8,23 @@ import {
   activeUntil,
   addAccount,
   addGroup,
+  closeDialog,
+  closeDiscarding,
   confirmDelete,
   dayInBrowser,
+  discardDialog,
   drag,
+  dragTo,
+  endOfList,
   editAccount,
   expectInGroup,
   expectOrder,
   expectRefused,
   grip,
   grips,
+  headingMiddle,
+  headingTopEdge,
+  NO_GROUP,
   offeredType,
   openAdd,
   openDelete,
@@ -26,6 +34,7 @@ import {
   showEndedAccounts,
   pressSave,
 } from './accounts';
+import { SCRIM, selectByDraggingOntoScrim } from './dialog';
 import {
   accountChoice,
   ACCOUNTS,
@@ -223,15 +232,13 @@ test('refuses a duplicate Account name, and a duplicate Account group name withi
   await pressSave(account);
   await expectRefused(account);
   await expect(account.getByLabel('Name', { exact: true })).toHaveValue('CASH');
-  await account.getByRole('button', { name: 'Cancel', exact: true }).click();
-  await expect(account).toBeHidden();
+  await closeDiscarding(account);
 
   const group = await openAdd(page, 'Assets', 'group');
   await group.getByLabel('Name', { exact: true }).fill('bank');
   await pressSave(group);
   await expectRefused(group);
-  await group.getByRole('button', { name: 'Cancel', exact: true }).click();
-  await expect(group).toBeHidden();
+  await closeDiscarding(group);
 
   await addGroup(page, 'Liabilities', { name: 'bank' });
 
@@ -446,4 +453,216 @@ test('adds, edits and deletes an Account and an Account group in the Accounts se
 
   await page.reload();
   await expectOrder(accountType(page, 'Assets'), ['Cash']);
+});
+
+type AccountDialog = {
+  readonly title: string;
+  readonly open: (page: Page) => Promise<Locator>;
+  readonly name: string;
+};
+
+const ACCOUNT_DIALOGS: readonly AccountDialog[] = [
+  { title: 'Add account', open: (page) => openAdd(page, 'Assets', 'account'), name: '' },
+  { title: 'Edit account', open: (page) => openEdit(page, 'Assets', 'Cash'), name: 'Cash' },
+  { title: 'Add group', open: (page) => openAdd(page, 'Assets', 'group'), name: '' },
+  { title: 'Edit group', open: (page) => openEdit(page, 'Assets', 'Bank', 'group'), name: 'Bank' },
+];
+
+const nameField = (dialog: Locator): Locator => dialog.getByLabel('Name', { exact: true });
+
+async function keepEditing(dialog: Locator, draft: string): Promise<void> {
+  const discard = discardDialog(dialog.page());
+  await expect(discard).toBeVisible();
+  await discard.getByRole('button', { name: 'Keep editing', exact: true }).click();
+  await expect(discard).toBeHidden();
+  await expect(dialog).toBeVisible();
+  await expect(nameField(dialog)).toHaveValue(draft);
+}
+
+test('closes Add account, Edit account, Add group and Edit group at once by Close, Escape or a click on the scrim when nothing was changed, and gives them no Cancel', async ({ page }) => {
+  await openSettings(page);
+  await addGroup(page, 'Assets', { name: 'Bank' });
+
+  for (const { title, open } of ACCOUNT_DIALOGS) {
+    const byClose = await open(page);
+    await expect(byClose.getByRole('button', { name: 'Cancel', exact: true }), title).toHaveCount(0);
+    await closeDialog(byClose);
+    await expect(byClose).toBeHidden();
+
+    const byEscape = await open(page);
+    await page.keyboard.press('Escape');
+    await expect(byEscape).toBeHidden();
+
+    const byScrim = await open(page);
+    await page.mouse.click(SCRIM.x, SCRIM.y);
+    await expect(byScrim).toBeHidden();
+
+    await expect(discardDialog(page)).toHaveCount(0);
+  }
+  await expectOrder(accountType(page, 'Assets'), ['Cash', 'Bank']);
+});
+
+test('asks Discard changes when Add account, Edit account, Add group or Edit group is closed with a change, keeps the input on Keep editing, and saves nothing on Discard', async ({ page }) => {
+  test.slow();
+  await openSettings(page);
+  await addGroup(page, 'Assets', { name: 'Bank' });
+
+  for (const { title, open } of ACCOUNT_DIALOGS) {
+    const draft = `Draft ${title}`;
+    const dialog = await open(page);
+    await nameField(dialog).fill(draft);
+
+    await closeDialog(dialog);
+    await keepEditing(dialog, draft);
+
+    await page.mouse.click(SCRIM.x, SCRIM.y);
+    await keepEditing(dialog, draft);
+
+    await nameField(dialog).press('Escape');
+    const discard = discardDialog(page);
+    await expect(discard).toBeVisible();
+    await discard.getByRole('button', { name: 'Discard', exact: true }).click();
+    await expect(discard).toBeHidden();
+    await expect(dialog).toBeHidden();
+  }
+
+  await page.reload();
+  const assets = accountType(page, 'Assets');
+  await expectOrder(assets, ['Cash', 'Bank']);
+  for (const { title, open, name } of ACCOUNT_DIALOGS) {
+    const reopened = await open(page);
+    await expect(nameField(reopened), title).toHaveValue(name);
+    await closeDialog(reopened);
+    await expect(reopened).toBeHidden();
+  }
+});
+
+test('keeps Edit account open with its input when a press inside it is released on the scrim', async ({ page }) => {
+  await openSettings(page);
+  const dialog = await openEdit(page, 'Assets', 'Cash');
+
+  await selectByDraggingOntoScrim(nameField(dialog));
+  await expect(dialog).toBeVisible();
+  await expect(discardDialog(page)).toHaveCount(0);
+  await expect(nameField(dialog)).toHaveValue('Cash');
+
+  await nameField(dialog).fill('Wallet');
+  await selectByDraggingOntoScrim(nameField(dialog));
+  await expect(dialog).toBeVisible();
+  await expect(discardDialog(page)).toHaveCount(0);
+  await expect(nameField(dialog)).toHaveValue('Wallet');
+
+  await closeDiscarding(dialog);
+  await expectOrder(accountType(page, 'Assets'), ['Cash']);
+});
+
+async function addBankAndCards(page: Page): Promise<Locator> {
+  await openSettings(page);
+  await addGroup(page, 'Assets', { name: 'Bank' });
+  await addAccount(page, 'Assets', { name: 'ABC Bank', group: 'Bank' });
+  await addGroup(page, 'Assets', { name: 'Cards' });
+  await addAccount(page, 'Assets', { name: 'Visa', group: 'Cards' });
+  const assets = accountType(page, 'Assets');
+  await expectOrder(assets, ['Cash', 'Bank', 'ABC Bank', 'Cards', 'Visa']);
+  return assets;
+}
+
+test('puts an Account dropped on an Account group\'s heading row, below its top edge, last in that group, and keeps it after a reload', async ({ page }) => {
+  test.slow();
+  const assets = await addBankAndCards(page);
+
+  await dragTo(page, grip(assets, 'Visa'), headingMiddle(assets, 'Bank'));
+  await expectAfterReload(page, () => expectOrder(assets, ['Cash', 'Bank', 'ABC Bank', 'Visa', 'Cards']));
+  await expectInGroup(page, 'Assets', 'Visa', 'Bank');
+
+  await dragTo(page, grip(assets, 'Cash'), headingMiddle(assets, 'Cards'));
+  await expectAfterReload(page, () => expectOrder(assets, ['Bank', 'ABC Bank', 'Visa', 'Cards', 'Cash']));
+  await expectInGroup(page, 'Assets', 'Cash', 'Cards');
+});
+
+test('puts an Account dropped on the top edge of an Account group\'s heading row at the top level just before that group', async ({ page }) => {
+  test.slow();
+  const assets = await addBankAndCards(page);
+
+  await dragTo(page, grip(assets, 'Visa'), headingTopEdge(assets, 'Bank'));
+  await expectAfterReload(page, () => expectOrder(assets, ['Cash', 'Visa', 'Bank', 'ABC Bank', 'Cards']));
+  await expectInGroup(page, 'Assets', 'Visa', NO_GROUP);
+
+  await dragTo(page, grip(assets, 'ABC Bank'), headingTopEdge(assets, 'Cards'));
+  await expectAfterReload(page, () => expectOrder(assets, ['Cash', 'Visa', 'Bank', 'ABC Bank', 'Cards']));
+  await expectInGroup(page, 'Assets', 'ABC Bank', NO_GROUP);
+});
+
+test('puts an Account dropped on the drop zone at the end of its Account type\'s list last at the top level, also when the list ends in an Account group', async ({ page }) => {
+  test.slow();
+  const assets = await addBankAndCards(page);
+
+  await dragTo(page, grip(assets, 'ABC Bank'), endOfList(assets));
+  await expectAfterReload(page, () => expectOrder(assets, ['Cash', 'Bank', 'Cards', 'Visa', 'ABC Bank']));
+  await expectInGroup(page, 'Assets', 'ABC Bank', NO_GROUP);
+
+  await dragTo(page, grip(assets, 'Cash'), endOfList(assets));
+  await expectAfterReload(page, () => expectOrder(assets, ['Bank', 'Cards', 'Visa', 'ABC Bank', 'Cash']));
+  await expectInGroup(page, 'Assets', 'Cash', NO_GROUP);
+});
+
+async function holdServerActions(page: Page): Promise<{
+  readonly held: () => number;
+  readonly release: () => void;
+}> {
+  let release: (() => void) | undefined;
+  const released = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let held = 0;
+  await page.route(
+    (url) => url.pathname === '/settings',
+    async (route) => {
+      const request = route.request();
+      if (request.method() !== 'POST' || (await request.headerValue('next-action')) === null) {
+        await route.fallback();
+        return;
+      }
+      held += 1;
+      await released;
+      await route.continue();
+    },
+  );
+  return { held: () => held, release: () => release?.() };
+}
+
+async function expectControls(section: Locator, enabled: boolean): Promise<void> {
+  const buttons = section.getByRole('button');
+  const count = await buttons.count();
+  expect(count, 'the Accounts section has buttons').toBeGreaterThan(0);
+  for (let index = 0; index < count; index += 1) {
+    const control = buttons.nth(index);
+    await (enabled ? expect(control).toBeEnabled() : expect(control).toBeDisabled());
+  }
+  const toggle = showEndedAccounts(section.page());
+  await (enabled ? expect(toggle).toBeEnabled() : expect(toggle).toBeDisabled());
+}
+
+test('marks the Accounts section busy and disables its controls while a move is being saved, and enables them with the new order once it is saved', async ({ page }) => {
+  await openSettings(page);
+  await addAccount(page, 'Assets', { name: 'Wallet' });
+  const assets = accountType(page, 'Assets');
+  await expectOrder(assets, ['Cash', 'Wallet']);
+  const section = accountsSection(page);
+  await expect(section).not.toHaveAttribute('aria-busy', 'true');
+
+  const saving = await holdServerActions(page);
+  await drag(page, grip(assets, 'Wallet'), grip(assets, 'Cash'));
+  await expect.poll(saving.held).toBe(1);
+
+  await expect(section).toHaveAttribute('aria-busy', 'true');
+  await expectControls(section, false);
+
+  saving.release();
+  await expect(section).not.toHaveAttribute('aria-busy', 'true');
+  await expectControls(section, true);
+  await expectOrder(assets, ['Wallet', 'Cash']);
+
+  await page.reload();
+  await expectOrder(assets, ['Wallet', 'Cash']);
 });

@@ -22,6 +22,7 @@ import {
 import { resultFor, results, search } from './entry-search';
 import { ENTRY_SEARCH_PATH as SEARCH, ENTRY_SEARCH_WITH_QUERY } from './routes';
 import { BOOKS_OPEN } from './accounts';
+import { selectByDraggingOntoScrim } from './dialog';
 import { signIn } from './session';
 import { setEntryFormMode } from './settings';
 import { PHONE } from './viewport';
@@ -425,6 +426,33 @@ test('asks Discard changes when Edit entry is closed with changes, by Close, by 
   await expect(discard).toHaveCount(0);
 
   await page.reload();
+  await expectAsPosted(listedEntry(page, memo));
+});
+
+test('keeps Edit entry open with its input when a press inside it is released on the scrim', async ({ page }) => {
+  const run = randomUUID();
+  const memo = `Original ${run}`;
+  const draft = `Draft ${run}`;
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
+  await postEntries(page, [twoLine(DAY, memo)]);
+
+  await page.goto('/entries');
+  const dialog = await openEdit(listedEntry(page, memo));
+
+  await selectByDraggingOntoScrim(dialog.getByLabel('Memo'));
+  await expect(dialog).toBeVisible();
+  await expect(discardDialog(page)).toHaveCount(0);
+  await expect(dialog.getByLabel('Memo')).toHaveValue(memo);
+
+  await dialog.getByLabel('Memo').fill(draft);
+  await selectByDraggingOntoScrim(dialog.getByLabel('Memo'));
+  await expect(dialog).toBeVisible();
+  await expect(discardDialog(page)).toHaveCount(0);
+  await expect(dialog.getByLabel('Memo')).toHaveValue(draft);
+
+  await button(dialog, 'Close').click();
+  await button(discardDialog(page), 'Discard').click();
+  await expect(dialog).toBeHidden();
   await expectAsPosted(listedEntry(page, memo));
 });
 
