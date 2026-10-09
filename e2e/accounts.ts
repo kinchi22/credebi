@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
-import { accountChoices, ACCOUNTS, type Side } from './entries';
+import { accountChoices, type Side } from './entries';
 
 export const ACCOUNT_TYPES = ['Assets', 'Liabilities', 'Equity', 'Revenue', 'Expenses'] as const;
 
@@ -211,11 +211,3 @@ export const offeredType = (form: Locator, side: Side, type: AccountType): Locat
   accountChoices(form, side).getByRole('group', { name: type, exact: true });
 
 export const BOOKS_OPEN = '2000-01-01';
-
-export async function startAccountsOn(page: Page, day = BOOKS_OPEN): Promise<void> {
-  await page.goto('/settings');
-  await expect(accountsSection(page)).toBeVisible();
-  for (const [index, type] of ACCOUNT_TYPES.entries()) {
-    await editAccount(page, type, ACCOUNTS[index] ?? '', { activeFrom: day });
-  }
-}
