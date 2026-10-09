@@ -159,6 +159,8 @@ const ShownLanding = createContext<ChartLanding | undefined>(undefined);
 
 const ListIds = createContext<readonly string[]>([]);
 
+const Held = createContext(false);
+
 const LINE = 'before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:-translate-y-1/2 before:rounded before:bg-accent';
 
 const LINE_AT_END = 'after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded after:bg-accent';
@@ -195,10 +197,12 @@ function Overlay({ moving, rows }: { readonly moving: NodeData | undefined; read
 
 export function ChartDrag({
   chart,
+  held,
   onMove,
   children,
 }: {
   readonly chart: readonly ChartNodeOutput[];
+  readonly held: boolean;
   readonly onMove: (move: MoveChartNodeInput) => void;
   readonly children: ReactNode;
 }): ReactNode {
@@ -288,7 +292,9 @@ export function ChartDrag({
       }}
     >
       <ChartRows.Provider value={rows}>
-        <ShownLanding.Provider value={landing}>{children}</ShownLanding.Provider>
+        <ShownLanding.Provider value={landing}>
+          <Held.Provider value={held}>{children}</Held.Provider>
+        </ShownLanding.Provider>
       </ChartRows.Provider>
       {hydrated ? createPortal(overlay, document.body) : null}
     </DndContext>
@@ -373,9 +379,11 @@ export function ChartRow({
   const ids = useContext(ListIds);
   const name = useContext(ChartRows).get(node.id)?.name ?? '';
   const next = ids[ids.indexOf(node.id) + 1] ?? null;
+  const held = useContext(Held);
   const { setNodeRef, setActivatorNodeRef, listeners, isDragging } = useDraggable({
     id: node.id,
     data: { node, place } satisfies NodeData,
+    disabled: held,
   });
   const { setNodeRef: setDropRef } = useDroppable({
     id: node.id,
@@ -404,6 +412,7 @@ export function ChartRow({
           ref={setActivatorNodeRef}
           type="button"
           tabIndex={-1}
+          disabled={held}
           aria-label={`${en.accountsSection.move} ${name}`}
           className={`${BARE_ICON_BUTTON} shrink-0 cursor-grab touch-none active:cursor-grabbing`}
           {...listeners}
