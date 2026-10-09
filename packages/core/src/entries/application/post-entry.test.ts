@@ -51,6 +51,7 @@ const GRACES_EXPENSES = '01920000-0000-7000-8000-00000000d005' as AccountId;
 const account = (id: AccountId, accountType: Account['accountType'], name: string): Account => ({
   id,
   accountType,
+  groupId: null,
   name,
   description: null,
   position: 0,

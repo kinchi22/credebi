@@ -61,6 +61,7 @@ async function found(identity: Identity): Promise<User | undefined> {
 const CASH: Account = {
   id: '01920000-0000-7000-8000-00000000c001' as AccountId,
   accountType: 'asset',
+  groupId: null,
   name: 'Cash',
   description: null,
   position: 0,

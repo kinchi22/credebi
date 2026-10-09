@@ -7,7 +7,13 @@ import { createContext } from '../../../../server/context';
 import { SETTINGS_PATH } from '../../../../server/return-path';
 import { createCaller } from '../../../../server/root-router';
 import { orSignIn } from '../../../../server/sign-in-redirect';
-import { addAccount, changeEntryFormMode, editAccount } from './actions';
+import {
+  addAccount,
+  addAccountGroup,
+  changeEntryFormMode,
+  editAccount,
+  editAccountGroup,
+} from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +32,10 @@ export default async function SettingsPage(): Promise<ReactNode> {
     <>
       <h2 className={typeClasses.h2}>{en.settingsPage.title}</h2>
       <EntryFormModeChoice chosen={settings.entryFormMode} action={changeEntryFormMode} />
-      <AccountsSection chart={chart} addAction={addAccount} editAction={editAccount} />
+      <AccountsSection
+        chart={chart}
+        actions={{ addAccount, editAccount, addAccountGroup, editAccountGroup }}
+      />
     </>
   );
 }

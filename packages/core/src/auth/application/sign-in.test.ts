@@ -217,6 +217,7 @@ describe('createTestSignIn', () => {
     const starting = (n: number, accountType: Account['accountType'], name: string): Account => ({
       id: `01920000-0000-7000-8000-00000000c00${String(n)}` as AccountId,
       accountType,
+      groupId: null,
       name,
       description: null,
       position: 0,

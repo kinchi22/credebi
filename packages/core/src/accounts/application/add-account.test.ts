@@ -3,12 +3,13 @@ import {
   domainError,
   err,
   ok,
+  type AccountGroupId,
   type AccountId,
   type AddAccountInput,
   type UserId,
 } from '@repo/contracts';
 import { SIGNED_OUT, type AuthContext } from '../../auth/domain/auth-context';
-import { type Account } from '../domain/account';
+import { type Account, type AccountGroup, type ChartNode } from '../domain/account';
 import { createAddAccount } from './add-account';
 import { createGetChart } from './get-chart';
 import { inMemoryAccounts } from './in-memory-accounts';
@@ -20,9 +21,13 @@ const GRACE: AuthContext = { userId: GRACE_ID };
 
 const WALLET_ID = '01920000-0000-7000-8000-000000000100' as AccountId;
 
+const ungrouped = (...accounts: Account[]): readonly ChartNode[] =>
+  accounts.map((account) => ({ kind: 'account', account }));
+
 const CASH: Account = {
   id: '01920000-0000-7000-8000-000000000001' as AccountId,
   accountType: 'asset',
+  groupId: null,
   name: 'Cash',
   description: null,
   position: 0,
@@ -34,14 +39,28 @@ const WALLET: AddAccountInput = {
   accountType: 'asset',
   name: ' Wallet ',
   description: 'Cash I carry',
+  groupId: null,
   activeFrom: '2026-10-09',
   activeUntil: null,
+};
+
+const BANK: AccountGroup = {
+  id: '01920000-0000-7000-8000-000000000b01' as AccountGroupId,
+  accountType: 'asset',
+  name: 'Bank',
+  description: null,
+  position: 1,
+};
+
+const GRACES_BANK: AccountGroup = {
+  ...BANK,
+  id: '01920000-0000-7000-8000-000000000b02' as AccountGroupId,
 };
 
 function useCases() {
   const held = inMemoryAccounts();
   held.hold(ADA_ID, [CASH]);
-  held.hold(GRACE_ID, [CASH]);
+  held.hold(GRACE_ID, [CASH], [GRACES_BANK]);
   return {
     ...held,
     addAccount: createAddAccount({ accounts: held.accounts, newAccountId: () => WALLET_ID }),
@@ -55,6 +74,7 @@ describe('createAddAccount', () => {
     const wallet: Account = {
       id: WALLET_ID,
       accountType: 'asset',
+      groupId: null,
       name: 'Wallet',
       description: 'Cash I carry',
       position: 1,
@@ -63,7 +83,7 @@ describe('createAddAccount', () => {
     };
 
     expect(await addAccount(ADA, WALLET)).toEqual(ok(wallet));
-    expect(await getChart(ADA)).toEqual(ok([CASH, wallet]));
+    expect(await getChart(ADA)).toEqual(ok(ungrouped(CASH, wallet)));
   });
 
   it("leaves another User's chart untouched", async () => {
@@ -71,7 +91,52 @@ describe('createAddAccount', () => {
 
     await addAccount(ADA, WALLET);
 
-    expect(await getChart(GRACE)).toEqual(ok([CASH]));
+    expect(await getChart(GRACE)).toEqual(
+      ok([{ kind: 'account', account: CASH }, { kind: 'group', group: GRACES_BANK, accounts: [] }]),
+    );
+  });
+
+  it('adds an Account into an Account group of its Account type, last in it', async () => {
+    const { addAccount, getChart, hold } = useCases();
+    hold(ADA_ID, [CASH], [BANK]);
+
+    const added = await addAccount(ADA, { ...WALLET, groupId: BANK.id });
+
+    const wallet = { ...CASH, id: WALLET_ID, groupId: BANK.id, name: 'Wallet', description: 'Cash I carry', activeFrom: '2026-10-09' };
+    expect(added).toEqual(ok(wallet));
+    expect(await getChart(ADA)).toEqual(
+      ok([{ kind: 'account', account: CASH }, { kind: 'group', group: BANK, accounts: [wallet] }]),
+    );
+  });
+
+  it('places a new ungrouped Account after the Account groups of its Account type', async () => {
+    const { addAccount, hold } = useCases();
+    hold(ADA_ID, [CASH], [BANK]);
+
+    const added = await addAccount(ADA, WALLET);
+
+    expect(added.ok && added.value.position).toBe(2);
+  });
+
+  it("refuses another User's Account group as not found, and adds nothing", async () => {
+    const { addAccount, getChart } = useCases();
+
+    const added = await addAccount(ADA, { ...WALLET, groupId: GRACES_BANK.id });
+
+    expect(!added.ok && added.error.code).toBe('NOT_FOUND');
+    expect(await getChart(ADA)).toEqual(ok(ungrouped(CASH)));
+  });
+
+  it('refuses an Account group of another Account type as invalid, and adds nothing', async () => {
+    const { addAccount, getChart, hold } = useCases();
+    hold(ADA_ID, [CASH], [BANK]);
+
+    const added = await addAccount(ADA, { ...WALLET, accountType: 'expense', groupId: BANK.id });
+
+    expect(!added.ok && added.error.code).toBe('INVALID_INPUT');
+    expect(await getChart(ADA)).toEqual(
+      ok([{ kind: 'account', account: CASH }, { kind: 'group', group: BANK, accounts: [] }]),
+    );
   });
 
   it("refuses a name another of the User's Accounts has as taken, and adds nothing", async () => {
@@ -80,7 +145,7 @@ describe('createAddAccount', () => {
     const added = await addAccount(ADA, { ...WALLET, name: 'CASH' });
 
     expect(!added.ok && added.error.code).toBe('NAME_TAKEN');
-    expect(await getChart(ADA)).toEqual(ok([CASH]));
+    expect(await getChart(ADA)).toEqual(ok(ungrouped(CASH)));
   });
 
   it('refuses a name broken by the name rules as invalid, and adds nothing', async () => {
@@ -89,7 +154,7 @@ describe('createAddAccount', () => {
     const added = await addAccount(ADA, { ...WALLET, name: '  ' });
 
     expect(!added.ok && added.error.code).toBe('INVALID_INPUT');
-    expect(await getChart(ADA)).toEqual(ok([CASH]));
+    expect(await getChart(ADA)).toEqual(ok(ungrouped(CASH)));
   });
 
   it('refuses to add an Account for nobody, as unauthenticated', async () => {
@@ -98,7 +163,7 @@ describe('createAddAccount', () => {
     const added = await addAccount(SIGNED_OUT, WALLET);
 
     expect(!added.ok && added.error.code).toBe('UNAUTHENTICATED');
-    expect(await getChart(ADA)).toEqual(ok([CASH]));
+    expect(await getChart(ADA)).toEqual(ok(ungrouped(CASH)));
   });
 
   it('reports a failed read of the chart as its own result, and adds nothing', async () => {
@@ -110,7 +175,7 @@ describe('createAddAccount', () => {
     });
 
     expect(await addAccount(ADA, WALLET)).toEqual(err(down));
-    expect(await getChart(ADA)).toEqual(ok([CASH]));
+    expect(await getChart(ADA)).toEqual(ok(ungrouped(CASH)));
   });
 
   it('reports a failed save as its own result, rather than the Account it could not keep', async () => {

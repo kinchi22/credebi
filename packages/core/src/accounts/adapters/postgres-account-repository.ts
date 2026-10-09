@@ -4,7 +4,9 @@ import {
   domainError,
   err,
   ok,
+  type AccountGroupId,
   type AccountId,
+  type AccountType,
   type DomainError,
   type Err,
   type Result,
@@ -13,15 +15,19 @@ import {
 import { createDatabase, schema } from '@repo/db';
 import { databaseFailure, UNIQUE_VIOLATION } from '../../auth/adapters/database-failure';
 import { describeError } from '../../logging/domain/describe-error';
-import { type Logger } from '../../logging/ports/logger';
-import { type Account } from '../domain/account';
+import { type LogFields, type Logger } from '../../logging/ports/logger';
+import { type Account, type AccountGroup, type Chart } from '../domain/account';
 import { type AccountRepository } from '../ports/account-repository';
 
 export type PostgresAccountRepository = AccountRepository & {
   readonly close: () => Promise<void>;
 };
 
-type AccountRow = Omit<typeof schema.accounts.$inferSelect, 'userId' | 'groupId'>;
+type AccountRow = Omit<typeof schema.accounts.$inferSelect, 'userId'>;
+
+type GroupRow = Omit<typeof schema.accountGroups.$inferSelect, 'userId'>;
+
+const FOREIGN_KEY_VIOLATION = '23503';
 
 export function createPostgresAccountRepository(
   connectionString: string,
@@ -30,22 +36,37 @@ export function createPostgresAccountRepository(
   const { database, close } = createDatabase(connectionString);
 
   return {
-    readChart: async (userId: UserId): Promise<Result<readonly Account[], DomainError>> => {
-      let rows: AccountRow[];
+    readChart: async (userId: UserId): Promise<Result<Chart, DomainError>> => {
+      let rows: { readonly accounts: AccountRow[]; readonly groups: GroupRow[] };
       try {
-        rows = await database
-          .select({
-            id: schema.accounts.id,
-            accountType: schema.accounts.accountType,
-            name: schema.accounts.name,
-            description: schema.accounts.description,
-            position: schema.accounts.position,
-            activeFrom: schema.accounts.activeFrom,
-            activeUntil: schema.accounts.activeUntil,
-          })
-          .from(schema.accounts)
-          .where(eq(schema.accounts.userId, userId))
-          .orderBy(asc(schema.accounts.position), asc(schema.accounts.id));
+        const [accounts, groups] = await Promise.all([
+          database
+            .select({
+              id: schema.accounts.id,
+              accountType: schema.accounts.accountType,
+              groupId: schema.accounts.groupId,
+              name: schema.accounts.name,
+              description: schema.accounts.description,
+              position: schema.accounts.position,
+              activeFrom: schema.accounts.activeFrom,
+              activeUntil: schema.accounts.activeUntil,
+            })
+            .from(schema.accounts)
+            .where(eq(schema.accounts.userId, userId))
+            .orderBy(asc(schema.accounts.position), asc(schema.accounts.id)),
+          database
+            .select({
+              id: schema.accountGroups.id,
+              accountType: schema.accountGroups.accountType,
+              name: schema.accountGroups.name,
+              description: schema.accountGroups.description,
+              position: schema.accountGroups.position,
+            })
+            .from(schema.accountGroups)
+            .where(eq(schema.accountGroups.userId, userId))
+            .orderBy(asc(schema.accountGroups.position), asc(schema.accountGroups.id)),
+        ]);
+        rows = { accounts, groups };
       } catch (error) {
         return databaseFailure(
           logger,
@@ -55,21 +76,36 @@ export function createPostgresAccountRepository(
         );
       }
 
-      const chart: Account[] = [];
-      for (const row of rows) {
-        const accountType = accountTypeSchema.safeParse(row.accountType);
-        if (!accountType.success) {
-          logger.error(
-            { event: 'accounts.stored_account_invalid', accountId: row.id },
-            'A stored Account has no valid Account type, so the chart was not read.',
-          );
-          return err(
-            domainError('DEPENDENCY_UNAVAILABLE', `Stored Account ${row.id} has no valid Account type.`),
-          );
+      const accounts: Account[] = [];
+      for (const row of rows.accounts) {
+        const accountType = storedAccountType(logger, row.accountType, {
+          event: 'accounts.stored_account_invalid',
+          accountId: row.id,
+        });
+        if (!accountType.ok) {
+          return accountType;
         }
-        chart.push({ ...row, id: row.id as AccountId, accountType: accountType.data });
+        accounts.push({
+          ...row,
+          id: row.id as AccountId,
+          accountType: accountType.value,
+          groupId: row.groupId as AccountGroupId | null,
+        });
       }
-      return ok(chart);
+
+      const groups: AccountGroup[] = [];
+      for (const row of rows.groups) {
+        const accountType = storedAccountType(logger, row.accountType, {
+          event: 'accounts.stored_group_invalid',
+          accountGroupId: row.id,
+        });
+        if (!accountType.ok) {
+          return accountType;
+        }
+        groups.push({ ...row, id: row.id as AccountGroupId, accountType: accountType.value });
+      }
+
+      return ok({ accounts, groups });
     },
 
     addAccount: async (userId: UserId, account: Account): Promise<Result<void, DomainError>> => {
@@ -87,8 +123,10 @@ export function createPostgresAccountRepository(
         updated = await database
           .update(schema.accounts)
           .set({
+            groupId: account.groupId,
             name: account.name,
             description: account.description,
+            position: account.position,
             activeFrom: account.activeFrom,
             activeUntil: account.activeUntil,
           })
@@ -102,8 +140,53 @@ export function createPostgresAccountRepository(
         : ok(undefined);
     },
 
+    addGroup: async (userId: UserId, group: AccountGroup): Promise<Result<void, DomainError>> => {
+      try {
+        await database.insert(schema.accountGroups).values({ ...group, userId });
+        return ok(undefined);
+      } catch (error) {
+        return groupSaveFailure(logger, 'accounts.add_group_failed', error, group);
+      }
+    },
+
+    updateGroup: async (userId: UserId, group: AccountGroup): Promise<Result<void, DomainError>> => {
+      let updated: { readonly id: string }[];
+      try {
+        updated = await database
+          .update(schema.accountGroups)
+          .set({ name: group.name, description: group.description })
+          .where(and(eq(schema.accountGroups.id, group.id), eq(schema.accountGroups.userId, userId)))
+          .returning({ id: schema.accountGroups.id });
+      } catch (error) {
+        return groupSaveFailure(logger, 'accounts.update_group_failed', error, group);
+      }
+      return updated.length === 0
+        ? err(
+            domainError('NOT_FOUND', `Account group ${group.id} is not in the User's chart of accounts.`),
+          )
+        : ok(undefined);
+    },
+
     close,
   };
+}
+
+function storedAccountType(
+  logger: Logger,
+  stored: string,
+  fields: LogFields,
+): Result<AccountType, DomainError> {
+  const accountType = accountTypeSchema.safeParse(stored);
+  if (accountType.success) {
+    return ok(accountType.data);
+  }
+  logger.error(
+    fields,
+    'A stored Account or Account group has no valid Account type, so the chart was not read.',
+  );
+  return err(
+    domainError('DEPENDENCY_UNAVAILABLE', 'A stored Account or Account group has no valid Account type.'),
+  );
 }
 
 function saveFailure(
@@ -112,8 +195,31 @@ function saveFailure(
   error: unknown,
   account: Account,
 ): Err<DomainError> {
-  if (describeError(error).code === UNIQUE_VIOLATION) {
+  const { code } = describeError(error);
+  if (code === UNIQUE_VIOLATION) {
     return err(domainError('NAME_TAKEN', `Another Account is named "${account.name}".`));
   }
+  if (code === FOREIGN_KEY_VIOLATION && account.groupId !== null) {
+    return err(
+      domainError(
+        'NOT_FOUND',
+        `Account group ${account.groupId} is not one of the User's Account groups of this Account type.`,
+      ),
+    );
+  }
   return databaseFailure(logger, event, error, 'The Account could not be saved.');
+}
+
+function groupSaveFailure(
+  logger: Logger,
+  event: string,
+  error: unknown,
+  group: AccountGroup,
+): Err<DomainError> {
+  if (describeError(error).code === UNIQUE_VIOLATION) {
+    return err(
+      domainError('NAME_TAKEN', `Another Account group of this Account type is named "${group.name}".`),
+    );
+  }
+  return databaseFailure(logger, event, error, 'The Account group could not be saved.');
 }

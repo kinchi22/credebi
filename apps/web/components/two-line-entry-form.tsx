@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  accountsIn,
   entryFormModeSchema,
   sideSchema,
   type AccountId,
@@ -36,7 +37,7 @@ const accountOn = (
   side: Side,
 ): AccountOutput | undefined => {
   const line = linesOn(entry, side)[0];
-  return chart.find((account) => account.id === line?.account);
+  return accountsIn(chart).find((account) => account.id === line?.account);
 };
 
 const choiceOf = (chart: ChartOutput, entry: PostedEntry | undefined): AccountChoice =>

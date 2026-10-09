@@ -2,6 +2,7 @@
 
 import {
   SEARCH_CRITERIA_FIELDS,
+  accountsIn,
   type ChartOutput,
   type SearchCriteriaInput,
 } from '@repo/contracts';
@@ -98,7 +99,7 @@ export function EntrySearchForm({ criteria, chart }: EntrySearchFormProps): Reac
           className={CONTROL}
         >
           <option value="">{en.entrySearch.anyAccount}</option>
-          {chart.map((account) => (
+          {accountsIn(chart).map((account) => (
             <option key={account.id} value={account.id}>
               {account.name}
             </option>

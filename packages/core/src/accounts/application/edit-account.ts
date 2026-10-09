@@ -3,7 +3,7 @@ import { type AuthContext } from '../../auth/domain/auth-context';
 import { type Account } from '../domain/account';
 import { editedAccount } from '../domain/account-details';
 import { type AccountRepository } from '../ports/account-repository';
-import { changeAccount } from './change-account';
+import { changeChart } from './change-chart';
 
 export type EditAccountDependencies = {
   readonly accounts: AccountRepository;
@@ -16,7 +16,7 @@ export type EditAccount = (
 
 export function createEditAccount({ accounts }: EditAccountDependencies): EditAccount {
   return (auth, { id, ...details }) =>
-    changeAccount(
+    changeChart(
       accounts,
       auth,
       (chart) => editedAccount(chart, id, details),

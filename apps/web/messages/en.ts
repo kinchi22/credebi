@@ -1,6 +1,21 @@
 const productName = 'Credebi';
 const accountNotSaved =
   'The account was not saved. A name is 1 to 40 characters, a description at most 200, and Active until cannot be before Active from.';
+const groupNotSaved =
+  'The group was not saved. A name is 1 to 40 characters, and a description at most 200.';
+
+function chartRefusals(node: 'account' | 'group', notSaved: string, nameTaken: string) {
+  const unsaved = `The ${node} could not be saved just now, so nothing changed. Try again.`;
+  return {
+    INVALID_INPUT: notSaved,
+    NAME_TAKEN: nameTaken,
+    NOT_FOUND: `This ${node} is no longer here. Reload the page.`,
+    CONFLICT: unsaved,
+    DEPENDENCY_UNAVAILABLE: unsaved,
+    UNBALANCED: notSaved,
+    UNAUTHENTICATED: 'You are signed out. Sign in again to change your accounts.',
+  } as const;
+}
 
 export const en = {
   app: {
@@ -64,6 +79,8 @@ export const en = {
     showEnded: 'Show ended accounts',
     addAccount: 'Add account',
     addAccountText: '+ Account',
+    addGroup: 'Add group',
+    addGroupText: '+ Group',
     edit: 'Edit',
     move: 'Move',
     startsOn: 'Starts',
@@ -71,22 +88,27 @@ export const en = {
   accountDialog: {
     addTitle: 'Add account',
     editTitle: 'Edit account',
+    addGroupTitle: 'Add group',
+    editGroupTitle: 'Edit group',
     name: 'Name',
     description: 'Description',
+    group: 'Group',
+    noGroup: 'No group',
     activeFrom: 'Active from',
     activeUntil: 'Active until',
     save: 'Save',
     pending: 'Saving...',
     cancel: 'Cancel',
-    refusals: {
-      INVALID_INPUT: accountNotSaved,
-      NAME_TAKEN: 'The account was not saved. Another of your accounts has this name; choose another.',
-      NOT_FOUND: 'This account is no longer here. Reload the page.',
-      CONFLICT: 'The account could not be saved just now, so nothing changed. Try again.',
-      DEPENDENCY_UNAVAILABLE: 'The account could not be saved just now, so nothing changed. Try again.',
-      UNBALANCED: accountNotSaved,
-      UNAUTHENTICATED: 'You are signed out. Sign in again to change your accounts.',
-    },
+    refusals: chartRefusals(
+      'account',
+      accountNotSaved,
+      'The account was not saved. Another of your accounts has this name; choose another.',
+    ),
+    groupRefusals: chartRefusals(
+      'group',
+      groupNotSaved,
+      'The group was not saved. Another group of this account type has this name; choose another.',
+    ),
   },
   entrySearch: {
     title: 'Search entries',
