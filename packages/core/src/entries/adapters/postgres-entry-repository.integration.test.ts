@@ -6,6 +6,7 @@ import {
   isErr,
   isOk,
   ok,
+  type AccountId,
   type EntryId,
   type Money,
   type UserId,
@@ -54,6 +55,22 @@ afterAll(async () => {
 const ADA = '01920000-0000-7000-8000-0000000000a1' as UserId;
 const GRACE = '01920000-0000-7000-8000-0000000000a2' as UserId;
 
+const CASH = '01920000-0000-7000-8000-00000000c001' as AccountId;
+const PAYABLE = '01920000-0000-7000-8000-00000000c002' as AccountId;
+const CAPITAL = '01920000-0000-7000-8000-00000000c003' as AccountId;
+const SALES = '01920000-0000-7000-8000-00000000c004' as AccountId;
+const EXPENSES = '01920000-0000-7000-8000-00000000c005' as AccountId;
+
+const ADAS_CHART = [
+  [CASH, 'asset', 'Cash', 'cash'],
+  [PAYABLE, 'liability', 'Accounts payable', 'payable'],
+  [CAPITAL, 'equity', 'Capital', 'capital'],
+  [SALES, 'revenue', 'Sales', 'sales'],
+  [EXPENSES, 'expense', 'Expenses', 'expense'],
+] as const;
+
+const NAMES = new Map(ADAS_CHART.map(([id, , name]) => [id, { id, name }]));
+
 beforeEach(async () => {
   await database.execute(sql`truncate table users, entry_lines, entries cascade`);
   for (const [id, email] of [
@@ -62,6 +79,12 @@ beforeEach(async () => {
   ]) {
     await database.execute(
       sql`insert into users (id, email, created_at) values (${id}, ${email}, now())`,
+    );
+  }
+  for (const [id, accountType, name] of ADAS_CHART) {
+    await database.execute(
+      sql`insert into accounts (id, user_id, account_type, name, position, active_from)
+          values (${id}, ${ADA}, ${accountType}, ${name}, 0, '2026-01-01')`,
     );
   }
   logged.length = 0;
@@ -77,8 +100,8 @@ function entry(overrides: Partial<EntryDraft> & { readonly createdAt?: Date } = 
       entryDate: '2026-09-15',
       memo: 'Office supplies',
       lines: [
-        { account: 'expense', side: 'debit', amount: 12500 as Money },
-        { account: 'cash', side: 'credit', amount: 12500 as Money },
+        { account: EXPENSES, side: 'debit', amount: 12500 as Money },
+        { account: CASH, side: 'credit', amount: 12500 as Money },
       ],
       ...draft,
     },
@@ -86,6 +109,7 @@ function entry(overrides: Partial<EntryDraft> & { readonly createdAt?: Date } = 
       id: `01920000-0000-7000-8000-${sequence.toString().padStart(12, '0')}` as EntryId,
       createdAt,
     },
+    NAMES,
   );
   expect(isOk(made), 'test setup built an entry that breaks a rule').toBe(true);
   return isOk(made) ? made.value : ({} as Entry);
@@ -123,9 +147,9 @@ describe('createPostgresEntryRepository', () => {
   it('answers with an entry as it was saved: day, memo, instant, lines in order, total', async () => {
     const saved = entry({
       lines: [
-        { account: 'cash', side: 'credit', amount: 5000 as Money },
-        { account: 'expense', side: 'debit', amount: 12500 as Money },
-        { account: 'cash', side: 'credit', amount: 7500 as Money },
+        { account: CASH, side: 'credit', amount: 5000 as Money },
+        { account: EXPENSES, side: 'debit', amount: 12500 as Money },
+        { account: CASH, side: 'credit', amount: 7500 as Money },
       ],
       createdAt: new Date('2026-09-15T09:30:00.123+09:00'),
     });
@@ -137,11 +161,43 @@ describe('createPostgresEntryRepository', () => {
     expect(logged).toEqual([]);
   });
 
+  it("writes each line's Account, and the code its Account type had before Accounts were data", async () => {
+    const saved = entry({
+      lines: ADAS_CHART.map(([account], index) => ({
+        account,
+        side: index === 0 ? ('debit' as const) : ('credit' as const),
+        amount: (index === 0 ? 400 : 100) as Money,
+      })),
+    });
+
+    await repository.save(ADA, saved);
+
+    const rows = await database.execute<{ account: string; account_id: string }>(
+      sql`select account, account_id from entry_lines where entry_id = ${saved.id} order by line_number`,
+    );
+    expect(rows.rows).toEqual(
+      ADAS_CHART.map(([accountId, , , code]) => ({ account: code, account_id: accountId })),
+    );
+  });
+
+  it("reads each line with its Account's name as it is now", async () => {
+    const saved = entry();
+    await repository.save(ADA, saved);
+    await database.execute(sql`update accounts set name = 'Petty cash' where id = ${CASH}`);
+
+    const [read] = await found();
+
+    expect(read?.lines.map((line) => [line.account, line.accountName])).toEqual([
+      [EXPENSES, 'Expenses'],
+      [CASH, 'Petty cash'],
+    ]);
+  });
+
   it('keeps an amount at the edge of the safe integer range exact', async () => {
     const saved = entry({
       lines: [
-        { account: 'expense', side: 'debit', amount: Number.MAX_SAFE_INTEGER as Money },
-        { account: 'cash', side: 'credit', amount: Number.MAX_SAFE_INTEGER as Money },
+        { account: EXPENSES, side: 'debit', amount: Number.MAX_SAFE_INTEGER as Money },
+        { account: CASH, side: 'credit', amount: Number.MAX_SAFE_INTEGER as Money },
       ],
     });
 
@@ -327,8 +383,8 @@ describe('createPostgresEntryRepository', () => {
       entryDate: '2026-06-15',
       memo: 'Inside',
       lines: [
-        { account: 'expense', side: 'debit', amount: 300 as Money },
-        { account: 'cash', side: 'credit', amount: 300 as Money },
+        { account: EXPENSES, side: 'debit', amount: 300 as Money },
+        { account: CASH, side: 'credit', amount: 300 as Money },
       ],
     });
     await repository.save(ADA, inside);
@@ -344,8 +400,8 @@ describe('createPostgresEntryRepository', () => {
         entryDate: '2026-06-10',
         memo: 'Cash in',
         lines: [
-          { account: 'cash', side: 'debit', amount: 300 as Money },
-          { account: 'sales', side: 'credit', amount: 300 as Money },
+          { account: CASH, side: 'debit', amount: 300 as Money },
+          { account: SALES, side: 'credit', amount: 300 as Money },
         ],
       }),
     );
@@ -355,8 +411,8 @@ describe('createPostgresEntryRepository', () => {
         entryDate: '2026-06-11',
         memo: 'Cash out',
         lines: [
-          { account: 'expense', side: 'debit', amount: 300 as Money },
-          { account: 'cash', side: 'credit', amount: 300 as Money },
+          { account: EXPENSES, side: 'debit', amount: 300 as Money },
+          { account: CASH, side: 'credit', amount: 300 as Money },
         ],
       }),
     );
@@ -366,39 +422,39 @@ describe('createPostgresEntryRepository', () => {
         entryDate: '2026-06-12',
         memo: 'No cash',
         lines: [
-          { account: 'expense', side: 'debit', amount: 300 as Money },
-          { account: 'payable', side: 'credit', amount: 300 as Money },
+          { account: EXPENSES, side: 'debit', amount: 300 as Money },
+          { account: PAYABLE, side: 'credit', amount: 300 as Money },
         ],
       }),
     );
 
-    expect(await memosFound({ account: 'cash' })).toEqual(['Cash out', 'Cash in']);
+    expect(await memosFound({ account: CASH })).toEqual(['Cash out', 'Cash in']);
   });
 
   it('answers with the whole entry, though one of its lines named the Account', async () => {
     const posting = entry({
       memo: 'Rent',
       lines: [
-        { account: 'expense', side: 'debit', amount: 700 as Money },
-        { account: 'cash', side: 'credit', amount: 400 as Money },
-        { account: 'payable', side: 'credit', amount: 300 as Money },
+        { account: EXPENSES, side: 'debit', amount: 700 as Money },
+        { account: CASH, side: 'credit', amount: 400 as Money },
+        { account: PAYABLE, side: 'credit', amount: 300 as Money },
       ],
     });
     await repository.save(ADA, posting);
 
-    expect(await found(ADA, { account: 'cash' })).toEqual([posting]);
+    expect(await found(ADA, { account: CASH })).toEqual([posting]);
   });
 
   it('answers with nothing for an Account nothing in the books touches', async () => {
     await repository.save(ADA, entry());
 
-    expect(await memosFound({ account: 'capital' })).toEqual([]);
+    expect(await memosFound({ account: CAPITAL })).toEqual([]);
   });
 
   it('narrows by the Account and the day range together, with `and`', async () => {
     const onCash = [
-      { account: 'expense', side: 'debit', amount: 300 as Money },
-      { account: 'cash', side: 'credit', amount: 300 as Money },
+      { account: EXPENSES, side: 'debit', amount: 300 as Money },
+      { account: CASH, side: 'credit', amount: 300 as Money },
     ] as const;
     await repository.save(ADA, entry({ entryDate: '2026-06-15', memo: 'June, cash', lines: onCash }));
     await repository.save(ADA, entry({ entryDate: '2026-07-15', memo: 'July, cash', lines: onCash }));
@@ -408,27 +464,27 @@ describe('createPostgresEntryRepository', () => {
         entryDate: '2026-06-16',
         memo: 'June, on account',
         lines: [
-          { account: 'expense', side: 'debit', amount: 300 as Money },
-          { account: 'payable', side: 'credit', amount: 300 as Money },
+          { account: EXPENSES, side: 'debit', amount: 300 as Money },
+          { account: PAYABLE, side: 'credit', amount: 300 as Money },
         ],
       }),
     );
 
     expect(
-      await memosFound({ from: '2026-06-01', to: '2026-06-30', account: 'cash' }),
+      await memosFound({ from: '2026-06-01', to: '2026-06-30', account: CASH }),
     ).toEqual(['June, cash']);
   });
 
   it("keeps an Account search inside one User's books (ADR-0021)", async () => {
     const onCash = [
-      { account: 'expense', side: 'debit', amount: 300 as Money },
-      { account: 'cash', side: 'credit', amount: 300 as Money },
+      { account: EXPENSES, side: 'debit', amount: 300 as Money },
+      { account: CASH, side: 'credit', amount: 300 as Money },
     ] as const;
     await repository.save(ADA, entry({ memo: 'Ada', lines: onCash }));
     await repository.save(GRACE, entry({ memo: 'Grace', lines: onCash }));
 
-    expect(await memosFound({ account: 'cash' }, ADA)).toEqual(['Ada']);
-    expect(await memosFound({ account: 'cash' }, GRACE)).toEqual(['Grace']);
+    expect(await memosFound({ account: CASH }, ADA)).toEqual(['Ada']);
+    expect(await memosFound({ account: CASH }, GRACE)).toEqual(['Grace']);
   });
 
   it('keeps a range inside one User\'s books (ADR-0021)', async () => {
@@ -493,12 +549,12 @@ describe('createPostgresEntryRepository', () => {
 
   it('narrows by the memo, the Account and the day range together, with `and`', async () => {
     const onCash = [
-      { account: 'expense', side: 'debit', amount: 300 as Money },
-      { account: 'cash', side: 'credit', amount: 300 as Money },
+      { account: EXPENSES, side: 'debit', amount: 300 as Money },
+      { account: CASH, side: 'credit', amount: 300 as Money },
     ] as const;
     const onAccount = [
-      { account: 'expense', side: 'debit', amount: 300 as Money },
-      { account: 'payable', side: 'credit', amount: 300 as Money },
+      { account: EXPENSES, side: 'debit', amount: 300 as Money },
+      { account: PAYABLE, side: 'credit', amount: 300 as Money },
     ] as const;
     await repository.save(ADA, entry({ entryDate: '2026-06-15', memo: 'Rent June', lines: onCash }));
     await repository.save(ADA, entry({ entryDate: '2026-07-15', memo: 'Rent July', lines: onCash }));
@@ -509,7 +565,7 @@ describe('createPostgresEntryRepository', () => {
     await repository.save(ADA, entry({ entryDate: '2026-06-15', memo: 'Fuel June', lines: onCash }));
 
     expect(
-      await memosFound({ from: '2026-06-01', to: '2026-06-30', account: 'cash', memo: 'rent' }),
+      await memosFound({ from: '2026-06-01', to: '2026-06-30', account: CASH, memo: 'rent' }),
     ).toEqual(['Rent June']);
   });
 
@@ -525,8 +581,8 @@ describe('createPostgresEntryRepository', () => {
     const matching = entry({
       memo: 'Coffee beans',
       lines: [
-        { account: 'expense', side: 'debit', amount: 300 as Money },
-        { account: 'cash', side: 'credit', amount: 300 as Money },
+        { account: EXPENSES, side: 'debit', amount: 300 as Money },
+        { account: CASH, side: 'credit', amount: 300 as Money },
       ],
     });
     await repository.save(ADA, matching);
@@ -545,9 +601,9 @@ describe('createPostgresEntryRepository', () => {
   it('reads one Entry by id for its User, with its lines, and says it is not reversed', async () => {
     const saved = entry({
       lines: [
-        { account: 'cash', side: 'credit', amount: 5000 as Money },
-        { account: 'expense', side: 'debit', amount: 12500 as Money },
-        { account: 'cash', side: 'credit', amount: 7500 as Money },
+        { account: CASH, side: 'credit', amount: 5000 as Money },
+        { account: EXPENSES, side: 'debit', amount: 12500 as Money },
+        { account: CASH, side: 'credit', amount: 7500 as Money },
       ],
     });
     await repository.save(ADA, saved);
@@ -648,7 +704,7 @@ describe('createPostgresEntryRepository', () => {
 
     expect(await memosFound(NO_CRITERIA)).toEqual(['Kept rent']);
     expect(await memosFound({ from: '2026-06-01', to: '2026-06-30' })).toEqual(['Kept rent']);
-    expect(await memosFound({ account: 'cash' })).toEqual(['Kept rent']);
+    expect(await memosFound({ account: CASH })).toEqual(['Kept rent']);
     expect(await memosFound({ memo: 'rent' })).toEqual(['Kept rent']);
   });
 

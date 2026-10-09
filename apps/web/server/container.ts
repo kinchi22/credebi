@@ -1,11 +1,18 @@
 import 'server-only';
-import { domainError, entryIdSchema, err, userIdSchema } from '@repo/contracts';
+import {
+  accountIdSchema,
+  domainError,
+  entryIdSchema,
+  err,
+  userIdSchema,
+} from '@repo/contracts';
 import {
   createBeginGoogleSignIn,
   createChangeEntryFormMode,
   createDeleteEntry,
   createEditEntry,
   createFinishGoogleSignIn,
+  createGetChart,
   createGetHealth,
   createGetSettings,
   createPostEntry,
@@ -18,6 +25,7 @@ import {
   type DeleteEntry,
   type EditEntry,
   type FinishGoogleSignIn,
+  type GetChart,
   type GetHealth,
   type GetSettings,
   type PostEntry,
@@ -28,6 +36,7 @@ import {
 } from '@repo/core';
 import {
   createOpenIdGoogleSignIn,
+  createPostgresAccountRepository,
   createPostgresEntryRepository,
   createPostgresHealthProbe,
   createPostgresSessionRepository,
@@ -47,6 +56,7 @@ export type Container = {
   readonly searchEntries: SearchEntries;
   readonly editEntry: EditEntry;
   readonly deleteEntry: DeleteEntry;
+  readonly getChart: GetChart;
   readonly getSettings: GetSettings;
   readonly changeEntryFormMode: ChangeEntryFormMode;
   readonly resolveSession: ResolveSession;
@@ -64,12 +74,14 @@ export function createContainer({ databaseUrl, google, testSignIn }: Env): Conta
   const logger = createLogger(stderr());
   const postgres = createPostgresHealthProbe(databaseUrl, logger);
   const entries = createPostgresEntryRepository(databaseUrl, logger);
+  const accounts = createPostgresAccountRepository(databaseUrl, logger);
   const sessions = createPostgresSessionRepository(databaseUrl, logger);
   const settings = createPostgresSettingsRepository(databaseUrl, logger);
   const signIn = {
     users: createPostgresUserRepository(databaseUrl, logger),
     sessions,
     newUserId: () => userIdSchema.parse(uuidv7()),
+    newAccountId: () => accountIdSchema.parse(uuidv7()),
     newSessionToken,
     hashSessionToken,
     now: () => new Date(),
@@ -83,12 +95,14 @@ export function createContainer({ databaseUrl, google, testSignIn }: Env): Conta
     }),
     postEntry: createPostEntry({
       entries,
+      accounts,
       newEntryId: () => entryIdSchema.parse(uuidv7()),
       now: () => new Date(),
     }),
-    searchEntries: createSearchEntries({ entries }),
+    searchEntries: createSearchEntries({ entries, accounts }),
     editEntry: createEditEntry({
       entries,
+      accounts,
       unitOfWork: createPostgresUnitOfWork(databaseUrl, logger),
       newEntryId: () => entryIdSchema.parse(uuidv7()),
       now: () => new Date(),
@@ -98,6 +112,7 @@ export function createContainer({ databaseUrl, google, testSignIn }: Env): Conta
       newEntryId: () => entryIdSchema.parse(uuidv7()),
       now: () => new Date(),
     }),
+    getChart: createGetChart({ accounts }),
     getSettings: createGetSettings({ settings }),
     changeEntryFormMode: createChangeEntryFormMode({ settings }),
     resolveSession: createResolveSession({ sessions, hashSessionToken, now: () => new Date() }),

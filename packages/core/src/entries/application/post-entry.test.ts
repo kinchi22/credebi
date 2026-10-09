@@ -5,12 +5,16 @@ import {
   isErr,
   isOk,
   ok,
+  type AccountId,
   type DomainError,
   type EntryId,
   type Money,
   type Result,
   type UserId,
 } from '@repo/contracts';
+import { inMemoryAccounts } from '../../accounts/application/in-memory-accounts';
+import { type Account } from '../../accounts/domain/account';
+import { type AccountRepository } from '../../accounts/ports/account-repository';
 import { SIGNED_OUT, type AuthContext } from '../../auth/domain/auth-context';
 import { type Entry, type EntryDraft } from '../domain/entry';
 import { NO_CRITERIA } from '../domain/search-criteria';
@@ -34,8 +38,35 @@ function inMemoryEntries(): EntryRepository {
   };
 }
 
-const ADA: AuthContext = { userId: '01920000-0000-7000-8000-0000000000a1' as UserId };
-const GRACE: AuthContext = { userId: '01920000-0000-7000-8000-0000000000a2' as UserId };
+const ADA_ID = '01920000-0000-7000-8000-0000000000a1' as UserId;
+const GRACE_ID = '01920000-0000-7000-8000-0000000000a2' as UserId;
+const ADA: AuthContext = { userId: ADA_ID };
+const GRACE: AuthContext = { userId: GRACE_ID };
+
+const CASH = '01920000-0000-7000-8000-00000000c001' as AccountId;
+const EXPENSES = '01920000-0000-7000-8000-00000000c005' as AccountId;
+const GRACES_CASH = '01920000-0000-7000-8000-00000000d001' as AccountId;
+const GRACES_EXPENSES = '01920000-0000-7000-8000-00000000d005' as AccountId;
+
+const account = (id: AccountId, accountType: Account['accountType'], name: string): Account => ({
+  id,
+  accountType,
+  name,
+  description: null,
+  position: 0,
+  activeFrom: '2026-01-01',
+  activeUntil: null,
+});
+
+function charts(): AccountRepository {
+  const { accounts, hold } = inMemoryAccounts();
+  hold(ADA_ID, [account(CASH, 'asset', 'Cash'), account(EXPENSES, 'expense', 'Expenses')]);
+  hold(GRACE_ID, [
+    account(GRACES_CASH, 'asset', 'Cash'),
+    account(GRACES_EXPENSES, 'expense', 'Expenses'),
+  ]);
+  return accounts;
+}
 
 const unavailableEntries: EntryRepository = {
   save: () => Promise.resolve(err(domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.'))),
@@ -51,18 +82,26 @@ const draft = (debit: number, credit: number): EntryDraft => ({
   entryDate: '2026-09-15',
   memo: 'Office supplies',
   lines: [
-    { account: 'expense', side: 'debit', amount: debit as Money },
-    { account: 'cash', side: 'credit', amount: credit as Money },
+    { account: EXPENSES, side: 'debit', amount: debit as Money },
+    { account: CASH, side: 'credit', amount: credit as Money },
   ],
 });
 
-function useCases(entries: EntryRepository): {
+function useCases(
+  entries: EntryRepository,
+  accounts: AccountRepository = charts(),
+): {
   postEntry: PostEntry;
   searchEntries: SearchEntries;
 } {
   return {
-    postEntry: createPostEntry({ entries, newEntryId: () => ENTRY_ID, now: () => CREATED_AT }),
-    searchEntries: createSearchEntries({ entries }),
+    postEntry: createPostEntry({
+      entries,
+      accounts,
+      newEntryId: () => ENTRY_ID,
+      now: () => CREATED_AT,
+    }),
+    searchEntries: createSearchEntries({ entries, accounts }),
   };
 }
 
@@ -77,6 +116,10 @@ describe('createPostEntry', () => {
     expect(posted.value.id).toBe(ENTRY_ID);
     expect(posted.value.createdAt).toEqual(CREATED_AT);
     expect(posted.value.total).toBe(12500);
+    expect(posted.value.lines).toEqual([
+      { account: EXPENSES, accountName: 'Expenses', side: 'debit', amount: 12500 },
+      { account: CASH, accountName: 'Cash', side: 'credit', amount: 12500 },
+    ]);
 
     const found = await searchEntries(ADA, NO_CRITERIA);
     expect(isOk(found)).toBe(true);
@@ -97,6 +140,31 @@ describe('createPostEntry', () => {
     expect(isOk(found)).toBe(true);
     if (!isOk(found)) return;
     expect(found.value).toEqual([]);
+  });
+
+  it("refuses a line naming another User's Account, as invalid input, and stores nothing", async () => {
+    const { postEntry, searchEntries } = useCases(inMemoryEntries());
+
+    const posted = await postEntry(ADA, {
+      ...draft(12500, 12500),
+      lines: [
+        { account: EXPENSES, side: 'debit', amount: 12500 as Money },
+        { account: GRACES_CASH, side: 'credit', amount: 12500 as Money },
+      ],
+    });
+
+    expect(isErr(posted) && posted.error.code).toBe('INVALID_INPUT');
+    expect(await searchEntries(ADA, NO_CRITERIA)).toEqual(ok([]));
+    expect(await searchEntries(GRACE, NO_CRITERIA)).toEqual(ok([]));
+  });
+
+  it('reports a failure to read the chart of accounts as its own result, and stores nothing', async () => {
+    const down = domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.');
+    const entries = inMemoryEntries();
+    const { postEntry } = useCases(entries, { readChart: () => Promise.resolve(err(down)) });
+
+    expect(await postEntry(ADA, draft(12500, 12500))).toEqual(err(down));
+    expect(await useCases(entries).searchEntries(ADA, NO_CRITERIA)).toEqual(ok([]));
   });
 
   it('reports a failed save as its own result, rather than the entry it could not keep', async () => {

@@ -1,7 +1,14 @@
 'use client';
 
-import { entryFormModeSchema, sideSchema, type PostedEntry, type Side } from '@repo/contracts';
-import { isAccountCode, type AccountCode } from '@repo/core/entries';
+import {
+  entryFormModeSchema,
+  sideSchema,
+  type AccountId,
+  type AccountOutput,
+  type ChartOutput,
+  type PostedEntry,
+  type Side,
+} from '@repo/contracts';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useState, type ReactNode } from 'react';
 import { en } from '../messages/en';
@@ -23,25 +30,40 @@ import { linesOn } from './entry-lines';
 
 const NOTHING_CHOSEN: AccountChoice = { debit: undefined, credit: undefined };
 
-const accountOn = (entry: PostedEntry, side: Side): AccountCode | undefined => {
-  const account = linesOn(entry, side)[0]?.account;
-  return account !== undefined && isAccountCode(account) ? account : undefined;
+const accountOn = (
+  chart: ChartOutput,
+  entry: PostedEntry,
+  side: Side,
+): AccountOutput | undefined => {
+  const line = linesOn(entry, side)[0];
+  return chart.find((account) => account.id === line?.account);
 };
 
-const choiceOf = (entry: PostedEntry | undefined): AccountChoice =>
+const choiceOf = (chart: ChartOutput, entry: PostedEntry | undefined): AccountChoice =>
   entry === undefined
     ? NOTHING_CHOSEN
-    : { debit: accountOn(entry, 'debit'), credit: accountOn(entry, 'credit') };
+    : { debit: accountOn(chart, entry, 'debit'), credit: accountOn(chart, entry, 'credit') };
 
-function TwoLineFields({ id, entry, heading, refusal, submitButton }: EntryFormParts): ReactNode {
-  const [chosen, setChosen] = useState<AccountChoice>(() => choiceOf(entry));
+type TwoLineFieldsProps = EntryFormParts & {
+  readonly chart: ChartOutput;
+};
+
+function TwoLineFields({
+  id,
+  chart,
+  entry,
+  heading,
+  refusal,
+  submitButton,
+}: TwoLineFieldsProps): ReactNode {
+  const [chosen, setChosen] = useState<AccountChoice>(() => choiceOf(chart, entry));
   const sheet = useAccountSheet();
 
-  const choose = (side: Side, account: AccountCode): void => {
+  const choose = (side: Side, account: AccountOutput): void => {
     setChosen((current) => ({ ...current, [side]: account }));
   };
 
-  const isChosen = (side: Side, account: AccountCode): boolean => chosen[side] === account;
+  const isChosen = (side: Side, account: AccountId): boolean => chosen[side]?.id === account;
 
   return (
     <div className={ENTRY_FORM_GRID}>
@@ -67,15 +89,15 @@ function TwoLineFields({ id, entry, heading, refusal, submitButton }: EntryFormP
         </div>
         {refusal}
       </div>
-      <AccountPicker id={id} isChosen={isChosen} onPick={choose} sheet={sheet} />
+      <AccountPicker id={id} chart={chart} isChosen={isChosen} onPick={choose} sheet={sheet} />
     </div>
   );
 }
 
-export function TwoLineEntryForm({ action, editing }: EntryFormProps): ReactNode {
+export function TwoLineEntryForm({ action, chart, editing }: EntryFormProps): ReactNode {
   return (
     <EntryFormShell action={action} editing={editing} mode={entryFormModeSchema.enum['two-line']}>
-      {(parts) => <TwoLineFields {...parts} />}
+      {(parts) => <TwoLineFields {...parts} chart={chart} />}
     </EntryFormShell>
   );
 }

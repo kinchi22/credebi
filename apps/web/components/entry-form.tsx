@@ -2,6 +2,7 @@
 
 import {
   ENTRY_FORM_FIELDS,
+  type ChartOutput,
   type DomainErrorCode,
   type EntryFormMode,
   type PostedEntry,
@@ -37,6 +38,7 @@ export type EditedEntry = {
 
 export type EntryFormProps = {
   readonly action: EntryFormAction;
+  readonly chart: ChartOutput;
   readonly editing?: EditedEntry | undefined;
 };
 
@@ -48,7 +50,7 @@ export type EntryFormParts = {
   readonly submitButton: ReactNode;
 };
 
-type EntryFormShellProps = EntryFormProps & {
+type EntryFormShellProps = Omit<EntryFormProps, 'chart'> & {
   readonly mode: EntryFormMode;
   readonly children: (parts: EntryFormParts) => ReactNode;
 };

@@ -1,12 +1,13 @@
 'use client';
 
-import { ENTRY_FORM_FIELDS, type Side } from '@repo/contracts';
 import {
-  ACCOUNT_TYPE_OF,
-  ACCOUNT_TYPES,
-  CHART_OF_ACCOUNTS,
-  type AccountCode,
-} from '@repo/core/entries';
+  ENTRY_FORM_FIELDS,
+  type AccountId,
+  type AccountOutput,
+  type ChartOutput,
+  type Side,
+} from '@repo/contracts';
+import { ACCOUNT_TYPES } from '@repo/core/accounts';
 import { ChevronIcon, SearchIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useId, useState, type ReactNode } from 'react';
@@ -18,13 +19,14 @@ import { SheetBar, SheetCloseButton, SheetTabs } from './sheet';
 import { SIDE_TONE, SIDES } from './side-classes';
 import { useWide } from './wide';
 
-export type AccountChoice = Readonly<Record<Side, AccountCode | undefined>>;
+export type AccountChoice = Readonly<Record<Side, AccountOutput | undefined>>;
 
 export type AccountPickerProps = {
   readonly id: string;
+  readonly chart: ChartOutput;
   readonly multiple?: boolean;
-  readonly isChosen: (side: Side, account: AccountCode) => boolean;
-  readonly onPick: (side: Side, account: AccountCode, chosen: boolean) => void;
+  readonly isChosen: (side: Side, account: AccountId) => boolean;
+  readonly onPick: (side: Side, account: AccountOutput, chosen: boolean) => void;
   readonly sheet: AccountSheet;
 };
 
@@ -68,8 +70,8 @@ const otherSide = (side: Side): Side => (side === 'debit' ? 'credit' : 'debit');
 
 const nameContains =
   (query: string) =>
-  (account: AccountCode): boolean =>
-    en.accounts[account].toLowerCase().includes(query.trim().toLowerCase());
+  (account: AccountOutput): boolean =>
+    account.name.toLowerCase().includes(query.trim().toLowerCase());
 
 export function useAccountSheet(): AccountSheet {
   const id = useId();
@@ -120,7 +122,7 @@ export function AddAccountButton({ side, sheet }: AddAccountButtonProps): ReactN
 
 type ChooseAccountButtonProps = {
   readonly side: Side;
-  readonly account: AccountCode | undefined;
+  readonly account: AccountOutput | undefined;
   readonly sheet: AccountSheet;
 };
 
@@ -151,7 +153,7 @@ export function ChooseAccountButton({ side, account, sheet }: ChooseAccountButto
 
 type AccountRowProps = {
   readonly side: Side;
-  readonly account: AccountCode | undefined;
+  readonly account: AccountOutput | undefined;
 };
 
 export function AccountRow({ side, account }: AccountRowProps): ReactNode {
@@ -181,7 +183,7 @@ function AccountRowContent({
         {en.sides[side]}
       </span>
       <span className={`min-w-0 grow ${account === undefined ? placeholderClass : 'font-semibold'}`}>
-        {account === undefined ? en.entryForm.chooseAccount : en.accounts[account]}
+        {account === undefined ? en.entryForm.chooseAccount : account.name}
       </span>
     </>
   );
@@ -189,10 +191,11 @@ function AccountRowContent({
 
 type SideChoicesProps = {
   readonly side: Side;
+  readonly chart: ChartOutput;
   readonly control: PickControl;
-  readonly matches: (account: AccountCode) => boolean;
-  readonly isChosen: (account: AccountCode) => boolean;
-  readonly onPick: (account: AccountCode, chosen: boolean) => void;
+  readonly matches: (account: AccountOutput) => boolean;
+  readonly isChosen: (account: AccountId) => boolean;
+  readonly onPick: (account: AccountOutput, chosen: boolean) => void;
   readonly onInvalid?: () => void;
   readonly look: ChoicesLook;
 };
@@ -230,6 +233,7 @@ const INLINE_LOOK: ChoicesLook = {
 
 function SideChoices({
   side,
+  chart,
   control,
   matches,
   isChosen,
@@ -251,7 +255,7 @@ function SideChoices({
         </p>
       ) : null}
       {ACCOUNT_TYPES.map((type) => {
-        const accounts = CHART_OF_ACCOUNTS.filter((code) => ACCOUNT_TYPE_OF[code] === type);
+        const accounts = chart.filter((account) => account.accountType === type);
         return (
           <div
             key={type}
@@ -266,21 +270,21 @@ function SideChoices({
               {en.accountTypes[type]}
             </p>
             <div className={look.accounts}>
-              {accounts.map((code) => (
-                <label key={code} className={matches(code) ? look.account : 'hidden'}>
+              {accounts.map((account) => (
+                <label key={account.id} className={matches(account) ? look.account : 'hidden'}>
                   <input
                     type={control.inputType}
                     name={control.fieldName?.[side]}
-                    value={code}
+                    value={account.id}
                     required={control.fieldName !== undefined}
-                    checked={isChosen(code)}
+                    checked={isChosen(account.id)}
                     onChange={(event) => {
-                      onPick(code, event.target.checked);
+                      onPick(account, event.target.checked);
                     }}
                     onInvalid={onInvalid}
                     className="peer absolute inset-0 m-0 appearance-none opacity-0"
                   />
-                  <span className={look.choice}>{en.accounts[code]}</span>
+                  <span className={look.choice}>{account.name}</span>
                 </label>
               ))}
             </div>
@@ -317,11 +321,12 @@ function FindAnAccount({ query, setQuery, className = '' }: FindAnAccountProps):
 
 type NoMatchProps = {
   readonly query: string;
-  readonly matches: (account: AccountCode) => boolean;
+  readonly chart: ChartOutput;
+  readonly matches: (account: AccountOutput) => boolean;
 };
 
-function NoMatch({ query, matches }: NoMatchProps): ReactNode {
-  return CHART_OF_ACCOUNTS.some(matches) ? null : (
+function NoMatch({ query, chart, matches }: NoMatchProps): ReactNode {
+  return chart.some(matches) ? null : (
     <p className="px-4 py-3 text-text-muted">
       {en.accountSheet.noMatch} &quot;{query.trim()}&quot;.
     </p>
@@ -330,14 +335,20 @@ function NoMatch({ query, matches }: NoMatchProps): ReactNode {
 
 const sideTone = (side: Side): string => `${SIDE_TONE[side].edge} ${SIDE_TONE[side].text}`;
 
-function AccountColumns({ id, multiple = false, isChosen, onPick }: AccountPickerProps): ReactNode {
+function AccountColumns({
+  id,
+  chart,
+  multiple = false,
+  isChosen,
+  onPick,
+}: AccountPickerProps): ReactNode {
   const [shown, setShown] = useState<Side>('debit');
   const [query, setQuery] = useState('');
   const matches = nameContains(query);
   const tabId = (side: Side): string => `${id}-${side}-tab`;
   const panelId = (side: Side): string => `${id}-${side}-panel`;
   const hasAccount = (side: Side): boolean =>
-    CHART_OF_ACCOUNTS.some((account) => isChosen(side, account));
+    chart.some((account) => isChosen(side, account.id));
 
   return (
     <div
@@ -371,6 +382,7 @@ function AccountColumns({ id, multiple = false, isChosen, onPick }: AccountPicke
           >
             <SideChoices
               side={side}
+              chart={chart}
               control={multiple ? PICK_MANY : PICK_ONE}
               matches={matches}
               look={INLINE_LOOK}
@@ -385,20 +397,26 @@ function AccountColumns({ id, multiple = false, isChosen, onPick }: AccountPicke
           </div>
         ))}
       </div>
-      <NoMatch query={query} matches={matches} />
+      <NoMatch query={query} chart={chart} matches={matches} />
     </div>
   );
 }
 
-function AccountSheetDialog({ multiple = false, isChosen, onPick, sheet }: AccountPickerProps): ReactNode {
+function AccountSheetDialog({
+  chart,
+  multiple = false,
+  isChosen,
+  onPick,
+  sheet,
+}: AccountPickerProps): ReactNode {
   const tabId = (side: Side): string => `${sheet.id}-${side}-tab`;
   const panelId = (side: Side): string => `${sheet.id}-${side}-panel`;
   const titleId = `${sheet.id}-title`;
   const matches = nameContains(sheet.query);
   const hasAccount = (side: Side): boolean =>
-    CHART_OF_ACCOUNTS.some((account) => isChosen(side, account));
+    chart.some((account) => isChosen(side, account.id));
 
-  const pick = (side: Side, account: AccountCode, chosen: boolean): void => {
+  const pick = (side: Side, account: AccountOutput, chosen: boolean): void => {
     onPick(side, account, chosen);
     if (multiple || !chosen) {
       return;
@@ -450,6 +468,7 @@ function AccountSheetDialog({ multiple = false, isChosen, onPick, sheet }: Accou
             >
               <SideChoices
                 side={side}
+                chart={chart}
                 control={multiple ? PICK_MANY : PICK_ONE}
                 matches={matches}
                 look={SHEET_LOOK}
@@ -463,7 +482,7 @@ function AccountSheetDialog({ multiple = false, isChosen, onPick, sheet }: Accou
               />
             </div>
           ))}
-          <NoMatch query={sheet.query} matches={matches} />
+          <NoMatch query={sheet.query} chart={chart} matches={matches} />
         </div>
       </div>
     </dialog>

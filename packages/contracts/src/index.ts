@@ -32,6 +32,15 @@ export {
   toHealthStatus,
 } from './health';
 
+export type { AccountId, AccountOutput, AccountType, ChartOutput } from './accounts';
+export {
+  accountIdSchema,
+  accountSchema,
+  accountTypeSchema,
+  chartSchema,
+  toChart,
+} from './accounts';
+
 export type {
   DeleteEntryInput,
   EditEntryInput,
@@ -39,6 +48,7 @@ export type {
   EntryLineInput,
   PostEntryInput,
   PostedEntry,
+  PostedLine,
   SearchCriteriaInput,
   SearchQuery,
   Side,
@@ -57,6 +67,7 @@ export {
   parseSearchQuery,
   postEntryInputSchema,
   postedEntrySchema,
+  postedLineSchema,
   searchCriteriaSchema,
   sideSchema,
   toPostedEntry,

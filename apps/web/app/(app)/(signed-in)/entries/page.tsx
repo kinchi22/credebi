@@ -25,18 +25,19 @@ const FORM_BY_MODE: Readonly<Record<EntryFormMode, (props: EntryFormProps) => Re
 
 export default async function EntriesPage(): Promise<ReactNode> {
   const caller = createCaller(await createContext());
-  const [settings, entries] = await Promise.all([
+  const [settings, chart, entries] = await Promise.all([
     orSignIn(caller.settings.read(), SIGNED_IN_HOME),
+    orSignIn(caller.accounts.chart(), SIGNED_IN_HOME),
     orSignIn(caller.entries.search(NO_CRITERIA), SIGNED_IN_HOME),
   ]);
   const EntryForm = FORM_BY_MODE[settings.entryFormMode];
 
   return (
     <>
-      <EntryForm action={postEntry} />
+      <EntryForm action={postEntry} chart={chart} />
       <EntryList
         entries={entries}
-        controls={{ entryFormMode: settings.entryFormMode, editEntry, deleteEntry }}
+        controls={{ chart, entryFormMode: settings.entryFormMode, editEntry, deleteEntry }}
       />
     </>
   );

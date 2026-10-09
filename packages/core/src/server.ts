@@ -8,6 +8,9 @@ export type { PostgresEntryRepository } from './entries/adapters/postgres-entry-
 export { createPostgresUnitOfWork } from './entries/adapters/postgres-unit-of-work';
 export type { PostgresUnitOfWork } from './entries/adapters/postgres-unit-of-work';
 
+export { createPostgresAccountRepository } from './accounts/adapters/postgres-account-repository';
+export type { PostgresAccountRepository } from './accounts/adapters/postgres-account-repository';
+
 export { createPostgresSettingsRepository } from './settings/adapters/postgres-settings-repository';
 export type { PostgresSettingsRepository } from './settings/adapters/postgres-settings-repository';
 

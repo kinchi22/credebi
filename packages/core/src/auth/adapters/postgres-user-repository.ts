@@ -1,6 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import { domainError, err, ok, type DomainError, type Result, type UserId } from '@repo/contracts';
 import { createDatabase, schema } from '@repo/db';
+import { type Account } from '../../accounts/domain/account';
 import { describeError } from '../../logging/domain/describe-error';
 import { type Logger } from '../../logging/ports/logger';
 import { type Identity, type Profile, type User } from '../domain/user';
@@ -43,7 +44,11 @@ export function createPostgresUserRepository(
       }
     },
 
-    add: async (user: User, identity: Identity): Promise<Result<void, DomainError>> => {
+    add: async (
+      user: User,
+      identity: Identity,
+      chart: readonly Account[],
+    ): Promise<Result<void, DomainError>> => {
       try {
         await database.transaction(async (transaction) => {
           await transaction.insert(schema.users).values(user);
@@ -52,6 +57,11 @@ export function createPostgresUserRepository(
             providerSubject: identity.subject,
             userId: user.id,
           });
+          if (chart.length > 0) {
+            await transaction
+              .insert(schema.accounts)
+              .values(chart.map((account) => ({ ...account, userId: user.id })));
+          }
         });
         return ok(undefined);
       } catch (error) {

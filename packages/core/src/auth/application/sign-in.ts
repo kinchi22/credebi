@@ -1,4 +1,13 @@
-import { domainError, err, ok, type DomainError, type Result, type UserId } from '@repo/contracts';
+import {
+  domainError,
+  err,
+  ok,
+  type AccountId,
+  type DomainError,
+  type Result,
+  type UserId,
+} from '@repo/contracts';
+import { dayOf, startingChart } from '../../accounts/domain/account';
 import { sessionExpiry, type SessionToken, type SessionTokenHash } from '../domain/session';
 import { googleSignIn, testSignIn, type SignInClaims } from '../domain/user';
 import { type GoogleSignIn, type PendingSignIn } from '../ports/google-sign-in';
@@ -9,6 +18,7 @@ export type SignInDependencies = {
   readonly users: UserRepository;
   readonly sessions: SessionRepository;
   readonly newUserId: () => UserId;
+  readonly newAccountId: () => AccountId;
   readonly newSessionToken: () => SessionToken;
   readonly hashSessionToken: (token: string) => SessionTokenHash;
   readonly now: () => Date;
@@ -70,7 +80,7 @@ async function signIn(
 }
 
 async function findOrAddUser(
-  { users, newUserId, now }: SignInDependencies,
+  { users, newUserId, newAccountId, now }: SignInDependencies,
   { identity, profile }: SignInClaims,
 ): Promise<Result<UserId, DomainError>> {
   const found = await users.findByIdentity(identity);
@@ -84,7 +94,7 @@ async function findOrAddUser(
   }
 
   const user = { id: newUserId(), ...profile, createdAt: now() };
-  const added = await users.add(user, identity);
+  const added = await users.add(user, identity, startingChart(dayOf(user.createdAt), newAccountId));
   if (added.ok) {
     return ok(user.id);
   }

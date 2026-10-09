@@ -1,7 +1,15 @@
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
-import { isErr, isOk, type DomainError, type Result, type UserId } from '@repo/contracts';
+import {
+  isErr,
+  isOk,
+  type AccountId,
+  type DomainError,
+  type Result,
+  type UserId,
+} from '@repo/contracts';
 import { createDatabase } from '@repo/db';
+import { type Account } from '../../accounts/domain/account';
 import { type LogFields, type Logger } from '../../logging/ports/logger';
 import { type Identity, type User } from '../domain/user';
 import { createPostgresUserRepository } from './postgres-user-repository';
@@ -50,6 +58,31 @@ async function found(identity: Identity): Promise<User | undefined> {
   return isOk(result) ? result.value : undefined;
 }
 
+const CASH: Account = {
+  id: '01920000-0000-7000-8000-00000000c001' as AccountId,
+  accountType: 'asset',
+  name: 'Cash',
+  description: null,
+  position: 0,
+  activeFrom: '2026-09-18',
+  activeUntil: null,
+};
+const EXPENSES: Account = {
+  ...CASH,
+  id: '01920000-0000-7000-8000-00000000c005' as AccountId,
+  accountType: 'expense',
+  name: 'Expenses',
+};
+
+async function storedAccounts(): Promise<readonly Record<string, unknown>[]> {
+  const result = await database.execute(
+    sql`select id, user_id, account_type, name, description, position, group_id,
+               active_from::text as active_from, active_until::text as active_until
+        from accounts order by id`,
+  );
+  return result.rows;
+}
+
 async function countUsers(): Promise<number> {
   const result = await database.execute<{ count: number }>(
     sql`select count(*)::int as count from users`,
@@ -59,7 +92,7 @@ async function countUsers(): Promise<number> {
 
 describe('createPostgresUserRepository', () => {
   it('finds a User by the Identity they were added with, as they were added', async () => {
-    expect(isOk(await repository.add(ADA, GOOGLE_ADA))).toBe(true);
+    expect(isOk(await repository.add(ADA, GOOGLE_ADA, []))).toBe(true);
 
     expect(await found(GOOGLE_ADA)).toEqual(ADA);
     expect(logged).toEqual([]);
@@ -67,31 +100,31 @@ describe('createPostgresUserRepository', () => {
 
   it('keeps a User with no name', async () => {
     const nameless = { ...ADA, name: null };
-    await repository.add(nameless, GOOGLE_ADA);
+    await repository.add(nameless, GOOGLE_ADA, []);
 
     expect(await found(GOOGLE_ADA)).toEqual(nameless);
   });
 
   it('finds nobody by an Identity nobody has', async () => {
-    await repository.add(ADA, GOOGLE_ADA);
+    await repository.add(ADA, GOOGLE_ADA, []);
 
     expect(await found({ provider: 'google', subject: 'google-grace' })).toBeUndefined();
   });
 
   it('keys an Identity by its provider too, so the same subject elsewhere is someone else', async () => {
-    await repository.add(ADA, GOOGLE_ADA);
+    await repository.add(ADA, GOOGLE_ADA, []);
 
     expect(await found({ provider: 'test', subject: 'google-ada' })).toBeUndefined();
   });
 
   it('refuses an Identity that already has a User as a conflict, and stores nobody', async () => {
-    await repository.add(ADA, GOOGLE_ADA);
+    await repository.add(ADA, GOOGLE_ADA, []);
     const second: User = {
       ...ADA,
       id: '01920000-0000-7000-8000-000000000002' as UserId,
     };
 
-    const result = await repository.add(second, GOOGLE_ADA);
+    const result = await repository.add(second, GOOGLE_ADA, []);
 
     expect(isErr(result) && result.error.code).toBe('CONFLICT');
     expect(await countUsers()).toBe(1);
@@ -99,8 +132,42 @@ describe('createPostgresUserRepository', () => {
     expect(logged).toEqual([]);
   });
 
+  it('stores a new User together with its chart of accounts', async () => {
+    expect(isOk(await repository.add(ADA, GOOGLE_ADA, [CASH, EXPENSES]))).toBe(true);
+
+    expect(await storedAccounts()).toEqual(
+      [CASH, EXPENSES].map((account) => ({
+        id: account.id,
+        user_id: ADA.id,
+        account_type: account.accountType,
+        name: account.name,
+        description: null,
+        position: 0,
+        group_id: null,
+        active_from: '2026-09-18',
+        active_until: null,
+      })),
+    );
+  });
+
+  it('stores neither the User nor its chart when either cannot be stored', async () => {
+    await repository.add(ADA, GOOGLE_ADA, [CASH]);
+    const second: User = { ...ADA, id: '01920000-0000-7000-8000-000000000002' as UserId };
+    const third: User = { ...ADA, id: '01920000-0000-7000-8000-000000000003' as UserId };
+
+    const conflicting = await repository.add(second, GOOGLE_ADA, [EXPENSES]);
+    const clashing = await repository.add(third, { provider: 'google', subject: 'google-third' }, [
+      CASH,
+    ]);
+
+    expect(isErr(conflicting) && conflicting.error.code).toBe('CONFLICT');
+    expect(isErr(clashing)).toBe(true);
+    expect(await countUsers()).toBe(1);
+    expect((await storedAccounts()).map((row) => row['id'])).toEqual([CASH.id]);
+  });
+
   it('records the email and name of the latest sign-in', async () => {
-    await repository.add(ADA, GOOGLE_ADA);
+    await repository.add(ADA, GOOGLE_ADA, []);
 
     const result = await repository.updateProfile(ADA.id, {
       email: 'ada@lovelace.test',
@@ -117,7 +184,7 @@ describe('createPostgresUserRepository', () => {
 
   it('reports an unreachable database as a result on every path, never by throwing', async () => {
     const find = await dead.findByIdentity(GOOGLE_ADA);
-    const add = await dead.add(ADA, GOOGLE_ADA);
+    const add = await dead.add(ADA, GOOGLE_ADA, []);
     const update = await dead.updateProfile(ADA.id, {
       email: 'ada@example.com',
       name: null,
