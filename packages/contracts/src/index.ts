@@ -44,6 +44,8 @@ export type {
   AddAccountInput,
   ChartNodeOutput,
   ChartOutput,
+  DeleteAccountGroupInput,
+  DeleteAccountInput,
   EditAccountGroupInput,
   EditAccountInput,
 } from './accounts';
@@ -59,6 +61,8 @@ export {
   addAccountInputSchema,
   chartNodeSchema,
   chartSchema,
+  deleteAccountGroupInputSchema,
+  deleteAccountInputSchema,
   editAccountGroupInputSchema,
   editAccountInputSchema,
   groupsIn,

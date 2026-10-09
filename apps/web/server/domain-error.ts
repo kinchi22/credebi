@@ -9,6 +9,7 @@ const STATUS_BY_CODE: Record<DomainErrorCode, TRPCError['code']> = {
   UNBALANCED: 'UNPROCESSABLE_CONTENT',
   UNAUTHENTICATED: 'UNAUTHORIZED',
   NAME_TAKEN: 'CONFLICT',
+  IN_USE: 'CONFLICT',
 };
 
 class DomainFailure extends Error {

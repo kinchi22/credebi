@@ -81,6 +81,26 @@ async function storeGroup(userId: UserId, stored: AccountGroup): Promise<void> {
   );
 }
 
+async function storeEntry(
+  userId: UserId,
+  n: number,
+  lines: readonly [Account, Account],
+  reverses: string | null = null,
+): Promise<string> {
+  const id = `01920000-0000-7000-8000-${String(n).padStart(12, '0')}`;
+  await database.execute(
+    sql`insert into entries (id, user_id, entry_date, memo, created_at, reverses_entry_id)
+        values (${id}, ${userId}, '2026-09-15', ${`Entry ${String(n)}`}, now(), ${reverses})`,
+  );
+  for (const [index, named] of lines.entries()) {
+    await database.execute(
+      sql`insert into entry_lines (entry_id, line_number, account, account_id, side, amount)
+          values (${id}, ${index + 1}, 'cash', ${named.id}, ${index === 0 ? 'debit' : 'credit'}, 1000)`,
+    );
+  }
+  return id;
+}
+
 beforeEach(async () => {
   await database.execute(sql`truncate table users cascade`);
   for (const [id, email] of [
@@ -314,6 +334,102 @@ describe('createPostgresAccountRepository', () => {
       'accounts.update_failed',
       'accounts.add_group_failed',
       'accounts.update_group_failed',
+    ]);
+  });
+  it('answers whether an Entry line names an Account, and never for another User', async () => {
+    const cash = account(1, 'asset', 0, 'Cash');
+    const sales = account(2, 'revenue', 0, 'Sales');
+    const wallet = account(3, 'asset', 1, 'Wallet');
+    for (const stored of [cash, sales, wallet]) {
+      await store(ADA, stored);
+    }
+    await storeEntry(ADA, 100, [cash, sales]);
+
+    expect(await repository.isAccountNamed(ADA, cash.id)).toEqual(ok(true));
+    expect(await repository.isAccountNamed(ADA, sales.id)).toEqual(ok(true));
+    expect(await repository.isAccountNamed(ADA, wallet.id)).toEqual(ok(false));
+    expect(await repository.isAccountNamed(GRACE, cash.id)).toEqual(ok(false));
+  });
+
+  it('counts an Account named only by an Entry and the Reversal that hides it', async () => {
+    const cash = account(1, 'asset', 0, 'Cash');
+    const sales = account(2, 'revenue', 0, 'Sales');
+    await store(ADA, cash);
+    await store(ADA, sales);
+    const reversed = await storeEntry(ADA, 100, [cash, sales]);
+    await storeEntry(ADA, 101, [sales, cash], reversed);
+
+    expect(await repository.isAccountNamed(ADA, cash.id)).toEqual(ok(true));
+    expect(await repository.isAccountNamed(ADA, sales.id)).toEqual(ok(true));
+  });
+
+  it('deletes an Account no Entry line names, and only its own User\'s', async () => {
+    const cash = account(1, 'asset', 0, 'Cash');
+    const wallet = account(2, 'asset', 1, 'Wallet');
+    const safe = account(3, 'asset', 0, 'Safe');
+    await store(ADA, cash);
+    await store(ADA, wallet);
+    await store(GRACE, safe);
+
+    expect(await repository.deleteAccount(ADA, wallet.id)).toEqual(ok(undefined));
+    const others = await repository.deleteAccount(ADA, safe.id);
+
+    expect(isErr(others) && others.error.code).toBe('NOT_FOUND');
+    expect(await repository.readChart(ADA)).toEqual(ok(chartOf(cash)));
+    expect(await repository.readChart(GRACE)).toEqual(ok(chartOf(safe)));
+  });
+
+  it('refuses to delete an Account an Entry line names as in use, a hidden Reversal pair included, and keeps it', async () => {
+    const cash = account(1, 'asset', 0, 'Cash');
+    const sales = account(2, 'revenue', 0, 'Sales');
+    await store(ADA, cash);
+    await store(ADA, sales);
+    const reversed = await storeEntry(ADA, 100, [cash, sales]);
+    await storeEntry(ADA, 101, [sales, cash], reversed);
+
+    const deleted = await repository.deleteAccount(ADA, cash.id);
+
+    expect(isErr(deleted) && deleted.error.code).toBe('IN_USE');
+    expect(await repository.readChart(ADA)).toEqual(ok(chartOf(cash, sales)));
+    expect(logged).toEqual([]);
+  });
+
+  it('deletes an empty Account group, refuses one that holds an Account as in use, and never deletes another User\'s', async () => {
+    const loans = group(10, 'liability', 0, 'Loans');
+    const cards = group(11, 'liability', 1, 'Cards');
+    const gracesLoans = group(12, 'liability', 0, 'Loans');
+    const visa = { ...account(1, 'liability', 0, 'Visa'), groupId: cards.id };
+    await storeGroup(ADA, loans);
+    await storeGroup(ADA, cards);
+    await store(ADA, visa);
+    await storeGroup(GRACE, gracesLoans);
+
+    expect(await repository.deleteGroup(ADA, loans.id)).toEqual(ok(undefined));
+    const holding = await repository.deleteGroup(ADA, cards.id);
+    const others = await repository.deleteGroup(ADA, gracesLoans.id);
+
+    expect(isErr(holding) && holding.error.code).toBe('IN_USE');
+    expect(isErr(others) && others.error.code).toBe('NOT_FOUND');
+    expect(await repository.readChart(ADA)).toEqual(ok({ accounts: [visa], groups: [cards] }));
+    expect(await repository.readChart(GRACE)).toEqual(ok({ accounts: [], groups: [gracesLoans] }));
+    expect(logged).toEqual([]);
+  });
+
+  it('reports an unreachable database on a delete, or on asking whether an Account is named, as a result', async () => {
+    const wallet = account(1, 'asset', 0, 'Wallet');
+    const bank = group(10, 'asset', 0, 'Bank');
+
+    const named = await dead.isAccountNamed(ADA, wallet.id);
+    const deleted = await dead.deleteAccount(ADA, wallet.id);
+    const deletedGroup = await dead.deleteGroup(ADA, bank.id);
+
+    expect(isErr(named) && named.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+    expect(isErr(deleted) && deleted.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+    expect(isErr(deletedGroup) && deletedGroup.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+    expect(logged.map((fields) => fields['event'])).toEqual([
+      'accounts.named_read_failed',
+      'accounts.delete_failed',
+      'accounts.delete_group_failed',
     ]);
   });
 });

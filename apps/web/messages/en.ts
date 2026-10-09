@@ -9,10 +9,26 @@ function chartRefusals(node: 'account' | 'group', notSaved: string, nameTaken: s
   return {
     INVALID_INPUT: notSaved,
     NAME_TAKEN: nameTaken,
+    IN_USE: notSaved,
     NOT_FOUND: `This ${node} is no longer here. Reload the page.`,
     CONFLICT: unsaved,
     DEPENDENCY_UNAVAILABLE: unsaved,
     UNBALANCED: notSaved,
+    UNAUTHENTICATED: 'You are signed out. Sign in again to change your accounts.',
+  } as const;
+}
+
+function deleteRefusals(node: 'account' | 'group', inUse: string) {
+  const reload = `This ${node} could not be deleted. Reload the page and try again.`;
+  const undeleted = `The ${node} could not be deleted just now, so nothing changed. Try again.`;
+  return {
+    INVALID_INPUT: reload,
+    NAME_TAKEN: reload,
+    UNBALANCED: reload,
+    IN_USE: inUse,
+    NOT_FOUND: `This ${node} is no longer here. Reload the page.`,
+    CONFLICT: undeleted,
+    DEPENDENCY_UNAVAILABLE: undeleted,
     UNAUTHENTICATED: 'You are signed out. Sign in again to change your accounts.',
   } as const;
 }
@@ -82,6 +98,7 @@ export const en = {
     addGroup: 'Add group',
     addGroupText: '+ Group',
     edit: 'Edit',
+    delete: 'Delete',
     move: 'Move',
     startsOn: 'Starts',
   },
@@ -108,6 +125,21 @@ export const en = {
       'group',
       groupNotSaved,
       'The group was not saved. Another group of this account type has this name; choose another.',
+    ),
+  },
+  deleteAccountDialog: {
+    title: 'Delete account',
+    groupTitle: 'Delete group',
+    confirm: 'Delete',
+    pending: 'Deleting...',
+    cancel: 'Cancel',
+    refusals: deleteRefusals(
+      'account',
+      'The account was not deleted, because an entry names it -- an entry you deleted or edited included, since the books keep those too. To stop using it, give it an end day in Active until instead.',
+    ),
+    groupRefusals: deleteRefusals(
+      'group',
+      'The group was not deleted, because it still holds accounts. Move them out of it or delete them first.',
     ),
   },
   entrySearch: {
@@ -209,6 +241,7 @@ export const en = {
       DEPENDENCY_UNAVAILABLE: 'The entry could not be saved just now. Try again.',
       UNAUTHENTICATED: 'You are signed out. Sign in again to edit an entry.',
       NAME_TAKEN: 'The entry was not saved. Check the date, the memo, the accounts and the amounts.',
+      IN_USE: 'The entry was not saved. Check the date, the memo, the accounts and the amounts.',
     },
   },
   discardChanges: {
@@ -231,6 +264,7 @@ export const en = {
       UNBALANCED: 'This entry could not be deleted. Reload the page and try again.',
       UNAUTHENTICATED: 'You are signed out. Sign in again to delete an entry.',
       NAME_TAKEN: 'This entry could not be deleted. Reload the page and try again.',
+      IN_USE: 'This entry could not be deleted. Reload the page and try again.',
     },
   },
   accountTypes: {

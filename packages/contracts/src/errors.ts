@@ -6,6 +6,7 @@ export const DOMAIN_ERROR_CODES = [
   'UNBALANCED',
   'UNAUTHENTICATED',
   'NAME_TAKEN',
+  'IN_USE',
 ] as const;
 
 export type DomainErrorCode = (typeof DOMAIN_ERROR_CODES)[number];

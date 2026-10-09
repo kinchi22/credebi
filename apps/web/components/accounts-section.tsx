@@ -9,7 +9,7 @@ import {
   type AccountType,
   type ChartOutput,
 } from '@repo/contracts';
-import { GripIcon, PencilIcon } from '@repo/ui';
+import { GripIcon, PencilIcon, TrashIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useId, useState, type ReactNode } from 'react';
 import { en } from '../messages/en';
@@ -19,15 +19,27 @@ import {
   type AccountDialogTarget,
 } from './account-dialog';
 import { useBrowserToday } from './browser-today';
+import {
+  DeleteAccountDialog,
+  type ChartDeletions,
+  type DeleteAccountTarget,
+} from './delete-account-dialog';
 import { BARE_ICON_BUTTON, LEGEND, ROW_ICON_BUTTON } from './control-classes';
 import { useModalDialog } from './modal-dialog';
 
 export type AccountsSectionProps = {
   readonly chart: ChartOutput;
-  readonly actions: ChartActions;
+  readonly actions: ChartActions & ChartDeletions;
 };
 
 type Open = (target: AccountDialogTarget, opener: HTMLElement) => void;
+
+type OpenDelete = (target: DeleteAccountTarget, opener: HTMLElement) => void;
+
+type RowActions = {
+  readonly onEdit: (opener: HTMLElement) => void;
+  readonly onDelete: (opener: HTMLElement) => void;
+};
 
 const mayHaveEnded = (account: AccountOutput, today: string | undefined): boolean =>
   account.activeUntil !== null && (today === undefined || account.activeUntil < today);
@@ -50,18 +62,30 @@ function Grip({ name }: { readonly name: string }): ReactNode {
   );
 }
 
-function EditButton({ onEdit }: { readonly onEdit: (opener: HTMLElement) => void }): ReactNode {
+function RowButtons({ onEdit, onDelete }: RowActions): ReactNode {
   return (
-    <button
-      type="button"
-      aria-label={en.accountsSection.edit}
-      onClick={(event) => {
-        onEdit(event.currentTarget);
-      }}
-      className={ROW_ICON_BUTTON}
-    >
-      <PencilIcon />
-    </button>
+    <>
+      <button
+        type="button"
+        aria-label={en.accountsSection.edit}
+        onClick={(event) => {
+          onEdit(event.currentTarget);
+        }}
+        className={ROW_ICON_BUTTON}
+      >
+        <PencilIcon />
+      </button>
+      <button
+        type="button"
+        aria-label={en.accountsSection.delete}
+        onClick={(event) => {
+          onDelete(event.currentTarget);
+        }}
+        className={ROW_ICON_BUTTON}
+      >
+        <TrashIcon />
+      </button>
+    </>
   );
 }
 
@@ -74,11 +98,10 @@ function Description({ text }: { readonly text: string | null }): ReactNode {
 function AccountRow({
   account,
   today,
-  onEdit,
-}: {
+  ...actions
+}: RowActions & {
   readonly account: AccountOutput;
   readonly today: string | undefined;
-  readonly onEdit: (opener: HTMLElement) => void;
 }): ReactNode {
   return (
     <li className="flex items-center gap-2 py-1.5">
@@ -95,7 +118,7 @@ function AccountRow({
         </span>
         <Description text={account.description} />
       </span>
-      <EditButton onEdit={onEdit} />
+      <RowButtons {...actions} />
     </li>
   );
 }
@@ -105,11 +128,13 @@ function AccountRows({
   today,
   showEnded,
   open,
+  openDelete,
 }: {
   readonly accounts: readonly AccountOutput[];
   readonly today: string | undefined;
   readonly showEnded: boolean;
   readonly open: Open;
+  readonly openDelete: OpenDelete;
 }): ReactNode {
   return accounts
     .filter((account) => showEnded || !mayHaveEnded(account, today))
@@ -121,17 +146,22 @@ function AccountRows({
         onEdit={(opener) => {
           open({ kind: 'account', accountType: account.accountType, editing: account }, opener);
         }}
+        onDelete={(opener) => {
+          openDelete(
+            { kind: 'account', accountType: account.accountType, id: account.id, name: account.name },
+            opener,
+          );
+        }}
       />
     ));
 }
 
 function GroupRow({
   group,
-  onEdit,
   children,
-}: {
+  ...actions
+}: RowActions & {
   readonly group: AccountGroupOutput;
-  readonly onEdit: (opener: HTMLElement) => void;
   readonly children: ReactNode;
 }): ReactNode {
   return (
@@ -142,7 +172,7 @@ function GroupRow({
           <span className="font-semibold">{group.name}</span>
           <Description text={group.description} />
         </span>
-        <EditButton onEdit={onEdit} />
+        <RowButtons {...actions} />
       </div>
       <ul className="pl-6">{children}</ul>
     </li>
@@ -194,7 +224,9 @@ export function AccountsSection({ chart, actions }: AccountsSectionProps): React
   const bandId = useId();
   const today = useBrowserToday();
   const dialog = useModalDialog({ closesWhenWide: false });
+  const deleteDialog = useModalDialog({ closesWhenWide: false });
   const [target, setTarget] = useState<AccountDialogTarget>();
+  const [deleteTarget, setDeleteTarget] = useState<DeleteAccountTarget>();
   const [showEnded, setShowEnded] = useState(false);
 
   const open: Open = (next, opener) => {
@@ -202,7 +234,12 @@ export function AccountsSection({ chart, actions }: AccountsSectionProps): React
     dialog.show(opener);
   };
 
-  const rows = { today, showEnded, open };
+  const openDelete: OpenDelete = (next, opener) => {
+    setDeleteTarget(next);
+    deleteDialog.show(opener);
+  };
+
+  const rows = { today, showEnded, open, openDelete };
 
   return (
     <section aria-labelledby={titleId} className="flex flex-col gap-2 border-b border-border pb-4">
@@ -236,6 +273,12 @@ export function AccountsSection({ chart, actions }: AccountsSectionProps): React
                       onEdit={(opener) => {
                         open({ kind: 'group', accountType, editing: node.group }, opener);
                       }}
+                      onDelete={(opener) => {
+                        openDelete(
+                          { kind: 'group', accountType, id: node.group.id, name: node.group.name },
+                          opener,
+                        );
+                      }}
                     >
                       <AccountRows accounts={node.accounts} {...rows} />
                     </GroupRow>
@@ -252,6 +295,7 @@ export function AccountsSection({ chart, actions }: AccountsSectionProps): React
         today={today}
         actions={actions}
       />
+      <DeleteAccountDialog dialog={deleteDialog} target={deleteTarget} actions={actions} />
     </section>
   );
 }

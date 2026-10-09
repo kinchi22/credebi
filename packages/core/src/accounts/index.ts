@@ -23,4 +23,13 @@ export type {
   EditAccountGroupDependencies,
 } from './application/edit-account-group';
 
+export { createDeleteAccount } from './application/delete-account';
+export type { DeleteAccount, DeleteAccountDependencies } from './application/delete-account';
+
+export { createDeleteAccountGroup } from './application/delete-account-group';
+export type {
+  DeleteAccountGroup,
+  DeleteAccountGroupDependencies,
+} from './application/delete-account-group';
+
 export type { AccountRepository } from './ports/account-repository';

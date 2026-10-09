@@ -1,4 +1,10 @@
-import { type DomainError, type Result, type UserId } from '@repo/contracts';
+import {
+  type AccountGroupId,
+  type AccountId,
+  type DomainError,
+  type Result,
+  type UserId,
+} from '@repo/contracts';
 import { type Account, type AccountGroup, type Chart } from '../domain/account';
 
 export type AccountRepository = {
@@ -7,4 +13,7 @@ export type AccountRepository = {
   readonly updateAccount: (userId: UserId, account: Account) => Promise<Result<void, DomainError>>;
   readonly addGroup: (userId: UserId, group: AccountGroup) => Promise<Result<void, DomainError>>;
   readonly updateGroup: (userId: UserId, group: AccountGroup) => Promise<Result<void, DomainError>>;
+  readonly isAccountNamed: (userId: UserId, id: AccountId) => Promise<Result<boolean, DomainError>>;
+  readonly deleteAccount: (userId: UserId, id: AccountId) => Promise<Result<void, DomainError>>;
+  readonly deleteGroup: (userId: UserId, id: AccountGroupId) => Promise<Result<void, DomainError>>;
 };
