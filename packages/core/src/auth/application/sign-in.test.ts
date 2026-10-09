@@ -248,6 +248,49 @@ describe('createTestSignIn', () => {
     expect([...users.charts.values()]).toEqual(created);
   });
 
+  it("starts a new User's five starting Accounts on the day the sign-in names", async () => {
+    const { testSignIn, users } = world();
+
+    issued(await testSignIn('e2e-1', '2000-01-01'));
+
+    const chart = [...users.charts.values()].flat();
+    expect(chart.map(({ name }) => name)).toEqual([
+      'Cash',
+      'Accounts payable',
+      'Capital',
+      'Sales',
+      'Expenses',
+    ]);
+    expect(chart.map(({ activeFrom }) => activeFrom)).toEqual(Array(5).fill('2000-01-01'));
+  });
+
+  it("changes none of an existing User's Accounts when the sign-in names a day", async () => {
+    const { testSignIn, users } = world();
+    issued(await testSignIn('e2e-1'));
+    const created = [...users.charts.values()];
+
+    issued(await testSignIn('e2e-1', '2000-01-01'));
+
+    expect([...users.charts.values()]).toEqual(created);
+    expect(created.flat().map(({ activeFrom }) => activeFrom)).toEqual(
+      Array(5).fill('2026-09-18'),
+    );
+  });
+
+  it.each(['', '2026-02-30', '18/09/2026'])(
+    'refuses %j as the day the Accounts start on, and creates nobody',
+    async (day) => {
+      const { testSignIn, users, sessions } = world();
+
+      const result = await testSignIn('e2e-1', day);
+
+      expect(isErr(result) && result.error.code).toBe('INVALID_INPUT');
+      expect(users.users.size).toBe(0);
+      expect(users.charts.size).toBe(0);
+      expect(sessions.rows.size).toBe(0);
+    },
+  );
+
   it('issues a Session for 30 days, and stores only the hash of its token', async () => {
     const { testSignIn, sessions } = world();
 

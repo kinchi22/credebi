@@ -66,6 +66,13 @@ export function dayOf(instant: Date): string {
   return instant.toISOString().slice(0, 10);
 }
 
+export function parseDay(text: string): Result<string, DomainError> {
+  const midnight = new Date(`${text}T00:00:00.000Z`);
+  return !Number.isNaN(midnight.getTime()) && dayOf(midnight) === text
+    ? ok(text)
+    : err(domainError('INVALID_INPUT', `"${text}" is not a day.`));
+}
+
 export function startingChart(
   startsOn: string,
   newAccountId: () => AccountId,

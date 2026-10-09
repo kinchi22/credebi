@@ -26,10 +26,12 @@ export const finishGoogleSignInInputSchema = z.object({
 
 export const testSignInInputSchema = z.object({
   identifier: z.string(),
+  accountsStartOn: z.string().optional(),
 });
 
 export const TEST_SIGN_IN_FIELDS = {
   identifier: 'identifier',
+  accountsStartOn: 'accountsStartOn',
   returnTo: 'returnTo',
 } as const;
 

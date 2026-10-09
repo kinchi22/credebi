@@ -112,7 +112,12 @@ that signs in by an identifier, through a Server Action. One identifier is one
 User: its Identity has the provider `test` and the identifier as its subject, so
 a new identifier creates a User the way a first Google sign-in does. That User's
 email is `<identifier>@test.invalid`, a reserved domain (RFC 2606). Each spec
-signs in as a User of its own, and a spec can sign in as two. It exists for
+signs in as a User of its own, and a spec can sign in as two. The form also
+takes an optional day, `Accounts start on`: a User it creates gets its five
+starting Accounts active from that day instead of from its creation day
+(ADR-0026), so a spec that posts on fixed past days needs no Settings edits
+first. A day that is not a calendar day is refused with `INVALID_INPUT` and
+creates nobody, and an existing User's chart is never changed by it. It exists for
 `E2E build` and for Preview, where Google cannot redirect: Google accepts no
 wildcard redirect URI and every Preview has its own URL. `parseEnv` fails when `AUTH_TEST_LOGIN` is set and `VERCEL_ENV` is
 `production`, and its unit test asserts that refusal. Real Google sign-in works

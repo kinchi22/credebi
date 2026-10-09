@@ -10,9 +10,12 @@ import { SESSION_COOKIE, SESSION_COOKIE_OPTIONS } from '../../../server/session-
 
 export async function signInWithTestIdentifier(form: FormData): Promise<void> {
   const identifier = form.get(TEST_SIGN_IN_FIELDS.identifier);
+  const accountsStartOn = form.get(TEST_SIGN_IN_FIELDS.accountsStartOn);
   const caller = createCaller(await createContext());
   const session = await caller.auth.testSignIn({
     identifier: typeof identifier === 'string' ? identifier : '',
+    accountsStartOn:
+      typeof accountsStartOn === 'string' && accountsStartOn !== '' ? accountsStartOn : undefined,
   });
   (await cookies()).set(SESSION_COOKIE, session.token, SESSION_COOKIE_OPTIONS);
   redirect(returnPath(form.get(TEST_SIGN_IN_FIELDS.returnTo)));

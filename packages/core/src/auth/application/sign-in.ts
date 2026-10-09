@@ -7,7 +7,7 @@ import {
   type Result,
   type UserId,
 } from '@repo/contracts';
-import { dayOf, startingChart } from '../../accounts/domain/account';
+import { dayOf, parseDay, startingChart } from '../../accounts/domain/account';
 import { sessionExpiry, type SessionToken, type SessionTokenHash } from '../domain/session';
 import { googleSignIn, testSignIn, type SignInClaims } from '../domain/user';
 import { type GoogleSignIn, type PendingSignIn } from '../ports/google-sign-in';
@@ -29,7 +29,10 @@ export type IssuedSession = {
   readonly expiresAt: Date;
 };
 
-export type TestSignIn = (identifier: string) => Promise<Result<IssuedSession, DomainError>>;
+export type TestSignIn = (
+  identifier: string,
+  accountsStartOn?: string,
+) => Promise<Result<IssuedSession, DomainError>>;
 
 export type FinishGoogleSignIn = (
   callbackUrl: URL,
@@ -37,9 +40,16 @@ export type FinishGoogleSignIn = (
 ) => Promise<Result<IssuedSession, DomainError>>;
 
 export function createTestSignIn(dependencies: SignInDependencies): TestSignIn {
-  return async (identifier) => {
+  return async (identifier, accountsStartOn) => {
     const claims = testSignIn(identifier);
-    return claims.ok ? signIn(dependencies, claims.value) : claims;
+    if (!claims.ok) {
+      return claims;
+    }
+    if (accountsStartOn === undefined) {
+      return signIn(dependencies, claims.value, undefined);
+    }
+    const startsOn = parseDay(accountsStartOn);
+    return startsOn.ok ? signIn(dependencies, claims.value, startsOn.value) : startsOn;
   };
 }
 
@@ -55,15 +65,16 @@ export function createFinishGoogleSignIn(
       return answered;
     }
     const claims = googleSignIn(answered.value);
-    return claims.ok ? signIn(dependencies, claims.value) : claims;
+    return claims.ok ? signIn(dependencies, claims.value, undefined) : claims;
   };
 }
 
 async function signIn(
   dependencies: SignInDependencies,
   claims: SignInClaims,
+  accountsStartOn: string | undefined,
 ): Promise<Result<IssuedSession, DomainError>> {
-  const userId = await findOrAddUser(dependencies, claims);
+  const userId = await findOrAddUser(dependencies, claims, accountsStartOn);
   if (!userId.ok) {
     return userId;
   }
@@ -82,6 +93,7 @@ async function signIn(
 async function findOrAddUser(
   { users, newUserId, newAccountId, now }: SignInDependencies,
   { identity, profile }: SignInClaims,
+  accountsStartOn: string | undefined,
 ): Promise<Result<UserId, DomainError>> {
   const found = await users.findByIdentity(identity);
   if (!found.ok) {
@@ -94,7 +106,8 @@ async function findOrAddUser(
   }
 
   const user = { id: newUserId(), ...profile, createdAt: now() };
-  const added = await users.add(user, identity, startingChart(dayOf(user.createdAt), newAccountId));
+  const chart = startingChart(accountsStartOn ?? dayOf(user.createdAt), newAccountId);
+  const added = await users.add(user, identity, chart);
   if (added.ok) {
     return ok(user.id);
   }

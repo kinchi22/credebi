@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { type AccountGroupId, type AccountId } from '@repo/contracts';
+import { domainError, err, ok, type AccountGroupId, type AccountId } from '@repo/contracts';
 import {
   ACCOUNT_TYPES,
   accountNames,
   chartInOrder,
   dayOf,
+  parseDay,
   startingChart,
   type Account,
   type AccountGroup,
@@ -40,6 +41,26 @@ describe('dayOf', () => {
   it('takes the UTC calendar day of an instant', () => {
     expect(dayOf(new Date('2026-09-18T23:59:59.999Z'))).toBe('2026-09-18');
     expect(dayOf(new Date('2026-09-19T08:30:00+09:00'))).toBe('2026-09-18');
+  });
+});
+
+describe('parseDay', () => {
+  it('takes a calendar day written as year, month and day', () => {
+    expect(parseDay('2000-01-01')).toEqual(ok('2000-01-01'));
+    expect(parseDay('2024-02-29')).toEqual(ok('2024-02-29'));
+  });
+
+  it.each([
+    '',
+    'tomorrow',
+    '2026-9-1',
+    '2026-09-01T00:00:00Z',
+    ' 2026-09-01',
+    '2026-13-01',
+    '2026-02-30',
+    '2025-02-29',
+  ])('refuses %j as a day', (text) => {
+    expect(parseDay(text)).toEqual(err(domainError('INVALID_INPUT', `"${text}" is not a day.`)));
   });
 });
 

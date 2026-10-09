@@ -72,6 +72,7 @@ export const en = {
   testSignIn: {
     title: 'Test sign-in',
     identifier: 'Identifier',
+    accountsStartOn: 'Accounts start on',
     submit: 'Sign in',
   },
   sidebar: {
