@@ -1,4 +1,4 @@
-import { ok, type DomainError, type Result } from '@repo/contracts';
+import { ok, type DomainError, type Result, type UserId } from '@repo/contracts';
 import { requireUser, type AuthContext } from '../../auth/domain/auth-context';
 import { type Account } from '../domain/account';
 import { type AccountRepository } from '../ports/account-repository';
@@ -7,7 +7,7 @@ export async function changeAccount(
   accounts: AccountRepository,
   auth: AuthContext,
   change: (chart: readonly Account[]) => Result<Account, DomainError>,
-  save: 'addAccount' | 'updateAccount',
+  save: (userId: UserId, account: Account) => Promise<Result<void, DomainError>>,
 ): Promise<Result<Account, DomainError>> {
   const userId = requireUser(auth);
   if (!userId.ok) {
@@ -24,6 +24,6 @@ export async function changeAccount(
     return account;
   }
 
-  const saved = await accounts[save](userId.value, account.value);
+  const saved = await save(userId.value, account.value);
   return saved.ok ? ok(account.value) : saved;
 }

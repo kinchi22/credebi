@@ -11,7 +11,7 @@ import {
   type UserId,
 } from '@repo/contracts';
 import { createDatabase, schema } from '@repo/db';
-import { databaseFailure } from '../../auth/adapters/database-failure';
+import { databaseFailure, UNIQUE_VIOLATION } from '../../auth/adapters/database-failure';
 import { describeError } from '../../logging/domain/describe-error';
 import { type Logger } from '../../logging/ports/logger';
 import { type Account } from '../domain/account';
@@ -22,8 +22,6 @@ export type PostgresAccountRepository = AccountRepository & {
 };
 
 type AccountRow = Omit<typeof schema.accounts.$inferSelect, 'userId' | 'groupId'>;
-
-const UNIQUE_VIOLATION = '23505';
 
 export function createPostgresAccountRepository(
   connectionString: string,

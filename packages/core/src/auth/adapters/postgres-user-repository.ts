@@ -6,13 +6,11 @@ import { describeError } from '../../logging/domain/describe-error';
 import { type Logger } from '../../logging/ports/logger';
 import { type Identity, type Profile, type User } from '../domain/user';
 import { type UserRepository } from '../ports/user-repository';
-import { databaseFailure } from './database-failure';
+import { databaseFailure, UNIQUE_VIOLATION } from './database-failure';
 
 export type PostgresUserRepository = UserRepository & {
   close: () => Promise<void>;
 };
-
-const UNIQUE_VIOLATION = '23505';
 
 export function createPostgresUserRepository(
   connectionString: string,

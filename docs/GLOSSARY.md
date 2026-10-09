@@ -49,6 +49,7 @@ no term is defined in more than one.
 | Minor units      | The smallest denomination an amount is counted in. Scale 0 today, so one minor unit is one whole unit: no decimal places, no currency symbol, grouping applied only at display. |
 | Money            | A branded integer count of minor units. Built and combined only through `@repo/core/money`. |
 | Multi-line mode  | The Entry form mode that takes two or more Entry lines, each with its own Account, Side and amount, and lets the User add and remove lines. |
+| Name taken       | The `DomainErrorCode` for a name already used where it must be unique: an Account's among the User's Accounts, ignoring case. A code of its own, so a dialog can say the name is what is wrong; every other broken name rule is `INVALID_INPUT`. Mapped to `CONFLICT`. ADR-0026. |
 | Port             | An interface stated in domain terms that the application layer depends on.   |
 | Preview          | The Vercel deployment of a pull request's commit, against the one shared preview Neon project, which only `main` migrates. Best effort: never smoke-run and read by no gate, so one that needs an unmerged migration may fail at runtime. ADR-0024. |
 | Production       | The Vercel environment `main` deploys to, against the production Neon project. Not "staging": there is none. Its data is disposable until the MVP ships. Never alone the name of a deployment: say Production deployment or Current Production. ADR-0024. |

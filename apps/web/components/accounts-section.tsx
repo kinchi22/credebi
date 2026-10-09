@@ -16,8 +16,8 @@ export type AccountsSectionProps = {
   readonly editAction: AccountAction;
 };
 
-const hasEnded = (account: AccountOutput, today: string | undefined): boolean =>
-  today !== undefined && account.activeUntil !== null && account.activeUntil < today;
+const mayHaveEnded = (account: AccountOutput, today: string | undefined): boolean =>
+  account.activeUntil !== null && (today === undefined || account.activeUntil < today);
 
 const startsLater = (account: AccountOutput, today: string | undefined): boolean =>
   today !== undefined && account.activeFrom > today;
@@ -123,7 +123,7 @@ export function AccountsSection({ chart, addAction, editAction }: AccountsSectio
               {chart
                 .filter(
                   (account) =>
-                    account.accountType === accountType && (showEnded || !hasEnded(account, today)),
+                    account.accountType === accountType && (showEnded || !mayHaveEnded(account, today)),
                 )
                 .map((account) => (
                   <AccountRow

@@ -7,7 +7,14 @@ import {
   type DomainErrorCode,
 } from '@repo/contracts';
 import { typeClasses } from '@repo/ui/type-classes';
-import { useId, useState, useTransition, type ReactNode, type SubmitEvent } from 'react';
+import {
+  useId,
+  useState,
+  useTransition,
+  type ReactNode,
+  type SubmitEvent,
+  type TransitionStartFunction,
+} from 'react';
 import { en } from '../messages/en';
 import {
   BUTTON,
@@ -25,7 +32,10 @@ export type AccountChange =
   | { readonly outcome: 'saved' }
   | { readonly outcome: 'rejected'; readonly code: DomainErrorCode };
 
-export type AccountAction = (key: string, form: FormData) => Promise<AccountChange>;
+export type AccountAction = (
+  accountTypeOrId: string,
+  form: FormData,
+) => Promise<AccountChange>;
 
 export type AccountDialogTarget =
   | { readonly kind: 'add'; readonly accountType: AccountType }
@@ -51,6 +61,8 @@ function AccountForm({
   onCancel,
   onSaved,
   save,
+  pending,
+  startTransition,
 }: {
   readonly target: AccountDialogTarget;
   readonly today: string | undefined;
@@ -58,9 +70,10 @@ function AccountForm({
   readonly onCancel: () => void;
   readonly onSaved: () => void;
   readonly save: (form: FormData) => Promise<AccountChange>;
+  readonly pending: boolean;
+  readonly startTransition: TransitionStartFunction;
 }): ReactNode {
   const [refusal, setRefusal] = useState<DomainErrorCode>();
-  const [pending, startTransition] = useTransition();
   const account = target.kind === 'edit' ? target.account : undefined;
 
   const submit = (event: SubmitEvent<HTMLFormElement>): void => {
@@ -152,12 +165,22 @@ export function AccountDialog({
   editAction,
 }: AccountDialogProps): ReactNode {
   const titleId = useId();
+  const [pending, startTransition] = useTransition();
 
   return (
     <dialog
       {...dialog.dialogProps}
       aria-labelledby={titleId}
-      onClick={dialog.closeOnScrim}
+      onCancel={(event) => {
+        if (pending) {
+          event.preventDefault();
+        }
+      }}
+      onClick={(event) => {
+        if (!pending) {
+          dialog.closeOnScrim(event);
+        }
+      }}
       className={CONFIRMATION_DIALOG}
     >
       {dialog.open && target !== undefined ? (
@@ -172,6 +195,8 @@ export function AccountDialog({
               ? editAction.bind(null, target.account.id)
               : addAction.bind(null, target.accountType)
           }
+          pending={pending}
+          startTransition={startTransition}
         />
       ) : null}
     </dialog>

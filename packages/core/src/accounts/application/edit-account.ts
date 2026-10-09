@@ -16,5 +16,10 @@ export type EditAccount = (
 
 export function createEditAccount({ accounts }: EditAccountDependencies): EditAccount {
   return (auth, { id, ...details }) =>
-    changeAccount(accounts, auth, (chart) => editedAccount(chart, id, details), 'updateAccount');
+    changeAccount(
+      accounts,
+      auth,
+      (chart) => editedAccount(chart, id, details),
+      accounts.updateAccount,
+    );
 }

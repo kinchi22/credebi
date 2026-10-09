@@ -44,7 +44,8 @@ When the trigger holds, accounts become their own feature,
   it wherever an Entry is shown. A group's name is unique among the groups of its
   Account type. A description is optional, up to 200 characters.
 - **Active period.** An Account has a start day and an optional end day, both
-  inclusive. An Entry line names an Account only on a day its Active period
+  inclusive. An end day before the start day is refused; one equal to it makes
+  a period of one day. An Entry line names an Account only on a day its Active period
   holds, checked when an Entry is posted, a Correction's replacement included.
   A change to an Active period that would leave a shown Entry outside it is
   refused; a Reversal and the Entry it reverses do not count, since together they

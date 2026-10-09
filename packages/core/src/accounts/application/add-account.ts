@@ -26,6 +26,6 @@ export function createAddAccount({ accounts, newAccountId }: AddAccountDependenc
       accounts,
       auth,
       (chart) => addedAccount(chart, accountType, details, newAccountId()),
-      'addAccount',
+      accounts.addAccount,
     );
 }
