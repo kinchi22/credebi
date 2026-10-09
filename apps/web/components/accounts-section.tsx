@@ -25,7 +25,7 @@ import {
   type ChartChange,
   type AccountDialogTarget,
 } from './account-dialog';
-import { ChartDrag, SortableItem, SortableList } from './chart-drag';
+import { ChartDrag, ChartList, ChartRow, EndZone, GroupHeading } from './chart-drag';
 import { useBrowserToday } from './browser-today';
 import {
   DeleteAccountDialog,
@@ -105,10 +105,9 @@ function AccountRow({
   readonly today: string | undefined;
 }): ReactNode {
   return (
-    <SortableItem
+    <ChartRow
       node={{ kind: 'account', id: account.id }}
       place={{ accountType: account.accountType, groupId: account.groupId }}
-      name={account.name}
       className="flex items-center gap-2 py-1.5"
     >
       {(grip) => (
@@ -129,7 +128,7 @@ function AccountRow({
           <RowButtons {...actions} />
         </>
       )}
-    </SortableItem>
+    </ChartRow>
   );
 }
 
@@ -182,32 +181,30 @@ function GroupRow({
   readonly children: ReactNode;
 }): ReactNode {
   return (
-    <SortableItem
+    <ChartRow
       node={{ kind: 'group', id: group.id }}
       place={{ accountType: group.accountType, groupId: null }}
-      name={group.name}
     >
       {(grip) => (
         <>
-          <div className="flex items-center gap-2 py-1.5">
+          <GroupHeading accountType={group.accountType} groupId={group.id}>
             {grip}
             <span className="flex min-w-0 flex-1 flex-col">
               <span className="font-semibold">{group.name}</span>
               <Description text={group.description} />
             </span>
             <RowButtons {...actions} />
-          </div>
-          <SortableList
+          </GroupHeading>
+          <ChartList
             place={{ accountType: group.accountType, groupId: group.id }}
-            name={group.name}
             ids={shownIds}
             className={shownIds.length === 0 ? 'min-h-8 pl-6' : 'pl-6'}
           >
             {children}
-          </SortableList>
+          </ChartList>
         </>
       )}
-    </SortableItem>
+    </ChartRow>
   );
 }
 
@@ -272,7 +269,7 @@ function TypeList({
   const place: ChartPlace = { accountType, groupId: null };
 
   return (
-    <SortableList place={place} name={en.accountTypes[accountType]} ids={shownIdsOf(nodes, rows)} className="px-2">
+    <ChartList place={place} ids={shownIdsOf(nodes, rows)} className="px-2">
       {nodes.map((node) =>
         node.kind === 'account' ? (
           <AccountRows key={node.account.id} accounts={[node.account]} {...rows} />
@@ -295,7 +292,7 @@ function TypeList({
           </GroupRow>
         ),
       )}
-    </SortableList>
+    </ChartList>
   );
 }
 
@@ -369,6 +366,7 @@ export function AccountsSection({ chart, actions }: AccountsSectionProps): React
             <div key={accountType} role="group" aria-labelledby={`${bandId}-${accountType}`}>
               <TypeBand accountType={accountType} id={`${bandId}-${accountType}`} open={open} />
               <TypeList accountType={accountType} chart={shown} rows={rows} />
+              <EndZone accountType={accountType} />
             </div>
           ))}
         </div>

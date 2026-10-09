@@ -13,6 +13,7 @@ import {
   editAccountGroupInputSchema,
   editAccountInputSchema,
   groupsIn,
+  landedMove,
   moveBefore,
   moveChartNodeInputSchema,
   movedInChart,
@@ -239,6 +240,59 @@ describe('moveBefore', () => {
       moveBefore(OUTLINE, { kind: 'account', id: CASH }, { accountType: 'asset', groupId: SAVINGS_GROUP.id }, null)
         .index,
     ).toBe(0);
+  });
+});
+
+describe('landedMove', () => {
+  const asset = { accountType: 'asset', groupId: null } as const;
+  const inBank = { accountType: 'asset', groupId: BANK } as const;
+  const inSavings = { accountType: 'asset', groupId: SAVINGS_GROUP.id } as const;
+  const cash = { kind: 'account', id: CASH } as const;
+  const xyz = { kind: 'account', id: XYZ_BANK.id } as const;
+  const savings = { kind: 'group', id: SAVINGS_GROUP.id } as const;
+
+  it('puts a node landing at the end of a list last in it', () => {
+    expect(landedMove(OUTLINE, cash, { place: inBank, before: null })).toEqual({ node: cash, ...inBank, index: 2 });
+    expect(landedMove(OUTLINE, cash, { place: inSavings, before: null })).toEqual({
+      node: cash,
+      ...inSavings,
+      index: 0,
+    });
+    expect(landedMove(OUTLINE, xyz, { place: asset, before: null })).toEqual({ node: xyz, ...asset, index: 4 });
+  });
+
+  it('puts a node landing before another node at that node\'s place among the others of its list', () => {
+    expect(landedMove(OUTLINE, xyz, { place: asset, before: SAVINGS_GROUP.id })).toEqual({
+      node: xyz,
+      ...asset,
+      index: 3,
+    });
+    expect(landedMove(OUTLINE, cash, { place: inBank, before: XYZ_BANK.id })).toEqual({
+      node: cash,
+      ...inBank,
+      index: 1,
+    });
+    expect(landedMove(OUTLINE, savings, { place: asset, before: WALLET_ACCOUNT.id })).toEqual({
+      node: savings,
+      ...asset,
+      index: 2,
+    });
+  });
+
+  it('leaves a node where it is when it lands before itself or before the node after it', () => {
+    expect(landedMove(OUTLINE, cash, { place: asset, before: CASH })).toBeUndefined();
+    expect(landedMove(OUTLINE, cash, { place: asset, before: BANK })).toBeUndefined();
+    expect(landedMove(OUTLINE, xyz, { place: inBank, before: null })).toBeUndefined();
+  });
+
+  it('never puts an Account group inside a group, nor a node under another Account type, nor a node not in the chart', () => {
+    const revenue = { accountType: 'revenue', groupId: null } as const;
+    const stranger = { kind: 'account', id: '01920000-0000-7000-8000-00000000c0ff' as AccountId } as const;
+
+    expect(landedMove(OUTLINE, savings, { place: inBank, before: null })).toBeUndefined();
+    expect(landedMove(OUTLINE, cash, { place: revenue, before: null })).toBeUndefined();
+    expect(landedMove(OUTLINE, savings, { place: revenue, before: null })).toBeUndefined();
+    expect(landedMove(OUTLINE, stranger, { place: asset, before: null })).toBeUndefined();
   });
 });
 

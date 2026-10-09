@@ -390,6 +390,19 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
 - **Settings row.** Settings has no panel: each setting is a row between
   `border` hairlines, its name on the left and its control on the right, and
   stacked below `wide`.
+- **Accounts section drag.** A grip moves an Account or an Account group.
+  While it is dragged, a copy of its row, its grip, name and description on a
+  `surface` fill with an `accent` edge, follows the pointer, and the row itself stays in
+  place at half opacity; nothing else in the list shifts. A 2px `accent` line
+  marks where it will land: across the top of the row it will go before, or
+  across the foot of the list it will end. While it would land in an Account
+  group, by its heading or in its list, the group is tinted `accent` at 15%
+  with a 1px inset `accent` edge. An Account dropped on a group's heading goes
+  last in that group, and on the heading's top quarter, at the top level just
+  before the group. A 24px drop zone after each Account type's list, not a
+  row, takes an Account last at the top level. A drop does not animate.
+  Screen readers hear where it would land each time that changes: into a
+  group, before a row, or last in an Account type.
 - **Date presets.** A row of secondary buttons, `Year`, `Quarter`, `Month`
   and `Relative`, below a `border` hairline at the foot of the Entry search
   form, from `wide` up. Each opens its choices on hover in a `surface` panel

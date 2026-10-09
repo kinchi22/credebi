@@ -118,13 +118,14 @@ export function toChart(outline: readonly StoredNode[]): ChartOutput {
   );
 }
 
+const typeOfNode = (node: OutlineNode<PlacedAccount, PlacedGroup>): AccountType =>
+  (node.kind === 'account' ? node.account : node.group).accountType;
+
 export function nodesOfType<Account extends PlacedAccount, Group extends PlacedGroup>(
   chart: readonly OutlineNode<Account, Group>[],
   accountType: AccountType,
 ): OutlineNode<Account, Group>[] {
-  return chart.filter(
-    (node) => (node.kind === 'account' ? node.account : node.group).accountType === accountType,
-  );
+  return chart.filter((node) => typeOfNode(node) === accountType);
 }
 
 export function groupsIn(chart: readonly ChartNodeOutput[]): AccountGroupOutput[] {
@@ -238,6 +239,27 @@ export function moveBefore(
     .filter((id) => id !== node.id);
   const index = others.findIndex((id) => id === before);
   return { node, ...to, index: index === -1 ? others.length : index };
+}
+
+export type ChartLanding = { readonly place: ChartPlace; readonly before: string | null };
+
+export function landedMove(
+  chart: readonly ChartNodeOutput[],
+  node: ChartNodeRef,
+  { place, before }: ChartLanding,
+): MoveChartNodeInput | undefined {
+  const taken = found(chart, node);
+  if (
+    taken === undefined ||
+    (taken.kind === 'group' && place.groupId !== null) ||
+    typeOfNode(taken) !== place.accountType ||
+    before === node.id
+  ) {
+    return undefined;
+  }
+  const move = moveBefore(chart, node, place, before);
+  const stays = listIn(chart, place).findIndex((other) => idOfNode(other) === node.id) === move.index;
+  return stays ? undefined : move;
 }
 
 function found<Account extends PlacedAccount, Group extends PlacedGroup>(
