@@ -15,15 +15,18 @@ import {
   lineGroup,
   lineGroups,
   listedEntry,
+  notActiveMark,
+  notActiveRefusal,
   openAccountSheet,
   pressDone,
   sheetTab,
   SIDES,
+  type Side,
   submitMultiLineEntry,
   submitMultiLineEntryOnPhone,
   TWELVE_THOUSAND_FIVE_HUNDRED,
 } from './entries';
-import { BOOKS_OPEN } from './accounts';
+import { addAccount, BOOKS_OPEN } from './accounts';
 import { signIn } from './session';
 import { setEntryFormMode } from './settings';
 import { PHONE } from './viewport';
@@ -233,4 +236,186 @@ test('lists a Multi-line mode Entry added at 390px through Choose accounts', asy
   await expect(entry).toHaveCount(1);
   await expect(entry.getByTestId('entry-line')).toHaveCount(3);
   await expect(entry.getByTestId('entry-total')).toContainText(TWELVE_THOUSAND_FIVE_HUNDRED);
+});
+
+const OLD_WALLET = 'Old wallet';
+
+const WALLET_IN_USE = DAY;
+
+const WALLET_STILL_IN_USE = '2026-09-20';
+
+const WALLET_ENDED = '2026-10-05';
+
+async function openMultiLineFormWithOldWallet(page: Page): Promise<Locator> {
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
+  await page.goto('/settings');
+  await addAccount(page, 'Assets', {
+    name: OLD_WALLET,
+    activeFrom: '2026-09-01',
+    activeUntil: '2026-09-30',
+  });
+  await setEntryFormMode(page, 'Multi-line mode');
+  await page.goto('/entries');
+  const form = entryForm(page);
+  await expect(accountTicks(form, 'Debit')).toBeVisible();
+  return form;
+}
+
+const amountOf = (form: Locator, side: Side, account: string): Locator =>
+  lineGroup(form, side, account).getByLabel('Amount');
+
+async function fillWalletLines(form: Locator, memo: string, expenses: string): Promise<void> {
+  await form.getByLabel('Date').fill(WALLET_IN_USE);
+  await form.getByLabel('Memo').fill(memo);
+  await addLine(form, { side: 'Debit', account: 'Expenses', amount: expenses });
+  await addLine(form, { side: 'Debit', account: OLD_WALLET, amount: '500' });
+  await addLine(form, { side: 'Credit', account: 'Cash', amount: '12500' });
+}
+
+async function expectWalletLineMarked(form: Locator, expenses: string): Promise<void> {
+  const wallet = lineGroup(form, 'Debit', OLD_WALLET);
+  await expect(wallet).toBeVisible();
+  await expect(notActiveMark(wallet)).toBeVisible();
+  await expect(amountOf(form, 'Debit', OLD_WALLET)).toHaveValue('500');
+  await expect(amountOf(form, 'Debit', 'Expenses')).toHaveValue(expenses);
+  await expect(amountOf(form, 'Credit', 'Cash')).toHaveValue('12500');
+  await expect(notActiveMark(lineGroup(form, 'Debit', 'Expenses'))).toHaveCount(0);
+  await expect(notActiveMark(lineGroup(form, 'Credit', 'Cash'))).toHaveCount(0);
+}
+
+async function pressSubmit(form: Locator, name: 'Add entry' | 'Save'): Promise<void> {
+  await form.getByRole('button', { name, exact: true }).click();
+}
+
+async function expectRefusedForWallet(form: Locator, memo: string): Promise<void> {
+  await expect(form.getByRole('alert')).toContainText(notActiveRefusal('Debit', OLD_WALLET));
+  await expect(form.getByLabel('Date')).toHaveValue(WALLET_ENDED);
+  await expect(form.getByLabel('Memo')).toHaveValue(memo);
+  await expect(lineGroup(form, 'Debit', OLD_WALLET)).toBeVisible();
+  await expect(amountOf(form, 'Debit', OLD_WALLET)).toHaveValue('500');
+}
+
+async function expectListedLines(
+  page: Page,
+  memo: string,
+  day: string,
+  lines: readonly string[],
+): Promise<void> {
+  const entry = listedEntry(page, memo);
+  await expect(entry).toHaveCount(1);
+  await expect(entry).toContainText(day);
+  const shown = entry.getByTestId('entry-line');
+  await expect(shown).toHaveCount(lines.length);
+  for (const [index, account] of lines.entries()) {
+    await expect(shown.nth(index)).toContainText(account);
+  }
+}
+
+test('keeps a line whose Account is not active on the chosen day in the form, marked, with its amount, and leaves it out of the totals', async ({ page }) => {
+  const form = await openMultiLineFormWithOldWallet(page);
+  await fillWalletLines(form, `Wallet ${randomUUID()}`, '12000');
+  await expect(notActiveMark(lineGroup(form, 'Debit', OLD_WALLET))).toHaveCount(0);
+  await expect(form.getByTestId('debit-total')).toHaveText(TWELVE_THOUSAND_FIVE_HUNDRED);
+
+  await form.getByLabel('Date').fill(WALLET_ENDED);
+  await expectWalletLineMarked(form, '12000');
+  await expect(form.getByTestId('debit-total')).toHaveText(amountShown('12,000'));
+  await expect(form.getByTestId('credit-total')).toHaveText(TWELVE_THOUSAND_FIVE_HUNDRED);
+  await expect(form.getByTestId('difference')).toHaveText(amountShown('-500'));
+
+  await form.getByLabel('Date').fill(WALLET_STILL_IN_USE);
+  await expect(notActiveMark(lineGroup(form, 'Debit', OLD_WALLET))).toHaveCount(0);
+  await expect(form.getByTestId('debit-total')).toHaveText(TWELVE_THOUSAND_FIVE_HUNDRED);
+  await expect(form.getByTestId('difference')).toHaveText(amountShown('0'));
+});
+
+test('posts nothing while a line\'s Account is not active on the chosen day, even when the other lines balance, names that line and keeps the input, and posts only the lines shown once the line is removed', async ({ page }) => {
+  const memo = `Wallet ${randomUUID()}`;
+  const form = await openMultiLineFormWithOldWallet(page);
+  await fillWalletLines(form, memo, '12500');
+  await form.getByLabel('Date').fill(WALLET_ENDED);
+  await expectWalletLineMarked(form, '12500');
+  await expect(form.getByTestId('difference')).toHaveText(amountShown('0'));
+
+  await pressSubmit(form, 'Add entry');
+  await expectRefusedForWallet(form, memo);
+  await expect(amountOf(form, 'Debit', 'Expenses')).toHaveValue('12500');
+  await expect(listedEntry(page, memo)).toHaveCount(0);
+
+  await lineGroup(form, 'Debit', OLD_WALLET).getByRole('button', { name: 'Remove', exact: true }).click();
+  await expect(lineGroup(form, 'Debit', OLD_WALLET)).toHaveCount(0);
+  await pressSubmit(form, 'Add entry');
+
+  await expectListedLines(page, memo, WALLET_ENDED, ['Expenses', 'Cash']);
+  await page.reload();
+  await expectListedLines(page, memo, WALLET_ENDED, ['Expenses', 'Cash']);
+});
+
+test('posts every line shown once a day on which the marked line\'s Account is active is chosen', async ({ page }) => {
+  const memo = `Wallet ${randomUUID()}`;
+  const form = await openMultiLineFormWithOldWallet(page);
+  await fillWalletLines(form, memo, '12000');
+  await form.getByLabel('Date').fill(WALLET_ENDED);
+  await pressSubmit(form, 'Add entry');
+  await expectRefusedForWallet(form, memo);
+
+  await form.getByLabel('Date').fill(WALLET_STILL_IN_USE);
+  await expect(notActiveMark(lineGroup(form, 'Debit', OLD_WALLET))).toHaveCount(0);
+  await pressSubmit(form, 'Add entry');
+
+  await expectListedLines(page, memo, WALLET_STILL_IN_USE, ['Expenses', OLD_WALLET, 'Cash']);
+  await page.reload();
+  await expectListedLines(page, memo, WALLET_STILL_IN_USE, ['Expenses', OLD_WALLET, 'Cash']);
+});
+
+async function editPostedWalletEntry(page: Page, memo: string): Promise<Locator> {
+  const form = await openMultiLineFormWithOldWallet(page);
+  await fillWalletLines(form, memo, '12000');
+  await pressSubmit(form, 'Add entry');
+  await expectListedLines(page, memo, WALLET_IN_USE, ['Expenses', OLD_WALLET, 'Cash']);
+
+  await listedEntry(page, memo).getByRole('button', { name: 'Edit', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Edit entry', exact: true });
+  await expect(dialog).toBeVisible();
+  await expect(lineGroup(dialog, 'Debit', OLD_WALLET)).toBeVisible();
+
+  await dialog.getByLabel('Date').fill(WALLET_ENDED);
+  await amountOf(dialog, 'Debit', 'Expenses').fill('12500');
+  await expectWalletLineMarked(dialog, '12500');
+  await expect(dialog.getByTestId('difference')).toHaveText(amountShown('0'));
+
+  await pressSubmit(dialog, 'Save');
+  await expectRefusedForWallet(dialog, memo);
+  await expect(dialog).toBeVisible();
+  await expectListedLines(page, memo, WALLET_IN_USE, ['Expenses', OLD_WALLET, 'Cash']);
+  return dialog;
+}
+
+test('saves no edit of an Entry while a line it had names an Account not active on the chosen day, even when the other lines balance, and saves the lines shown once the User removes that line', async ({ page }) => {
+  const memo = `Wallet ${randomUUID()}`;
+  const dialog = await editPostedWalletEntry(page, memo);
+
+  await lineGroup(dialog, 'Debit', OLD_WALLET).getByRole('button', { name: 'Remove', exact: true }).click();
+  await expect(lineGroup(dialog, 'Debit', OLD_WALLET)).toHaveCount(0);
+  await pressSubmit(dialog, 'Save');
+  await expect(dialog).toBeHidden();
+
+  await expectListedLines(page, memo, WALLET_ENDED, ['Expenses', 'Cash']);
+  await page.reload();
+  await expectListedLines(page, memo, WALLET_ENDED, ['Expenses', 'Cash']);
+});
+
+test('keeps every line of an edited Entry when a day on which the marked line\'s Account is active is chosen', async ({ page }) => {
+  const memo = `Wallet ${randomUUID()}`;
+  const dialog = await editPostedWalletEntry(page, memo);
+
+  await dialog.getByLabel('Date').fill(WALLET_STILL_IN_USE);
+  await amountOf(dialog, 'Debit', 'Expenses').fill('12000');
+  await expect(notActiveMark(lineGroup(dialog, 'Debit', OLD_WALLET))).toHaveCount(0);
+  await pressSubmit(dialog, 'Save');
+  await expect(dialog).toBeHidden();
+
+  await expectListedLines(page, memo, WALLET_STILL_IN_USE, ['Expenses', OLD_WALLET, 'Cash']);
+  await page.reload();
+  await expectListedLines(page, memo, WALLET_STILL_IN_USE, ['Expenses', OLD_WALLET, 'Cash']);
 });

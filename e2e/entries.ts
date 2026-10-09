@@ -31,7 +31,7 @@ export type TwoLineEntry = Heading & {
 
 export type Line = {
   readonly side: Side;
-  readonly account: Account;
+  readonly account: string;
   readonly amount: string;
 };
 
@@ -55,16 +55,24 @@ export const accountChoice = (form: Locator, side: Side, account: string): Locat
 export const accountTicks = (form: Page | Locator, side: Side): Locator =>
   form.getByRole('group', { name: `${side} accounts`, exact: true });
 
-export const accountTick = (form: Locator, side: Side, account: Account): Locator =>
+export const accountTick = (form: Locator, side: Side, account: string): Locator =>
   accountTicks(form, side).getByRole('checkbox', { name: account, exact: true });
 
-export const lineGroup = (form: Locator, side: Side, account: Account): Locator =>
+export const lineGroup = (form: Locator, side: Side, account: string): Locator =>
   form.getByRole('group', { name: `${side} ${account}`, exact: true });
 
 export const lineGroups = (form: Locator): Locator =>
   form.getByRole('group', {
     name: new RegExp(`^(${SIDES.join('|')}) (${ACCOUNTS.join('|')})$`),
   });
+
+export const NOT_ACTIVE_ON_DAY = 'Not active on this day';
+
+export const notActiveMark = (line: Locator): Locator =>
+  line.getByText(NOT_ACTIVE_ON_DAY, { exact: true });
+
+export const notActiveRefusal = (side: Side, account: string): string =>
+  `${side} ${account} is not active on this day. Remove that line, or choose a day on which its account is active.`;
 
 export const addAccountButton = (form: Locator, side: Side): Locator =>
   form.getByRole('button', { name: `Add ${side.toLowerCase()} account`, exact: true });
