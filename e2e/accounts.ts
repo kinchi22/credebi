@@ -33,7 +33,7 @@ export const showEndedAccounts = (page: Page): Locator =>
 export const grip = (scope: Locator | Page, name: string): Locator =>
   scope.getByRole('button', { name: `Move ${name}`, exact: true });
 
-export const grips = (scope: Locator): Locator =>
+export const grips = (scope: Locator | Page): Locator =>
   scope.getByRole('button', { name: /^Move / });
 
 export const row = (scope: Locator, name: string): Locator =>
@@ -229,7 +229,8 @@ export async function headingRowTopEdge(scope: Locator, group: string): Promise<
 
 export async function endOfList(scope: Locator): Promise<Point> {
   const list = await boxOf(scope, 'the Account type');
-  const rows = await scope.getByRole('listitem').filter({ has: grips(scope) }).all();
+  const rows = await scope.getByRole('listitem').filter({ has: grips(scope.page()) }).all();
+  if (rows.length === 0) throw new Error('the Account type has no rows to drop below');
   const rowsEnd = Math.max(...(await Promise.all(rows.map(async (item) => bottom(await boxOf(item, 'a row'))))));
   const end = bottom(list);
   expect(end - rowsEnd, 'the Account type ends in a drop zone below its rows').toBeGreaterThan(0);
