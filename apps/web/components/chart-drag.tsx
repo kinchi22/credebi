@@ -12,18 +12,18 @@ import {
   useSensors,
   type Active,
   type Announcements,
+  type Collision,
   type CollisionDetection,
   type DragEndEvent,
   type DroppableContainer,
   type Over,
 } from '@dnd-kit/core';
 import {
-  droppedMove,
-  landingOf,
+  accountsIn,
+  groupsIn,
+  landedMove,
   type AccountGroupId,
   type AccountType,
-  type ChartDrop,
-  type ChartDropTarget,
   type ChartLanding,
   type ChartNodeOutput,
   type ChartNodeRef,
@@ -32,16 +32,12 @@ import {
 } from '@repo/contracts';
 import { GripIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
-import {
-  createContext,
-  useContext,
-  useId,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
+import { createContext, useContext, useId, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { en } from '../messages/en';
+import { aimedAt, measuredHits, measuredOf, type ChartDrop, type ChartDropTarget } from './chart-drop';
 import { BARE_ICON_BUTTON } from './control-classes';
+import { useHydrated } from './hydrated';
 
 type NodeData = {
   readonly node: ChartNodeRef;
@@ -77,7 +73,7 @@ const firstHit = (
   args: Parameters<CollisionDetection>[0],
   detect: CollisionDetection,
   keep: Keep,
-) =>
+): Collision[] =>
   detect({
     ...args,
     droppableContainers: args.droppableContainers.filter((container: DroppableContainer) => {
@@ -113,50 +109,35 @@ const collide: CollisionDetection = (args) => {
   for (const [detect, keep] of searches) {
     const hit = firstHit(args, detect, keep);
     if (hit.length > 0) {
-      return hit;
+      return measuredHits(hit, args.pointerCoordinates, args.droppableRects);
     }
   }
   return [];
 };
 
 type DragState = {
-  readonly active: Active;
   readonly over: Over | null;
-  readonly activatorEvent: Event;
-  readonly delta: { readonly y: number };
+  readonly collisions: Collision[] | null;
 };
 
-const dropOf = ({ over, activatorEvent, delta }: DragState): ChartDrop | undefined => {
+const dropOf = ({ over, collisions }: DragState): ChartDrop | undefined => {
   const target = over === null ? undefined : targetOf(over);
-  if (over === null || target === undefined || !(activatorEvent instanceof MouseEvent)) {
-    return undefined;
-  }
-  return {
-    target,
-    span: { top: over.rect.top, height: over.rect.height },
-    pointer: activatorEvent.clientY + delta.y,
-  };
+  const hit = collisions?.find((collision) => collision.id === over?.id);
+  const measured = measuredOf(hit);
+  return target === undefined || measured === undefined ? undefined : { target, ...measured };
 };
 
 const { drag } = en.accountsSection;
 
-const namesIn = (chart: readonly ChartNodeOutput[]): ReadonlyMap<string, string> =>
-  new Map(
-    chart.flatMap((node): [string, string][] =>
-      node.kind === 'account'
-        ? [[node.account.id, node.account.name]]
-        : [
-            [node.group.id, node.group.name],
-            ...node.accounts.map((account): [string, string] => [account.id, account.name]),
-          ],
-    ),
-  );
+type RowText = { readonly name: string; readonly description: string | null };
 
-function placeText(
-  { place, before }: ChartLanding,
-  names: ReadonlyMap<string, string>,
-): string {
-  const named = (id: string): string => names.get(id) ?? '';
+const rowsIn = (chart: readonly ChartNodeOutput[]): ReadonlyMap<string, RowText> =>
+  new Map([...groupsIn(chart), ...accountsIn(chart)].map((node) => [node.id, node]));
+
+const ChartRows = createContext<ReadonlyMap<string, RowText>>(new Map());
+
+function placeText({ place, before }: ChartLanding, rows: ReadonlyMap<string, RowText>): string {
+  const named = (id: string): string => rows.get(id)?.name ?? '';
   const beforeText = before === null ? undefined : `${drag.before} ${named(before)}`;
   if (place.groupId !== null) {
     const into = `${drag.into} ${named(place.groupId)}`;
@@ -165,7 +146,14 @@ function placeText(
   return beforeText ?? `${drag.lastIn} ${en.accountTypes[place.accountType]}`;
 }
 
-type Landed = { readonly landing: ChartLanding | undefined; readonly over: boolean };
+type Landed = {
+  readonly node: ChartNodeRef | undefined;
+  readonly landing: ChartLanding | undefined;
+  readonly move: MoveChartNodeInput | undefined;
+  readonly over: boolean;
+};
+
+const UNLANDED: Landed = { node: undefined, landing: undefined, move: undefined, over: false };
 
 const ShownLanding = createContext<ChartLanding | undefined>(undefined);
 
@@ -177,10 +165,33 @@ const LINE_AT_END = 'after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 a
 
 const GROUP_HIGHLIGHT = 'rounded bg-accent/15 ring-1 ring-inset ring-accent';
 
-const sameLanding = (first: ChartLanding | undefined, second: ChartLanding | undefined): boolean =>
-  first === undefined || second === undefined
-    ? first === second
-    : first.before === second.before && samePlace(first.place, second.place);
+const keyOf = ({ landing, over }: Landed): string =>
+  landing === undefined
+    ? String(over)
+    : `${landing.place.accountType} ${String(landing.place.groupId)} ${String(landing.before)}`;
+
+function Overlay({ moving, rows }: { readonly moving: NodeData | undefined; readonly rows: ReadonlyMap<string, RowText> }): ReactNode {
+  const row = moving === undefined ? undefined : rows.get(moving.node.id);
+  return (
+    <DragOverlay dropAnimation={null}>
+      {moving === undefined || row === undefined ? null : (
+        <div
+          className={`flex items-center gap-2 rounded border border-accent bg-surface px-2 py-1.5 ${typeClasses['body-sm']}`}
+        >
+          <span className={`${BARE_ICON_BUTTON} shrink-0 cursor-grabbing`}>
+            <GripIcon />
+          </span>
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className={moving.node.kind === 'group' ? 'font-semibold' : undefined}>{row.name}</span>
+            {row.description === null ? null : (
+              <span className={`${typeClasses['body-dense']} text-text-muted`}>{row.description}</span>
+            )}
+          </span>
+        </div>
+      )}
+    </DragOverlay>
+  );
+}
 
 export function ChartDrag({
   chart,
@@ -192,38 +203,55 @@ export function ChartDrag({
   readonly children: ReactNode;
 }): ReactNode {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  const hydrated = useHydrated();
   const [moving, setMoving] = useState<NodeData>();
   const [landing, setLanding] = useState<ChartLanding>();
-  const landed = useRef<Landed>({ landing: undefined, over: false });
-  const names = namesIn(chart);
+  const landed = useRef<Landed>(UNLANDED);
+  const announced = useRef<string>(undefined);
+  const rows = rowsIn(chart);
 
-  const nameOf = (active: Active): string => names.get(String(active.id)) ?? '';
+  const nameOf = (active: Active): string => rows.get(String(active.id))?.name ?? '';
 
-  const follow = (state: DragState): ChartLanding | undefined => {
+  const follow = (state: DragState & { readonly active: Active }): void => {
     const node = nodeData(state.active)?.node;
     const drop = dropOf(state);
-    const next = node === undefined || drop === undefined ? undefined : landingOf(chart, node, drop);
-    landed.current = { landing: next, over: drop !== undefined };
-    setLanding((shown) => (sameLanding(shown, next) ? shown : next));
-    return next;
+    const aimed = drop === undefined ? undefined : aimedAt(drop);
+    const move = node === undefined || aimed === undefined ? undefined : landedMove(chart, node, aimed);
+    const next: Landed = { node, landing: move === undefined ? undefined : aimed, move, over: drop !== undefined };
+    const changed = keyOf(next) !== keyOf(landed.current);
+    landed.current = next;
+    if (changed) {
+      setLanding(next.landing);
+    }
   };
 
-  const whereNow = (active: Active, verb: string): string => {
+  const whereNow = (active: Active): string => {
     const { landing: now, over } = landed.current;
     if (now !== undefined) {
-      return `${nameOf(active)} ${verb} ${placeText(now, names)}`;
+      return `${nameOf(active)} ${drag.wouldGo} ${placeText(now, rows)}`;
     }
     return `${nameOf(active)} ${over ? drag.stays : drag.overNothing}`;
   };
 
+  const announceChange = (active: Active): string | undefined => {
+    const key = keyOf(landed.current);
+    if (key === announced.current) {
+      return undefined;
+    }
+    announced.current = key;
+    return whereNow(active);
+  };
+
   const announcements: Announcements = {
     onDragStart: ({ active }) => `${drag.pickedUp} ${nameOf(active)}`,
-    onDragMove: ({ active }) => whereNow(active, drag.wouldGo),
-    onDragOver: ({ active }) => whereNow(active, drag.wouldGo),
-    onDragEnd: ({ active }) =>
-      landed.current.landing === undefined
+    onDragMove: ({ active }) => announceChange(active),
+    onDragOver: ({ active }) => announceChange(active),
+    onDragEnd: ({ active }) => {
+      const { landing: now } = landed.current;
+      return now === undefined
         ? `${nameOf(active)} ${drag.putBack}`
-        : whereNow(active, drag.went),
+        : `${nameOf(active)} ${drag.went} ${placeText(now, rows)}`;
+    },
     onDragCancel: ({ active }) => `${nameOf(active)} ${drag.putBack}`,
   };
 
@@ -232,7 +260,7 @@ export function ChartDrag({
     setLanding(undefined);
   };
 
-  const shownName = moving === undefined ? undefined : names.get(moving.node.id);
+  const overlay = <Overlay moving={moving} rows={rows} />;
 
   return (
     <DndContext
@@ -240,39 +268,29 @@ export function ChartDrag({
       collisionDetection={collide}
       accessibility={{ announcements, screenReaderInstructions: { draggable: drag.instructions } }}
       onDragStart={({ active }) => {
-        landed.current = { landing: undefined, over: false };
+        landed.current = UNLANDED;
+        announced.current = undefined;
         setMoving(nodeData(active));
       }}
       onDragMove={follow}
       onDragOver={follow}
       onDragCancel={() => {
-        landed.current = { landing: undefined, over: false };
+        landed.current = UNLANDED;
         stop();
       }}
       onDragEnd={(event: DragEndEvent) => {
         follow(event);
         stop();
-        const node = nodeData(event.active)?.node;
-        const drop = dropOf(event);
-        const move = node === undefined || drop === undefined ? undefined : droppedMove(chart, node, drop);
+        const { move } = landed.current;
         if (move !== undefined) {
           onMove(move);
         }
       }}
     >
-      <ShownLanding.Provider value={landing}>{children}</ShownLanding.Provider>
-      <DragOverlay dropAnimation={null}>
-        {moving === undefined ? null : (
-          <div
-            className={`flex items-center gap-2 rounded border border-accent bg-surface px-2 py-1.5 ${typeClasses['body-sm']}`}
-          >
-            <span className={`${BARE_ICON_BUTTON} shrink-0 cursor-grabbing`}>
-              <GripIcon />
-            </span>
-            <span className={moving.node.kind === 'group' ? 'font-semibold' : undefined}>{shownName}</span>
-          </div>
-        )}
-      </DragOverlay>
+      <ChartRows.Provider value={rows}>
+        <ShownLanding.Provider value={landing}>{children}</ShownLanding.Provider>
+      </ChartRows.Provider>
+      {hydrated ? createPortal(overlay, document.body) : null}
     </DndContext>
   );
 }
@@ -344,17 +362,16 @@ export function GroupHeading({
 export function ChartRow({
   node,
   place,
-  name,
   className = '',
   children,
 }: {
   readonly node: ChartNodeRef;
   readonly place: ChartPlace;
-  readonly name: string;
   readonly className?: string;
   readonly children: (grip: ReactNode) => ReactNode;
 }): ReactNode {
   const ids = useContext(ListIds);
+  const name = useContext(ChartRows).get(node.id)?.name ?? '';
   const next = ids[ids.indexOf(node.id) + 1] ?? null;
   const { setNodeRef, setActivatorNodeRef, listeners, isDragging } = useDraggable({
     id: node.id,

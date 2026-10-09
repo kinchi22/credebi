@@ -108,7 +108,6 @@ function AccountRow({
     <ChartRow
       node={{ kind: 'account', id: account.id }}
       place={{ accountType: account.accountType, groupId: account.groupId }}
-      name={account.name}
       className="flex items-center gap-2 py-1.5"
     >
       {(grip) => (
@@ -185,7 +184,6 @@ function GroupRow({
     <ChartRow
       node={{ kind: 'group', id: group.id }}
       place={{ accountType: group.accountType, groupId: null }}
-      name={group.name}
     >
       {(grip) => (
         <>

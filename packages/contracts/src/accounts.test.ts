@@ -10,11 +10,10 @@ import {
   chartSchema,
   deleteAccountGroupInputSchema,
   deleteAccountInputSchema,
-  droppedMove,
   editAccountGroupInputSchema,
   editAccountInputSchema,
   groupsIn,
-  landingOf,
+  landedMove,
   moveBefore,
   moveChartNodeInputSchema,
   movedInChart,
@@ -244,127 +243,56 @@ describe('moveBefore', () => {
   });
 });
 
-describe('droppedMove', () => {
+describe('landedMove', () => {
   const asset = { accountType: 'asset', groupId: null } as const;
   const inBank = { accountType: 'asset', groupId: BANK } as const;
+  const inSavings = { accountType: 'asset', groupId: SAVINGS_GROUP.id } as const;
   const cash = { kind: 'account', id: CASH } as const;
   const xyz = { kind: 'account', id: XYZ_BANK.id } as const;
   const savings = { kind: 'group', id: SAVINGS_GROUP.id } as const;
-  const span = { top: 100, height: 40 };
-  const heading = (groupId: AccountGroupId) => ({ on: 'heading', accountType: 'asset', groupId }) as const;
 
-  it("puts an Account dropped on an Account group's heading, below its top quarter, last in that group", () => {
-    expect(droppedMove(OUTLINE, cash, { target: heading(BANK), span, pointer: 110 })).toEqual({
+  it('puts a node landing at the end of a list last in it', () => {
+    expect(landedMove(OUTLINE, cash, { place: inBank, before: null })).toEqual({ node: cash, ...inBank, index: 2 });
+    expect(landedMove(OUTLINE, cash, { place: inSavings, before: null })).toEqual({
       node: cash,
-      ...inBank,
-      index: 2,
+      ...inSavings,
+      index: 0,
     });
-    expect(
-      droppedMove(OUTLINE, cash, { target: heading(SAVINGS_GROUP.id), span, pointer: 139 }),
-    ).toEqual({ node: cash, accountType: 'asset', groupId: SAVINGS_GROUP.id, index: 0 });
+    expect(landedMove(OUTLINE, xyz, { place: asset, before: null })).toEqual({ node: xyz, ...asset, index: 4 });
   });
 
-  it("puts an Account dropped on the top quarter of an Account group's heading at the top level just before that group", () => {
-    expect(droppedMove(OUTLINE, xyz, { target: heading(SAVINGS_GROUP.id), span, pointer: 109 })).toEqual({
+  it('puts a node landing before another node at that node\'s place among the others of its list', () => {
+    expect(landedMove(OUTLINE, xyz, { place: asset, before: SAVINGS_GROUP.id })).toEqual({
       node: xyz,
       ...asset,
       index: 3,
     });
-    expect(droppedMove(OUTLINE, cash, { target: heading(SAVINGS_GROUP.id), span, pointer: 100 })).toEqual({
-      node: cash,
-      ...asset,
-      index: 2,
-    });
-  });
-
-  it('leaves an Account where it is when dropped on the top quarter of the heading of the group right after it', () => {
-    expect(droppedMove(OUTLINE, cash, { target: heading(BANK), span, pointer: 101 })).toBeUndefined();
-  });
-
-  it('puts a node dropped on the drop zone at the end of a list last in that list', () => {
-    expect(droppedMove(OUTLINE, xyz, { target: { on: 'end', place: asset }, span, pointer: 0 })).toEqual({
-      node: xyz,
-      ...asset,
-      index: 4,
-    });
-    expect(droppedMove(OUTLINE, cash, { target: { on: 'end', place: inBank }, span, pointer: 0 })).toEqual({
-      node: cash,
-      ...inBank,
-      index: 2,
-    });
-  });
-
-  it('puts a node dropped on a row in another list before that row in its upper half and after it in its lower half', () => {
-    const abcRow = { on: 'row', place: inBank, node: { kind: 'account', id: ABC_BANK.id }, next: XYZ_BANK.id } as const;
-
-    expect(droppedMove(OUTLINE, cash, { target: abcRow, span, pointer: 120 })).toEqual({
-      node: cash,
-      ...inBank,
-      index: 0,
-    });
-    expect(droppedMove(OUTLINE, cash, { target: abcRow, span, pointer: 121 })).toEqual({
+    expect(landedMove(OUTLINE, cash, { place: inBank, before: XYZ_BANK.id })).toEqual({
       node: cash,
       ...inBank,
       index: 1,
     });
-    expect(
-      droppedMove(OUTLINE, cash, { target: { ...abcRow, node: xyz, next: null }, span, pointer: 130 }),
-    ).toEqual({ node: cash, ...inBank, index: 2 });
-  });
-
-  it('moves a node within its own list to before or after the row it is dropped on', () => {
-    const walletRow = { on: 'row', place: asset, node: { kind: 'account', id: WALLET_ACCOUNT.id }, next: SAVINGS_GROUP.id } as const;
-
-    expect(droppedMove(OUTLINE, cash, { target: walletRow, span, pointer: 130 })).toEqual({
-      node: cash,
-      ...asset,
-      index: 2,
-    });
-    expect(droppedMove(OUTLINE, savings, { target: walletRow, span, pointer: 110 })).toEqual({
+    expect(landedMove(OUTLINE, savings, { place: asset, before: WALLET_ACCOUNT.id })).toEqual({
       node: savings,
       ...asset,
       index: 2,
     });
   });
 
-  it('leaves a node where it is when dropped on itself or on a neighbour on its side', () => {
-    const cashRow = { on: 'row', place: asset, node: cash, next: BANK } as const;
-    const bankRow = { on: 'row', place: asset, node: { kind: 'group', id: BANK }, next: WALLET_ACCOUNT.id } as const;
-
-    expect(droppedMove(OUTLINE, cash, { target: cashRow, span, pointer: 110 })).toBeUndefined();
-    expect(droppedMove(OUTLINE, cash, { target: cashRow, span, pointer: 130 })).toBeUndefined();
-    expect(droppedMove(OUTLINE, cash, { target: bankRow, span, pointer: 110 })).toBeUndefined();
+  it('leaves a node where it is when it lands before itself or before the node after it', () => {
+    expect(landedMove(OUTLINE, cash, { place: asset, before: CASH })).toBeUndefined();
+    expect(landedMove(OUTLINE, cash, { place: asset, before: BANK })).toBeUndefined();
+    expect(landedMove(OUTLINE, xyz, { place: inBank, before: null })).toBeUndefined();
   });
 
   it('never puts an Account group inside a group, nor a node under another Account type, nor a node not in the chart', () => {
-    expect(droppedMove(OUTLINE, savings, { target: heading(BANK), span, pointer: 130 })).toBeUndefined();
-    const revenue = { on: 'end', place: { accountType: 'revenue', groupId: null } } as const;
-    expect(droppedMove(OUTLINE, cash, { target: revenue, span, pointer: 0 })).toBeUndefined();
-    expect(droppedMove(OUTLINE, savings, { target: revenue, span, pointer: 0 })).toBeUndefined();
-    expect(
-      droppedMove(OUTLINE, { kind: 'account', id: '01920000-0000-7000-8000-00000000c0ff' as AccountId }, { target: { on: 'end', place: asset }, span, pointer: 0 }),
-    ).toBeUndefined();
-  });
-});
+    const revenue = { accountType: 'revenue', groupId: null } as const;
+    const stranger = { kind: 'account', id: '01920000-0000-7000-8000-00000000c0ff' as AccountId } as const;
 
-describe('landingOf', () => {
-  it('names the list a drop goes into and the node it goes before', () => {
-    const inBank = { accountType: 'asset', groupId: BANK } as const;
-
-    expect(
-      landingOf(OUTLINE, { kind: 'account', id: CASH }, {
-        target: { on: 'heading', accountType: 'asset', groupId: BANK },
-        span: { top: 0, height: 40 },
-        pointer: 20,
-      }),
-    ).toEqual({ place: inBank, before: null });
-    expect(
-      landingOf(OUTLINE, { kind: 'account', id: CASH }, {
-        target: { on: 'heading', accountType: 'asset', groupId: SAVINGS_GROUP.id },
-        span: { top: 0, height: 40 },
-        pointer: 5,
-      }),
-    ).toEqual({ place: { accountType: 'asset', groupId: null }, before: SAVINGS_GROUP.id });
+    expect(landedMove(OUTLINE, savings, { place: inBank, before: null })).toBeUndefined();
+    expect(landedMove(OUTLINE, cash, { place: revenue, before: null })).toBeUndefined();
+    expect(landedMove(OUTLINE, savings, { place: revenue, before: null })).toBeUndefined();
+    expect(landedMove(OUTLINE, stranger, { place: asset, before: null })).toBeUndefined();
   });
 });
 
