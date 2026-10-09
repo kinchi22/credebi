@@ -26,7 +26,7 @@ import {
   submitTwoLineEntryOnPhone,
   TWELVE_THOUSAND_FIVE_HUNDRED,
 } from './entries';
-import { startAccountsOn } from './accounts';
+import { BOOKS_OPEN } from './accounts';
 import { signIn, signInForSmoke } from './session';
 import { setEntryFormMode } from './settings';
 import { PHONE } from './viewport';
@@ -73,8 +73,7 @@ async function expectRows(
 }
 
 async function openTwoLineForm(page: Page): Promise<Locator> {
-  await signIn(page);
-  await startAccountsOn(page);
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await setEntryFormMode(page, 'Two-line mode');
   await page.goto('/entries');
   const form = entryForm(page);
@@ -271,8 +270,7 @@ test("does not show one User's Entries to another", async ({ browser }) => {
 
   const owner = await browser.newContext();
   const ownerPage = await owner.newPage();
-  await signIn(ownerPage);
-  await startAccountsOn(ownerPage);
+  await signIn(ownerPage, { accountsStartOn: BOOKS_OPEN });
   await setEntryFormMode(ownerPage, 'Two-line mode');
   await ownerPage.goto('/entries');
   await submitTwoLineEntry(entryForm(ownerPage), {
