@@ -23,12 +23,14 @@ import {
   submitMultiLineEntryOnPhone,
   TWELVE_THOUSAND_FIVE_HUNDRED,
 } from './entries';
+import { startAccountsOn } from './accounts';
 import { signIn } from './session';
 import { setEntryFormMode } from './settings';
 import { PHONE } from './viewport';
 
 async function openMultiLineForm(page: Page): Promise<Locator> {
   await signIn(page);
+  await startAccountsOn(page);
   await setEntryFormMode(page, 'Multi-line mode');
   await page.goto('/entries');
   const form = entryForm(page);

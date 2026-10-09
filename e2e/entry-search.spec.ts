@@ -11,6 +11,7 @@ import {
 } from './entries';
 import { fromField, resultFor, results, search, toField } from './entry-search';
 import { ENTRY_SEARCH_PATH as SEARCH, ENTRY_SEARCH_WITH_QUERY, ENTRY_SEARCH_WITHOUT_QUERY } from './routes';
+import { startAccountsOn } from './accounts';
 import { signIn, signInForSmoke } from './session';
 import { PHONE } from './viewport';
 
@@ -88,6 +89,7 @@ test('opens with no query on the month up to today, filled into From and To, and
   const after = `Tomorrow ${run}`;
 
   await signIn(page);
+  await startAccountsOn(page);
   await postEntries(page, [
     { day: '2026-08-15', memo: before, ...posting('Expenses', 'Cash') },
     { day: '2026-08-16', memo: opening, ...posting('Expenses', 'Cash') },
@@ -121,6 +123,7 @@ test('opens on 31 March with a range from 1 March, as a month back has no 31st',
   const march = `First of March ${run}`;
 
   await signIn(page);
+  await startAccountsOn(page);
   await postEntries(page, [
     { day: '2026-02-28', memo: february, ...posting('Expenses', 'Cash') },
     { day: '2026-03-01', memo: march, ...posting('Expenses', 'Cash') },
@@ -140,6 +143,7 @@ test('puts the criteria into the query when the User searches, and a reload keep
   const july = `July ${run}`;
 
   await signIn(page);
+  await startAccountsOn(page);
   await postEntries(page, [
     { day: '2026-06-15', memo: june, ...posting('Expenses', 'Cash') },
     { day: '2026-07-15', memo: july, ...posting('Expenses', 'Cash') },
@@ -169,6 +173,7 @@ test('never searches with From or To emptied', async ({ page }) => {
   const future = `Future ${run}`;
 
   await signIn(page);
+  await startAccountsOn(page);
   await postEntries(page, [
     { day: '2026-09-01', memo: recent, ...posting('Expenses', 'Cash') },
     { day: '2020-01-01', memo: old, ...posting('Expenses', 'Cash') },
@@ -193,6 +198,7 @@ test('never searches with From or To emptied', async ({ page }) => {
 test('fills From and To from a Year preset and runs the search, emphasising the year of today', async ({ page }) => {
   test.slow();
   await signIn(page);
+  await startAccountsOn(page);
   const { june, lastYear } = await postJuneAndLastYear(page, randomUUID());
 
   await fixToday(page, TODAY);
@@ -221,6 +227,7 @@ test('fills From and To from a Year preset and runs the search, emphasising the 
 test('fills From and To from a Quarter preset and runs the search, emphasising the quarter of today', async ({ page }) => {
   test.slow();
   await signIn(page);
+  await startAccountsOn(page);
   const { june, lastYear } = await postJuneAndLastYear(page, randomUUID());
 
   await fixToday(page, TODAY);
@@ -249,6 +256,7 @@ test('fills From and To from a Quarter preset and runs the search, emphasising t
 test('fills From and To from a Month preset and runs the search, emphasising the month of today', async ({ page }) => {
   test.slow();
   await signIn(page);
+  await startAccountsOn(page);
   const { june, lastYear } = await postJuneAndLastYear(page, randomUUID());
 
   await fixToday(page, TODAY);
@@ -280,6 +288,7 @@ test('fills From and To from a Month preset and runs the search, emphasising the
 test('fills From and To from a Relative preset and runs the search, emphasising none of them', async ({ page }) => {
   test.slow();
   await signIn(page);
+  await startAccountsOn(page);
   const { june, lastYear } = await postJuneAndLastYear(page, randomUUID());
 
   await fixToday(page, TODAY);
@@ -336,6 +345,7 @@ test('fills From and To from a Relative preset and runs the search, emphasising 
 test('opens the presets at 390px from Choose a period, as a full-screen sheet with the four categories as tabs', async ({ page }) => {
   test.slow();
   await signIn(page);
+  await startAccountsOn(page);
   const { june, lastYear } = await postJuneAndLastYear(page, randomUUID());
 
   await page.setViewportSize(PHONE);
@@ -381,6 +391,7 @@ test('narrows the results to a day range, both of whose ends are included', asyn
   const after = `Next month ${run}`;
 
   await signIn(page);
+  await startAccountsOn(page);
   await postEntries(page, [
     { day: '2026-05-31', memo: before, ...posting('Expenses', 'Cash') },
     { day: '2026-06-01', memo: opening, ...posting('Expenses', 'Cash') },
@@ -405,6 +416,7 @@ test('matches an Entry through either of its Entry lines', async ({ page }) => {
   const untouched = `No cash ${run}`;
 
   await signIn(page);
+  await startAccountsOn(page);
   await postEntries(page, [
     { day: '2026-06-10', memo: debited, ...posting('Cash', 'Sales') },
     { day: '2026-06-11', memo: credited, ...posting('Expenses', 'Cash') },
@@ -425,6 +437,7 @@ test('narrows the results to a memo substring, ignoring case', async ({ page }) 
   const fare = `Rail fare ${run}`;
 
   await signIn(page);
+  await startAccountsOn(page);
   await postEntries(page, [
     { day: '2026-06-10', memo: beans, ...posting('Expenses', 'Cash') },
     { day: '2026-06-11', memo: fare, ...posting('Expenses', 'Cash') },
@@ -446,6 +459,7 @@ test('narrows with the day range, the Account and the memo together', async ({ p
   const wrongMemo = `Fuel June ${run}`;
 
   await signIn(page);
+  await startAccountsOn(page);
   await postEntries(page, [
     { day: '2026-06-15', memo: matching, ...posting('Expenses', 'Cash') },
     { day: '2026-07-15', memo: wrongDay, ...posting('Expenses', 'Cash') },
@@ -467,6 +481,7 @@ test('keeps the criteria it searched with filled into the form', async ({ page }
   const memo = `Stationery ${run}`;
 
   await signIn(page);
+  await startAccountsOn(page);
   await postEntries(page, [
     { day: '2026-06-15', memo, ...posting('Expenses', 'Cash') },
   ]);
@@ -487,6 +502,7 @@ test('says that nothing matched, rather than rendering an empty region', async (
   const memo = `Ferry ${run}`;
 
   await signIn(page);
+  await startAccountsOn(page);
   await postEntries(page, [
     { day: '2026-06-15', memo, ...posting('Expenses', 'Cash') },
   ]);
@@ -503,6 +519,7 @@ test('refuses a reversed day range, explains itself, and shows no list', async (
   const memo = `Ledger ${run}`;
 
   await signIn(page);
+  await startAccountsOn(page);
   await postEntries(page, [
     { day: '2026-06-15', memo, ...posting('Expenses', 'Cash') },
   ]);
@@ -520,6 +537,7 @@ test("never shows one User's Entry in another User's results", async ({ browser 
   const owner = await browser.newContext();
   const ownerPage = await owner.newPage();
   await signIn(ownerPage);
+  await startAccountsOn(ownerPage);
   await postEntries(ownerPage, [
     { day: '2026-06-15', memo, ...posting('Expenses', 'Cash') },
   ]);
@@ -548,6 +566,7 @@ test('orders the results as `/entries` does: latest day first, and within a day 
   const laterDay = `Next day ${run}`;
 
   await signIn(page);
+  await startAccountsOn(page);
   await postEntries(page, [
     { day: '2026-06-10', memo: writtenFirst, ...posting('Expenses', 'Cash') },
     { day: '2026-06-10', memo: writtenSecond, ...posting('Expenses', 'Cash') },
