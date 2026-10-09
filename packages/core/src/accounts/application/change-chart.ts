@@ -6,7 +6,10 @@ import { type AccountRepository } from '../ports/account-repository';
 export async function changeChart<Node>(
   accounts: AccountRepository,
   auth: AuthContext,
-  change: (chart: Chart) => Result<Node, DomainError>,
+  change: (
+    chart: Chart,
+    userId: UserId,
+  ) => Result<Node, DomainError> | Promise<Result<Node, DomainError>>,
   save: (userId: UserId, node: Node) => Promise<Result<void, DomainError>>,
 ): Promise<Result<Node, DomainError>> {
   const userId = requireUser(auth);
@@ -19,7 +22,7 @@ export async function changeChart<Node>(
     return chart;
   }
 
-  const node = change(chart.value);
+  const node = await change(chart.value, userId.value);
   if (!node.ok) {
     return node;
   }

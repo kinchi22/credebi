@@ -5,6 +5,7 @@ import {
   accountIdSchema,
   accountTypeSchema,
   changeEntryFormModeInputSchema,
+  ok,
   parseAccountForm,
   parseAccountGroupForm,
   type DomainError,
@@ -91,5 +92,17 @@ export async function editAccountGroup(id: string, form: FormData): Promise<Char
     accountGroupIdSchema.safeParse(id).data,
     parseAccountGroupForm(form),
     (caller, groupId, details) => caller.accounts.editGroup({ ...details, id: groupId }),
+  );
+}
+
+export async function deleteAccount(id: string): Promise<ChartChange> {
+  return changeChart(accountIdSchema.safeParse(id).data, ok(undefined), (caller, accountId) =>
+    caller.accounts.delete({ id: accountId }),
+  );
+}
+
+export async function deleteAccountGroup(id: string): Promise<ChartChange> {
+  return changeChart(accountGroupIdSchema.safeParse(id).data, ok(undefined), (caller, groupId) =>
+    caller.accounts.deleteGroup({ id: groupId }),
   );
 }

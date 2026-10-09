@@ -12,6 +12,7 @@ const EXPECTED_STATUS: Record<DomainErrorCode, TRPCError['code']> = {
   UNBALANCED: 'UNPROCESSABLE_CONTENT',
   UNAUTHENTICATED: 'UNAUTHORIZED',
   NAME_TAKEN: 'CONFLICT',
+  IN_USE: 'CONFLICT',
 };
 
 describe('toTrpcError', () => {

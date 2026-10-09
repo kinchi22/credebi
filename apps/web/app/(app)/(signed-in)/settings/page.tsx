@@ -11,6 +11,8 @@ import {
   addAccount,
   addAccountGroup,
   changeEntryFormMode,
+  deleteAccount,
+  deleteAccountGroup,
   editAccount,
   editAccountGroup,
 } from './actions';
@@ -34,7 +36,14 @@ export default async function SettingsPage(): Promise<ReactNode> {
       <EntryFormModeChoice chosen={settings.entryFormMode} action={changeEntryFormMode} />
       <AccountsSection
         chart={chart}
-        actions={{ addAccount, editAccount, addAccountGroup, editAccountGroup }}
+        actions={{
+          addAccount,
+          editAccount,
+          addAccountGroup,
+          editAccountGroup,
+          deleteAccount,
+          deleteAccountGroup,
+        }}
       />
     </>
   );

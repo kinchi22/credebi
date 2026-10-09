@@ -161,6 +161,18 @@ export const editAccountInputSchema = accountDetailsSchema.extend({
 
 export type EditAccountInput = z.infer<typeof editAccountInputSchema>;
 
+export const deleteAccountInputSchema = z.object({
+  id: accountIdSchema,
+});
+
+export type DeleteAccountInput = z.infer<typeof deleteAccountInputSchema>;
+
+export const deleteAccountGroupInputSchema = z.object({
+  id: accountGroupIdSchema,
+});
+
+export type DeleteAccountGroupInput = z.infer<typeof deleteAccountGroupInputSchema>;
+
 export const ACCOUNT_FORM_FIELDS = {
   name: 'name',
   description: 'description',

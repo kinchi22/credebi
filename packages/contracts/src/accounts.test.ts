@@ -8,6 +8,8 @@ import {
   addAccountGroupInputSchema,
   addAccountInputSchema,
   chartSchema,
+  deleteAccountGroupInputSchema,
+  deleteAccountInputSchema,
   editAccountGroupInputSchema,
   editAccountInputSchema,
   groupsIn,
@@ -307,5 +309,19 @@ describe('addAccountInputSchema and editAccountInputSchema', () => {
   it('refuses an unknown Account type, or an id that is not an Account id', () => {
     expect(addAccountInputSchema.safeParse({ ...details, accountType: 'cash' }).success).toBe(false);
     expect(editAccountInputSchema.safeParse({ ...details, id: 'cash' }).success).toBe(false);
+  });
+});
+
+describe('deleteAccountInputSchema and deleteAccountGroupInputSchema', () => {
+  it('carries the id of the Account or Account group to delete', () => {
+    expect(deleteAccountInputSchema.parse({ id: CASH })).toEqual({ id: CASH });
+    expect(deleteAccountGroupInputSchema.parse({ id: BANK })).toEqual({ id: BANK });
+  });
+
+  it('refuses an input whose id is missing or not an id', () => {
+    expect(deleteAccountInputSchema.safeParse({}).success).toBe(false);
+    expect(deleteAccountInputSchema.safeParse({ id: 'cash' }).success).toBe(false);
+    expect(deleteAccountGroupInputSchema.safeParse({}).success).toBe(false);
+    expect(deleteAccountGroupInputSchema.safeParse({ id: 'bank' }).success).toBe(false);
   });
 });

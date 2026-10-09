@@ -11,6 +11,8 @@ import {
 import {
   createAddAccount,
   createAddAccountGroup,
+  createDeleteAccount,
+  createDeleteAccountGroup,
   createBeginGoogleSignIn,
   createChangeEntryFormMode,
   createDeleteEntry,
@@ -28,6 +30,8 @@ import {
   createTestSignIn,
   type AddAccount,
   type AddAccountGroup,
+  type DeleteAccount,
+  type DeleteAccountGroup,
   type BeginGoogleSignIn,
   type ChangeEntryFormMode,
   type DeleteEntry,
@@ -71,6 +75,8 @@ export type Container = {
   readonly editAccount: EditAccount;
   readonly addAccountGroup: AddAccountGroup;
   readonly editAccountGroup: EditAccountGroup;
+  readonly deleteAccount: DeleteAccount;
+  readonly deleteAccountGroup: DeleteAccountGroup;
   readonly getSettings: GetSettings;
   readonly changeEntryFormMode: ChangeEntryFormMode;
   readonly resolveSession: ResolveSession;
@@ -135,6 +141,8 @@ export function createContainer({ databaseUrl, google, testSignIn }: Env): Conta
       newAccountGroupId: () => accountGroupIdSchema.parse(uuidv7()),
     }),
     editAccountGroup: createEditAccountGroup({ accounts }),
+    deleteAccount: createDeleteAccount({ accounts }),
+    deleteAccountGroup: createDeleteAccountGroup({ accounts }),
     getSettings: createGetSettings({ settings }),
     changeEntryFormMode: createChangeEntryFormMode({ settings }),
     resolveSession: createResolveSession({ sessions, hashSessionToken, now: () => new Date() }),
