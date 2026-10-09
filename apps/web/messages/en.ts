@@ -145,8 +145,6 @@ export const en = {
     save: 'Save',
     pending: 'Saving...',
     close: 'Close',
-    discardBody: 'Your changes to this account have not been saved and will be lost.',
-    discardGroupBody: 'Your changes to this group have not been saved and will be lost.',
     refusals: chartRefusals(
       'account',
       accountNotSaved,
@@ -283,7 +281,9 @@ export const en = {
   },
   discardChanges: {
     title: 'Discard changes',
-    body: 'Your changes to this entry have not been saved and will be lost.',
+    entry: 'Your changes to this entry have not been saved and will be lost.',
+    account: 'Your changes to this account have not been saved and will be lost.',
+    group: 'Your changes to this group have not been saved and will be lost.',
     keep: 'Keep editing',
     confirm: 'Discard',
   },

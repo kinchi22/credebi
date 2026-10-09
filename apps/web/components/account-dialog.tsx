@@ -25,9 +25,10 @@ import {
   FIELD,
   PRIMARY_BUTTON,
 } from './control-classes';
-import { DiscardChanges, useChangeGuard } from './discard-changes';
+import { useChangeGuard } from './change-guard';
+import { CloseButton } from './close-button';
+import { DiscardChanges } from './discard-changes';
 import { type ModalDialog } from './modal-dialog';
-import { SheetCloseButton } from './sheet';
 import { MUTED_TEXT, DANGER_TEXT } from './text-classes';
 
 export type ChartChange =
@@ -70,13 +71,11 @@ const KINDS = {
     addTitle: en.accountDialog.addTitle,
     editTitle: en.accountDialog.editTitle,
     refusals: en.accountDialog.refusals,
-    discardBody: en.accountDialog.discardBody,
   },
   group: {
     addTitle: en.accountDialog.addGroupTitle,
     editTitle: en.accountDialog.editGroupTitle,
     refusals: en.accountDialog.groupRefusals,
-    discardBody: en.accountDialog.discardGroupBody,
   },
 } as const;
 
@@ -202,7 +201,7 @@ function AccountForm({
           </h2>
           <p className={MUTED_TEXT}>{en.accountTypes[target.accountType]}</p>
         </div>
-        <SheetCloseButton label={en.accountDialog.close} onClose={onClose} disabled={pending} />
+        <CloseButton label={en.accountDialog.close} onClose={onClose} disabled={pending} />
       </div>
       <label className={FIELD}>
         {en.accountDialog.name}
@@ -260,8 +259,7 @@ export function AccountDialog({
   return (
     <>
       <dialog
-        {...dialog.dialogProps}
-        {...guard.dialogHandlers}
+        {...guard.dialogProps}
         aria-labelledby={titleId}
         className={CONFIRMATION_DIALOG}
       >
@@ -279,11 +277,13 @@ export function AccountDialog({
           />
         ) : null}
       </dialog>
-      <DiscardChanges
-        dialog={guard.discard}
-        body={target === undefined ? '' : KINDS[target.kind].discardBody}
-        onDiscard={guard.discardChanges}
-      />
+      {target === undefined ? null : (
+        <DiscardChanges
+          dialog={guard.discard}
+          body={en.discardChanges[target.kind]}
+          onDiscard={guard.discardChanges}
+        />
+      )}
     </>
   );
 }

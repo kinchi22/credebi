@@ -4,13 +4,15 @@ import { type ChartOutput, type EntryFormMode, type PostedEntry } from '@repo/co
 import { PencilIcon } from '@repo/ui';
 import { useId, type ReactNode } from 'react';
 import { en } from '../messages/en';
+import { useChangeGuard } from './change-guard';
+import { CloseButton } from './close-button';
 import { ROW_ICON_BUTTON } from './control-classes';
-import { DiscardChanges, useChangeGuard } from './discard-changes';
+import { DiscardChanges } from './discard-changes';
 import { type EntryFormProps, type EntryFormState } from './entry-form';
 import { hasOneLinePerSide } from './entry-lines';
 import { useModalDialog } from './modal-dialog';
 import { MultiLineEntryForm } from './multi-line-entry-form';
-import { SheetBar, SheetCloseButton } from './sheet';
+import { SheetBar } from './sheet';
 import { TwoLineEntryForm } from './two-line-entry-form';
 
 export type EditEntryAction = (
@@ -53,8 +55,7 @@ export function EditEntry({ entry, chart, entryFormMode, action }: EditEntryProp
         <PencilIcon />
       </button>
       <dialog
-        {...dialog.dialogProps}
-        {...guard.dialogHandlers}
+        {...guard.dialogProps}
         tabIndex={-1}
         aria-labelledby={titleId}
         className="m-0 h-full max-h-none w-full max-w-none border-0 outline-none bg-ground p-0 text-text backdrop:bg-ground-dark/60 wide:my-auto wide:mr-14 wide:ml-[17.5rem] wide:h-auto wide:max-h-[calc(100dvh-4rem)] wide:w-auto wide:rounded wide:border wide:border-border wide:bg-surface"
@@ -62,7 +63,7 @@ export function EditEntry({ entry, chart, entryFormMode, action }: EditEntryProp
         {dialog.open ? (
           <div className="flex h-full flex-col wide:h-auto wide:max-h-[calc(100dvh-4rem)]">
             <SheetBar titleId={titleId} title={en.editEntry.title}>
-              <SheetCloseButton label={en.editEntry.close} onClose={guard.requestClose} />
+              <CloseButton label={en.editEntry.close} onClose={guard.requestClose} />
             </SheetBar>
             <div className="min-h-0 grow overflow-y-auto p-4 wide:p-6">
               <EntryForm
@@ -76,7 +77,7 @@ export function EditEntry({ entry, chart, entryFormMode, action }: EditEntryProp
       </dialog>
       <DiscardChanges
         dialog={guard.discard}
-        body={en.discardChanges.body}
+        body={en.discardChanges.entry}
         onDiscard={guard.discardChanges}
       />
     </>

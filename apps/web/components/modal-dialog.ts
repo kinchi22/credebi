@@ -87,6 +87,9 @@ export function useModalDialog({ closesWhenWide }: ModalDialogOptions = SHEET): 
 
   useCloseWhenWide(close, closesWhenWide);
 
+  const scrimClicked = (event: MouseEvent<HTMLDialogElement>): boolean =>
+    press.clicked(event.target, event.currentTarget);
+
   return {
     open,
     show: (from) => {
@@ -98,9 +101,9 @@ export function useModalDialog({ closesWhenWide }: ModalDialogOptions = SHEET): 
       return true;
     },
     close,
-    scrimClicked: (event) => press.clicked(event.target, event.currentTarget),
+    scrimClicked,
     closeOnScrim: (event) => {
-      if (press.clicked(event.target, event.currentTarget)) close();
+      if (scrimClicked(event)) close();
     },
     dialogProps: {
       ref: dialog,
