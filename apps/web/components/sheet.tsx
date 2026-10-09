@@ -46,15 +46,17 @@ export function SheetBar({ titleId, title, children }: SheetBarProps): ReactNode
 export type SheetCloseButtonProps = {
   readonly label: string;
   readonly onClose: () => void;
+  readonly disabled?: boolean;
 };
 
-export function SheetCloseButton({ label, onClose }: SheetCloseButtonProps): ReactNode {
+export function SheetCloseButton({ label, onClose, disabled }: SheetCloseButtonProps): ReactNode {
   return (
     <button
       type="button"
       aria-label={label}
       onClick={onClose}
-      className="-mr-2 inline-flex size-10 items-center justify-center rounded text-text"
+      disabled={disabled}
+      className="-mr-2 inline-flex size-10 items-center justify-center rounded text-text disabled:opacity-50"
     >
       <CloseIcon />
     </button>

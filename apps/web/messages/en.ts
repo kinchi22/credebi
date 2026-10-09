@@ -144,7 +144,9 @@ export const en = {
     activeUntil: 'Active until',
     save: 'Save',
     pending: 'Saving...',
-    cancel: 'Cancel',
+    close: 'Close',
+    discardBody: 'Your changes to this account have not been saved and will be lost.',
+    discardGroupBody: 'Your changes to this group have not been saved and will be lost.',
     refusals: chartRefusals(
       'account',
       accountNotSaved,

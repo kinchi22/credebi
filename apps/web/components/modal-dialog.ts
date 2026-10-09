@@ -1,16 +1,53 @@
-import { useCallback, useEffect, useRef, useState, type MouseEvent, type RefObject } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent,
+  type PointerEvent,
+  type RefObject,
+} from 'react';
 import { WIDE_QUERY } from './wide';
 
 export type ModalDialog = {
   readonly open: boolean;
   readonly show: (opener: HTMLElement | null) => boolean;
   readonly close: () => void;
+  readonly scrimClicked: (event: MouseEvent<HTMLDialogElement>) => boolean;
   readonly closeOnScrim: (event: MouseEvent<HTMLDialogElement>) => void;
   readonly dialogProps: {
     readonly ref: RefObject<HTMLDialogElement | null>;
     readonly onClose: () => void;
+    readonly onPointerDown: (event: PointerEvent<HTMLDialogElement>) => void;
+    readonly onPointerUp: (event: PointerEvent<HTMLDialogElement>) => void;
   };
 };
+
+export type ScrimPress = {
+  readonly began: (target: EventTarget | null, dialog: EventTarget) => void;
+  readonly ended: (target: EventTarget | null, dialog: EventTarget) => void;
+  readonly clicked: (target: EventTarget | null, dialog: EventTarget) => boolean;
+};
+
+export function scrimPress(): ScrimPress {
+  let beganOnScrim = false;
+  let endedOnScrim = false;
+  return {
+    began: (target, dialog) => {
+      beganOnScrim = target === dialog;
+      endedOnScrim = false;
+    },
+    ended: (target, dialog) => {
+      endedOnScrim = target === dialog;
+    },
+    clicked: (target, dialog) => {
+      const clicked = beganOnScrim && endedOnScrim && target === dialog;
+      beganOnScrim = false;
+      endedOnScrim = false;
+      return clicked;
+    },
+  };
+}
 
 export type ModalDialogOptions = {
   readonly closesWhenWide: boolean;
@@ -38,6 +75,7 @@ export function useModalDialog({ closesWhenWide }: ModalDialogOptions = SHEET): 
   const [open, setOpen] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const opener = useRef<HTMLElement | null>(null);
+  const [press] = useState(scrimPress);
 
   const close = useCallback((): void => {
     dialog.current?.close();
@@ -60,13 +98,20 @@ export function useModalDialog({ closesWhenWide }: ModalDialogOptions = SHEET): 
       return true;
     },
     close,
+    scrimClicked: (event) => press.clicked(event.target, event.currentTarget),
     closeOnScrim: (event) => {
-      if (event.target === event.currentTarget) close();
+      if (press.clicked(event.target, event.currentTarget)) close();
     },
     dialogProps: {
       ref: dialog,
       onClose: () => {
         if (dialog.current?.open !== true) close();
+      },
+      onPointerDown: (event) => {
+        press.began(event.target, event.currentTarget);
+      },
+      onPointerUp: (event) => {
+        press.ended(event.target, event.currentTarget);
       },
     },
   };

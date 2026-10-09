@@ -535,13 +535,24 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   above it. `Close`, Escape or a click on the scrim closes it at once when the
   form holds what it opened with, and focus returns to the button that opened
   it; when the form holds changes, they open `Discard changes` instead.
+- **Account dialog.** `Add account`, `Edit account`, `Add group` and
+  `Edit group` are drawn as a confirmation dialog, opened from the Accounts
+  section. Its first row holds the title and, below it, the Account type in
+  `text-muted`, with a close icon named `Close` at the top right of the panel
+  beside them; the form follows, then the refusal in `danger`, then `Save`, a
+  primary button reading `Saving...` while it runs, alone at the end of the
+  last row. It has no `Cancel`. Focus starts on Name. `Close`, Escape or a
+  click on the scrim closes it at once when the form holds what it opened with,
+  and focus returns to the button that opened it; when the form holds changes,
+  they open `Discard changes` instead. While it saves, `Close` and `Save` are
+  disabled and nothing closes it.
 - **Discard changes dialog.** `Discard changes` is a confirmation dialog over
-  `Edit entry`, whose thing is a sentence saying the changes will be lost, in
-  `body-sm`. `Keep editing` stands where `Cancel` does and takes focus first,
-  and `Discard` is the danger button. `Keep editing`, Escape or a click on its
-  scrim closes it and returns to the edit with the input kept, focus back where
-  it was. `Discard` closes both dialogs, changes nothing, and focus returns to
-  the Entry's `Edit`.
+  `Edit entry` or an Account dialog, whose thing is a sentence saying the
+  changes will be lost, in `body-sm`. `Keep editing` stands where `Cancel` does
+  and takes focus first, and `Discard` is the danger button. `Keep editing`,
+  Escape or a click on its scrim closes it and returns to the edit with the
+  input kept, focus back where it was. `Discard` closes both dialogs, changes
+  nothing, and focus returns to the button that opened the edit.
 - **Link.** `accent-text`, underlined, and `accent-text-hover` under the
   pointer.
 - **Input.** `surface` fill, `text`, a `border-control` edge. The spec's
@@ -628,3 +639,4 @@ hidden.
 | Semantic token | A colour named by its role, such as `text-muted` or `danger`, mapped onto a brand palette colour. Components use only these. |
 | Band           | A full-width strip tinted `band` behind a heading, such as an Account type's name in the Account picker, so the groups under it read apart. |
 | Chip           | A choice drawn as a small inline box that sits beside others and wraps, rather than one per row; a chosen chip takes a fill and an edge. |
+| Scrim          | The `ground-dark` tint at 60% behind a modal dialog. A click on the scrim is a press that began on it as well as ended there: a press that began inside the dialog, as when selecting a field's text by dragging, and was released on the scrim closes nothing. |

@@ -18,15 +18,16 @@ import {
 } from 'react';
 import { en } from '../messages/en';
 import {
-  BUTTON,
+  CONFIRMATION_DIALOG,
   CONFIRMATION_PANEL,
   CONTROL,
   DATE_CONTROL,
   FIELD,
   PRIMARY_BUTTON,
 } from './control-classes';
+import { DiscardChanges, useChangeGuard } from './discard-changes';
 import { type ModalDialog } from './modal-dialog';
-import { PendingDialog } from './pending-dialog';
+import { SheetCloseButton } from './sheet';
 import { MUTED_TEXT, DANGER_TEXT } from './text-classes';
 
 export type ChartChange =
@@ -69,11 +70,13 @@ const KINDS = {
     addTitle: en.accountDialog.addTitle,
     editTitle: en.accountDialog.editTitle,
     refusals: en.accountDialog.refusals,
+    discardBody: en.accountDialog.discardBody,
   },
   group: {
     addTitle: en.accountDialog.addGroupTitle,
     editTitle: en.accountDialog.editGroupTitle,
     refusals: en.accountDialog.groupRefusals,
+    discardBody: en.accountDialog.discardGroupBody,
   },
 } as const;
 
@@ -153,7 +156,7 @@ function AccountForm({
   groups,
   today,
   titleId,
-  onCancel,
+  onClose,
   onSaved,
   save,
   pending,
@@ -163,7 +166,7 @@ function AccountForm({
   readonly groups: readonly AccountGroupOutput[];
   readonly today: string | undefined;
   readonly titleId: string;
-  readonly onCancel: () => void;
+  readonly onClose: () => void;
   readonly onSaved: () => void;
   readonly save: (form: FormData) => Promise<ChartChange>;
   readonly pending: boolean;
@@ -192,11 +195,14 @@ function AccountForm({
 
   return (
     <form onSubmit={submit} className={CONFIRMATION_PANEL}>
-      <div className="flex flex-col gap-1">
-        <h2 id={titleId} className={typeClasses.h2}>
-          {described === undefined ? kind.addTitle : kind.editTitle}
-        </h2>
-        <p className={MUTED_TEXT}>{en.accountTypes[target.accountType]}</p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h2 id={titleId} className={typeClasses.h2}>
+            {described === undefined ? kind.addTitle : kind.editTitle}
+          </h2>
+          <p className={MUTED_TEXT}>{en.accountTypes[target.accountType]}</p>
+        </div>
+        <SheetCloseButton label={en.accountDialog.close} onClose={onClose} disabled={pending} />
       </div>
       <label className={FIELD}>
         {en.accountDialog.name}
@@ -232,9 +238,6 @@ function AccountForm({
         </p>
       )}
       <div className="flex justify-end gap-3">
-        <button type="button" onClick={onCancel} disabled={pending} className={BUTTON}>
-          {en.accountDialog.cancel}
-        </button>
         <button type="submit" disabled={pending} className={PRIMARY_BUTTON}>
           {pending ? en.accountDialog.pending : en.accountDialog.save}
         </button>
@@ -252,22 +255,35 @@ export function AccountDialog({
 }: AccountDialogProps): ReactNode {
   const titleId = useId();
   const [pending, startTransition] = useTransition();
+  const guard = useChangeGuard(dialog, pending);
 
   return (
-    <PendingDialog dialog={dialog} titleId={titleId} pending={pending}>
-      {target !== undefined ? (
-        <AccountForm
-          target={target}
-          groups={groups}
-          today={today}
-          titleId={titleId}
-          onCancel={dialog.close}
-          onSaved={dialog.close}
-          save={saverOf(target, actions)}
-          pending={pending}
-          startTransition={startTransition}
-        />
-      ) : null}
-    </PendingDialog>
+    <>
+      <dialog
+        {...dialog.dialogProps}
+        {...guard.dialogHandlers}
+        aria-labelledby={titleId}
+        className={CONFIRMATION_DIALOG}
+      >
+        {dialog.open && target !== undefined ? (
+          <AccountForm
+            target={target}
+            groups={groups}
+            today={today}
+            titleId={titleId}
+            onClose={guard.requestClose}
+            onSaved={dialog.close}
+            save={saverOf(target, actions)}
+            pending={pending}
+            startTransition={startTransition}
+          />
+        ) : null}
+      </dialog>
+      <DiscardChanges
+        dialog={guard.discard}
+        body={target === undefined ? '' : KINDS[target.kind].discardBody}
+        onDiscard={guard.discardChanges}
+      />
+    </>
   );
 }
