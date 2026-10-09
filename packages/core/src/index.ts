@@ -56,6 +56,7 @@ export {
   createEditAccount,
   createEditAccountGroup,
   createGetChart,
+  createMoveChartNode,
   type Account,
   type AccountGroup,
   type AccountRepository,
@@ -74,6 +75,8 @@ export {
   type EditAccountGroupDependencies,
   type GetChart,
   type GetChartDependencies,
+  type MoveChartNode,
+  type MoveChartNodeDependencies,
 } from './accounts/index';
 
 export {

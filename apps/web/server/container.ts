@@ -18,6 +18,7 @@ import {
   createDeleteEntry,
   createEditAccount,
   createEditAccountGroup,
+  createMoveChartNode,
   createEditEntry,
   createFinishGoogleSignIn,
   createGetChart,
@@ -37,6 +38,7 @@ import {
   type DeleteEntry,
   type EditAccount,
   type EditAccountGroup,
+  type MoveChartNode,
   type EditEntry,
   type FinishGoogleSignIn,
   type GetChart,
@@ -77,6 +79,7 @@ export type Container = {
   readonly editAccountGroup: EditAccountGroup;
   readonly deleteAccount: DeleteAccount;
   readonly deleteAccountGroup: DeleteAccountGroup;
+  readonly moveChartNode: MoveChartNode;
   readonly getSettings: GetSettings;
   readonly changeEntryFormMode: ChangeEntryFormMode;
   readonly resolveSession: ResolveSession;
@@ -143,6 +146,7 @@ export function createContainer({ databaseUrl, google, testSignIn }: Env): Conta
     editAccountGroup: createEditAccountGroup({ accounts }),
     deleteAccount: createDeleteAccount({ accounts }),
     deleteAccountGroup: createDeleteAccountGroup({ accounts }),
+    moveChartNode: createMoveChartNode({ accounts }),
     getSettings: createGetSettings({ settings }),
     changeEntryFormMode: createChangeEntryFormMode({ settings }),
     resolveSession: createResolveSession({ sessions, hashSessionToken, now: () => new Date() }),

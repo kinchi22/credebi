@@ -169,6 +169,42 @@ export function createPostgresAccountRepository(
         : ok(undefined);
     },
 
+    placeNodes: async (userId: UserId, placed: Chart): Promise<Result<void, DomainError>> => {
+      const missing = new Error('A node to place is not in the User\'s chart of accounts.');
+      try {
+        await database.transaction(async (transaction) => {
+          for (const account of placed.accounts) {
+            const updated = await transaction
+              .update(schema.accounts)
+              .set({ groupId: account.groupId, position: account.position })
+              .where(and(eq(schema.accounts.id, account.id), eq(schema.accounts.userId, userId)))
+              .returning({ id: schema.accounts.id });
+            if (updated.length === 0) {
+              throw missing;
+            }
+          }
+          for (const group of placed.groups) {
+            const updated = await transaction
+              .update(schema.accountGroups)
+              .set({ position: group.position })
+              .where(
+                and(eq(schema.accountGroups.id, group.id), eq(schema.accountGroups.userId, userId)),
+              )
+              .returning({ id: schema.accountGroups.id });
+            if (updated.length === 0) {
+              throw missing;
+            }
+          }
+        });
+        return ok(undefined);
+      } catch (error) {
+        if (error === missing || describeError(error).code === FOREIGN_KEY_VIOLATION) {
+          return err(domainError('NOT_FOUND', missing.message));
+        }
+        return databaseFailure(logger, 'accounts.place_failed', error, 'The chart could not be reordered.');
+      }
+    },
+
     isAccountNamed: async (userId: UserId, id: AccountId): Promise<Result<boolean, DomainError>> => {
       try {
         const naming = await database

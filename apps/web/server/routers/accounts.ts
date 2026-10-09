@@ -6,6 +6,7 @@ import {
   deleteAccountInputSchema,
   editAccountGroupInputSchema,
   editAccountInputSchema,
+  moveChartNodeInputSchema,
   toChart,
 } from '@repo/contracts';
 import { toTrpcError } from '../domain-error';
@@ -69,6 +70,15 @@ export const accountsRouter = router({
     .input(deleteAccountGroupInputSchema)
     .mutation(async ({ ctx, input }) => {
       const result = await ctx.container.deleteAccountGroup(ctx.auth, input);
+      if (!result.ok) {
+        throw toTrpcError(result.error);
+      }
+    }),
+
+  move: sessionProcedure
+    .input(moveChartNodeInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const result = await ctx.container.moveChartNode(ctx.auth, input);
       if (!result.ok) {
         throw toTrpcError(result.error);
       }

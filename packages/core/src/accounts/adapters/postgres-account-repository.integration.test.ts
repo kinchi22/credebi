@@ -337,6 +337,72 @@ describe('createPostgresAccountRepository', () => {
       'accounts.update_group_failed',
     ]);
   });
+  it('saves the places of the nodes it is given in one go, and reads them back in that order', async () => {
+    const bank = group(10, 'asset', 1, 'Bank');
+    const cash = account(1, 'asset', 0, 'Cash');
+    const wallet = account(2, 'asset', 2, 'Wallet');
+    const abcBank = { ...account(3, 'asset', 0, 'ABC Bank'), groupId: bank.id };
+    await storeGroup(ADA, bank);
+    for (const stored of [cash, wallet, abcBank]) {
+      await store(ADA, stored);
+    }
+    const placed = {
+      accounts: [
+        { ...wallet, position: 0 },
+        { ...abcBank, groupId: null, position: 1 },
+        { ...cash, position: 3 },
+      ],
+      groups: [{ ...bank, position: 2 }],
+    };
+
+    expect(await repository.placeNodes(ADA, placed)).toEqual(ok(undefined));
+    expect(await repository.readChart(ADA)).toEqual(ok(placed));
+    expect(logged).toEqual([]);
+  });
+
+  it("refuses to place another User's node, or an Account into an Account group of another Account type, as not found, and places nothing", async () => {
+    const loans = group(10, 'liability', 0, 'Loans');
+    const bank = group(11, 'asset', 1, 'Bank');
+    const cash = account(1, 'asset', 0, 'Cash');
+    const gracesWallet = account(2, 'asset', 0, 'Wallet');
+    const gracesBank = group(12, 'asset', 0, 'Bank');
+    await storeGroup(ADA, loans);
+    await storeGroup(ADA, bank);
+    await store(ADA, cash);
+    await store(GRACE, gracesWallet);
+    await storeGroup(GRACE, gracesBank);
+    const unmoved = ok({ accounts: [cash], groups: [loans, bank] });
+
+    const graces = await repository.placeNodes(ADA, {
+      accounts: [{ ...cash, position: 5 }, { ...gracesWallet, position: 6 }],
+      groups: [],
+    });
+    const gracesGroup = await repository.placeNodes(ADA, {
+      accounts: [],
+      groups: [{ ...bank, position: 5 }, { ...gracesBank, position: 6 }],
+    });
+    const otherType = await repository.placeNodes(ADA, {
+      accounts: [{ ...cash, groupId: loans.id }],
+      groups: [{ ...bank, position: 7 }],
+    });
+
+    expect(isErr(graces) && graces.error.code).toBe('NOT_FOUND');
+    expect(isErr(gracesGroup) && gracesGroup.error.code).toBe('NOT_FOUND');
+    expect(isErr(otherType) && otherType.error.code).toBe('NOT_FOUND');
+    expect(await repository.readChart(ADA)).toEqual(unmoved);
+    expect(await repository.readChart(GRACE)).toEqual(
+      ok({ accounts: [gracesWallet], groups: [gracesBank] }),
+    );
+    expect(logged).toEqual([]);
+  });
+
+  it('reports an unreachable database on placing nodes as a result, never by throwing', async () => {
+    const placed = await dead.placeNodes(ADA, chartOf(account(1, 'asset', 0, 'Cash')));
+
+    expect(isErr(placed) && placed.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+    expect(logged.map((fields) => fields['event'])).toEqual(['accounts.place_failed']);
+  });
+
   it('answers whether an Entry line names an Account, and never for another User', async () => {
     const cash = account(1, 'asset', 0, 'Cash');
     const sales = account(2, 'revenue', 0, 'Sales');

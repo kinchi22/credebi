@@ -4,6 +4,10 @@ const accountNotSaved =
 const groupNotSaved =
   'The group was not saved. A name is 1 to 40 characters, and a description at most 200.';
 
+const notMoved =
+  'That move was put back. An account moves only within its account type, and a group never into another group.';
+const unmoved = 'That move could not be saved just now, so it was put back. Try again.';
+
 function chartRefusals(
   node: 'account' | 'group',
   notSaved: string,
@@ -106,6 +110,16 @@ export const en = {
     delete: 'Delete',
     move: 'Move',
     startsOn: 'Starts',
+    moveRefusals: {
+      INVALID_INPUT: notMoved,
+      NAME_TAKEN: notMoved,
+      IN_USE: notMoved,
+      UNBALANCED: notMoved,
+      NOT_FOUND: 'That move was put back, because the account or group is no longer here. Reload the page.',
+      CONFLICT: unmoved,
+      DEPENDENCY_UNAVAILABLE: unmoved,
+      UNAUTHENTICATED: 'You are signed out. Sign in again to change your accounts.',
+    },
   },
   accountDialog: {
     addTitle: 'Add account',

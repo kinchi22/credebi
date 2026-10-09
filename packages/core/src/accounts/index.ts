@@ -34,4 +34,7 @@ export type {
   DeleteAccountGroupDependencies,
 } from './application/delete-account-group';
 
+export { createMoveChartNode } from './application/move-chart-node';
+export type { MoveChartNode, MoveChartNodeDependencies } from './application/move-chart-node';
+
 export type { AccountRepository } from './ports/account-repository';
