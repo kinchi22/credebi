@@ -29,14 +29,14 @@ export const accountType = (page: Page, type: AccountType): Locator =>
 export const showEndedAccounts = (page: Page): Locator =>
   accountsSection(page).getByRole('checkbox', { name: 'Show ended accounts', exact: true });
 
-export const grip = (scope: Locator, name: string): Locator =>
+export const grip = (scope: Locator | Page, name: string): Locator =>
   scope.getByRole('button', { name: `Move ${name}`, exact: true });
 
 export const grips = (scope: Locator): Locator =>
   scope.getByRole('button', { name: /^Move / });
 
 export const row = (scope: Locator, name: string): Locator =>
-  scope.getByRole('listitem').filter({ has: grip(scope, name) }).last();
+  scope.getByRole('listitem').filter({ has: grip(scope.page(), name) }).last();
 
 const button = (scope: Locator, name: string): Locator =>
   scope.getByRole('button', { name, exact: true });
