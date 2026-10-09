@@ -1,6 +1,8 @@
 import {
+  addAccountGroupInputSchema,
   addAccountInputSchema,
   chartSchema,
+  editAccountGroupInputSchema,
   editAccountInputSchema,
   toChart,
 } from '@repo/contracts';
@@ -29,6 +31,24 @@ export const accountsRouter = router({
     .input(editAccountInputSchema)
     .mutation(async ({ ctx, input }) => {
       const result = await ctx.container.editAccount(ctx.auth, input);
+      if (!result.ok) {
+        throw toTrpcError(result.error);
+      }
+    }),
+
+  addGroup: sessionProcedure
+    .input(addAccountGroupInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const result = await ctx.container.addAccountGroup(ctx.auth, input);
+      if (!result.ok) {
+        throw toTrpcError(result.error);
+      }
+    }),
+
+  editGroup: sessionProcedure
+    .input(editAccountGroupInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const result = await ctx.container.editAccountGroup(ctx.auth, input);
       if (!result.ok) {
         throw toTrpcError(result.error);
       }

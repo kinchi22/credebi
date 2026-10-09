@@ -2,15 +2,19 @@
 
 import {
   ENTRY_FORM_FIELDS,
+  accountsIn,
+  nodesOfType,
+  type AccountGroupOutput,
   type AccountId,
   type AccountOutput,
+  type AccountType,
   type ChartOutput,
   type Side,
 } from '@repo/contracts';
 import { ACCOUNT_TYPES } from '@repo/core/accounts';
 import { ChevronIcon, SearchIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
-import { useId, useState, type ReactNode } from 'react';
+import { Fragment, useId, useState, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { CONTROL, PRIMARY_BUTTON } from './control-classes';
 import { useHydrated } from './hydrated';
@@ -210,6 +214,7 @@ const CHIP = `rounded border border-transparent px-1.5 py-1 text-text peer-check
 type ChoicesLook = {
   readonly sideNameShown: boolean;
   readonly typeName: string;
+  readonly groupName: string;
   readonly accounts: string;
   readonly account: string;
   readonly choice: string;
@@ -218,6 +223,7 @@ type ChoicesLook = {
 const SHEET_LOOK: ChoicesLook = {
   sideNameShown: false,
   typeName: `${typeClasses.label} text-text-muted`,
+  groupName: 'px-2 pt-1 font-semibold',
   accounts: 'flex flex-col gap-1',
   account: 'relative flex',
   choice: SHEET_CHOICE,
@@ -226,10 +232,71 @@ const SHEET_LOOK: ChoicesLook = {
 const INLINE_LOOK: ChoicesLook = {
   sideNameShown: true,
   typeName: `-mx-3 bg-band px-3 py-1 ${typeClasses.label} text-text-muted`,
+  groupName: 'pt-1 font-semibold',
   accounts: 'flex flex-wrap gap-x-3 gap-y-0.5',
   account: 'relative inline-flex',
   choice: CHIP,
 };
+
+type Run =
+  | { readonly kind: 'accounts'; readonly accounts: readonly AccountOutput[] }
+  | {
+      readonly kind: 'group';
+      readonly group: AccountGroupOutput;
+      readonly accounts: readonly AccountOutput[];
+    };
+
+function runsOf(chart: ChartOutput, type: AccountType): readonly Run[] {
+  const runs: Run[] = [];
+  for (const node of nodesOfType(chart, type)) {
+    const last = runs.at(-1);
+    if (node.kind === 'group') {
+      runs.push(node);
+    } else if (last?.kind === 'accounts') {
+      runs[runs.length - 1] = { kind: 'accounts', accounts: [...last.accounts, node.account] };
+    } else {
+      runs.push({ kind: 'accounts', accounts: [node.account] });
+    }
+  }
+  return runs;
+}
+
+type ChoiceProps = Pick<SideChoicesProps, 'side' | 'control' | 'look'> & {
+  readonly onInvalid: (() => void) | undefined;
+  readonly account: AccountOutput;
+  readonly shown: boolean;
+  readonly chosen: boolean;
+  readonly onPick: (chosen: boolean) => void;
+};
+
+function Choice({
+  side,
+  account,
+  control,
+  shown,
+  chosen,
+  onPick,
+  onInvalid,
+  look,
+}: ChoiceProps): ReactNode {
+  return (
+    <label className={shown ? look.account : 'hidden'}>
+      <input
+        type={control.inputType}
+        name={control.fieldName?.[side]}
+        value={account.id}
+        required={control.fieldName !== undefined}
+        checked={chosen}
+        onChange={(event) => {
+          onPick(event.target.checked);
+        }}
+        onInvalid={onInvalid}
+        className="peer absolute inset-0 m-0 appearance-none opacity-0"
+      />
+      <span className={look.choice}>{account.name}</span>
+    </label>
+  );
+}
 
 function SideChoices({
   side,
@@ -243,6 +310,26 @@ function SideChoices({
 }: SideChoicesProps): ReactNode {
   const typeId = useId();
 
+  const choices = (accounts: readonly AccountOutput[]): ReactNode => (
+    <div className={look.accounts}>
+      {accounts.map((account) => (
+        <Choice
+          key={account.id}
+          side={side}
+          account={account}
+          control={control}
+          shown={matches(account)}
+          chosen={isChosen(account.id)}
+          onPick={(chosen) => {
+            onPick(account, chosen);
+          }}
+          onInvalid={onInvalid}
+          look={look}
+        />
+      ))}
+    </div>
+  );
+
   return (
     <div
       role={control.groupRole}
@@ -255,39 +342,32 @@ function SideChoices({
         </p>
       ) : null}
       {ACCOUNT_TYPES.map((type) => {
-        const accounts = chart.filter((account) => account.accountType === type);
+        const runs = runsOf(chart, type);
         return (
           <div
             key={type}
             role="group"
             aria-labelledby={`${typeId}-${type}`}
-            className={accounts.some(matches) ? 'flex flex-col gap-1' : 'hidden'}
+            className={
+              runs.some((run) => run.accounts.some(matches)) ? 'flex flex-col gap-1' : 'hidden'
+            }
           >
-            <p
-              id={`${typeId}-${type}`}
-              className={look.typeName}
-            >
+            <p id={`${typeId}-${type}`} className={look.typeName}>
               {en.accountTypes[type]}
             </p>
-            <div className={look.accounts}>
-              {accounts.map((account) => (
-                <label key={account.id} className={matches(account) ? look.account : 'hidden'}>
-                  <input
-                    type={control.inputType}
-                    name={control.fieldName?.[side]}
-                    value={account.id}
-                    required={control.fieldName !== undefined}
-                    checked={isChosen(account.id)}
-                    onChange={(event) => {
-                      onPick(account, event.target.checked);
-                    }}
-                    onInvalid={onInvalid}
-                    className="peer absolute inset-0 m-0 appearance-none opacity-0"
-                  />
-                  <span className={look.choice}>{account.name}</span>
-                </label>
-              ))}
-            </div>
+            {runs.map((run, index) =>
+              run.kind === 'accounts' ? (
+                <Fragment key={`accounts-${String(index)}`}>{choices(run.accounts)}</Fragment>
+              ) : (
+                <div
+                  key={run.group.id}
+                  className={run.accounts.some(matches) ? 'flex flex-col gap-1' : 'hidden'}
+                >
+                  <p className={look.groupName}>{run.group.name}</p>
+                  <div className="pl-3">{choices(run.accounts)}</div>
+                </div>
+              ),
+            )}
           </div>
         );
       })}
@@ -326,7 +406,7 @@ type NoMatchProps = {
 };
 
 function NoMatch({ query, chart, matches }: NoMatchProps): ReactNode {
-  return chart.some(matches) ? null : (
+  return accountsIn(chart).some(matches) ? null : (
     <p className="px-4 py-3 text-text-muted">
       {en.accountSheet.noMatch} &quot;{query.trim()}&quot;.
     </p>
@@ -348,7 +428,7 @@ function AccountColumns({
   const tabId = (side: Side): string => `${id}-${side}-tab`;
   const panelId = (side: Side): string => `${id}-${side}-panel`;
   const hasAccount = (side: Side): boolean =>
-    chart.some((account) => isChosen(side, account.id));
+    accountsIn(chart).some((account) => isChosen(side, account.id));
 
   return (
     <div
@@ -414,7 +494,7 @@ function AccountSheetDialog({
   const titleId = `${sheet.id}-title`;
   const matches = nameContains(sheet.query);
   const hasAccount = (side: Side): boolean =>
-    chart.some((account) => isChosen(side, account.id));
+    accountsIn(chart).some((account) => isChosen(side, account.id));
 
   const pick = (side: Side, account: AccountOutput, chosen: boolean): void => {
     onPick(side, account, chosen);

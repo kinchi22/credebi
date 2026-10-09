@@ -1,5 +1,6 @@
 import 'server-only';
 import {
+  accountGroupIdSchema,
   accountIdSchema,
   domainError,
   entryIdSchema,
@@ -9,10 +10,12 @@ import {
 } from '@repo/contracts';
 import {
   createAddAccount,
+  createAddAccountGroup,
   createBeginGoogleSignIn,
   createChangeEntryFormMode,
   createDeleteEntry,
   createEditAccount,
+  createEditAccountGroup,
   createEditEntry,
   createFinishGoogleSignIn,
   createGetChart,
@@ -24,10 +27,12 @@ import {
   createSignOut,
   createTestSignIn,
   type AddAccount,
+  type AddAccountGroup,
   type BeginGoogleSignIn,
   type ChangeEntryFormMode,
   type DeleteEntry,
   type EditAccount,
+  type EditAccountGroup,
   type EditEntry,
   type FinishGoogleSignIn,
   type GetChart,
@@ -64,6 +69,8 @@ export type Container = {
   readonly getChart: GetChart;
   readonly addAccount: AddAccount;
   readonly editAccount: EditAccount;
+  readonly addAccountGroup: AddAccountGroup;
+  readonly editAccountGroup: EditAccountGroup;
   readonly getSettings: GetSettings;
   readonly changeEntryFormMode: ChangeEntryFormMode;
   readonly resolveSession: ResolveSession;
@@ -123,6 +130,11 @@ export function createContainer({ databaseUrl, google, testSignIn }: Env): Conta
     getChart: createGetChart({ accounts }),
     addAccount: createAddAccount({ accounts, newAccountId }),
     editAccount: createEditAccount({ accounts }),
+    addAccountGroup: createAddAccountGroup({
+      accounts,
+      newAccountGroupId: () => accountGroupIdSchema.parse(uuidv7()),
+    }),
+    editAccountGroup: createEditAccountGroup({ accounts }),
     getSettings: createGetSettings({ settings }),
     changeEntryFormMode: createChangeEntryFormMode({ settings }),
     resolveSession: createResolveSession({ sessions, hashSessionToken, now: () => new Date() }),

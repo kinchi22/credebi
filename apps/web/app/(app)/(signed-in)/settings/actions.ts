@@ -1,10 +1,14 @@
 'use server';
 
 import {
+  accountGroupIdSchema,
   accountIdSchema,
   accountTypeSchema,
   changeEntryFormModeInputSchema,
   parseAccountForm,
+  parseAccountGroupForm,
+  type DomainError,
+  type Result,
 } from '@repo/contracts';
 import { revalidatePath } from 'next/cache';
 import { type AccountChange } from '../../../../components/account-dialog';
@@ -34,9 +38,24 @@ export async function changeEntryFormMode(entryFormMode: string): Promise<EntryF
   return { outcome: 'saved' };
 }
 
-async function changeChart(change: () => Promise<void>): Promise<AccountChange> {
+type Parsed<Value> =
+  | { readonly success: true; readonly data: Value }
+  | { readonly success: false };
+
+type Caller = ReturnType<typeof createCaller>;
+
+async function changeChart<Key, Details>(
+  key: Parsed<Key>,
+  details: Result<Details, DomainError>,
+  change: (caller: Caller, key: Key, details: Details) => Promise<void>,
+): Promise<AccountChange> {
+  if (!key.success || !details.ok) {
+    return { outcome: 'rejected', code: 'INVALID_INPUT' };
+  }
+
+  const caller = createCaller(await createContext());
   try {
-    await change();
+    await change(caller, key.data, details.value);
   } catch (thrown) {
     return { outcome: 'rejected', code: fromTrpcError(thrown).code };
   }
@@ -48,23 +67,33 @@ async function changeChart(change: () => Promise<void>): Promise<AccountChange> 
 }
 
 export async function addAccount(accountType: string, form: FormData): Promise<AccountChange> {
-  const type = accountTypeSchema.safeParse(accountType);
-  const details = parseAccountForm(form);
-  if (!type.success || !details.ok) {
-    return { outcome: 'rejected', code: 'INVALID_INPUT' };
-  }
-
-  const caller = createCaller(await createContext());
-  return changeChart(() => caller.accounts.add({ ...details.value, accountType: type.data }));
+  return changeChart(
+    accountTypeSchema.safeParse(accountType),
+    parseAccountForm(form),
+    (caller, type, details) => caller.accounts.add({ ...details, accountType: type }),
+  );
 }
 
 export async function editAccount(id: string, form: FormData): Promise<AccountChange> {
-  const accountId = accountIdSchema.safeParse(id);
-  const details = parseAccountForm(form);
-  if (!accountId.success || !details.ok) {
-    return { outcome: 'rejected', code: 'INVALID_INPUT' };
-  }
+  return changeChart(
+    accountIdSchema.safeParse(id),
+    parseAccountForm(form),
+    (caller, accountId, details) => caller.accounts.edit({ ...details, id: accountId }),
+  );
+}
 
-  const caller = createCaller(await createContext());
-  return changeChart(() => caller.accounts.edit({ ...details.value, id: accountId.data }));
+export async function addAccountGroup(accountType: string, form: FormData): Promise<AccountChange> {
+  return changeChart(
+    accountTypeSchema.safeParse(accountType),
+    parseAccountGroupForm(form),
+    (caller, type, details) => caller.accounts.addGroup({ ...details, accountType: type }),
+  );
+}
+
+export async function editAccountGroup(id: string, form: FormData): Promise<AccountChange> {
+  return changeChart(
+    accountGroupIdSchema.safeParse(id),
+    parseAccountGroupForm(form),
+    (caller, groupId, details) => caller.accounts.editGroup({ ...details, id: groupId }),
+  );
 }

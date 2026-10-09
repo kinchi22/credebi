@@ -7,5 +7,5 @@ export async function readAccountNames(
   userId: UserId,
 ): Promise<Result<AccountNames, DomainError>> {
   const chart = await accounts.readChart(userId);
-  return chart.ok ? ok(accountNames(chart.value)) : chart;
+  return chart.ok ? ok(accountNames(chart.value.accounts)) : chart;
 }

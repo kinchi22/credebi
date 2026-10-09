@@ -1,6 +1,8 @@
 const productName = 'Credebi';
 const accountNotSaved =
   'The account was not saved. A name is 1 to 40 characters, a description at most 200, and Active until cannot be before Active from.';
+const groupNotSaved =
+  'The group was not saved. A name is 1 to 40 characters, and a description at most 200.';
 
 export const en = {
   app: {
@@ -64,6 +66,8 @@ export const en = {
     showEnded: 'Show ended accounts',
     addAccount: 'Add account',
     addAccountText: '+ Account',
+    addGroup: 'Add group',
+    addGroupText: '+ Group',
     edit: 'Edit',
     move: 'Move',
     startsOn: 'Starts',
@@ -71,8 +75,12 @@ export const en = {
   accountDialog: {
     addTitle: 'Add account',
     editTitle: 'Edit account',
+    addGroupTitle: 'Add group',
+    editGroupTitle: 'Edit group',
     name: 'Name',
     description: 'Description',
+    group: 'Group',
+    noGroup: 'No group',
     activeFrom: 'Active from',
     activeUntil: 'Active until',
     save: 'Save',
@@ -85,6 +93,16 @@ export const en = {
       CONFLICT: 'The account could not be saved just now, so nothing changed. Try again.',
       DEPENDENCY_UNAVAILABLE: 'The account could not be saved just now, so nothing changed. Try again.',
       UNBALANCED: accountNotSaved,
+      UNAUTHENTICATED: 'You are signed out. Sign in again to change your accounts.',
+    },
+    groupRefusals: {
+      INVALID_INPUT: groupNotSaved,
+      NAME_TAKEN:
+        'The group was not saved. Another group of this account type has this name; choose another.',
+      NOT_FOUND: 'This group is no longer here. Reload the page.',
+      CONFLICT: 'The group could not be saved just now, so nothing changed. Try again.',
+      DEPENDENCY_UNAVAILABLE: 'The group could not be saved just now, so nothing changed. Try again.',
+      UNBALANCED: groupNotSaved,
       UNAUTHENTICATED: 'You are signed out. Sign in again to change your accounts.',
     },
   },

@@ -1,26 +1,74 @@
 'use client';
 
-import { accountTypeSchema, type AccountOutput, type ChartOutput } from '@repo/contracts';
+import {
+  accountTypeSchema,
+  nodesOfType,
+  type AccountGroupOutput,
+  type AccountOutput,
+  type AccountType,
+  type ChartOutput,
+} from '@repo/contracts';
 import { GripIcon, PencilIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useId, useState, type ReactNode } from 'react';
 import { en } from '../messages/en';
-import { AccountDialog, type AccountAction, type AccountDialogTarget } from './account-dialog';
+import {
+  AccountDialog,
+  type AccountActions,
+  type AccountDialogTarget,
+} from './account-dialog';
 import { useBrowserToday } from './browser-today';
 import { BARE_ICON_BUTTON, LEGEND, ROW_ICON_BUTTON } from './control-classes';
 import { useModalDialog } from './modal-dialog';
 
 export type AccountsSectionProps = {
   readonly chart: ChartOutput;
-  readonly addAction: AccountAction;
-  readonly editAction: AccountAction;
+  readonly actions: AccountActions;
 };
+
+type Open = (target: AccountDialogTarget, opener: HTMLElement) => void;
 
 const mayHaveEnded = (account: AccountOutput, today: string | undefined): boolean =>
   account.activeUntil !== null && (today === undefined || account.activeUntil < today);
 
 const startsLater = (account: AccountOutput, today: string | undefined): boolean =>
   today !== undefined && account.activeFrom > today;
+
+const BAND_BUTTON = 'text-accent-text hover:underline';
+
+function Grip({ name }: { readonly name: string }): ReactNode {
+  return (
+    <button
+      type="button"
+      tabIndex={-1}
+      aria-label={`${en.accountsSection.move} ${name}`}
+      className={`${BARE_ICON_BUTTON} shrink-0 cursor-grab`}
+    >
+      <GripIcon />
+    </button>
+  );
+}
+
+function EditButton({ onEdit }: { readonly onEdit: (opener: HTMLElement) => void }): ReactNode {
+  return (
+    <button
+      type="button"
+      aria-label={en.accountsSection.edit}
+      onClick={(event) => {
+        onEdit(event.currentTarget);
+      }}
+      className={ROW_ICON_BUTTON}
+    >
+      <PencilIcon />
+    </button>
+  );
+}
+
+function Description({ text }: { readonly text: string | null }): ReactNode {
+  return text === null ? null : (
+    <span className={`${typeClasses['body-dense']} text-text-muted`}>{text}</span>
+  );
+}
 
 function AccountRow({
   account,
@@ -33,14 +81,7 @@ function AccountRow({
 }): ReactNode {
   return (
     <li className="flex items-center gap-2 py-1.5">
-      <button
-        type="button"
-        tabIndex={-1}
-        aria-label={`${en.accountsSection.move} ${account.name}`}
-        className={`${BARE_ICON_BUTTON} shrink-0 cursor-grab`}
-      >
-        <GripIcon />
-      </button>
+      <Grip name={account.name} />
       <span className="flex min-w-0 flex-1 flex-col">
         <span>
           {account.name}
@@ -51,27 +92,103 @@ function AccountRow({
             </span>
           ) : null}
         </span>
-        {account.description === null ? null : (
-          <span className={`${typeClasses['body-dense']} text-text-muted`}>
-            {account.description}
-          </span>
-        )}
+        <Description text={account.description} />
       </span>
-      <button
-        type="button"
-        aria-label={en.accountsSection.edit}
-        onClick={(event) => {
-          onEdit(event.currentTarget);
-        }}
-        className={ROW_ICON_BUTTON}
-      >
-        <PencilIcon />
-      </button>
+      <EditButton onEdit={onEdit} />
     </li>
   );
 }
 
-export function AccountsSection({ chart, addAction, editAction }: AccountsSectionProps): ReactNode {
+function AccountRows({
+  accounts,
+  today,
+  showEnded,
+  open,
+}: {
+  readonly accounts: readonly AccountOutput[];
+  readonly today: string | undefined;
+  readonly showEnded: boolean;
+  readonly open: Open;
+}): ReactNode {
+  return accounts
+    .filter((account) => showEnded || !mayHaveEnded(account, today))
+    .map((account) => (
+      <AccountRow
+        key={account.id}
+        account={account}
+        today={today}
+        onEdit={(opener) => {
+          open({ kind: 'edit-account', account }, opener);
+        }}
+      />
+    ));
+}
+
+function GroupRow({
+  group,
+  onEdit,
+  children,
+}: {
+  readonly group: AccountGroupOutput;
+  readonly onEdit: (opener: HTMLElement) => void;
+  readonly children: ReactNode;
+}): ReactNode {
+  return (
+    <li>
+      <div className="flex items-center gap-2 py-1.5">
+        <Grip name={group.name} />
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="font-semibold">{group.name}</span>
+          <Description text={group.description} />
+        </span>
+        <EditButton onEdit={onEdit} />
+      </div>
+      <ul className="pl-6">{children}</ul>
+    </li>
+  );
+}
+
+function TypeBand({
+  accountType,
+  id,
+  open,
+}: {
+  readonly accountType: AccountType;
+  readonly id: string;
+  readonly open: Open;
+}): ReactNode {
+  return (
+    <div className="flex items-center justify-between gap-3 bg-band px-2 py-1">
+      <span id={id} className={`${typeClasses.label} text-text-muted`}>
+        {en.accountTypes[accountType]}
+      </span>
+      <span className="flex gap-3">
+        <button
+          type="button"
+          aria-label={en.accountsSection.addAccount}
+          onClick={(event) => {
+            open({ kind: 'add-account', accountType }, event.currentTarget);
+          }}
+          className={BAND_BUTTON}
+        >
+          {en.accountsSection.addAccountText}
+        </button>
+        <button
+          type="button"
+          aria-label={en.accountsSection.addGroup}
+          onClick={(event) => {
+            open({ kind: 'add-group', accountType }, event.currentTarget);
+          }}
+          className={BAND_BUTTON}
+        >
+          {en.accountsSection.addGroupText}
+        </button>
+      </span>
+    </div>
+  );
+}
+
+export function AccountsSection({ chart, actions }: AccountsSectionProps): ReactNode {
   const titleId = useId();
   const bandId = useId();
   const today = useBrowserToday();
@@ -79,10 +196,12 @@ export function AccountsSection({ chart, addAction, editAction }: AccountsSectio
   const [target, setTarget] = useState<AccountDialogTarget>();
   const [showEnded, setShowEnded] = useState(false);
 
-  const open = (next: AccountDialogTarget, opener: HTMLElement): void => {
+  const open: Open = (next, opener) => {
     setTarget(next);
     dialog.show(opener);
   };
+
+  const rows = { today, showEnded, open };
 
   return (
     <section aria-labelledby={titleId} className="flex flex-col gap-2 border-b border-border pb-4">
@@ -104,37 +223,23 @@ export function AccountsSection({ chart, addAction, editAction }: AccountsSectio
       <div className={`flex flex-col gap-4 ${typeClasses['body-sm']}`}>
         {accountTypeSchema.options.map((accountType) => (
           <div key={accountType} role="group" aria-labelledby={`${bandId}-${accountType}`}>
-            <div className="flex items-center justify-between bg-band px-2 py-1">
-              <span id={`${bandId}-${accountType}`} className={`${typeClasses.label} text-text-muted`}>
-                {en.accountTypes[accountType]}
-              </span>
-              <button
-                type="button"
-                aria-label={en.accountsSection.addAccount}
-                onClick={(event) => {
-                  open({ kind: 'add', accountType }, event.currentTarget);
-                }}
-                className="text-accent-text hover:underline"
-              >
-                {en.accountsSection.addAccountText}
-              </button>
-            </div>
+            <TypeBand accountType={accountType} id={`${bandId}-${accountType}`} open={open} />
             <ul className="px-2">
-              {chart
-                .filter(
-                  (account) =>
-                    account.accountType === accountType && (showEnded || !mayHaveEnded(account, today)),
-                )
-                .map((account) => (
-                  <AccountRow
-                    key={account.id}
-                    account={account}
-                    today={today}
-                    onEdit={(opener) => {
-                      open({ kind: 'edit', account }, opener);
-                    }}
-                  />
-                ))}
+              {nodesOfType(chart, accountType).map((node) =>
+                  node.kind === 'account' ? (
+                    <AccountRows key={node.account.id} accounts={[node.account]} {...rows} />
+                  ) : (
+                    <GroupRow
+                      key={node.group.id}
+                      group={node.group}
+                      onEdit={(opener) => {
+                        open({ kind: 'edit-group', group: node.group }, opener);
+                      }}
+                    >
+                      <AccountRows accounts={node.accounts} {...rows} />
+                    </GroupRow>
+                  ),
+                )}
             </ul>
           </div>
         ))}
@@ -142,9 +247,9 @@ export function AccountsSection({ chart, addAction, editAction }: AccountsSectio
       <AccountDialog
         dialog={dialog}
         target={target}
+        groups={chart.flatMap((node) => (node.kind === 'group' ? [node.group] : []))}
         today={today}
-        addAction={addAction}
-        editAction={editAction}
+        actions={actions}
       />
     </section>
   );

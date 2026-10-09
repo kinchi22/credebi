@@ -1,13 +1,13 @@
 import { ok, type DomainError, type Result } from '@repo/contracts';
 import { requireUser, type AuthContext } from '../../auth/domain/auth-context';
-import { chartInOrder, type Account } from '../domain/account';
+import { chartOutline, type ChartNode } from '../domain/account';
 import { type AccountRepository } from '../ports/account-repository';
 
 export type GetChartDependencies = {
   readonly accounts: AccountRepository;
 };
 
-export type GetChart = (auth: AuthContext) => Promise<Result<readonly Account[], DomainError>>;
+export type GetChart = (auth: AuthContext) => Promise<Result<readonly ChartNode[], DomainError>>;
 
 export function createGetChart({ accounts }: GetChartDependencies): GetChart {
   return async (auth) => {
@@ -17,6 +17,6 @@ export function createGetChart({ accounts }: GetChartDependencies): GetChart {
     }
 
     const chart = await accounts.readChart(userId.value);
-    return chart.ok ? ok(chartInOrder(chart.value)) : chart;
+    return chart.ok ? ok(chartOutline(chart.value)) : chart;
   };
 }

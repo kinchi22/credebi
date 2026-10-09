@@ -2,6 +2,7 @@
 
 import {
   ACCOUNT_FORM_FIELDS,
+  type AccountGroupOutput,
   type AccountOutput,
   type AccountType,
   type DomainErrorCode,
@@ -37,87 +38,95 @@ export type AccountAction = (
   form: FormData,
 ) => Promise<AccountChange>;
 
+export type AccountActions = {
+  readonly addAccount: AccountAction;
+  readonly editAccount: AccountAction;
+  readonly addAccountGroup: AccountAction;
+  readonly editAccountGroup: AccountAction;
+};
+
 export type AccountDialogTarget =
-  | { readonly kind: 'add'; readonly accountType: AccountType }
-  | { readonly kind: 'edit'; readonly account: AccountOutput };
+  | { readonly kind: 'add-account'; readonly accountType: AccountType }
+  | { readonly kind: 'edit-account'; readonly account: AccountOutput }
+  | { readonly kind: 'add-group'; readonly accountType: AccountType }
+  | { readonly kind: 'edit-group'; readonly group: AccountGroupOutput };
 
 export type AccountDialogProps = {
   readonly dialog: ModalDialog;
   readonly target: AccountDialogTarget | undefined;
+  readonly groups: readonly AccountGroupOutput[];
   readonly today: string | undefined;
-  readonly addAction: AccountAction;
-  readonly editAction: AccountAction;
+  readonly actions: AccountActions;
 };
 
 const UNSAVED: AccountChange = { outcome: 'rejected', code: 'DEPENDENCY_UNAVAILABLE' };
 
-const accountTypeOf = (target: AccountDialogTarget): AccountType =>
-  target.kind === 'add' ? target.accountType : target.account.accountType;
+const TITLES: Readonly<Record<AccountDialogTarget['kind'], string>> = {
+  'add-account': en.accountDialog.addTitle,
+  'edit-account': en.accountDialog.editTitle,
+  'add-group': en.accountDialog.addGroupTitle,
+  'edit-group': en.accountDialog.editGroupTitle,
+};
 
-function AccountForm({
-  target,
+function accountTypeOf(target: AccountDialogTarget): AccountType {
+  switch (target.kind) {
+    case 'edit-account':
+      return target.account.accountType;
+    case 'edit-group':
+      return target.group.accountType;
+    default:
+      return target.accountType;
+  }
+}
+
+function saverOf(
+  target: AccountDialogTarget,
+  actions: AccountActions,
+): (form: FormData) => Promise<AccountChange> {
+  switch (target.kind) {
+    case 'add-account':
+      return actions.addAccount.bind(null, target.accountType);
+    case 'edit-account':
+      return actions.editAccount.bind(null, target.account.id);
+    case 'add-group':
+      return actions.addAccountGroup.bind(null, target.accountType);
+    case 'edit-group':
+      return actions.editAccountGroup.bind(null, target.group.id);
+  }
+}
+
+const isAccount = (target: AccountDialogTarget): boolean =>
+  target.kind === 'add-account' || target.kind === 'edit-account';
+
+function AccountFields({
+  account,
+  accountType,
+  groups,
   today,
-  titleId,
-  onCancel,
-  onSaved,
-  save,
-  pending,
-  startTransition,
 }: {
-  readonly target: AccountDialogTarget;
+  readonly account: AccountOutput | undefined;
+  readonly accountType: AccountType;
+  readonly groups: readonly AccountGroupOutput[];
   readonly today: string | undefined;
-  readonly titleId: string;
-  readonly onCancel: () => void;
-  readonly onSaved: () => void;
-  readonly save: (form: FormData) => Promise<AccountChange>;
-  readonly pending: boolean;
-  readonly startTransition: TransitionStartFunction;
 }): ReactNode {
-  const [refusal, setRefusal] = useState<DomainErrorCode>();
-  const account = target.kind === 'edit' ? target.account : undefined;
-
-  const submit = (event: SubmitEvent<HTMLFormElement>): void => {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    startTransition(async () => {
-      const change = await save(form).then(
-        (saved) => saved,
-        () => UNSAVED,
-      );
-      if (change.outcome === 'saved') {
-        onSaved();
-        return;
-      }
-      setRefusal(change.code);
-    });
-  };
-
   return (
-    <form onSubmit={submit} className={CONFIRMATION_PANEL}>
-      <div className="flex flex-col gap-1">
-        <h2 id={titleId} className={typeClasses.h2}>
-          {account === undefined ? en.accountDialog.addTitle : en.accountDialog.editTitle}
-        </h2>
-        <p className={MUTED_TEXT}>{en.accountTypes[accountTypeOf(target)]}</p>
-      </div>
+    <>
       <label className={FIELD}>
-        {en.accountDialog.name}
-        <input
-          name={ACCOUNT_FORM_FIELDS.name}
-          required
-          autoFocus
-          defaultValue={account?.name}
+        {en.accountDialog.group}
+        <select
+          name={ACCOUNT_FORM_FIELDS.group}
+          defaultValue={account?.groupId ?? ''}
           className={CONTROL}
-        />
-      </label>
-      <label className={FIELD}>
-        {en.accountDialog.description}
-        <textarea
-          name={ACCOUNT_FORM_FIELDS.description}
-          rows={2}
-          defaultValue={account?.description ?? ''}
-          className={CONTROL}
-        />
+        >
+          <option value="">{en.accountDialog.noGroup}</option>
+          {groups
+            .filter((group) => group.accountType === accountType)
+            .map((group) => (
+              <option key={group.id} value={group.id}>
+                {group.name}
+              </option>
+            ))}
+        </select>
       </label>
       <div className="flex flex-wrap gap-3">
         <label className={`${FIELD} min-w-0 flex-1`}>
@@ -140,9 +149,90 @@ function AccountForm({
           />
         </label>
       </div>
+    </>
+  );
+}
+
+function AccountForm({
+  target,
+  groups,
+  today,
+  titleId,
+  onCancel,
+  onSaved,
+  save,
+  pending,
+  startTransition,
+}: {
+  readonly target: AccountDialogTarget;
+  readonly groups: readonly AccountGroupOutput[];
+  readonly today: string | undefined;
+  readonly titleId: string;
+  readonly onCancel: () => void;
+  readonly onSaved: () => void;
+  readonly save: (form: FormData) => Promise<AccountChange>;
+  readonly pending: boolean;
+  readonly startTransition: TransitionStartFunction;
+}): ReactNode {
+  const [refusal, setRefusal] = useState<DomainErrorCode>();
+  const account = target.kind === 'edit-account' ? target.account : undefined;
+  const described = target.kind === 'edit-group' ? target.group : account;
+  const refusals = isAccount(target) ? en.accountDialog.refusals : en.accountDialog.groupRefusals;
+
+  const submit = (event: SubmitEvent<HTMLFormElement>): void => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    startTransition(async () => {
+      const change = await save(form).then(
+        (saved) => saved,
+        () => UNSAVED,
+      );
+      if (change.outcome === 'saved') {
+        onSaved();
+        return;
+      }
+      setRefusal(change.code);
+    });
+  };
+
+  return (
+    <form onSubmit={submit} className={CONFIRMATION_PANEL}>
+      <div className="flex flex-col gap-1">
+        <h2 id={titleId} className={typeClasses.h2}>
+          {TITLES[target.kind]}
+        </h2>
+        <p className={MUTED_TEXT}>{en.accountTypes[accountTypeOf(target)]}</p>
+      </div>
+      <label className={FIELD}>
+        {en.accountDialog.name}
+        <input
+          name={ACCOUNT_FORM_FIELDS.name}
+          required
+          autoFocus
+          defaultValue={described?.name}
+          className={CONTROL}
+        />
+      </label>
+      <label className={FIELD}>
+        {en.accountDialog.description}
+        <textarea
+          name={ACCOUNT_FORM_FIELDS.description}
+          rows={2}
+          defaultValue={described?.description ?? ''}
+          className={CONTROL}
+        />
+      </label>
+      {isAccount(target) ? (
+        <AccountFields
+          account={account}
+          accountType={accountTypeOf(target)}
+          groups={groups}
+          today={today}
+        />
+      ) : null}
       {refusal === undefined ? null : (
         <p role="alert" className={DANGER_TEXT}>
-          {en.accountDialog.refusals[refusal]}
+          {refusals[refusal]}
         </p>
       )}
       <div className="flex justify-end gap-3">
@@ -160,9 +250,9 @@ function AccountForm({
 export function AccountDialog({
   dialog,
   target,
+  groups,
   today,
-  addAction,
-  editAction,
+  actions,
 }: AccountDialogProps): ReactNode {
   const titleId = useId();
   const [pending, startTransition] = useTransition();
@@ -186,15 +276,12 @@ export function AccountDialog({
       {dialog.open && target !== undefined ? (
         <AccountForm
           target={target}
+          groups={groups}
           today={today}
           titleId={titleId}
           onCancel={dialog.close}
           onSaved={dialog.close}
-          save={
-            target.kind === 'edit'
-              ? editAction.bind(null, target.account.id)
-              : addAction.bind(null, target.accountType)
-          }
+          save={saverOf(target, actions)}
           pending={pending}
           startTransition={startTransition}
         />
