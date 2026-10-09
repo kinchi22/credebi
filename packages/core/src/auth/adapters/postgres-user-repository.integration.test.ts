@@ -9,7 +9,7 @@ import {
   type UserId,
 } from '@repo/contracts';
 import { createDatabase } from '@repo/db';
-import { type Account } from '../../accounts/domain/account';
+import { startingChart, type Account } from '../../accounts/domain/account';
 import { type LogFields, type Logger } from '../../logging/ports/logger';
 import { type Identity, type User } from '../domain/user';
 import { createPostgresUserRepository } from './postgres-user-repository';
@@ -149,6 +149,24 @@ describe('createPostgresUserRepository', () => {
         active_until: null,
       })),
     );
+  });
+
+  it('stores the five starting Accounts active from a day before the User was created', async () => {
+    let issued = 0;
+    const chart = startingChart('2000-01-01', () => {
+      issued += 1;
+      return `01920000-0000-7000-8000-00000000c00${String(issued)}` as AccountId;
+    });
+
+    expect(isOk(await repository.add(ADA, GOOGLE_ADA, chart))).toBe(true);
+
+    expect((await storedAccounts()).map((row) => [row['name'], row['active_from']])).toEqual([
+      ['Cash', '2000-01-01'],
+      ['Accounts payable', '2000-01-01'],
+      ['Capital', '2000-01-01'],
+      ['Sales', '2000-01-01'],
+      ['Expenses', '2000-01-01'],
+    ]);
   });
 
   it('stores neither the User nor its chart when either cannot be stored', async () => {

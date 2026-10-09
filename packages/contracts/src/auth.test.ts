@@ -99,6 +99,13 @@ describe('testSignInInputSchema', () => {
     expect(testSignInInputSchema.parse({ identifier: ' e2e-1 ' })).toEqual({ identifier: ' e2e-1 ' });
   });
 
+  it('takes the day the Accounts start on as it was typed, for the use case to judge', () => {
+    expect(testSignInInputSchema.parse({ identifier: 'e2e-1', accountsStartOn: 'soon' })).toEqual({
+      identifier: 'e2e-1',
+      accountsStartOn: 'soon',
+    });
+  });
+
   it('refuses no identifier', () => {
     expect(testSignInInputSchema.safeParse({}).success).toBe(false);
   });

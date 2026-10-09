@@ -43,7 +43,7 @@ export const authRouter = router({
     .input(testSignInInputSchema)
     .output(issuedSessionSchema)
     .mutation(async ({ ctx, input }) => {
-      const result = await ctx.container.testSignIn(input.identifier);
+      const result = await ctx.container.testSignIn(input.identifier, input.accountsStartOn);
       if (!result.ok) {
         throw toTrpcError(result.error);
       }
