@@ -240,6 +240,72 @@ export function moveBefore(
   return { node, ...to, index: index === -1 ? others.length : index };
 }
 
+export type ChartDropTarget =
+  | {
+      readonly on: 'row';
+      readonly place: ChartPlace;
+      readonly node: ChartNodeRef;
+      readonly next: string | null;
+    }
+  | { readonly on: 'heading'; readonly accountType: AccountType; readonly groupId: AccountGroupId }
+  | { readonly on: 'end'; readonly place: ChartPlace };
+
+export type ChartDrop = {
+  readonly target: ChartDropTarget;
+  readonly span: { readonly top: number; readonly height: number };
+  readonly pointer: number;
+};
+
+export type ChartLanding = { readonly place: ChartPlace; readonly before: string | null };
+
+const typeOfNode = (node: ChartNodeOutput): AccountType =>
+  node.kind === 'group' ? node.group.accountType : node.account.accountType;
+
+function aimedAt({ target, span, pointer }: ChartDrop): ChartLanding {
+  if (target.on === 'end') {
+    return { place: target.place, before: null };
+  }
+  if (target.on === 'row') {
+    const lowerHalf = pointer > span.top + span.height / 2;
+    return { place: target.place, before: lowerHalf ? target.next : target.node.id };
+  }
+  const { accountType, groupId } = target;
+  return pointer < span.top + span.height / 4
+    ? { place: { accountType, groupId: null }, before: groupId }
+    : { place: { accountType, groupId }, before: null };
+}
+
+export function landingOf(
+  chart: readonly ChartNodeOutput[],
+  node: ChartNodeRef,
+  drop: ChartDrop,
+): ChartLanding | undefined {
+  const taken = found(chart, node);
+  const landing = aimedAt(drop);
+  const { place } = landing;
+  if (
+    taken === undefined ||
+    (taken.kind === 'group' && place.groupId !== null) ||
+    typeOfNode(taken) !== place.accountType ||
+    landing.before === node.id
+  ) {
+    return undefined;
+  }
+  const { index } = moveBefore(chart, node, place, landing.before);
+  const stays =
+    listIn(chart, place).findIndex((other) => idOfNode(other) === node.id) === index;
+  return stays ? undefined : landing;
+}
+
+export function droppedMove(
+  chart: readonly ChartNodeOutput[],
+  node: ChartNodeRef,
+  drop: ChartDrop,
+): MoveChartNodeInput | undefined {
+  const landing = landingOf(chart, node, drop);
+  return landing === undefined ? undefined : moveBefore(chart, node, landing.place, landing.before);
+}
+
 function found<Account extends PlacedAccount, Group extends PlacedGroup>(
   chart: readonly OutlineNode<Account, Group>[],
   { kind, id }: ChartNodeRef,
