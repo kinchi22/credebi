@@ -412,7 +412,7 @@ test('matches an Entry through either of its Entry lines', async ({ page }) => {
   ]);
 
   await page.goto(SEARCH);
-  await search(page, { account: 'cash' });
+  await search(page, { account: 'Cash' });
 
   await expect(resultFor(page, debited)).toHaveCount(1);
   await expect(resultFor(page, credited)).toHaveCount(1);
@@ -454,7 +454,7 @@ test('narrows with the day range, the Account and the memo together', async ({ p
   ]);
 
   await page.goto(SEARCH);
-  await search(page, { from: '2026-06-01', to: '2026-06-30', account: 'cash', memo: 'rent' });
+  await search(page, { from: '2026-06-01', to: '2026-06-30', account: 'Cash', memo: 'rent' });
 
   await expect(resultFor(page, matching)).toHaveCount(1);
   await expect(resultFor(page, wrongDay)).toHaveCount(0);
@@ -472,13 +472,13 @@ test('keeps the criteria it searched with filled into the form', async ({ page }
   ]);
 
   await page.goto(SEARCH);
-  await search(page, { from: '2026-06-01', to: '2026-06-30', account: 'cash', memo: 'stationery' });
+  await search(page, { from: '2026-06-01', to: '2026-06-30', account: 'Cash', memo: 'stationery' });
 
   await expect(resultFor(page, memo)).toHaveCount(1);
 
   const form = entrySearchForm(page);
   await expectRange(page, '2026-06-01', '2026-06-30');
-  await expect(form.getByLabel('Account', { exact: true })).toHaveValue('cash');
+  await expect(form.getByLabel('Account', { exact: true }).locator('option:checked')).toHaveText('Cash');
   await expect(form.getByLabel('Memo', { exact: true })).toHaveValue('stationery');
 });
 
