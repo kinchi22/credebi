@@ -17,6 +17,8 @@ import {
   AccountPicker,
   AccountRow,
   ChooseAccountButton,
+  OutsideActivePeriod,
+  offeredOn,
   useAccountSheet,
   type AccountChoice,
 } from './account-picker';
@@ -51,17 +53,25 @@ type TwoLineFieldsProps = EntryFormParts & {
 
 function TwoLineFields({
   id,
+  day,
   chart,
   entry,
   heading,
   refusal,
   submitButton,
 }: TwoLineFieldsProps): ReactNode {
-  const [chosen, setChosen] = useState<AccountChoice>(() => choiceOf(chart, entry));
+  const [picked, setPicked] = useState<AccountChoice>(() => choiceOf(chart, entry));
   const sheet = useAccountSheet();
+  const offered = offeredOn(chart, day);
+  const offeredAccount = (account: AccountOutput | undefined): AccountOutput | undefined =>
+    account !== undefined && offered.ids.has(account.id) ? account : undefined;
+  const chosen: AccountChoice = {
+    debit: offeredAccount(picked.debit),
+    credit: offeredAccount(picked.credit),
+  };
 
   const choose = (side: Side, account: AccountOutput): void => {
-    setChosen((current) => ({ ...current, [side]: account }));
+    setPicked((current) => ({ ...current, [side]: account }));
   };
 
   const isChosen = (side: Side, account: AccountId): boolean => chosen[side]?.id === account;
@@ -73,7 +83,9 @@ function TwoLineFields({
         <div className={`flex flex-col ${typeClasses['body-dense']}`}>
           {sideSchema.options.map((side) => (
             <div key={side}>
-              <ChooseAccountButton side={side} account={chosen[side]} sheet={sheet} />
+              {offered.ids.size === 0 ? null : (
+                <ChooseAccountButton side={side} account={chosen[side]} sheet={sheet} />
+              )}
               <AccountRow side={side} account={chosen[side]} />
             </div>
           ))}
@@ -88,9 +100,10 @@ function TwoLineFields({
           </div>
           {submitButton}
         </div>
+        <OutsideActivePeriod entry={entry} offered={offered} />
         {refusal}
       </div>
-      <AccountPicker id={id} chart={chart} isChosen={isChosen} onPick={choose} sheet={sheet} />
+      <AccountPicker id={id} chart={offered.chart} isChosen={isChosen} onPick={choose} sheet={sheet} />
     </div>
   );
 }

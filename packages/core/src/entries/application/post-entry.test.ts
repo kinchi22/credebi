@@ -159,6 +159,28 @@ describe('createPostEntry', () => {
     expect(await searchEntries(GRACE, NO_CRITERIA)).toEqual(ok([]));
   });
 
+  it('refuses, as invalid input, an entry dated outside the Active period of an Account it names, and stores nothing', async () => {
+    const { postEntry, searchEntries } = useCases(inMemoryEntries());
+
+    const posted = await postEntry(ADA, { ...draft(12500, 12500), entryDate: '2025-12-31' });
+
+    expect(isErr(posted) && posted.error).toEqual(
+      domainError(
+        'INVALID_INPUT',
+        'Account "Cash" is not active on 2025-12-31, outside its Active period.',
+      ),
+    );
+    expect(await searchEntries(ADA, NO_CRITERIA)).toEqual(ok([]));
+  });
+
+  it('posts an entry dated on the first day of the Active period of every Account it names', async () => {
+    const { postEntry } = useCases(inMemoryEntries());
+
+    const posted = await postEntry(ADA, { ...draft(12500, 12500), entryDate: '2026-01-01' });
+
+    expect(isOk(posted) && posted.value.entryDate).toBe('2026-01-01');
+  });
+
   it('reports a failure to read the chart of accounts as its own result, and stores nothing', async () => {
     const down = domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.');
     const entries = inMemoryEntries();

@@ -1,4 +1,4 @@
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, max, min } from 'drizzle-orm';
 import {
   accountTypeSchema,
   domainError,
@@ -14,9 +14,11 @@ import {
 } from '@repo/contracts';
 import { createDatabase, schema } from '@repo/db';
 import { databaseFailure, UNIQUE_VIOLATION } from '../../auth/adapters/database-failure';
+import { shownEntry } from '../../entries/adapters/shown-entry';
 import { describeError } from '../../logging/domain/describe-error';
 import { type LogFields, type Logger } from '../../logging/ports/logger';
 import { type Account, type AccountGroup, type Chart } from '../domain/account';
+import { type ShownSpan } from '../domain/active-period';
 import { type AccountRepository } from '../ports/account-repository';
 
 export type PostgresAccountRepository = AccountRepository & {
@@ -182,6 +184,35 @@ export function createPostgresAccountRepository(
           'accounts.named_read_failed',
           error,
           'Whether an Entry names the Account could not be read.',
+        );
+      }
+    },
+
+    readShownSpan: async (
+      userId: UserId,
+      id: AccountId,
+    ): Promise<Result<ShownSpan | null, DomainError>> => {
+      try {
+        const [span] = await database
+          .select({ first: min(schema.entries.entryDate), last: max(schema.entries.entryDate) })
+          .from(schema.entryLines)
+          .innerJoin(schema.entries, eq(schema.entries.id, schema.entryLines.entryId))
+          .where(
+            and(
+              eq(schema.entryLines.accountId, id),
+              eq(schema.entries.userId, userId),
+              shownEntry(),
+            ),
+          );
+        return ok(
+          span?.first == null || span.last == null ? null : { first: span.first, last: span.last },
+        );
+      } catch (error) {
+        return databaseFailure(
+          logger,
+          'accounts.shown_span_read_failed',
+          error,
+          'The days Entries name the Account on could not be read.',
         );
       }
     },

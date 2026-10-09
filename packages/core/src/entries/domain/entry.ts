@@ -10,7 +10,8 @@ import {
   type Result,
   type Side,
 } from '@repo/contracts';
-import { type AccountNames } from '../../accounts/domain/account';
+import { accountNames, type Account, type AccountNames } from '../../accounts/domain/account';
+import { checkActiveOn } from '../../accounts/domain/active-period';
 import { moneyToMinorUnits, sumMoney } from '../../money/domain/money';
 
 export const MEMO_MAX_LENGTH = 200;
@@ -83,6 +84,23 @@ export function makeEntry(
     total: total.value,
     createdAt: stamp.createdAt,
   });
+}
+
+export function makePostedEntry(
+  draft: EntryDraft,
+  stamp: EntryStamp,
+  accounts: readonly Account[],
+): Result<Entry, DomainError> {
+  const entry = makeEntry(draft, stamp, accountNames(accounts));
+  if (!entry.ok) {
+    return entry;
+  }
+  const active = checkActiveOn(
+    accounts,
+    entry.value.entryDate,
+    entry.value.lines.map((line) => line.account),
+  );
+  return active.ok ? entry : active;
 }
 
 function checkLines(

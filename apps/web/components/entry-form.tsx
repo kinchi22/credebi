@@ -16,6 +16,7 @@ import {
   useEffect,
   useId,
   useRef,
+  useState,
   type ReactNode,
   type SubmitEvent,
 } from 'react';
@@ -44,6 +45,7 @@ export type EntryFormProps = {
 
 export type EntryFormParts = {
   readonly id: string;
+  readonly day: string | undefined;
   readonly entry: PostedEntry | undefined;
   readonly heading: ReactNode;
   readonly refusal: ReactNode;
@@ -181,6 +183,8 @@ export function EntryFormShell({
   const today = useBrowserToday();
 
   const variant = variantFor(mode, editing, today);
+  const [typedDay, setTypedDay] = useState<{ readonly resetKey: number; readonly day: string }>();
+  const day = typedDay?.resetKey === resetKey ? typedDay.day : variant.entryDate;
   const { onSaved } = variant;
   useEffect(() => {
     if (state.outcome === 'saved') {
@@ -212,6 +216,9 @@ export function EntryFormShell({
             name={ENTRY_FORM_FIELDS.entryDate}
             type="date"
             defaultValue={variant.entryDate}
+            onChange={(event) => {
+              setTypedDay({ resetKey, day: event.target.value });
+            }}
             autoFocus={variant.autoFocus}
             required
             className={DATE_CONTROL}
@@ -255,7 +262,7 @@ export function EntryFormShell({
       <input type="hidden" name={ENTRY_FORM_FIELDS.entryFormMode} value={mode} />
 
       <Fragment key={resetKey}>
-        {children({ id, entry: variant.entry, heading, refusal, submitButton })}
+        {children({ id, day, entry: variant.entry, heading, refusal, submitButton })}
       </Fragment>
     </form>
   );

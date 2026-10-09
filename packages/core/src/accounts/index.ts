@@ -1,6 +1,8 @@
 export { ACCOUNT_TYPES } from './domain/account';
 export type { Account, AccountGroup, ChartNode } from './domain/account';
 export { DESCRIPTION_MAX_LENGTH, NAME_MAX_LENGTH } from './domain/account-details';
+export { endedLast, hasEndedBy, isActiveOn } from './domain/active-period';
+export type { ActivePeriod, ShownSpan } from './domain/active-period';
 
 export { createGetChart } from './application/get-chart';
 export type { GetChart, GetChartDependencies } from './application/get-chart';

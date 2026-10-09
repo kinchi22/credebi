@@ -51,6 +51,23 @@ describe('inMemoryAccounts', () => {
     expect(await accounts.isAccountNamed(GRACE_ID, CASH.id)).toEqual(ok(false));
   });
 
+  it('answers the first and last day shown Entries name an Account on, only to its own User, and counts it as named', async () => {
+    const { accounts, hold, showInEntry } = inMemoryAccounts();
+    hold(ADA_ID, [CASH]);
+
+    expect(await accounts.readShownSpan(ADA_ID, CASH.id)).toEqual(ok(null));
+    showInEntry(CASH.id, '2026-09-15');
+    showInEntry(CASH.id, '2026-09-10');
+    showInEntry(CASH.id, '2026-09-20');
+    showInEntry(CASH.id, '2026-09-12');
+
+    expect(await accounts.readShownSpan(ADA_ID, CASH.id)).toEqual(
+      ok({ first: '2026-09-10', last: '2026-09-20' }),
+    );
+    expect(await accounts.readShownSpan(GRACE_ID, CASH.id)).toEqual(ok(null));
+    expect(await accounts.isAccountNamed(ADA_ID, CASH.id)).toEqual(ok(true));
+  });
+
   it("deletes an Account and an Account group from their User's chart alone", async () => {
     const { accounts, hold } = inMemoryAccounts();
     hold(ADA_ID, [CASH], [BANK]);

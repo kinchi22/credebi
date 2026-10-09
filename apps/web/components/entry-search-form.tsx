@@ -6,6 +6,7 @@ import {
   type ChartOutput,
   type SearchCriteriaInput,
 } from '@repo/contracts';
+import { endedLast } from '@repo/core/accounts';
 import { type DayRange } from '@repo/core/entries';
 import { PANEL } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
@@ -38,6 +39,7 @@ export function EntrySearchForm({ criteria, chart }: EntrySearchFormProps): Reac
   const [to, setTo] = useState(criteria.to ?? '');
   const form = useRef<HTMLFormElement>(null);
   const today = useBrowserToday();
+  const accounts = today === undefined ? accountsIn(chart) : endedLast(accountsIn(chart), today);
 
   const searchPreset = (range: DayRange): void => {
     flushSync(() => {
@@ -99,7 +101,7 @@ export function EntrySearchForm({ criteria, chart }: EntrySearchFormProps): Reac
           className={CONTROL}
         >
           <option value="">{en.entrySearch.anyAccount}</option>
-          {accountsIn(chart).map((account) => (
+          {accounts.map((account) => (
             <option key={account.id} value={account.id}>
               {account.name}
             </option>

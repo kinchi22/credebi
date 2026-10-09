@@ -86,11 +86,12 @@ async function storeEntry(
   n: number,
   lines: readonly [Account, Account],
   reverses: string | null = null,
+  day = '2026-09-15',
 ): Promise<string> {
   const id = `01920000-0000-7000-8000-${String(n).padStart(12, '0')}`;
   await database.execute(
     sql`insert into entries (id, user_id, entry_date, memo, created_at, reverses_entry_id)
-        values (${id}, ${userId}, '2026-09-15', ${`Entry ${String(n)}`}, now(), ${reverses})`,
+        values (${id}, ${userId}, ${day}, ${`Entry ${String(n)}`}, now(), ${reverses})`,
   );
   for (const [index, named] of lines.entries()) {
     await database.execute(
@@ -361,6 +362,33 @@ describe('createPostgresAccountRepository', () => {
 
     expect(await repository.isAccountNamed(ADA, cash.id)).toEqual(ok(true));
     expect(await repository.isAccountNamed(ADA, sales.id)).toEqual(ok(true));
+  });
+
+  it('reads the first and last day a shown Entry names an Account on, leaving out a Reversal and the Entry it reverses', async () => {
+    const cash = account(1, 'asset', 0, 'Cash');
+    const sales = account(2, 'revenue', 0, 'Sales');
+    const wallet = account(3, 'asset', 1, 'Wallet');
+    for (const stored of [cash, sales, wallet]) {
+      await store(ADA, stored);
+    }
+    await storeEntry(ADA, 100, [cash, sales], null, '2026-09-10');
+    await storeEntry(ADA, 101, [cash, sales], null, '2026-09-20');
+    await storeEntry(ADA, 102, [cash, sales], null, '2026-09-12');
+    const reversed = await storeEntry(ADA, 103, [cash, wallet], null, '2026-08-01');
+    await storeEntry(ADA, 104, [wallet, cash], reversed, '2026-10-01');
+
+    expect(await repository.readShownSpan(ADA, cash.id)).toEqual(
+      ok({ first: '2026-09-10', last: '2026-09-20' }),
+    );
+    expect(await repository.readShownSpan(ADA, wallet.id)).toEqual(ok(null));
+    expect(await repository.readShownSpan(GRACE, cash.id)).toEqual(ok(null));
+  });
+
+  it('reports an unreachable database on reading the days shown Entries name an Account on, as a result', async () => {
+    const shown = await dead.readShownSpan(ADA, account(1, 'asset', 0, 'Cash').id);
+
+    expect(isErr(shown) && shown.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+    expect(logged.map((fields) => fields['event'])).toEqual(['accounts.shown_span_read_failed']);
   });
 
   it('deletes an Account no Entry line names, and only its own User\'s', async () => {

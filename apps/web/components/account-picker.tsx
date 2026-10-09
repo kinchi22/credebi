@@ -9,18 +9,22 @@ import {
   type AccountOutput,
   type AccountType,
   type ChartOutput,
+  type PostedEntry,
   type Side,
 } from '@repo/contracts';
-import { ACCOUNT_TYPES } from '@repo/core/accounts';
+import { ACCOUNT_TYPES, isActiveOn } from '@repo/core/accounts';
 import { ChevronIcon, SearchIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
+import Link from 'next/link';
 import { Fragment, useId, useState, type ReactNode } from 'react';
 import { en } from '../messages/en';
+import { SETTINGS_PATH } from '../server/return-path';
 import { CONTROL, PRIMARY_BUTTON } from './control-classes';
 import { useHydrated } from './hydrated';
 import { useModalDialog, type ModalDialog } from './modal-dialog';
 import { SheetBar, SheetCloseButton, SheetTabs } from './sheet';
 import { SIDE_TONE, SIDES } from './side-classes';
+import { LINK } from './text-classes';
 import { useWide } from './wide';
 
 export type AccountChoice = Readonly<Record<Side, AccountOutput | undefined>>;
@@ -69,6 +73,29 @@ const PICK_MANY: PickControl = {
   },
   fieldName: undefined,
 };
+
+export type Offered = {
+  readonly chart: ChartOutput;
+  readonly ids: ReadonlySet<AccountId>;
+};
+
+function chartOn(chart: ChartOutput, day: string | undefined): ChartOutput {
+  if (day === undefined || day === '') {
+    return chart;
+  }
+  return chart.flatMap((node): ChartOutput => {
+    if (node.kind === 'account') {
+      return isActiveOn(node.account, day) ? [node] : [];
+    }
+    const accounts = node.accounts.filter((account) => isActiveOn(account, day));
+    return accounts.length === 0 ? [] : [{ ...node, accounts }];
+  });
+}
+
+export function offeredOn(chart: ChartOutput, day: string | undefined): Offered {
+  const offered = chartOn(chart, day);
+  return { chart: offered, ids: new Set(accountsIn(offered).map((account) => account.id)) };
+}
 
 const otherSide = (side: Side): Side => (side === 'debit' ? 'credit' : 'debit');
 
@@ -569,6 +596,44 @@ function AccountSheetDialog({
   );
 }
 
+function NoActiveAccount(): ReactNode {
+  return (
+    <p className={`rounded border border-border bg-ground px-4 py-3 ${typeClasses['body-dense']}`}>
+      {en.accountSheet.noActiveAccount}{' '}
+      <Link href={SETTINGS_PATH} className={LINK}>
+        {en.accountSheet.settingsLink}
+      </Link>
+    </p>
+  );
+}
+
+type OutsideActivePeriodProps = {
+  readonly entry: PostedEntry | undefined;
+  readonly offered: Offered;
+};
+
+export function OutsideActivePeriod({ entry, offered }: OutsideActivePeriodProps): ReactNode {
+  const outside = [
+    ...new Set(
+      (entry?.lines ?? [])
+        .filter((line) => !offered.ids.has(line.account))
+        .map((line) => line.accountName),
+    ),
+  ];
+  return outside.length === 0 ? null : (
+    <p className={`min-w-0 text-danger ${typeClasses['body-dense']}`}>
+      {en.accountSheet.outsideActivePeriod} {outside.join(', ')}.{' '}
+      <Link href={SETTINGS_PATH} className={LINK}>
+        {en.accountSheet.settingsLink}
+      </Link>
+    </p>
+  );
+}
+
 export function AccountPicker(props: AccountPickerProps): ReactNode {
-  return useWide() ? <AccountColumns {...props} /> : <AccountSheetDialog {...props} />;
+  const wide = useWide();
+  if (accountsIn(props.chart).length === 0) {
+    return <NoActiveAccount />;
+  }
+  return wide ? <AccountColumns {...props} /> : <AccountSheetDialog {...props} />;
 }

@@ -4,12 +4,17 @@ const accountNotSaved =
 const groupNotSaved =
   'The group was not saved. A name is 1 to 40 characters, and a description at most 200.';
 
-function chartRefusals(node: 'account' | 'group', notSaved: string, nameTaken: string) {
+function chartRefusals(
+  node: 'account' | 'group',
+  notSaved: string,
+  nameTaken: string,
+  inUse: string = notSaved,
+) {
   const unsaved = `The ${node} could not be saved just now, so nothing changed. Try again.`;
   return {
     INVALID_INPUT: notSaved,
     NAME_TAKEN: nameTaken,
-    IN_USE: notSaved,
+    IN_USE: inUse,
     NOT_FOUND: `This ${node} is no longer here. Reload the page.`,
     CONFLICT: unsaved,
     DEPENDENCY_UNAVAILABLE: unsaved,
@@ -120,6 +125,7 @@ export const en = {
       'account',
       accountNotSaved,
       'The account was not saved. Another of your accounts has this name; choose another.',
+      'The account was not saved, because an entry names it on a day outside this Active period. Keep that day within Active from and Active until.',
     ),
     groupRefusals: chartRefusals(
       'group',
@@ -213,6 +219,10 @@ export const en = {
     close: 'Close',
     find: 'Find an account',
     noMatch: 'No account matches',
+    noActiveAccount: 'No account is active on this day.',
+    outsideActivePeriod:
+      'This entry cannot be saved on this day, because it is outside the Active period of',
+    settingsLink: 'Change when your accounts are active in Settings',
     add: {
       debit: 'Add debit account',
       credit: 'Add credit account',
@@ -234,7 +244,8 @@ export const en = {
     save: 'Save',
     pending: 'Saving...',
     refusals: {
-      INVALID_INPUT: 'The entry was not saved. Check the date, the memo, the accounts and the amounts.',
+      INVALID_INPUT:
+        'The entry was not saved. Check the date, the memo, the accounts -- each active on the entry\'s day -- and the amounts.',
       UNBALANCED: 'Debits and credits must balance. Check the amount on each side.',
       NOT_FOUND: 'This entry is no longer here. Reload the page.',
       CONFLICT: 'This entry was changed elsewhere, perhaps in another tab. Reload the page.',

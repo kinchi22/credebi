@@ -8,9 +8,9 @@ import {
   type Money,
   type Side,
 } from '@repo/contracts';
-import { type AccountNames } from '../../accounts/domain/account';
+import { type Account, type AccountNames } from '../../accounts/domain/account';
 import { MONEY_ZERO, money } from '../../money/domain/money';
-import { makeEntry, type EntryDraft } from './entry';
+import { makeEntry, makePostedEntry, type EntryDraft } from './entry';
 
 const CASH = '01920000-0000-7000-8000-00000000c001' as AccountId;
 const PAYABLE = '01920000-0000-7000-8000-00000000c002' as AccountId;
@@ -274,5 +274,58 @@ describe('makeEntry', () => {
     expect(isOk(result)).toBe(true);
     if (!isOk(result)) return;
     expect(result.value.entryDate).toBe('2126-01-01');
+  });
+});
+
+describe('makePostedEntry', () => {
+  const chartAccount = (
+    id: AccountId,
+    name: string,
+    activeFrom: string,
+    activeUntil: string | null,
+  ): Account => ({
+    id,
+    accountType: 'asset',
+    groupId: null,
+    name,
+    description: null,
+    position: 0,
+    activeFrom,
+    activeUntil,
+  });
+
+  const CHART: readonly Account[] = [
+    chartAccount(CASH, 'Cash', '2026-09-01', '2026-09-30'),
+    chartAccount(EXPENSES, 'Expenses', '2026-09-15', null),
+  ];
+
+  it('builds the entry, named from the chart, when every Account it names is active on its day', () => {
+    expect(makePostedEntry(OFFICE_SUPPLIES, STAMP, CHART)).toEqual(
+      makeEntry(OFFICE_SUPPLIES, STAMP, NAMES),
+    );
+  });
+
+  it('refuses as invalid input an entry dated before an Account it names starts', () => {
+    const result = makePostedEntry({ ...OFFICE_SUPPLIES, entryDate: '2026-09-14' }, STAMP, CHART);
+
+    expect(isErr(result) && result.error.code).toBe('INVALID_INPUT');
+    expect(isErr(result) && result.error.message).toContain('"Expenses"');
+  });
+
+  it('refuses as invalid input an entry dated after an Account it names ends', () => {
+    const result = makePostedEntry({ ...OFFICE_SUPPLIES, entryDate: '2026-10-01' }, STAMP, CHART);
+
+    expect(isErr(result) && result.error.code).toBe('INVALID_INPUT');
+    expect(isErr(result) && result.error.message).toContain('"Cash"');
+  });
+
+  it('refuses first what makes the entry no entry at all, before the Active period', () => {
+    const result = makePostedEntry(
+      { ...OFFICE_SUPPLIES, entryDate: '2026-10-01', memo: ' ' },
+      STAMP,
+      CHART,
+    );
+
+    expect(isErr(result) && result.error.message).toContain('memo');
   });
 });
