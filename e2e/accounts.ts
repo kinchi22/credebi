@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
-import { accountChoices, type Side } from './entries';
+import { accountChoices, ACCOUNTS, type Side } from './entries';
 
 export const ACCOUNT_TYPES = ['Assets', 'Liabilities', 'Equity', 'Revenue', 'Expenses'] as const;
 
@@ -29,14 +29,14 @@ export const accountType = (page: Page, type: AccountType): Locator =>
 export const showEndedAccounts = (page: Page): Locator =>
   accountsSection(page).getByRole('checkbox', { name: 'Show ended accounts', exact: true });
 
-export const grip = (scope: Locator, name: string): Locator =>
+export const grip = (scope: Locator | Page, name: string): Locator =>
   scope.getByRole('button', { name: `Move ${name}`, exact: true });
 
 export const grips = (scope: Locator): Locator =>
   scope.getByRole('button', { name: /^Move / });
 
 export const row = (scope: Locator, name: string): Locator =>
-  scope.getByRole('listitem').filter({ has: grip(scope, name) }).last();
+  scope.getByRole('listitem').filter({ has: grip(scope.page(), name) }).last();
 
 const button = (scope: Locator, name: string): Locator =>
   scope.getByRole('button', { name, exact: true });
@@ -209,3 +209,13 @@ export async function dayInBrowser(page: Page, daysFromToday = 0): Promise<strin
 
 export const offeredType = (form: Locator, side: Side, type: AccountType): Locator =>
   accountChoices(form, side).getByRole('group', { name: type, exact: true });
+
+export const BOOKS_OPEN = '2000-01-01';
+
+export async function startAccountsOn(page: Page, day = BOOKS_OPEN): Promise<void> {
+  await page.goto('/settings');
+  await expect(accountsSection(page)).toBeVisible();
+  for (const [index, type] of ACCOUNT_TYPES.entries()) {
+    await editAccount(page, type, ACCOUNTS[index] ?? '', { activeFrom: day });
+  }
+}
