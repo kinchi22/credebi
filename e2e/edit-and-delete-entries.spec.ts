@@ -22,7 +22,15 @@ import {
 import { resultFor, results, search } from './entry-search';
 import { ENTRY_SEARCH_PATH as SEARCH, ENTRY_SEARCH_WITH_QUERY } from './routes';
 import { BOOKS_OPEN } from './accounts';
-import { selectByDraggingOntoScrim } from './dialog';
+import {
+  clickScrim,
+  closeDialog,
+  closeDiscarding,
+  discardChanges,
+  discardDialog,
+  keepEditing,
+  selectByDraggingOntoScrim,
+} from './dialog';
 import { signIn } from './session';
 import { setEntryFormMode } from './settings';
 import { PHONE } from './viewport';
@@ -40,9 +48,6 @@ const editDialog = (page: Page): Locator =>
 
 const deleteDialog = (page: Page): Locator =>
   page.getByRole('dialog', { name: 'Delete entry', exact: true });
-
-const discardDialog = (page: Page): Locator =>
-  page.getByRole('dialog', { name: 'Discard changes', exact: true });
 
 const button = (scope: Locator, name: string): Locator =>
   scope.getByRole('button', { name, exact: true });
@@ -396,34 +401,23 @@ test('asks Discard changes when Edit entry is closed with changes, by Close, by 
   const dialog = await openEdit(listedEntry(page, memo));
   await dialog.getByLabel('Memo').fill(draft);
 
-  await button(dialog, 'Close').click();
-  const discard = discardDialog(page);
-  await expect(discard).toBeVisible();
-  await button(discard, 'Keep editing').click();
-  await expect(discard).toBeHidden();
-  await expect(dialog).toBeVisible();
-  await expect(dialog.getByLabel('Memo')).toHaveValue(draft);
+  const memoField = dialog.getByLabel('Memo');
+  await closeDialog(dialog);
+  await keepEditing(dialog, memoField, draft);
 
-  await page.mouse.click(4, 4);
-  await expect(discard).toBeVisible();
-  await button(discard, 'Keep editing').click();
-  await expect(discard).toBeHidden();
-  await expect(dialog).toBeVisible();
-  await expect(dialog.getByLabel('Memo')).toHaveValue(draft);
+  await clickScrim(page);
+  await keepEditing(dialog, memoField, draft);
 
-  await dialog.getByLabel('Memo').press('Escape');
-  await expect(discard).toBeVisible();
-  await button(discard, 'Discard').click();
-  await expect(discard).toBeHidden();
-  await expect(dialog).toBeHidden();
+  await memoField.press('Escape');
+  await discardChanges(dialog);
   await expectAsPosted(listedEntry(page, memo));
   await expect(listedEntry(page, draft)).toHaveCount(0);
 
   const unchanged = await openEdit(listedEntry(page, memo));
-  await button(unchanged, 'Close').click();
+  await closeDialog(unchanged);
   await expect(unchanged).toBeHidden();
   await expect(entries(page)).toBeVisible();
-  await expect(discard).toHaveCount(0);
+  await expect(discardDialog(page)).toHaveCount(0);
 
   await page.reload();
   await expectAsPosted(listedEntry(page, memo));
@@ -450,9 +444,7 @@ test('keeps Edit entry open with its input when a press inside it is released on
   await expect(discardDialog(page)).toHaveCount(0);
   await expect(dialog.getByLabel('Memo')).toHaveValue(draft);
 
-  await button(dialog, 'Close').click();
-  await button(discardDialog(page), 'Discard').click();
-  await expect(dialog).toBeHidden();
+  await closeDiscarding(dialog);
   await expectAsPosted(listedEntry(page, memo));
 });
 

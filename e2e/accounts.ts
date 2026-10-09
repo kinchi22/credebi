@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
+import { closeDialog } from './dialog';
 import { accountChoices, type Side } from './entries';
 
 export const ACCOUNT_TYPES = ['Assets', 'Liabilities', 'Equity', 'Revenue', 'Expenses'] as const;
@@ -177,92 +178,62 @@ export async function expectInGroup(
 
 export const NO_GROUP = 'No group';
 
-export const discardDialog = (page: Page): Locator => dialogNamed(page, 'Discard changes');
-
-export async function closeDialog(dialog: Locator): Promise<void> {
-  await button(dialog, 'Close').click();
-}
-
-export async function closeDiscarding(dialog: Locator): Promise<void> {
-  await closeDialog(dialog);
-  const discard = discardDialog(dialog.page());
-  await button(discard, 'Discard').click();
-  await expect(discard).toBeHidden();
-  await expect(dialog).toBeHidden();
-}
-
-const centre = (box: { x: number; y: number; width: number; height: number }) => ({
-  x: box.x + box.width / 2,
-  y: box.y + box.height / 2,
-});
-
 type Point = { readonly x: number; readonly y: number };
 
-async function boxOf(locator: Locator, what: string) {
+type Box = { readonly x: number; readonly y: number; readonly width: number; readonly height: number };
+
+const centre = (box: Box): Point => ({ x: box.x + box.width / 2, y: box.y + box.height / 2 });
+
+const bottom = (box: Box): number => box.y + box.height;
+
+async function boxOf(locator: Locator, what: string): Promise<Box> {
   const box = await locator.boundingBox();
-  expect(box, `${what} is on screen`).not.toBeNull();
-  return box ?? { x: Number.NaN, y: Number.NaN, width: Number.NaN, height: Number.NaN };
+  if (box === null) throw new Error(`${what} is not on screen`);
+  return box;
 }
 
-export async function dragTo(
-  page: Page,
-  from: Locator,
-  target: () => Promise<Point>,
-): Promise<void> {
+export async function dragTo(page: Page, from: Locator, target: Point): Promise<void> {
   await from.hover();
-  const a = centre(await boxOf(from, 'the grip being dragged'));
-  const first = await target();
-  await page.mouse.move(a.x, a.y);
+  const start = centre(await boxOf(from, 'the grip being dragged'));
+  await page.mouse.move(start.x, start.y);
   await page.mouse.down();
-  const direction = first.y > a.y ? 1 : -1;
-  await page.mouse.move(a.x, a.y + direction * 8, { steps: 4 });
-  await page.mouse.move(first.x, first.y, { steps: 20 });
-  for (let settle = 0; settle < 3; settle += 1) {
-    const point = await target();
-    await page.mouse.move(point.x, point.y, { steps: 4 });
-  }
+  const direction = target.y > start.y ? 1 : -1;
+  await page.mouse.move(start.x, start.y + direction * 8, { steps: 4 });
+  await page.mouse.move(target.x, target.y, { steps: 24 });
   await page.mouse.up();
 }
-
-export const headingMiddle = (scope: Locator, group: string) => async (): Promise<Point> =>
-  centre(await boxOf(grip(scope, group), `the heading row of ${group}`));
-
-export const headingTopEdge = (scope: Locator, group: string) => async (): Promise<Point> => {
-  const heading = await boxOf(row(scope, group), `the heading row of ${group}`);
-  return { x: centre(await boxOf(grip(scope, group), `the grip of ${group}`)).x, y: heading.y + 2 };
-};
-
-export const endOfList = (scope: Locator) => async (): Promise<Point> => {
-  const list = await boxOf(scope, 'the Account type');
-  const rows = await scope.getByRole('listitem').all();
-  const bottoms = await Promise.all(
-    rows.map(async (item) => {
-      const box = await item.boundingBox();
-      return box === null ? Number.NEGATIVE_INFINITY : box.y + box.height;
-    }),
-  );
-  const rowsEnd = Math.max(...bottoms);
-  const end = list.y + list.height;
-  expect(end - rowsEnd, 'the Account type ends in a drop zone below its rows').toBeGreaterThan(0);
-  return { x: list.x + list.width / 2, y: (rowsEnd + end) / 2 };
-};
 
 export async function drag(page: Page, from: Locator, onto: Locator): Promise<void> {
-  await from.hover();
-  const start = await from.boundingBox();
-  const end = await onto.boundingBox();
-  expect(start, 'the grip being dragged is on screen').not.toBeNull();
-  expect(end, 'the grip dropped onto is on screen').not.toBeNull();
-  if (start === null || end === null) return;
-  const a = centre(start);
-  const b = centre(end);
-  await page.mouse.move(a.x, a.y);
-  await page.mouse.down();
-  const direction = b.y > a.y ? 1 : -1;
-  await page.mouse.move(a.x, a.y + direction * 8, { steps: 4 });
-  await page.mouse.move(b.x, b.y, { steps: 20 });
-  await page.mouse.move(b.x, b.y + (direction * end.height) / 4, { steps: 4 });
-  await page.mouse.up();
+  const start = centre(await boxOf(from, 'the grip being dragged'));
+  const end = await boxOf(onto, 'the grip dropped onto');
+  const middle = centre(end);
+  const direction = middle.y > start.y ? 1 : -1;
+  await dragTo(page, from, { x: middle.x, y: middle.y + (direction * end.height) / 4 });
+}
+
+const headingRow = (scope: Locator, group: string): Locator =>
+  row(scope, group)
+    .locator('*')
+    .filter({ has: grip(scope.page(), group) })
+    .filter({ hasNot: scope.page().getByRole('list') })
+    .first();
+
+export async function headingRowMiddle(scope: Locator, group: string): Promise<Point> {
+  return centre(await boxOf(headingRow(scope, group), `the heading row of ${group}`));
+}
+
+export async function headingRowTopEdge(scope: Locator, group: string): Promise<Point> {
+  const heading = await boxOf(headingRow(scope, group), `the heading row of ${group}`);
+  return { x: centre(heading).x, y: heading.y + 2 };
+}
+
+export async function endOfList(scope: Locator): Promise<Point> {
+  const list = await boxOf(scope, 'the Account type');
+  const rows = await scope.getByRole('listitem').filter({ has: grips(scope) }).all();
+  const rowsEnd = Math.max(...(await Promise.all(rows.map(async (item) => bottom(await boxOf(item, 'a row'))))));
+  const end = bottom(list);
+  expect(end - rowsEnd, 'the Account type ends in a drop zone below its rows').toBeGreaterThan(0);
+  return { x: centre(list).x, y: (rowsEnd + end) / 2 };
 }
 
 export async function dayInBrowser(page: Page, daysFromToday = 0): Promise<string> {
