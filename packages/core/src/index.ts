@@ -19,11 +19,8 @@ export {
 } from './money/index';
 
 export {
-  CHART_OF_ACCOUNTS,
   MEMO_MAX_LENGTH,
-  isAccountCode,
   makeEntry,
-  type AccountCode,
   type Entry,
   type EntryDraft,
   type EntryLine,
@@ -47,6 +44,15 @@ export {
   type EntryRepository,
   type UnitOfWork,
 } from './entries/index';
+
+export {
+  ACCOUNT_TYPES,
+  createGetChart,
+  type Account,
+  type AccountRepository,
+  type GetChart,
+  type GetChartDependencies,
+} from './accounts/index';
 
 export {
   describeError,

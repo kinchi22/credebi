@@ -178,13 +178,6 @@ export const en = {
       UNAUTHENTICATED: 'You are signed out. Sign in again to delete an entry.',
     },
   },
-  accounts: {
-    cash: 'Cash',
-    payable: 'Accounts payable',
-    capital: 'Capital',
-    sales: 'Sales',
-    expense: 'Expenses',
-  },
   accountTypes: {
     asset: 'Assets',
     liability: 'Liabilities',

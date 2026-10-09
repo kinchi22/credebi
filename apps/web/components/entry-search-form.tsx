@@ -1,7 +1,11 @@
 'use client';
 
-import { SEARCH_CRITERIA_FIELDS, type SearchCriteriaInput } from '@repo/contracts';
-import { CHART_OF_ACCOUNTS, type DayRange } from '@repo/core/entries';
+import {
+  SEARCH_CRITERIA_FIELDS,
+  type ChartOutput,
+  type SearchCriteriaInput,
+} from '@repo/contracts';
+import { type DayRange } from '@repo/core/entries';
 import { PANEL } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useId, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
@@ -14,6 +18,7 @@ import { DatePresets, DatePresetsSheet } from './date-presets';
 
 export type EntrySearchFormProps = {
   readonly criteria: SearchCriteriaInput;
+  readonly chart: ChartOutput;
 };
 
 const RANGE_DAY = `${DATE_CONTROL} w-full min-w-0 wide:w-auto`;
@@ -26,7 +31,7 @@ function keepingADay(set: (day: string) => void): (event: ChangeEvent<HTMLInputE
   };
 }
 
-export function EntrySearchForm({ criteria }: EntrySearchFormProps): ReactNode {
+export function EntrySearchForm({ criteria, chart }: EntrySearchFormProps): ReactNode {
   const id = useId();
   const [from, setFrom] = useState(criteria.from ?? '');
   const [to, setTo] = useState(criteria.to ?? '');
@@ -93,9 +98,9 @@ export function EntrySearchForm({ criteria }: EntrySearchFormProps): ReactNode {
           className={CONTROL}
         >
           <option value="">{en.entrySearch.anyAccount}</option>
-          {CHART_OF_ACCOUNTS.map((code) => (
-            <option key={code} value={code}>
-              {en.accounts[code]}
+          {chart.map((account) => (
+            <option key={account.id} value={account.id}>
+              {account.name}
             </option>
           ))}
         </select>

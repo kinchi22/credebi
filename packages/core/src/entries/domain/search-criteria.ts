@@ -1,5 +1,13 @@
-import { domainError, err, ok, type DomainError, type Result } from '@repo/contracts';
-import { isAccountCode, memoLength, MEMO_MAX_LENGTH, type AccountCode } from './entry';
+import {
+  domainError,
+  err,
+  ok,
+  type AccountId,
+  type DomainError,
+  type Result,
+} from '@repo/contracts';
+import { type AccountNames } from '../../accounts/domain/account';
+import { memoLength, MEMO_MAX_LENGTH } from './entry';
 
 export type SearchCriteriaDraft = {
   readonly from?: string | undefined;
@@ -11,18 +19,25 @@ export type SearchCriteriaDraft = {
 export type SearchCriteria = {
   readonly from?: string;
   readonly to?: string;
-  readonly account?: AccountCode;
+  readonly account?: AccountId;
   readonly memo?: string;
 };
 
 export const NO_CRITERIA: SearchCriteria = {};
 
-export function makeSearchCriteria(draft: SearchCriteriaDraft): Result<SearchCriteria, DomainError> {
-  const { from, to, account } = draft;
+export function makeSearchCriteria(
+  draft: SearchCriteriaDraft,
+  names: AccountNames,
+): Result<SearchCriteria, DomainError> {
+  const { from, to } = draft;
   const memo = draft.memo === undefined ? '' : draft.memo.trim();
-  if (account !== undefined && !isAccountCode(account)) {
+  const account = draft.account === undefined ? undefined : names.get(draft.account)?.id;
+  if (draft.account !== undefined && account === undefined) {
     return err(
-      domainError('INVALID_INPUT', `No account named ${account} is in the chart of accounts.`),
+      domainError(
+        'INVALID_INPUT',
+        `Account "${draft.account}" is not in the User's chart of accounts.`,
+      ),
     );
   }
   if (from !== undefined && to !== undefined && from > to) {

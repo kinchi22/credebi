@@ -1,4 +1,6 @@
 import { ok, type DomainError, type EntryId, type Result } from '@repo/contracts';
+import { readAccountNames } from '../../accounts/application/read-account-names';
+import { type AccountRepository } from '../../accounts/ports/account-repository';
 import { requireUser, type AuthContext } from '../../auth/domain/auth-context';
 import { changesEntry } from '../domain/correction';
 import { makeEntry, type Entry, type EntryDraft } from '../domain/entry';
@@ -8,6 +10,7 @@ import { type UnitOfWork } from '../ports/unit-of-work';
 
 export type EditEntryDependencies = {
   readonly entries: EntryRepository;
+  readonly accounts: AccountRepository;
   readonly unitOfWork: UnitOfWork;
   readonly newEntryId: () => EntryId;
   readonly now: () => Date;
@@ -21,6 +24,7 @@ export type EditEntry = (
 
 export function createEditEntry({
   entries,
+  accounts,
   unitOfWork,
   newEntryId,
   now,
@@ -43,8 +47,17 @@ export function createEditEntry({
       return ok(entry);
     }
 
+    const names = await readAccountNames(accounts, userId.value);
+    if (!names.ok) {
+      return names;
+    }
+
     const createdAt = now();
-    const replacement = makeEntry(draft, { id: newEntryId(), createdAt });
+    const replacement = makeEntry(
+      draft,
+      { id: newEntryId(), createdAt },
+      names.value,
+    );
     if (!replacement.ok) {
       return replacement;
     }

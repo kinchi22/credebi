@@ -5,10 +5,13 @@ import {
   isErr,
   isOk,
   ok,
+  type AccountId,
   type EntryId,
   type Money,
   type UserId,
 } from '@repo/contracts';
+import { inMemoryAccounts } from '../../accounts/application/in-memory-accounts';
+import { type Account } from '../../accounts/domain/account';
 import { SIGNED_OUT, type AuthContext } from '../../auth/domain/auth-context';
 import { type Entry, type EntryDraft } from '../domain/entry';
 import { NO_CRITERIA } from '../domain/search-criteria';
@@ -20,15 +23,41 @@ import { createSearchEntries } from './search-entries';
 
 const NOW = new Date('2026-10-04T09:00:00.000Z');
 
-const ADA: AuthContext = { userId: '01920000-0000-7000-8000-0000000000a1' as UserId };
-const GRACE: AuthContext = { userId: '01920000-0000-7000-8000-0000000000a2' as UserId };
+const ADA_ID = '01920000-0000-7000-8000-0000000000a1' as UserId;
+const GRACE_ID = '01920000-0000-7000-8000-0000000000a2' as UserId;
+const ADA: AuthContext = { userId: ADA_ID };
+const GRACE: AuthContext = { userId: GRACE_ID };
+
+const CASH = '01920000-0000-7000-8000-00000000c001' as AccountId;
+const PAYABLE = '01920000-0000-7000-8000-00000000c002' as AccountId;
+const EXPENSES = '01920000-0000-7000-8000-00000000c005' as AccountId;
+const GRACES_CASH = '01920000-0000-7000-8000-00000000d001' as AccountId;
+const GRACES_EXPENSES = '01920000-0000-7000-8000-00000000d005' as AccountId;
+
+const account = (id: AccountId, accountType: Account['accountType'], name: string): Account => ({
+  id,
+  accountType,
+  name,
+  description: null,
+  position: 0,
+  activeFrom: '2026-01-01',
+  activeUntil: null,
+});
 
 const DRAFT: EntryDraft = {
   entryDate: '2026-09-15',
   memo: 'Office supplies',
   lines: [
-    { account: 'expense', side: 'debit', amount: 12500 as Money },
-    { account: 'cash', side: 'credit', amount: 12500 as Money },
+    { account: EXPENSES, side: 'debit', amount: 12500 as Money },
+    { account: CASH, side: 'credit', amount: 12500 as Money },
+  ],
+};
+
+const GRACES_DRAFT: EntryDraft = {
+  ...DRAFT,
+  lines: [
+    { account: GRACES_EXPENSES, side: 'debit', amount: 12500 as Money },
+    { account: GRACES_CASH, side: 'credit', amount: 12500 as Money },
   ],
 };
 
@@ -36,8 +65,8 @@ const REWRITTEN: EntryDraft = {
   entryDate: '2026-09-20',
   memo: 'Office supplies on account',
   lines: [
-    { account: 'expense', side: 'debit', amount: 8000 as Money },
-    { account: 'payable', side: 'credit', amount: 8000 as Money },
+    { account: EXPENSES, side: 'debit', amount: 8000 as Money },
+    { account: PAYABLE, side: 'credit', amount: 8000 as Money },
   ],
 };
 
@@ -56,16 +85,26 @@ function useCases(books: InMemoryEntries = inMemoryEntries()): {
     return `01920000-0000-7000-8000-${sequence.toString().padStart(12, '0')}` as EntryId;
   };
   const now = (): Date => NOW;
-  const postEntry = createPostEntry({ entries: books.entries, newEntryId, now });
-  const searchEntries = createSearchEntries({ entries: books.entries });
+  const { accounts, hold } = inMemoryAccounts();
+  hold(ADA_ID, [
+    account(CASH, 'asset', 'Cash'),
+    account(PAYABLE, 'liability', 'Accounts payable'),
+    account(EXPENSES, 'expense', 'Expenses'),
+  ]);
+  hold(GRACE_ID, [
+    account(GRACES_CASH, 'asset', 'Cash'),
+    account(GRACES_EXPENSES, 'expense', 'Expenses'),
+  ]);
+  const postEntry = createPostEntry({ entries: books.entries, accounts, newEntryId, now });
+  const searchEntries = createSearchEntries({ entries: books.entries, accounts });
   return {
     rows: books.rows,
     post: async (auth, memo) => {
-      const posted = await postEntry(auth, { ...DRAFT, memo });
+      const posted = await postEntry(auth, { ...(auth === GRACE ? GRACES_DRAFT : DRAFT), memo });
       expect(isOk(posted), 'test setup posted an entry that breaks a rule').toBe(true);
       return isOk(posted) ? posted.value : ({} as Entry);
     },
-    editEntry: createEditEntry({ ...books, newEntryId, now }),
+    editEntry: createEditEntry({ ...books, accounts, newEntryId, now }),
     deleteEntry: createDeleteEntry({ entries: books.entries, newEntryId, now }),
     visible: async (auth) => {
       const found = await searchEntries(auth, NO_CRITERIA);
@@ -90,7 +129,10 @@ describe('createEditEntry', () => {
       id: expect.not.stringMatching(original.id) as unknown,
       entryDate: '2026-09-20',
       memo: 'Office supplies on account',
-      lines: REWRITTEN.lines,
+      lines: [
+        { account: EXPENSES, accountName: 'Expenses', side: 'debit', amount: 8000 },
+        { account: PAYABLE, accountName: 'Accounts payable', side: 'credit', amount: 8000 },
+      ],
       total: 8000,
       createdAt: NOW,
     });
@@ -118,8 +160,8 @@ describe('createEditEntry', () => {
           total: original.total,
           createdAt: NOW,
           lines: [
-            { account: 'expense', side: 'credit', amount: 12500 },
-            { account: 'cash', side: 'debit', amount: 12500 },
+            { account: EXPENSES, accountName: 'Expenses', side: 'credit', amount: 12500 },
+            { account: CASH, accountName: 'Cash', side: 'debit', amount: 12500 },
           ],
         },
       },
@@ -167,13 +209,30 @@ describe('createEditEntry', () => {
     const unbalanced = await editEntry(ADA, original.id, {
       ...REWRITTEN,
       lines: [
-        { account: 'expense', side: 'debit', amount: 8000 as Money },
-        { account: 'payable', side: 'credit', amount: 7999 as Money },
+        { account: EXPENSES, side: 'debit', amount: 8000 as Money },
+        { account: PAYABLE, side: 'credit', amount: 7999 as Money },
       ],
     });
 
     expect(isErr(blank) && blank.error.code).toBe('INVALID_INPUT');
     expect(isErr(unbalanced) && unbalanced.error.code).toBe('UNBALANCED');
+    expect(rows).toHaveLength(1);
+    expect(await visible(ADA)).toEqual([original]);
+  });
+
+  it("refuses a replacement naming another User's Account, and leaves the Entry", async () => {
+    const { rows, post, editEntry, visible } = useCases();
+    const original = await post(ADA, 'Office supplies');
+
+    const edited = await editEntry(ADA, original.id, {
+      ...REWRITTEN,
+      lines: [
+        { account: EXPENSES, side: 'debit', amount: 8000 as Money },
+        { account: GRACES_CASH, side: 'credit', amount: 8000 as Money },
+      ],
+    });
+
+    expect(isErr(edited) && edited.error.code).toBe('INVALID_INPUT');
     expect(rows).toHaveLength(1);
     expect(await visible(ADA)).toEqual([original]);
   });
@@ -234,6 +293,22 @@ describe('createEditEntry', () => {
     });
 
     expect(await editEntry(ADA, UNKNOWN_ID, REWRITTEN)).toEqual(err(down));
+  });
+
+  it('writes nothing when the chart of accounts cannot be read', async () => {
+    const down = domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.');
+    const books = inMemoryEntries();
+    const { rows, post } = useCases(books);
+    const original = await post(ADA, 'Office supplies');
+    const editEntry = createEditEntry({
+      ...books,
+      accounts: { readChart: () => Promise.resolve(err(down)) },
+      newEntryId: () => UNKNOWN_ID,
+      now: () => NOW,
+    });
+
+    expect(await editEntry(ADA, original.id, REWRITTEN)).toEqual(err(down));
+    expect(rows).toHaveLength(1);
   });
 
   it('leaves the Entry visible and writes nothing when the replacement cannot be saved', async () => {

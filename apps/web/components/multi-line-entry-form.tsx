@@ -3,6 +3,9 @@
 import {
   ENTRY_FORM_FIELDS,
   entryFormModeSchema,
+  type AccountId,
+  type AccountOutput,
+  type ChartOutput,
   type DomainError,
   type Money,
   type PostedEntry,
@@ -12,8 +15,6 @@ import {
 import {
   draftLinesInOrder,
   draftTotals,
-  isAccountCode,
-  type AccountCode,
   type DraftLine,
   type DraftTotals,
 } from '@repo/core/entries';
@@ -36,20 +37,22 @@ import { SIDE_TONE, SIDES } from './side-classes';
 import { DANGER_TEXT } from './text-classes';
 
 type ChosenLine = DraftLine & {
-  readonly account: AccountCode;
+  readonly account: AccountId;
+  readonly accountName: string;
 };
 
 const isLine =
-  (side: Side, account: AccountCode) =>
+  (side: Side, account: AccountId) =>
   (line: ChosenLine): boolean =>
     line.side === side && line.account === account;
 
 const linesOf = (entry: PostedEntry | undefined): readonly ChosenLine[] =>
-  (entry?.lines ?? []).flatMap((line) =>
-    isAccountCode(line.account)
-      ? [{ side: line.side, account: line.account, amount: String(line.amount) }]
-      : [],
-  );
+  (entry?.lines ?? []).map((line) => ({
+    side: line.side,
+    account: line.account,
+    accountName: line.accountName,
+    amount: String(line.amount),
+  }));
 
 const LINE_GRID = 'grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-3';
 const AMOUNT_COLUMN = 'flex min-w-0 gap-1';
@@ -131,13 +134,13 @@ function LineFields({ id, line, onAmountChange, onRemove }: LineFieldsProps): Re
 
   return (
     <fieldset
-      aria-label={`${en.sides[line.side]} ${en.accounts[line.account]}`}
+      aria-label={`${en.sides[line.side]} ${line.accountName}`}
       className={`${LINE_GRID} items-center py-1 ${typeClasses['body-dense']}`}
     >
       <input type="hidden" name={ENTRY_FORM_FIELDS.account} value={line.account} />
       <input type="hidden" name={ENTRY_FORM_FIELDS.side} value={line.side} />
       <p aria-hidden className="min-w-0 font-semibold break-words">
-        {en.accounts[line.account]}
+        {line.accountName}
       </p>
       <div className={`${AMOUNT_COLUMN} items-center`}>
         <div className="min-w-0 grow">
@@ -161,25 +164,43 @@ function LineFields({ id, line, onAmountChange, onRemove }: LineFieldsProps): Re
   );
 }
 
-function MultiLineFields({ id, entry, heading, refusal, submitButton }: EntryFormParts): ReactNode {
+type MultiLineFieldsProps = EntryFormParts & {
+  readonly chart: ChartOutput;
+};
+
+function MultiLineFields({
+  id,
+  chart,
+  entry,
+  heading,
+  refusal,
+  submitButton,
+}: MultiLineFieldsProps): ReactNode {
   const [chosen, setChosen] = useState<readonly ChosenLine[]>(() => linesOf(entry));
   const sheet = useAccountSheet();
 
-  const pick = (side: Side, account: AccountCode, ticked: boolean): void => {
-    setChosen((current) =>
-      ticked
-        ? [...current, { side, account, amount: '' }]
-        : current.filter((line) => !isLine(side, account)(line)),
-    );
+  const remove = (side: Side, account: AccountId): void => {
+    setChosen((current) => current.filter((line) => !isLine(side, account)(line)));
   };
 
-  const changeAmount = (side: Side, account: AccountCode, amount: string): void => {
+  const pick = (side: Side, account: AccountOutput, ticked: boolean): void => {
+    if (!ticked) {
+      remove(side, account.id);
+      return;
+    }
+    setChosen((current) => [
+      ...current,
+      { side, account: account.id, accountName: account.name, amount: '' },
+    ]);
+  };
+
+  const changeAmount = (side: Side, account: AccountId, amount: string): void => {
     setChosen((current) =>
       current.map((line) => (isLine(side, account)(line) ? { ...line, amount } : line)),
     );
   };
 
-  const isChosen = (side: Side, account: AccountCode): boolean =>
+  const isChosen = (side: Side, account: AccountId): boolean =>
     chosen.some(isLine(side, account));
 
   const totals = draftTotals(chosen);
@@ -206,7 +227,7 @@ function MultiLineFields({ id, entry, heading, refusal, submitButton }: EntryFor
                         changeAmount(line.side, line.account, amount);
                       }}
                       onRemove={() => {
-                        pick(line.side, line.account, false);
+                        remove(line.side, line.account);
                       }}
                     />
                   ))}
@@ -221,19 +242,26 @@ function MultiLineFields({ id, entry, heading, refusal, submitButton }: EntryFor
         </div>
         <DifferenceRow totals={totals} refusal={refusal} submitButton={submitButton} />
       </div>
-      <AccountPicker id={id} multiple isChosen={isChosen} onPick={pick} sheet={sheet} />
+      <AccountPicker
+        id={id}
+        chart={chart}
+        multiple
+        isChosen={isChosen}
+        onPick={pick}
+        sheet={sheet}
+      />
     </div>
   );
 }
 
-export function MultiLineEntryForm({ action, editing }: EntryFormProps): ReactNode {
+export function MultiLineEntryForm({ action, chart, editing }: EntryFormProps): ReactNode {
   return (
     <EntryFormShell
       action={action}
       editing={editing}
       mode={entryFormModeSchema.enum['multi-line']}
     >
-      {(parts) => <MultiLineFields {...parts} />}
+      {(parts) => <MultiLineFields {...parts} chart={chart} />}
     </EntryFormShell>
   );
 }

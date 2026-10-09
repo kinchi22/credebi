@@ -1,6 +1,6 @@
 'use client';
 
-import { type EntryFormMode, type PostedEntry } from '@repo/contracts';
+import { type ChartOutput, type EntryFormMode, type PostedEntry } from '@repo/contracts';
 import { PencilIcon } from '@repo/ui';
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { en } from '../messages/en';
@@ -21,6 +21,7 @@ export type EditEntryAction = (
 
 export type EditEntryProps = {
   readonly entry: PostedEntry;
+  readonly chart: ChartOutput;
   readonly entryFormMode: EntryFormMode;
   readonly action: EditEntryAction;
 };
@@ -38,7 +39,7 @@ const fieldsIn = (body: HTMLElement | null): string => {
   return form ? JSON.stringify([...new FormData(form)]) : '';
 };
 
-export function EditEntry({ entry, entryFormMode, action }: EditEntryProps): ReactNode {
+export function EditEntry({ entry, chart, entryFormMode, action }: EditEntryProps): ReactNode {
   const titleId = useId();
   const dialog = useModalDialog({ closesWhenWide: false });
   const discard = useModalDialog({ closesWhenWide: false });
@@ -115,6 +116,7 @@ export function EditEntry({ entry, entryFormMode, action }: EditEntryProps): Rea
             <div ref={body} className="min-h-0 grow overflow-y-auto p-4 wide:p-6">
               <EntryForm
                 action={action.bind(null, entry.id)}
+                chart={chart}
                 editing={{ entry, titleId, onSaved: dialog.close }}
               />
             </div>

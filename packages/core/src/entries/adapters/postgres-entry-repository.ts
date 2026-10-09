@@ -10,6 +10,7 @@ import {
   lte,
   not,
   getTableColumns,
+  sql,
   type SQL,
 } from 'drizzle-orm';
 import { type NodePgQueryResultHKT } from 'drizzle-orm/node-postgres';
@@ -19,6 +20,7 @@ import {
   err,
   ok,
   sideSchema,
+  type AccountId,
   type DomainError,
   type EntryId,
   type Err,
@@ -26,10 +28,11 @@ import {
   type UserId,
 } from '@repo/contracts';
 import { createDatabase, schema, type Schema } from '@repo/db';
+import { type NamedAccount } from '../../accounts/domain/account';
 import { describeError } from '../../logging/domain/describe-error';
 import { type Logger } from '../../logging/ports/logger';
 import { money } from '../../money/domain/money';
-import { makeEntry, type AccountCode, type Entry, type EntryDraft } from '../domain/entry';
+import { makeEntry, type Entry, type EntryDraft } from '../domain/entry';
 import { type SearchCriteria } from '../domain/search-criteria';
 import { reversedAlready, type Reversal } from '../domain/reversal';
 import { type EntryRepository, type FoundEntry } from '../ports/entry-repository';
@@ -41,7 +44,31 @@ export type PostgresEntryRepository = EntryRepository & {
 export type PostgresExecutor = PgDatabase<NodePgQueryResultHKT, Schema>;
 
 type EntryRow = typeof schema.entries.$inferSelect;
-type LineRow = Omit<typeof schema.entryLines.$inferSelect, 'accountId'>;
+type LineRow = {
+  readonly entryId: string;
+  readonly accountId: string;
+  readonly accountName: string;
+  readonly side: string;
+  readonly amount: number;
+};
+
+const LINE_COLUMNS = {
+  entryId: schema.entryLines.entryId,
+  accountId: schema.accounts.id,
+  accountName: schema.accounts.name,
+  side: schema.entryLines.side,
+  amount: schema.entryLines.amount,
+};
+
+function legacyAccountCodeFor(account: AccountId): SQL {
+  return sql`(select case ${schema.accounts.accountType}
+      when 'asset' then 'cash'
+      when 'liability' then 'payable'
+      when 'equity' then 'capital'
+      when 'revenue' then 'sales'
+      when 'expense' then 'expense'
+    end from ${schema.accounts} where ${schema.accounts.id} = ${account})`;
+}
 
 export function createPostgresEntryRepository(
   connectionString: string,
@@ -66,7 +93,8 @@ export function postgresEntriesOn(database: PostgresExecutor, logger: Logger): E
         entry.lines.map((line, index) => ({
           entryId: entry.id,
           lineNumber: index + 1,
-          account: line.account,
+          account: legacyAccountCodeFor(line.account),
+          accountId: line.account,
           side: line.side,
           amount: line.amount,
         })),
@@ -139,8 +167,9 @@ export function postgresEntriesOn(database: PostgresExecutor, logger: Logger): E
             ),
           );
         lineRows = await database
-          .select()
+          .select(LINE_COLUMNS)
           .from(schema.entryLines)
+          .innerJoin(schema.accounts, eq(schema.accounts.id, schema.entryLines.accountId))
           .where(eq(schema.entryLines.entryId, id))
           .orderBy(asc(schema.entryLines.lineNumber));
       } catch (error) {
@@ -180,15 +209,10 @@ export function postgresEntriesOn(database: PostgresExecutor, logger: Logger): E
             desc(schema.entries.id),
           );
         lineRows = await database
-          .select({
-            entryId: schema.entryLines.entryId,
-            lineNumber: schema.entryLines.lineNumber,
-            account: schema.entryLines.account,
-            side: schema.entryLines.side,
-            amount: schema.entryLines.amount,
-          })
+          .select(LINE_COLUMNS)
           .from(schema.entryLines)
           .innerJoin(schema.entries, eq(schema.entries.id, schema.entryLines.entryId))
+          .innerJoin(schema.accounts, eq(schema.accounts.id, schema.entryLines.accountId))
           .where(matching)
           .orderBy(asc(schema.entryLines.entryId), asc(schema.entryLines.lineNumber));
       } catch (error) {
@@ -270,7 +294,7 @@ function containing(term: string): string {
   return `%${literal}%`;
 }
 
-function touches(account: AccountCode): SQL {
+function touches(account: AccountId): SQL {
   return exists(
     new QueryBuilder()
       .select({ entryId: schema.entryLines.entryId })
@@ -278,7 +302,7 @@ function touches(account: AccountCode): SQL {
       .where(
         and(
           eq(schema.entryLines.entryId, schema.entries.id),
-          eq(schema.entryLines.account, account),
+          eq(schema.entryLines.accountId, account),
         ),
       ),
   );
@@ -286,18 +310,22 @@ function touches(account: AccountCode): SQL {
 
 function restore(row: EntryRow, lineRows: readonly LineRow[]): Result<Entry, DomainError> {
   const lines: EntryDraft['lines'][number][] = [];
+  const names = new Map<string, NamedAccount>();
   for (const line of lineRows) {
     const side = sideSchema.safeParse(line.side);
     const amount = money(line.amount);
     if (!side.success || !amount.ok) {
       return unavailable(`Stored entry ${row.id} has a line with no valid side or amount.`);
     }
-    lines.push({ account: line.account, side: side.data, amount: amount.value });
+    const account = line.accountId as AccountId;
+    names.set(account, { id: account, name: line.accountName });
+    lines.push({ account, side: side.data, amount: amount.value });
   }
 
   const entry = makeEntry(
     { entryDate: row.entryDate, memo: row.memo, lines },
     { id: row.id as EntryId, createdAt: row.createdAt },
+    names,
   );
   return entry.ok
     ? entry

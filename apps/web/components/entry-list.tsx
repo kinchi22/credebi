@@ -1,5 +1,9 @@
-import { type EntryFormMode, type PostedEntry, type Side } from '@repo/contracts';
-import { isAccountCode, type AccountCode } from '@repo/core/entries';
+import {
+  type ChartOutput,
+  type EntryFormMode,
+  type PostedEntry,
+  type Side,
+} from '@repo/contracts';
 import { Panel, PANEL_BLEED } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { type ReactNode } from 'react';
@@ -12,6 +16,7 @@ import { SIDE_TONE, SIDES } from './side-classes';
 import { MUTED_TEXT } from './text-classes';
 
 export type EntryControls = {
+  readonly chart: ChartOutput;
   readonly entryFormMode: EntryFormMode;
   readonly editEntry: EditEntryAction;
   readonly deleteEntry: DeleteEntryAction;
@@ -21,10 +26,6 @@ export type EntryListProps = {
   readonly entries: readonly PostedEntry[];
   readonly controls: EntryControls;
 };
-
-const ACCOUNT_NAMES: Readonly<Record<AccountCode, string>> = en.accounts;
-
-const accountName = (code: string): string => (isAccountCode(code) ? ACCOUNT_NAMES[code] : code);
 
 type Layout = {
   readonly grid: string;
@@ -93,7 +94,7 @@ function SideLines({
       <ul>
         {linesOn(entry, side).map((line, index) => (
           <li key={index} data-testid="entry-line" className="flex items-baseline gap-x-3 py-1">
-            <span className="min-w-0">{accountName(line.account)}</span>{' '}
+            <span className="min-w-0">{line.accountName}</span>{' '}
             <span className={`${layout.lineAmount} ${SIDE_TONE[side].text}`}>
               {formatAmount(line.amount)}
             </span>
@@ -136,6 +137,7 @@ function ListedEntry({
           </p>
           <EditEntry
             entry={entry}
+            chart={controls.chart}
             entryFormMode={controls.entryFormMode}
             action={controls.editEntry}
           />
