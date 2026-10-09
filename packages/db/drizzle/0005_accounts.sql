@@ -29,6 +29,10 @@ CREATE UNIQUE INDEX "accounts_user_id_name_idx" ON "accounts" USING btree ("user
 CREATE INDEX "accounts_group_id_idx" ON "accounts" USING btree ("group_id");--> statement-breakpoint
 ALTER TABLE "entry_lines" ADD CONSTRAINT "entry_lines_account_id_accounts_id_fk" FOREIGN KEY ("account_id") REFERENCES "public"."accounts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "entry_lines_account_id_idx" ON "entry_lines" USING btree ("account_id");--> statement-breakpoint
+-- Hand-written: drizzle-kit generates only the statements above. ADR-0026's
+-- first release gives every existing User its five starting Accounts, starting
+-- on the day the User was created, and points each Entry line at the Account
+-- its code names, so the code column can go in a later release.
 INSERT INTO "accounts" ("id", "user_id", "account_type", "name", "position", "active_from")
 SELECT uuidv7(), "users"."id", "seed"."account_type", "seed"."name", 0, ("users"."created_at" AT TIME ZONE 'UTC')::date
 FROM "users"
