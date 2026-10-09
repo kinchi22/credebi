@@ -194,10 +194,13 @@ export function createPostgresAccountRepository(
           .where(and(eq(schema.accounts.id, id), eq(schema.accounts.userId, userId)))
           .returning({ id: schema.accounts.id });
       } catch (error) {
-        if (describeError(error).code === FOREIGN_KEY_VIOLATION) {
-          return err(domainError('IN_USE', `An Entry names Account ${id}, so it cannot be deleted.`));
-        }
-        return databaseFailure(logger, 'accounts.delete_failed', error, 'The Account could not be deleted.');
+        return deleteFailure(
+          logger,
+          'accounts.delete_failed',
+          error,
+          `An Entry names Account ${id}, so it cannot be deleted.`,
+          'The Account could not be deleted.',
+        );
       }
       return deleted.length === 0
         ? err(domainError('NOT_FOUND', `Account ${id} is not in the User's chart of accounts.`))
@@ -212,15 +215,11 @@ export function createPostgresAccountRepository(
           .where(and(eq(schema.accountGroups.id, id), eq(schema.accountGroups.userId, userId)))
           .returning({ id: schema.accountGroups.id });
       } catch (error) {
-        if (describeError(error).code === FOREIGN_KEY_VIOLATION) {
-          return err(
-            domainError('IN_USE', `Account group ${id} holds Accounts, so it cannot be deleted.`),
-          );
-        }
-        return databaseFailure(
+        return deleteFailure(
           logger,
           'accounts.delete_group_failed',
           error,
+          `Account group ${id} holds Accounts, so it cannot be deleted.`,
           'The Account group could not be deleted.',
         );
       }
@@ -284,4 +283,17 @@ function groupSaveFailure(
     );
   }
   return databaseFailure(logger, event, error, 'The Account group could not be saved.');
+}
+
+function deleteFailure(
+  logger: Logger,
+  event: string,
+  error: unknown,
+  inUse: string,
+  failed: string,
+): Err<DomainError> {
+  if (describeError(error).code === FOREIGN_KEY_VIOLATION) {
+    return err(domainError('IN_USE', inUse));
+  }
+  return databaseFailure(logger, event, error, failed);
 }

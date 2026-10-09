@@ -1,5 +1,5 @@
 import { type DeleteAccountInput, type DomainError, type Result } from '@repo/contracts';
-import { type AuthContext } from '../../auth/domain/auth-context';
+import { requireUser, type AuthContext } from '../../auth/domain/auth-context';
 import { type Account } from '../domain/account';
 import { removedAccount } from '../domain/removal';
 import { type AccountRepository } from '../ports/account-repository';
@@ -15,14 +15,22 @@ export type DeleteAccount = (
 ) => Promise<Result<Account, DomainError>>;
 
 export function createDeleteAccount({ accounts }: DeleteAccountDependencies): DeleteAccount {
-  return (auth, { id }) =>
-    changeChart(
+  return async (auth, { id }) => {
+    const userId = requireUser(auth);
+    if (!userId.ok) {
+      return userId;
+    }
+
+    const named = await accounts.isAccountNamed(userId.value, id);
+    if (!named.ok) {
+      return named;
+    }
+
+    return changeChart(
       accounts,
       auth,
-      async (chart, userId) => {
-        const named = await accounts.isAccountNamed(userId, id);
-        return named.ok ? removedAccount(chart, id, named.value) : named;
-      },
-      (userId, account) => accounts.deleteAccount(userId, account.id),
+      (chart) => removedAccount(chart, id, named.value),
+      (owner, account) => accounts.deleteAccount(owner, account.id),
     );
+  };
 }

@@ -4,12 +4,16 @@ import { type AccountType, type DomainErrorCode } from '@repo/contracts';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useId, useState, useTransition, type ReactNode, type TransitionStartFunction } from 'react';
 import { en } from '../messages/en';
-import { type ChartChange } from './account-dialog';
-import { BUTTON, CONFIRMATION_DIALOG, CONFIRMATION_PANEL, DANGER_BUTTON } from './control-classes';
+import { BUTTON, CONFIRMATION_PANEL, DANGER_BUTTON } from './control-classes';
 import { type ModalDialog } from './modal-dialog';
+import { PendingDialog } from './pending-dialog';
 import { DANGER_TEXT, MUTED_TEXT } from './text-classes';
 
-export type ChartDeletion = (id: string) => Promise<ChartChange>;
+export type ChartDeletionOutcome =
+  | { readonly outcome: 'deleted' }
+  | { readonly outcome: 'rejected'; readonly code: DomainErrorCode };
+
+export type ChartDeletion = (id: string) => Promise<ChartDeletionOutcome>;
 
 export type ChartDeletions = {
   readonly deleteAccount: ChartDeletion;
@@ -29,7 +33,7 @@ export type DeleteAccountDialogProps = {
   readonly actions: ChartDeletions;
 };
 
-const UNDELETED: ChartChange = { outcome: 'rejected', code: 'DEPENDENCY_UNAVAILABLE' };
+const UNDELETED: ChartDeletionOutcome = { outcome: 'rejected', code: 'DEPENDENCY_UNAVAILABLE' };
 
 const KINDS = {
   account: {
@@ -67,7 +71,7 @@ function DeletePanel({
         (deleted) => deleted,
         () => UNDELETED,
       );
-      if (change.outcome === 'saved') {
+      if (change.outcome === 'deleted') {
         onDone();
         return;
       }
@@ -108,22 +112,8 @@ export function DeleteAccountDialog({ dialog, target, actions }: DeleteAccountDi
   const [pending, startTransition] = useTransition();
 
   return (
-    <dialog
-      {...dialog.dialogProps}
-      aria-labelledby={titleId}
-      onCancel={(event) => {
-        if (pending) {
-          event.preventDefault();
-        }
-      }}
-      onClick={(event) => {
-        if (!pending) {
-          dialog.closeOnScrim(event);
-        }
-      }}
-      className={CONFIRMATION_DIALOG}
-    >
-      {dialog.open && target !== undefined ? (
+    <PendingDialog dialog={dialog} titleId={titleId} pending={pending}>
+      {target !== undefined ? (
         <DeletePanel
           target={target}
           titleId={titleId}
@@ -133,6 +123,6 @@ export function DeleteAccountDialog({ dialog, target, actions }: DeleteAccountDi
           startTransition={startTransition}
         />
       ) : null}
-    </dialog>
+    </PendingDialog>
   );
 }

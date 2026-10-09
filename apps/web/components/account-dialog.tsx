@@ -19,7 +19,6 @@ import {
 import { en } from '../messages/en';
 import {
   BUTTON,
-  CONFIRMATION_DIALOG,
   CONFIRMATION_PANEL,
   CONTROL,
   DATE_CONTROL,
@@ -27,6 +26,7 @@ import {
   PRIMARY_BUTTON,
 } from './control-classes';
 import { type ModalDialog } from './modal-dialog';
+import { PendingDialog } from './pending-dialog';
 import { MUTED_TEXT, DANGER_TEXT } from './text-classes';
 
 export type ChartChange =
@@ -254,22 +254,8 @@ export function AccountDialog({
   const [pending, startTransition] = useTransition();
 
   return (
-    <dialog
-      {...dialog.dialogProps}
-      aria-labelledby={titleId}
-      onCancel={(event) => {
-        if (pending) {
-          event.preventDefault();
-        }
-      }}
-      onClick={(event) => {
-        if (!pending) {
-          dialog.closeOnScrim(event);
-        }
-      }}
-      className={CONFIRMATION_DIALOG}
-    >
-      {dialog.open && target !== undefined ? (
+    <PendingDialog dialog={dialog} titleId={titleId} pending={pending}>
+      {target !== undefined ? (
         <AccountForm
           target={target}
           groups={groups}
@@ -282,6 +268,6 @@ export function AccountDialog({
           startTransition={startTransition}
         />
       ) : null}
-    </dialog>
+    </PendingDialog>
   );
 }

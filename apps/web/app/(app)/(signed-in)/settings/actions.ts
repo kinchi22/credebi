@@ -5,14 +5,15 @@ import {
   accountIdSchema,
   accountTypeSchema,
   changeEntryFormModeInputSchema,
-  ok,
   parseAccountForm,
   parseAccountGroupForm,
   type DomainError,
+  type DomainErrorCode,
   type Result,
 } from '@repo/contracts';
 import { revalidatePath } from 'next/cache';
 import { type ChartChange } from '../../../../components/account-dialog';
+import { type ChartDeletionOutcome } from '../../../../components/delete-account-dialog';
 import { type EntryFormModeChange } from '../../../../components/entry-form-mode-choice';
 import { createContext } from '../../../../server/context';
 import { fromTrpcError } from '../../../../server/domain-error';
@@ -41,6 +42,20 @@ export async function changeEntryFormMode(entryFormMode: string): Promise<EntryF
 
 type Caller = ReturnType<typeof createCaller>;
 
+async function refusalOf(change: (caller: Caller) => Promise<void>): Promise<DomainErrorCode | undefined> {
+  const caller = createCaller(await createContext());
+  try {
+    await change(caller);
+  } catch (thrown) {
+    return fromTrpcError(thrown).code;
+  }
+
+  revalidatePath(SETTINGS_PATH);
+  revalidatePath(SIGNED_IN_HOME);
+  revalidatePath(ENTRY_SEARCH_PATH);
+  return undefined;
+}
+
 async function changeChart<Key, Details>(
   key: Key | undefined,
   details: Result<Details, DomainError>,
@@ -50,17 +65,20 @@ async function changeChart<Key, Details>(
     return { outcome: 'rejected', code: 'INVALID_INPUT' };
   }
 
-  const caller = createCaller(await createContext());
-  try {
-    await change(caller, key, details.value);
-  } catch (thrown) {
-    return { outcome: 'rejected', code: fromTrpcError(thrown).code };
+  const code = await refusalOf((caller) => change(caller, key, details.value));
+  return code === undefined ? { outcome: 'saved' } : { outcome: 'rejected', code };
+}
+
+async function deleteFromChart<Key>(
+  key: Key | undefined,
+  remove: (caller: Caller, key: Key) => Promise<void>,
+): Promise<ChartDeletionOutcome> {
+  if (key === undefined) {
+    return { outcome: 'rejected', code: 'INVALID_INPUT' };
   }
 
-  revalidatePath(SETTINGS_PATH);
-  revalidatePath(SIGNED_IN_HOME);
-  revalidatePath(ENTRY_SEARCH_PATH);
-  return { outcome: 'saved' };
+  const code = await refusalOf((caller) => remove(caller, key));
+  return code === undefined ? { outcome: 'deleted' } : { outcome: 'rejected', code };
 }
 
 export async function addAccount(accountType: string, form: FormData): Promise<ChartChange> {
@@ -95,14 +113,14 @@ export async function editAccountGroup(id: string, form: FormData): Promise<Char
   );
 }
 
-export async function deleteAccount(id: string): Promise<ChartChange> {
-  return changeChart(accountIdSchema.safeParse(id).data, ok(undefined), (caller, accountId) =>
+export async function deleteAccount(id: string): Promise<ChartDeletionOutcome> {
+  return deleteFromChart(accountIdSchema.safeParse(id).data, (caller, accountId) =>
     caller.accounts.delete({ id: accountId }),
   );
 }
 
-export async function deleteAccountGroup(id: string): Promise<ChartChange> {
-  return changeChart(accountGroupIdSchema.safeParse(id).data, ok(undefined), (caller, groupId) =>
+export async function deleteAccountGroup(id: string): Promise<ChartDeletionOutcome> {
+  return deleteFromChart(accountGroupIdSchema.safeParse(id).data, (caller, groupId) =>
     caller.accounts.deleteGroup({ id: groupId }),
   );
 }
