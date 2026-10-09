@@ -3,7 +3,7 @@ import { type AccountGroupId, type AccountId } from '@repo/contracts';
 import {
   ACCOUNT_TYPES,
   accountNames,
-  chartOutline,
+  chartInOrder,
   dayOf,
   startingChart,
   type Account,
@@ -79,7 +79,7 @@ const named = (node: ChartNode): string =>
     ? node.account.id
     : `${node.group.id} [${node.accounts.map((grouped) => grouped.id).join(', ')}]`;
 
-describe('chartOutline', () => {
+describe('chartInOrder', () => {
   it('lists the Accounts by Account type, and by position within one', () => {
     const accounts = [
       account(1, 'expense', 0),
@@ -92,7 +92,7 @@ describe('chartOutline', () => {
       account(8, 'liability', 0),
     ];
 
-    expect(chartOutline({ accounts, groups: [] }).map(named)).toEqual(
+    expect(chartInOrder({ accounts, groups: [] }).map(named)).toEqual(
       [4, 7, 2, 8, 5, 6, 3, 1].map(idOf),
     );
   });
@@ -110,7 +110,7 @@ describe('chartOutline', () => {
       account(6, 'liability', 1),
     ];
 
-    expect(chartOutline({ accounts, groups: [savings, cards, bank] })).toEqual([
+    expect(chartInOrder({ accounts, groups: [savings, cards, bank] })).toEqual([
       { kind: 'account', account: accounts[0] },
       { kind: 'group', group: bank, accounts: [accounts[2], accounts[1]] },
       { kind: 'account', account: accounts[3] },
@@ -123,21 +123,21 @@ describe('chartOutline', () => {
   it('keeps the order it was given between Accounts of one position', () => {
     const accounts = [account(2, 'asset', 0), account(1, 'asset', 0)];
 
-    expect(chartOutline({ accounts, groups: [] }).map(named)).toEqual([idOf(2), idOf(1)]);
+    expect(chartInOrder({ accounts, groups: [] }).map(named)).toEqual([idOf(2), idOf(1)]);
   });
 
   it('leaves the chart it was given as it was', () => {
     const accounts = [inGroup(account(1, 'asset', 1), 10), inGroup(account(2, 'asset', 0), 10)];
     const groups = [group(11, 'asset', 1), group(10, 'asset', 0)];
 
-    chartOutline({ accounts, groups });
+    chartInOrder({ accounts, groups });
 
     expect(accounts.map((kept) => kept.id)).toEqual([idOf(1), idOf(2)]);
     expect(groups.map((kept) => kept.id)).toEqual([groupIdOf(11), groupIdOf(10)]);
   });
 
   it('outlines an empty chart as nothing', () => {
-    expect(chartOutline({ accounts: [], groups: [] })).toEqual([]);
+    expect(chartInOrder({ accounts: [], groups: [] })).toEqual([]);
   });
 });
 

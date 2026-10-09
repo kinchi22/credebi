@@ -15,7 +15,7 @@ import {
 import { createDatabase, schema } from '@repo/db';
 import { databaseFailure, UNIQUE_VIOLATION } from '../../auth/adapters/database-failure';
 import { describeError } from '../../logging/domain/describe-error';
-import { type Logger } from '../../logging/ports/logger';
+import { type LogFields, type Logger } from '../../logging/ports/logger';
 import { type Account, type AccountGroup, type Chart } from '../domain/account';
 import { type AccountRepository } from '../ports/account-repository';
 
@@ -78,7 +78,10 @@ export function createPostgresAccountRepository(
 
       const accounts: Account[] = [];
       for (const row of rows.accounts) {
-        const accountType = storedAccountType(logger, row.accountType, row.id);
+        const accountType = storedAccountType(logger, row.accountType, {
+          event: 'accounts.stored_account_invalid',
+          accountId: row.id,
+        });
         if (!accountType.ok) {
           return accountType;
         }
@@ -92,7 +95,10 @@ export function createPostgresAccountRepository(
 
       const groups: AccountGroup[] = [];
       for (const row of rows.groups) {
-        const accountType = storedAccountType(logger, row.accountType, row.id);
+        const accountType = storedAccountType(logger, row.accountType, {
+          event: 'accounts.stored_group_invalid',
+          accountGroupId: row.id,
+        });
         if (!accountType.ok) {
           return accountType;
         }
@@ -168,17 +174,19 @@ export function createPostgresAccountRepository(
 function storedAccountType(
   logger: Logger,
   stored: string,
-  id: string,
+  fields: LogFields,
 ): Result<AccountType, DomainError> {
   const accountType = accountTypeSchema.safeParse(stored);
   if (accountType.success) {
     return ok(accountType.data);
   }
   logger.error(
-    { event: 'accounts.stored_account_invalid', accountId: id },
+    fields,
     'A stored Account or Account group has no valid Account type, so the chart was not read.',
   );
-  return err(domainError('DEPENDENCY_UNAVAILABLE', `Stored node ${id} has no valid Account type.`));
+  return err(
+    domainError('DEPENDENCY_UNAVAILABLE', 'A stored Account or Account group has no valid Account type.'),
+  );
 }
 
 function saveFailure(
@@ -195,7 +203,7 @@ function saveFailure(
     return err(
       domainError(
         'NOT_FOUND',
-        `Account group ${account.groupId} is not in the User's chart of accounts for this Account type.`,
+        `Account group ${account.groupId} is not one of the User's Account groups of this Account type.`,
       ),
     );
   }

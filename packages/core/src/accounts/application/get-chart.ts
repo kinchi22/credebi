@@ -1,6 +1,6 @@
 import { ok, type DomainError, type Result } from '@repo/contracts';
 import { requireUser, type AuthContext } from '../../auth/domain/auth-context';
-import { chartOutline, type ChartNode } from '../domain/account';
+import { chartInOrder, type ChartNode } from '../domain/account';
 import { type AccountRepository } from '../ports/account-repository';
 
 export type GetChartDependencies = {
@@ -17,6 +17,6 @@ export function createGetChart({ accounts }: GetChartDependencies): GetChart {
     }
 
     const chart = await accounts.readChart(userId.value);
-    return chart.ok ? ok(chartOutline(chart.value)) : chart;
+    return chart.ok ? ok(chartInOrder(chart.value)) : chart;
   };
 }

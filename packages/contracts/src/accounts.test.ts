@@ -10,6 +10,7 @@ import {
   chartSchema,
   editAccountGroupInputSchema,
   editAccountInputSchema,
+  groupsIn,
   nodesOfType,
   parseAccountForm,
   parseAccountGroupForm,
@@ -142,6 +143,20 @@ describe('accountsIn', () => {
         { kind: 'account', account: SALES_ACCOUNT },
       ]),
     ).toEqual([CASH_ACCOUNT, ABC_BANK, SALES_ACCOUNT]);
+  });
+});
+
+describe('groupsIn', () => {
+  it("lists the chart's Account groups in its order, and no Account", () => {
+    const empty = { ...BANK_GROUP, name: 'Empty' };
+
+    expect(
+      groupsIn([
+        { kind: 'account', account: CASH_ACCOUNT },
+        { kind: 'group', group: BANK_GROUP, accounts: [ABC_BANK] },
+        { kind: 'group', group: empty, accounts: [] },
+      ]),
+    ).toEqual([BANK_GROUP, empty]);
   });
 });
 

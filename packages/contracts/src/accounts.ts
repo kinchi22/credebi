@@ -112,6 +112,10 @@ export function nodesOfType(
   );
 }
 
+export function groupsIn(chart: readonly ChartNodeOutput[]): AccountGroupOutput[] {
+  return chart.flatMap((node) => (node.kind === 'group' ? [node.group] : []));
+}
+
 export function accountsIn(chart: readonly ChartNodeOutput[]): AccountOutput[] {
   return chart.flatMap((node) => (node.kind === 'account' ? [node.account] : node.accounts));
 }

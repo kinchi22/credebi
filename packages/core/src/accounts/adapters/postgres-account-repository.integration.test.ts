@@ -214,7 +214,7 @@ describe('createPostgresAccountRepository', () => {
     const read = await repository.readChart(ADA);
 
     expect(isErr(read) && read.error.code).toBe('DEPENDENCY_UNAVAILABLE');
-    expect(logged).toEqual([{ event: 'accounts.stored_account_invalid', accountId: odd.id }]);
+    expect(logged).toEqual([{ event: 'accounts.stored_group_invalid', accountGroupId: odd.id }]);
   });
 
   it("adds an Account group that is read back with the chart, and only with its own User's", async () => {
@@ -276,7 +276,7 @@ describe('createPostgresAccountRepository', () => {
     expect(await repository.readChart(ADA)).toEqual(ok({ accounts: [unbanked], groups: [bank] }));
   });
 
-  it("refuses an Account in an Account group of another Account type, or another User's, as not found", async () => {
+  it("refuses to save an Account into an Account group of another Account type, or another User's, and keeps the chart as it was", async () => {
     const loans = group(10, 'liability', 0, 'Loans');
     const gracesBank = group(11, 'asset', 0, 'Bank');
     await storeGroup(ADA, loans);

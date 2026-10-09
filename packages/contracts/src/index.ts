@@ -61,6 +61,7 @@ export {
   chartSchema,
   editAccountGroupInputSchema,
   editAccountInputSchema,
+  groupsIn,
   nodesOfType,
   parseAccountForm,
   parseAccountGroupForm,

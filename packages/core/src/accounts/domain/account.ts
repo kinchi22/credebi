@@ -81,7 +81,7 @@ const byPosition = <Placed extends { readonly position: number }>(
   placed: readonly Placed[],
 ): Placed[] => [...placed].sort((first, second) => first.position - second.position);
 
-export function chartOutline({ accounts, groups }: Chart): readonly ChartNode[] {
+export function chartInOrder({ accounts, groups }: Chart): readonly ChartNode[] {
   const accountsOf = (groupId: AccountGroupId | null): readonly Account[] =>
     accounts.filter((account) => account.groupId === groupId);
 

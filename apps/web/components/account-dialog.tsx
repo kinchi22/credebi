@@ -29,74 +29,66 @@ import {
 import { type ModalDialog } from './modal-dialog';
 import { MUTED_TEXT, DANGER_TEXT } from './text-classes';
 
-export type AccountChange =
+export type ChartChange =
   | { readonly outcome: 'saved' }
   | { readonly outcome: 'rejected'; readonly code: DomainErrorCode };
 
-export type AccountAction = (
-  accountTypeOrId: string,
-  form: FormData,
-) => Promise<AccountChange>;
+export type ChartAction = (accountTypeOrId: string, form: FormData) => Promise<ChartChange>;
 
-export type AccountActions = {
-  readonly addAccount: AccountAction;
-  readonly editAccount: AccountAction;
-  readonly addAccountGroup: AccountAction;
-  readonly editAccountGroup: AccountAction;
+export type ChartActions = {
+  readonly addAccount: ChartAction;
+  readonly editAccount: ChartAction;
+  readonly addAccountGroup: ChartAction;
+  readonly editAccountGroup: ChartAction;
 };
 
 export type AccountDialogTarget =
-  | { readonly kind: 'add-account'; readonly accountType: AccountType }
-  | { readonly kind: 'edit-account'; readonly account: AccountOutput }
-  | { readonly kind: 'add-group'; readonly accountType: AccountType }
-  | { readonly kind: 'edit-group'; readonly group: AccountGroupOutput };
+  | {
+      readonly kind: 'account';
+      readonly accountType: AccountType;
+      readonly editing: AccountOutput | undefined;
+    }
+  | {
+      readonly kind: 'group';
+      readonly accountType: AccountType;
+      readonly editing: AccountGroupOutput | undefined;
+    };
 
 export type AccountDialogProps = {
   readonly dialog: ModalDialog;
   readonly target: AccountDialogTarget | undefined;
   readonly groups: readonly AccountGroupOutput[];
   readonly today: string | undefined;
-  readonly actions: AccountActions;
+  readonly actions: ChartActions;
 };
 
-const UNSAVED: AccountChange = { outcome: 'rejected', code: 'DEPENDENCY_UNAVAILABLE' };
+const UNSAVED: ChartChange = { outcome: 'rejected', code: 'DEPENDENCY_UNAVAILABLE' };
 
-const TITLES: Readonly<Record<AccountDialogTarget['kind'], string>> = {
-  'add-account': en.accountDialog.addTitle,
-  'edit-account': en.accountDialog.editTitle,
-  'add-group': en.accountDialog.addGroupTitle,
-  'edit-group': en.accountDialog.editGroupTitle,
-};
-
-function accountTypeOf(target: AccountDialogTarget): AccountType {
-  switch (target.kind) {
-    case 'edit-account':
-      return target.account.accountType;
-    case 'edit-group':
-      return target.group.accountType;
-    default:
-      return target.accountType;
-  }
-}
+const KINDS = {
+  account: {
+    addTitle: en.accountDialog.addTitle,
+    editTitle: en.accountDialog.editTitle,
+    refusals: en.accountDialog.refusals,
+  },
+  group: {
+    addTitle: en.accountDialog.addGroupTitle,
+    editTitle: en.accountDialog.editGroupTitle,
+    refusals: en.accountDialog.groupRefusals,
+  },
+} as const;
 
 function saverOf(
   target: AccountDialogTarget,
-  actions: AccountActions,
-): (form: FormData) => Promise<AccountChange> {
-  switch (target.kind) {
-    case 'add-account':
-      return actions.addAccount.bind(null, target.accountType);
-    case 'edit-account':
-      return actions.editAccount.bind(null, target.account.id);
-    case 'add-group':
-      return actions.addAccountGroup.bind(null, target.accountType);
-    case 'edit-group':
-      return actions.editAccountGroup.bind(null, target.group.id);
-  }
+  actions: ChartActions,
+): (form: FormData) => Promise<ChartChange> {
+  const [add, edit] =
+    target.kind === 'account'
+      ? [actions.addAccount, actions.editAccount]
+      : [actions.addAccountGroup, actions.editAccountGroup];
+  return target.editing === undefined
+    ? add.bind(null, target.accountType)
+    : edit.bind(null, target.editing.id);
 }
-
-const isAccount = (target: AccountDialogTarget): boolean =>
-  target.kind === 'add-account' || target.kind === 'edit-account';
 
 function AccountFields({
   account,
@@ -109,11 +101,14 @@ function AccountFields({
   readonly groups: readonly AccountGroupOutput[];
   readonly today: string | undefined;
 }): ReactNode {
+  const groupId = useId();
+
   return (
     <>
-      <label className={FIELD}>
-        {en.accountDialog.group}
+      <div className={FIELD}>
+        <label htmlFor={groupId}>{en.accountDialog.group}</label>
         <select
+          id={groupId}
           name={ACCOUNT_FORM_FIELDS.group}
           defaultValue={account?.groupId ?? ''}
           className={CONTROL}
@@ -127,7 +122,7 @@ function AccountFields({
               </option>
             ))}
         </select>
-      </label>
+      </div>
       <div className="flex flex-wrap gap-3">
         <label className={`${FIELD} min-w-0 flex-1`}>
           {en.accountDialog.activeFrom}
@@ -170,14 +165,14 @@ function AccountForm({
   readonly titleId: string;
   readonly onCancel: () => void;
   readonly onSaved: () => void;
-  readonly save: (form: FormData) => Promise<AccountChange>;
+  readonly save: (form: FormData) => Promise<ChartChange>;
   readonly pending: boolean;
   readonly startTransition: TransitionStartFunction;
 }): ReactNode {
   const [refusal, setRefusal] = useState<DomainErrorCode>();
-  const account = target.kind === 'edit-account' ? target.account : undefined;
-  const described = target.kind === 'edit-group' ? target.group : account;
-  const refusals = isAccount(target) ? en.accountDialog.refusals : en.accountDialog.groupRefusals;
+  const descriptionId = useId();
+  const kind = KINDS[target.kind];
+  const described = target.editing;
 
   const submit = (event: SubmitEvent<HTMLFormElement>): void => {
     event.preventDefault();
@@ -199,9 +194,9 @@ function AccountForm({
     <form onSubmit={submit} className={CONFIRMATION_PANEL}>
       <div className="flex flex-col gap-1">
         <h2 id={titleId} className={typeClasses.h2}>
-          {TITLES[target.kind]}
+          {described === undefined ? kind.addTitle : kind.editTitle}
         </h2>
-        <p className={MUTED_TEXT}>{en.accountTypes[accountTypeOf(target)]}</p>
+        <p className={MUTED_TEXT}>{en.accountTypes[target.accountType]}</p>
       </div>
       <label className={FIELD}>
         {en.accountDialog.name}
@@ -213,26 +208,27 @@ function AccountForm({
           className={CONTROL}
         />
       </label>
-      <label className={FIELD}>
-        {en.accountDialog.description}
+      <div className={FIELD}>
+        <label htmlFor={descriptionId}>{en.accountDialog.description}</label>
         <textarea
+          id={descriptionId}
           name={ACCOUNT_FORM_FIELDS.description}
           rows={2}
           defaultValue={described?.description ?? ''}
           className={CONTROL}
         />
-      </label>
-      {isAccount(target) ? (
+      </div>
+      {target.kind === 'account' ? (
         <AccountFields
-          account={account}
-          accountType={accountTypeOf(target)}
+          account={target.editing}
+          accountType={target.accountType}
           groups={groups}
           today={today}
         />
       ) : null}
       {refusal === undefined ? null : (
         <p role="alert" className={DANGER_TEXT}>
-          {refusals[refusal]}
+          {kind.refusals[refusal]}
         </p>
       )}
       <div className="flex justify-end gap-3">

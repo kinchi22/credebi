@@ -11,7 +11,7 @@ import {
   type Result,
 } from '@repo/contracts';
 import { revalidatePath } from 'next/cache';
-import { type AccountChange } from '../../../../components/account-dialog';
+import { type ChartChange } from '../../../../components/account-dialog';
 import { type EntryFormModeChange } from '../../../../components/entry-form-mode-choice';
 import { createContext } from '../../../../server/context';
 import { fromTrpcError } from '../../../../server/domain-error';
@@ -38,24 +38,20 @@ export async function changeEntryFormMode(entryFormMode: string): Promise<EntryF
   return { outcome: 'saved' };
 }
 
-type Parsed<Value> =
-  | { readonly success: true; readonly data: Value }
-  | { readonly success: false };
-
 type Caller = ReturnType<typeof createCaller>;
 
 async function changeChart<Key, Details>(
-  key: Parsed<Key>,
+  key: Key | undefined,
   details: Result<Details, DomainError>,
   change: (caller: Caller, key: Key, details: Details) => Promise<void>,
-): Promise<AccountChange> {
-  if (!key.success || !details.ok) {
+): Promise<ChartChange> {
+  if (key === undefined || !details.ok) {
     return { outcome: 'rejected', code: 'INVALID_INPUT' };
   }
 
   const caller = createCaller(await createContext());
   try {
-    await change(caller, key.data, details.value);
+    await change(caller, key, details.value);
   } catch (thrown) {
     return { outcome: 'rejected', code: fromTrpcError(thrown).code };
   }
@@ -66,33 +62,33 @@ async function changeChart<Key, Details>(
   return { outcome: 'saved' };
 }
 
-export async function addAccount(accountType: string, form: FormData): Promise<AccountChange> {
+export async function addAccount(accountType: string, form: FormData): Promise<ChartChange> {
   return changeChart(
-    accountTypeSchema.safeParse(accountType),
+    accountTypeSchema.safeParse(accountType).data,
     parseAccountForm(form),
     (caller, type, details) => caller.accounts.add({ ...details, accountType: type }),
   );
 }
 
-export async function editAccount(id: string, form: FormData): Promise<AccountChange> {
+export async function editAccount(id: string, form: FormData): Promise<ChartChange> {
   return changeChart(
-    accountIdSchema.safeParse(id),
+    accountIdSchema.safeParse(id).data,
     parseAccountForm(form),
     (caller, accountId, details) => caller.accounts.edit({ ...details, id: accountId }),
   );
 }
 
-export async function addAccountGroup(accountType: string, form: FormData): Promise<AccountChange> {
+export async function addAccountGroup(accountType: string, form: FormData): Promise<ChartChange> {
   return changeChart(
-    accountTypeSchema.safeParse(accountType),
+    accountTypeSchema.safeParse(accountType).data,
     parseAccountGroupForm(form),
     (caller, type, details) => caller.accounts.addGroup({ ...details, accountType: type }),
   );
 }
 
-export async function editAccountGroup(id: string, form: FormData): Promise<AccountChange> {
+export async function editAccountGroup(id: string, form: FormData): Promise<ChartChange> {
   return changeChart(
-    accountGroupIdSchema.safeParse(id),
+    accountGroupIdSchema.safeParse(id).data,
     parseAccountGroupForm(form),
     (caller, groupId, details) => caller.accounts.editGroup({ ...details, id: groupId }),
   );

@@ -2,6 +2,7 @@
 
 import {
   accountTypeSchema,
+  groupsIn,
   nodesOfType,
   type AccountGroupOutput,
   type AccountOutput,
@@ -14,7 +15,7 @@ import { useId, useState, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import {
   AccountDialog,
-  type AccountActions,
+  type ChartActions,
   type AccountDialogTarget,
 } from './account-dialog';
 import { useBrowserToday } from './browser-today';
@@ -23,7 +24,7 @@ import { useModalDialog } from './modal-dialog';
 
 export type AccountsSectionProps = {
   readonly chart: ChartOutput;
-  readonly actions: AccountActions;
+  readonly actions: ChartActions;
 };
 
 type Open = (target: AccountDialogTarget, opener: HTMLElement) => void;
@@ -118,7 +119,7 @@ function AccountRows({
         account={account}
         today={today}
         onEdit={(opener) => {
-          open({ kind: 'edit-account', account }, opener);
+          open({ kind: 'account', accountType: account.accountType, editing: account }, opener);
         }}
       />
     ));
@@ -167,7 +168,7 @@ function TypeBand({
           type="button"
           aria-label={en.accountsSection.addAccount}
           onClick={(event) => {
-            open({ kind: 'add-account', accountType }, event.currentTarget);
+            open({ kind: 'account', accountType, editing: undefined }, event.currentTarget);
           }}
           className={BAND_BUTTON}
         >
@@ -177,7 +178,7 @@ function TypeBand({
           type="button"
           aria-label={en.accountsSection.addGroup}
           onClick={(event) => {
-            open({ kind: 'add-group', accountType }, event.currentTarget);
+            open({ kind: 'group', accountType, editing: undefined }, event.currentTarget);
           }}
           className={BAND_BUTTON}
         >
@@ -233,7 +234,7 @@ export function AccountsSection({ chart, actions }: AccountsSectionProps): React
                       key={node.group.id}
                       group={node.group}
                       onEdit={(opener) => {
-                        open({ kind: 'edit-group', group: node.group }, opener);
+                        open({ kind: 'group', accountType, editing: node.group }, opener);
                       }}
                     >
                       <AccountRows accounts={node.accounts} {...rows} />
@@ -247,7 +248,7 @@ export function AccountsSection({ chart, actions }: AccountsSectionProps): React
       <AccountDialog
         dialog={dialog}
         target={target}
-        groups={chart.flatMap((node) => (node.kind === 'group' ? [node.group] : []))}
+        groups={groupsIn(chart)}
         today={today}
         actions={actions}
       />
