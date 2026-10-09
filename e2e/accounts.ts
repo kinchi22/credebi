@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
+import { closeDialog } from './dialog';
 import { accountChoices, type Side } from './entries';
 
 export const ACCOUNT_TYPES = ['Assets', 'Liabilities', 'Equity', 'Revenue', 'Expenses'] as const;
@@ -171,31 +172,68 @@ export async function expectInGroup(
 ): Promise<void> {
   const dialog = await openEdit(page, type, name);
   await expect(chosenGroup(dialog)).toHaveText(group);
-  await button(dialog, 'Cancel').click();
+  await closeDialog(dialog);
   await expect(dialog).toBeHidden();
 }
 
-const centre = (box: { x: number; y: number; width: number; height: number }) => ({
-  x: box.x + box.width / 2,
-  y: box.y + box.height / 2,
-});
+export const NO_GROUP = 'No group';
+
+type Point = { readonly x: number; readonly y: number };
+
+type Box = { readonly x: number; readonly y: number; readonly width: number; readonly height: number };
+
+const centre = (box: Box): Point => ({ x: box.x + box.width / 2, y: box.y + box.height / 2 });
+
+const bottom = (box: Box): number => box.y + box.height;
+
+async function boxOf(locator: Locator, what: string): Promise<Box> {
+  const box = await locator.boundingBox();
+  if (box === null) throw new Error(`${what} is not on screen`);
+  return box;
+}
+
+export async function dragTo(page: Page, from: Locator, target: Point): Promise<void> {
+  await from.hover();
+  const start = centre(await boxOf(from, 'the grip being dragged'));
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  const direction = target.y > start.y ? 1 : -1;
+  await page.mouse.move(start.x, start.y + direction * 8, { steps: 4 });
+  await page.mouse.move(target.x, target.y, { steps: 24 });
+  await page.mouse.up();
+}
 
 export async function drag(page: Page, from: Locator, onto: Locator): Promise<void> {
-  await from.hover();
-  const start = await from.boundingBox();
-  const end = await onto.boundingBox();
-  expect(start, 'the grip being dragged is on screen').not.toBeNull();
-  expect(end, 'the grip dropped onto is on screen').not.toBeNull();
-  if (start === null || end === null) return;
-  const a = centre(start);
-  const b = centre(end);
-  await page.mouse.move(a.x, a.y);
-  await page.mouse.down();
-  const direction = b.y > a.y ? 1 : -1;
-  await page.mouse.move(a.x, a.y + direction * 8, { steps: 4 });
-  await page.mouse.move(b.x, b.y, { steps: 20 });
-  await page.mouse.move(b.x, b.y + (direction * end.height) / 4, { steps: 4 });
-  await page.mouse.up();
+  const start = centre(await boxOf(from, 'the grip being dragged'));
+  const end = await boxOf(onto, 'the grip dropped onto');
+  const middle = centre(end);
+  const direction = middle.y > start.y ? 1 : -1;
+  await dragTo(page, from, { x: middle.x, y: middle.y + (direction * end.height) / 4 });
+}
+
+const headingRow = (scope: Locator, group: string): Locator =>
+  row(scope, group)
+    .locator('*')
+    .filter({ has: grip(scope.page(), group) })
+    .filter({ hasNot: scope.page().getByRole('list') })
+    .first();
+
+export async function headingRowMiddle(scope: Locator, group: string): Promise<Point> {
+  return centre(await boxOf(headingRow(scope, group), `the heading row of ${group}`));
+}
+
+export async function headingRowTopEdge(scope: Locator, group: string): Promise<Point> {
+  const heading = await boxOf(headingRow(scope, group), `the heading row of ${group}`);
+  return { x: centre(heading).x, y: heading.y + 2 };
+}
+
+export async function endOfList(scope: Locator): Promise<Point> {
+  const list = await boxOf(scope, 'the Account type');
+  const rows = await scope.getByRole('listitem').filter({ has: grips(scope) }).all();
+  const rowsEnd = Math.max(...(await Promise.all(rows.map(async (item) => bottom(await boxOf(item, 'a row'))))));
+  const end = bottom(list);
+  expect(end - rowsEnd, 'the Account type ends in a drop zone below its rows').toBeGreaterThan(0);
+  return { x: centre(list).x, y: (rowsEnd + end) / 2 };
 }
 
 export async function dayInBrowser(page: Page, daysFromToday = 0): Promise<string> {
