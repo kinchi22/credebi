@@ -118,4 +118,70 @@ describe('createPostgresAccountRepository', () => {
       },
     ]);
   });
+
+  it('adds an Account that is read back with the chart, and only with its own User\'s', async () => {
+    const cash = account(1, 'asset', 0, 'Cash');
+    const wallet = { ...account(2, 'asset', 1, 'Wallet'), description: 'Cash I carry', activeUntil: '2026-12-31' };
+    await store(ADA, cash);
+
+    expect(await repository.addAccount(ADA, wallet)).toEqual(ok(undefined));
+
+    expect(await repository.readChart(ADA)).toEqual(ok([cash, wallet]));
+    expect(await repository.readChart(GRACE)).toEqual(ok([]));
+  });
+
+  it('updates the name, description and Active period of an Account, and keeps its place', async () => {
+    const cash = account(1, 'asset', 3, 'Cash');
+    await store(ADA, cash);
+    const wallet = {
+      ...cash,
+      position: 0,
+      name: 'Wallet',
+      description: 'Cash I carry',
+      activeFrom: '2026-08-01',
+      activeUntil: '2026-12-31',
+    };
+
+    expect(await repository.updateAccount(ADA, wallet)).toEqual(ok(undefined));
+
+    expect(await repository.readChart(ADA)).toEqual(ok([{ ...wallet, position: 3 }]));
+  });
+
+  it("refuses to update another User's Account as not found, and leaves it untouched", async () => {
+    const safe = account(1, 'asset', 0, 'Safe');
+    await store(GRACE, safe);
+
+    const updated = await repository.updateAccount(ADA, { ...safe, name: 'Mine now' });
+
+    expect(isErr(updated) && updated.error.code).toBe('NOT_FOUND');
+    expect(await repository.readChart(GRACE)).toEqual(ok([safe]));
+  });
+
+  it("enforces one name per User's Accounts, ignoring case, while another User may use it", async () => {
+    await store(ADA, account(1, 'asset', 0, 'Cash'));
+    const sales = account(2, 'revenue', 0, 'Sales');
+    await store(ADA, sales);
+
+    const added = await repository.addAccount(ADA, account(3, 'expense', 0, 'CASH'));
+    const renamed = await repository.updateAccount(ADA, { ...sales, name: 'cash' });
+
+    expect(isErr(added) && added.error.code).toBe('NAME_TAKEN');
+    expect(isErr(renamed) && renamed.error.code).toBe('NAME_TAKEN');
+    expect(await repository.addAccount(GRACE, account(4, 'asset', 0, 'cash'))).toEqual(ok(undefined));
+    expect(logged).toEqual([]);
+  });
+
+  it('reports an unreachable database on a save as a result, never by throwing', async () => {
+    const wallet = account(1, 'asset', 0, 'Wallet');
+
+    const added = await dead.addAccount(ADA, wallet);
+    const updated = await dead.updateAccount(ADA, wallet);
+
+    expect(isErr(added) && added.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+    expect(isErr(updated) && updated.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+    expect(logged.map((fields) => fields['event'])).toEqual([
+      'accounts.add_failed',
+      'accounts.update_failed',
+    ]);
+  });
 });

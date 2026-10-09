@@ -1,4 +1,9 @@
-import { chartSchema, toChart } from '@repo/contracts';
+import {
+  addAccountInputSchema,
+  chartSchema,
+  editAccountInputSchema,
+  toChart,
+} from '@repo/contracts';
 import { toTrpcError } from '../domain-error';
 import { router, sessionProcedure } from '../trpc';
 
@@ -10,4 +15,22 @@ export const accountsRouter = router({
     }
     return toChart(result.value);
   }),
+
+  add: sessionProcedure
+    .input(addAccountInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const result = await ctx.container.addAccount(ctx.auth, input);
+      if (!result.ok) {
+        throw toTrpcError(result.error);
+      }
+    }),
+
+  edit: sessionProcedure
+    .input(editAccountInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const result = await ctx.container.editAccount(ctx.auth, input);
+      if (!result.ok) {
+        throw toTrpcError(result.error);
+      }
+    }),
 });

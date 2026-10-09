@@ -161,7 +161,7 @@ describe('createPostEntry', () => {
   it('reports a failure to read the chart of accounts as its own result, and stores nothing', async () => {
     const down = domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.');
     const entries = inMemoryEntries();
-    const { postEntry } = useCases(entries, { readChart: () => Promise.resolve(err(down)) });
+    const { postEntry } = useCases(entries, { ...inMemoryAccounts().accounts, readChart: () => Promise.resolve(err(down)) });
 
     expect(await postEntry(ADA, draft(12500, 12500))).toEqual(err(down));
     expect(await useCases(entries).searchEntries(ADA, NO_CRITERIA)).toEqual(ok([]));

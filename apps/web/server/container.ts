@@ -5,11 +5,14 @@ import {
   entryIdSchema,
   err,
   userIdSchema,
+  type AccountId,
 } from '@repo/contracts';
 import {
+  createAddAccount,
   createBeginGoogleSignIn,
   createChangeEntryFormMode,
   createDeleteEntry,
+  createEditAccount,
   createEditEntry,
   createFinishGoogleSignIn,
   createGetChart,
@@ -20,9 +23,11 @@ import {
   createSearchEntries,
   createSignOut,
   createTestSignIn,
+  type AddAccount,
   type BeginGoogleSignIn,
   type ChangeEntryFormMode,
   type DeleteEntry,
+  type EditAccount,
   type EditEntry,
   type FinishGoogleSignIn,
   type GetChart,
@@ -57,6 +62,8 @@ export type Container = {
   readonly editEntry: EditEntry;
   readonly deleteEntry: DeleteEntry;
   readonly getChart: GetChart;
+  readonly addAccount: AddAccount;
+  readonly editAccount: EditAccount;
   readonly getSettings: GetSettings;
   readonly changeEntryFormMode: ChangeEntryFormMode;
   readonly resolveSession: ResolveSession;
@@ -77,11 +84,12 @@ export function createContainer({ databaseUrl, google, testSignIn }: Env): Conta
   const accounts = createPostgresAccountRepository(databaseUrl, logger);
   const sessions = createPostgresSessionRepository(databaseUrl, logger);
   const settings = createPostgresSettingsRepository(databaseUrl, logger);
+  const newAccountId = (): AccountId => accountIdSchema.parse(uuidv7());
   const signIn = {
     users: createPostgresUserRepository(databaseUrl, logger),
     sessions,
     newUserId: () => userIdSchema.parse(uuidv7()),
-    newAccountId: () => accountIdSchema.parse(uuidv7()),
+    newAccountId,
     newSessionToken,
     hashSessionToken,
     now: () => new Date(),
@@ -113,6 +121,8 @@ export function createContainer({ databaseUrl, google, testSignIn }: Env): Conta
       now: () => new Date(),
     }),
     getChart: createGetChart({ accounts }),
+    addAccount: createAddAccount({ accounts, newAccountId }),
+    editAccount: createEditAccount({ accounts }),
     getSettings: createGetSettings({ settings }),
     changeEntryFormMode: createChangeEntryFormMode({ settings }),
     resolveSession: createResolveSession({ sessions, hashSessionToken, now: () => new Date() }),

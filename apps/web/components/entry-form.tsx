@@ -69,6 +69,7 @@ const refusalsWith = (invalid: string): Readonly<Record<DomainErrorCode, string>
   CONFLICT: en.entryForm.unavailable,
   DEPENDENCY_UNAVAILABLE: en.entryForm.unavailable,
   UNAUTHENTICATED: en.entryForm.signedOut,
+  NAME_TAKEN: invalid,
 });
 
 const REFUSAL: Readonly<Record<EntryFormMode, Readonly<Record<DomainErrorCode, string>>>> = {

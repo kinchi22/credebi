@@ -1,4 +1,4 @@
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import {
   accountTypeSchema,
   domainError,
@@ -6,11 +6,13 @@ import {
   ok,
   type AccountId,
   type DomainError,
+  type Err,
   type Result,
   type UserId,
 } from '@repo/contracts';
 import { createDatabase, schema } from '@repo/db';
 import { databaseFailure } from '../../auth/adapters/database-failure';
+import { describeError } from '../../logging/domain/describe-error';
 import { type Logger } from '../../logging/ports/logger';
 import { type Account } from '../domain/account';
 import { type AccountRepository } from '../ports/account-repository';
@@ -20,6 +22,8 @@ export type PostgresAccountRepository = AccountRepository & {
 };
 
 type AccountRow = Omit<typeof schema.accounts.$inferSelect, 'userId' | 'groupId'>;
+
+const UNIQUE_VIOLATION = '23505';
 
 export function createPostgresAccountRepository(
   connectionString: string,
@@ -70,6 +74,48 @@ export function createPostgresAccountRepository(
       return ok(chart);
     },
 
+    addAccount: async (userId: UserId, account: Account): Promise<Result<void, DomainError>> => {
+      try {
+        await database.insert(schema.accounts).values({ ...account, userId });
+        return ok(undefined);
+      } catch (error) {
+        return saveFailure(logger, 'accounts.add_failed', error, account);
+      }
+    },
+
+    updateAccount: async (userId: UserId, account: Account): Promise<Result<void, DomainError>> => {
+      let updated: { readonly id: string }[];
+      try {
+        updated = await database
+          .update(schema.accounts)
+          .set({
+            name: account.name,
+            description: account.description,
+            activeFrom: account.activeFrom,
+            activeUntil: account.activeUntil,
+          })
+          .where(and(eq(schema.accounts.id, account.id), eq(schema.accounts.userId, userId)))
+          .returning({ id: schema.accounts.id });
+      } catch (error) {
+        return saveFailure(logger, 'accounts.update_failed', error, account);
+      }
+      return updated.length === 0
+        ? err(domainError('NOT_FOUND', `Account ${account.id} is not in the User's chart of accounts.`))
+        : ok(undefined);
+    },
+
     close,
   };
+}
+
+function saveFailure(
+  logger: Logger,
+  event: string,
+  error: unknown,
+  account: Account,
+): Err<DomainError> {
+  if (describeError(error).code === UNIQUE_VIOLATION) {
+    return err(domainError('NAME_TAKEN', `Another Account is named "${account.name}".`));
+  }
+  return databaseFailure(logger, event, error, 'The Account could not be saved.');
 }

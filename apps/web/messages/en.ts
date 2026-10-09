@@ -1,4 +1,6 @@
 const productName = 'Credebi';
+const accountNotSaved =
+  'The account was not saved. A name is 1 to 40 characters, a description at most 200, and Active until cannot be before Active from.';
 
 export const en = {
   app: {
@@ -56,6 +58,35 @@ export const en = {
     },
     saved: 'Saved',
     notSaved: 'Your choice was not saved, so your Entry form mode is unchanged. Try again.',
+  },
+  accountsSection: {
+    title: 'Accounts',
+    showEnded: 'Show ended accounts',
+    addAccount: 'Add account',
+    addAccountText: '+ Account',
+    edit: 'Edit',
+    move: 'Move',
+    startsOn: 'Starts',
+  },
+  accountDialog: {
+    addTitle: 'Add account',
+    editTitle: 'Edit account',
+    name: 'Name',
+    description: 'Description',
+    activeFrom: 'Active from',
+    activeUntil: 'Active until',
+    save: 'Save',
+    pending: 'Saving...',
+    cancel: 'Cancel',
+    refusals: {
+      INVALID_INPUT: accountNotSaved,
+      NAME_TAKEN: 'The account was not saved. Another of your accounts has this name; choose another.',
+      NOT_FOUND: 'This account is no longer here. Reload the page.',
+      CONFLICT: 'The account could not be saved just now, so nothing changed. Try again.',
+      DEPENDENCY_UNAVAILABLE: 'The account could not be saved just now, so nothing changed. Try again.',
+      UNBALANCED: accountNotSaved,
+      UNAUTHENTICATED: 'You are signed out. Sign in again to change your accounts.',
+    },
   },
   entrySearch: {
     title: 'Search entries',
@@ -155,6 +186,7 @@ export const en = {
       CONFLICT: 'This entry was changed elsewhere, perhaps in another tab. Reload the page.',
       DEPENDENCY_UNAVAILABLE: 'The entry could not be saved just now. Try again.',
       UNAUTHENTICATED: 'You are signed out. Sign in again to edit an entry.',
+      NAME_TAKEN: 'The entry was not saved. Check the date, the memo, the accounts and the amounts.',
     },
   },
   discardChanges: {
@@ -176,6 +208,7 @@ export const en = {
       DEPENDENCY_UNAVAILABLE: 'The entry could not be deleted just now. Try again.',
       UNBALANCED: 'This entry could not be deleted. Reload the page and try again.',
       UNAUTHENTICATED: 'You are signed out. Sign in again to delete an entry.',
+      NAME_TAKEN: 'This entry could not be deleted. Reload the page and try again.',
     },
   },
   accountTypes: {

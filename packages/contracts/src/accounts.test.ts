@@ -3,7 +3,10 @@ import {
   accountIdSchema,
   accountSchema,
   accountTypeSchema,
+  addAccountInputSchema,
   chartSchema,
+  editAccountInputSchema,
+  parseAccountForm,
   toChart,
   type AccountId,
 } from './accounts';
@@ -87,5 +90,80 @@ describe('toChart', () => {
       CASH_ACCOUNT,
     ]);
     expect(chartSchema.parse(chart)).toEqual(chart);
+  });
+});
+
+const form = (fields: Readonly<Record<string, string>>): { get: (name: string) => unknown } => ({
+  get: (name) => fields[name] ?? null,
+});
+
+describe('parseAccountForm', () => {
+  it('reads the name, description and Active period an Account dialog submits', () => {
+    expect(
+      parseAccountForm(
+        form({
+          name: ' Wallet ',
+          description: 'Cash I carry',
+          activeFrom: '2026-10-09',
+          activeUntil: '2026-12-31',
+        }),
+      ),
+    ).toEqual({
+      ok: true,
+      value: {
+        name: ' Wallet ',
+        description: 'Cash I carry',
+        activeFrom: '2026-10-09',
+        activeUntil: '2026-12-31',
+      },
+    });
+  });
+
+  it('reads an empty Active until, or none, as an Active period with no end', () => {
+    const open = { name: 'Wallet', description: '', activeFrom: '2026-10-09' };
+
+    expect(parseAccountForm(form({ ...open, activeUntil: '' }))).toEqual({
+      ok: true,
+      value: { ...open, activeUntil: null },
+    });
+    expect(parseAccountForm(form(open))).toEqual({ ok: true, value: { ...open, activeUntil: null } });
+  });
+
+  it('reads a form with no description as an empty one', () => {
+    const parsed = parseAccountForm(form({ name: 'Wallet', activeFrom: '2026-10-09' }));
+
+    expect(parsed.ok && parsed.value.description).toBe('');
+  });
+
+  it('refuses a form with no name, or a start or an end that is not a day', () => {
+    const refused = { ok: false, error: { code: 'INVALID_INPUT', message: expect.any(String) as unknown } };
+
+    expect(parseAccountForm(form({ activeFrom: '2026-10-09' }))).toEqual(refused);
+    expect(parseAccountForm(form({ name: 'Wallet', activeFrom: '' }))).toEqual(refused);
+    expect(
+      parseAccountForm(form({ name: 'Wallet', activeFrom: '2026-10-09', activeUntil: 'soon' })),
+    ).toEqual(refused);
+  });
+});
+
+describe('addAccountInputSchema and editAccountInputSchema', () => {
+  const details = {
+    name: 'Wallet',
+    description: '',
+    activeFrom: '2026-10-09',
+    activeUntil: null,
+  };
+
+  it('takes an Account type to add an Account under, and an Account id to edit one', () => {
+    expect(addAccountInputSchema.parse({ ...details, accountType: 'asset' })).toEqual({
+      ...details,
+      accountType: 'asset',
+    });
+    expect(editAccountInputSchema.parse({ ...details, id: CASH })).toEqual({ ...details, id: CASH });
+  });
+
+  it('refuses an unknown Account type, or an id that is not an Account id', () => {
+    expect(addAccountInputSchema.safeParse({ ...details, accountType: 'cash' }).success).toBe(false);
+    expect(editAccountInputSchema.safeParse({ ...details, id: 'cash' }).success).toBe(false);
   });
 });
