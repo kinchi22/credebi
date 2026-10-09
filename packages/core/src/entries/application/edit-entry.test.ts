@@ -302,7 +302,7 @@ describe('createEditEntry', () => {
     const original = await post(ADA, 'Office supplies');
     const editEntry = createEditEntry({
       ...books,
-      accounts: { readChart: () => Promise.resolve(err(down)) },
+      accounts: { ...inMemoryAccounts().accounts, readChart: () => Promise.resolve(err(down)) },
       newEntryId: () => UNKNOWN_ID,
       now: () => NOW,
     });

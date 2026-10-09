@@ -13,6 +13,7 @@ export {
   ChevronIcon,
   CloseIcon,
   GoogleMark,
+  GripIcon,
   MenuIcon,
   PencilIcon,
   SearchIcon,

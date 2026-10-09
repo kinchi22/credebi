@@ -32,12 +32,24 @@ export {
   toHealthStatus,
 } from './health';
 
-export type { AccountId, AccountOutput, AccountType, ChartOutput } from './accounts';
+export type {
+  AccountDetailsInput,
+  AccountId,
+  AccountOutput,
+  AccountType,
+  AddAccountInput,
+  ChartOutput,
+  EditAccountInput,
+} from './accounts';
 export {
+  ACCOUNT_FORM_FIELDS,
   accountIdSchema,
   accountSchema,
   accountTypeSchema,
+  addAccountInputSchema,
   chartSchema,
+  editAccountInputSchema,
+  parseAccountForm,
   toChart,
 } from './accounts';
 

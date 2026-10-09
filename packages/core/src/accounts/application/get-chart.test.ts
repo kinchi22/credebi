@@ -70,6 +70,7 @@ describe('createGetChart', () => {
 
   it('reports a failed read as its own result', async () => {
     const unavailable: AccountRepository = {
+      ...inMemoryAccounts().accounts,
       readChart: () =>
         Promise.resolve(err(domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.'))),
     };

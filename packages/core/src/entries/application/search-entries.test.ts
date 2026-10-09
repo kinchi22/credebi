@@ -237,7 +237,7 @@ describe('createSearchEntries', () => {
     const down = domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.');
     const searchEntries = createSearchEntries({
       entries: holding(() => Promise.resolve(ok([]))),
-      accounts: { readChart: () => Promise.resolve(err(down)) },
+      accounts: { ...inMemoryAccounts().accounts, readChart: () => Promise.resolve(err(down)) },
     });
 
     expect(await searchEntries({ userId: ADA }, NO_CRITERIA)).toEqual(err(down));

@@ -47,9 +47,17 @@ export {
 
 export {
   ACCOUNT_TYPES,
+  DESCRIPTION_MAX_LENGTH,
+  NAME_MAX_LENGTH,
+  createAddAccount,
+  createEditAccount,
   createGetChart,
   type Account,
   type AccountRepository,
+  type AddAccount,
+  type AddAccountDependencies,
+  type EditAccount,
+  type EditAccountDependencies,
   type GetChart,
   type GetChartDependencies,
 } from './accounts/index';
