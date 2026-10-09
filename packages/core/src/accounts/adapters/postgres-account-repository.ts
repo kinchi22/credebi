@@ -1,4 +1,4 @@
-import { and, asc, eq, max, min } from 'drizzle-orm';
+import { and, asc, eq, max, min, TransactionRollbackError } from 'drizzle-orm';
 import {
   accountTypeSchema,
   domainError,
@@ -170,18 +170,16 @@ export function createPostgresAccountRepository(
     },
 
     placeNodes: async (userId: UserId, placed: Chart): Promise<Result<void, DomainError>> => {
-      const missing = new Error('A node to place is not in the User\'s chart of accounts.');
       try {
         await database.transaction(async (transaction) => {
+          const counts: number[] = [];
           for (const account of placed.accounts) {
             const updated = await transaction
               .update(schema.accounts)
               .set({ groupId: account.groupId, position: account.position })
               .where(and(eq(schema.accounts.id, account.id), eq(schema.accounts.userId, userId)))
               .returning({ id: schema.accounts.id });
-            if (updated.length === 0) {
-              throw missing;
-            }
+            counts.push(updated.length);
           }
           for (const group of placed.groups) {
             const updated = await transaction
@@ -191,15 +189,21 @@ export function createPostgresAccountRepository(
                 and(eq(schema.accountGroups.id, group.id), eq(schema.accountGroups.userId, userId)),
               )
               .returning({ id: schema.accountGroups.id });
-            if (updated.length === 0) {
-              throw missing;
-            }
+            counts.push(updated.length);
+          }
+          if (counts.includes(0)) {
+            transaction.rollback();
           }
         });
         return ok(undefined);
       } catch (error) {
-        if (error === missing || describeError(error).code === FOREIGN_KEY_VIOLATION) {
-          return err(domainError('NOT_FOUND', missing.message));
+        if (
+          error instanceof TransactionRollbackError ||
+          describeError(error).code === FOREIGN_KEY_VIOLATION
+        ) {
+          return err(
+            domainError('NOT_FOUND', "A node to place is not in the User's chart of accounts."),
+          );
         }
         return databaseFailure(logger, 'accounts.place_failed', error, 'The chart could not be reordered.');
       }

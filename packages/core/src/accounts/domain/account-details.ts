@@ -11,7 +11,7 @@ import {
   type Err,
   type Result,
 } from '@repo/contracts';
-import { type Account, type AccountGroup, type Chart } from './account';
+import { findAccount, findGroup, type Account, type AccountGroup, type Chart } from './account';
 
 export const NAME_MAX_LENGTH = 40;
 export const DESCRIPTION_MAX_LENGTH = 200;
@@ -27,7 +27,7 @@ type Place = Pick<Account, 'groupId' | 'position'>;
 
 const characters = (text: string): number => Array.from(text).length;
 
-const invalid = (message: string): Err<DomainError> => err(domainError('INVALID_INPUT', message));
+export const invalid = (message: string): Err<DomainError> => err(domainError('INVALID_INPUT', message));
 
 const sameName = (first: string, second: string): boolean =>
   first.toLowerCase() === second.toLowerCase();
@@ -102,6 +102,18 @@ function endOfGroup({ accounts }: Chart, groupId: AccountGroupId): number {
   );
 }
 
+export function groupOfType(
+  chart: Chart,
+  accountType: AccountType,
+  groupId: AccountGroupId,
+): Result<AccountGroup, DomainError> {
+  const group = findGroup(chart, groupId);
+  if (group.ok && group.value.accountType !== accountType) {
+    return invalid('An Account group holds Accounts of its own Account type only.');
+  }
+  return group;
+}
+
 function placeAtEnd(
   chart: Chart,
   accountType: AccountType,
@@ -111,17 +123,8 @@ function placeAtEnd(
     return ok({ groupId, position: endOfType(chart, accountType) });
   }
 
-  const group = chart.groups.find((candidate) => candidate.id === groupId);
-  if (group === undefined) {
-    return err(
-      domainError('NOT_FOUND', `Account group ${groupId} is not in the User's chart of accounts.`),
-    );
-  }
-  if (group.accountType !== accountType) {
-    return invalid('An Account group holds Accounts of its own Account type only.');
-  }
-
-  return ok({ groupId, position: endOfGroup(chart, groupId) });
+  const group = groupOfType(chart, accountType, groupId);
+  return group.ok ? ok({ groupId, position: endOfGroup(chart, groupId) }) : group;
 }
 
 export function addedAccount(
@@ -144,10 +147,11 @@ export function editedAccount(
   id: AccountId,
   draft: AccountDetailsInput,
 ): Result<Account, DomainError> {
-  const account = chart.accounts.find((candidate) => candidate.id === id);
-  if (account === undefined) {
-    return err(domainError('NOT_FOUND', `Account ${id} is not in the User's chart of accounts.`));
+  const found = findAccount(chart, id);
+  if (!found.ok) {
+    return found;
   }
+  const account = found.value;
 
   const details = checkDetails(
     draft,
@@ -182,12 +186,11 @@ export function editedGroup(
   id: AccountGroupId,
   draft: AccountGroupDetailsInput,
 ): Result<AccountGroup, DomainError> {
-  const group = chart.groups.find((candidate) => candidate.id === id);
-  if (group === undefined) {
-    return err(
-      domainError('NOT_FOUND', `Account group ${id} is not in the User's chart of accounts.`),
-    );
+  const found = findGroup(chart, id);
+  if (!found.ok) {
+    return found;
   }
+  const group = found.value;
 
   const details = checkGroupDetails(
     draft,

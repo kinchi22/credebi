@@ -120,6 +120,15 @@ export const en = {
       DEPENDENCY_UNAVAILABLE: unmoved,
       UNAUTHENTICATED: 'You are signed out. Sign in again to change your accounts.',
     },
+    drag: {
+      instructions:
+        'Drag a grip with a pointer to move its account or group. The Group field of Edit account also moves an account.',
+      pickedUp: 'Picked up',
+      over: 'is now over',
+      overNothing: 'is over no place it can be dropped',
+      dropped: 'was dropped over',
+      putBack: 'was put back where it was',
+    },
   },
   accountDialog: {
     addTitle: 'Add account',

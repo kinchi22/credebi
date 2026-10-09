@@ -129,7 +129,7 @@ describe('movedNode', () => {
     });
   });
 
-  it('moves an Account into an Account group of its Account type, at the place it is given', () => {
+  it('moves an Account into an Account group of its Account type at the place it is given, renumbering only that list, since a position orders its own list and the list left behind keeps its order with a gap', () => {
     expect(movedNode(CHART, moveAccount(CASH, 1, BANK.id))).toEqual({
       ok: true,
       value: {

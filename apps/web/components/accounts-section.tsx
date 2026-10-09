@@ -8,7 +8,9 @@ import {
   type AccountGroupOutput,
   type AccountOutput,
   type AccountType,
+  type ChartNodeOutput,
   type ChartOutput,
+  type ChartPlace,
   type DomainErrorCode,
   type MoveChartNodeInput,
 } from '@repo/contracts';
@@ -23,7 +25,7 @@ import {
   type ChartChange,
   type AccountDialogTarget,
 } from './account-dialog';
-import { ChartDrag, SortableItem, SortableList, type ChartPlace } from './chart-drag';
+import { ChartDrag, SortableItem, SortableList } from './chart-drag';
 import { useBrowserToday } from './browser-today';
 import {
   DeleteAccountDialog,
@@ -184,7 +186,6 @@ function GroupRow({
       node={{ kind: 'group', id: group.id }}
       place={{ accountType: group.accountType, groupId: null }}
       name={group.name}
-      className=""
     >
       {(grip) => (
         <>
@@ -198,6 +199,7 @@ function GroupRow({
           </div>
           <SortableList
             place={{ accountType: group.accountType, groupId: group.id }}
+            name={group.name}
             ids={shownIds}
             className={shownIds.length === 0 ? 'min-h-8 pl-6' : 'pl-6'}
           >
@@ -249,7 +251,7 @@ function TypeBand({
   );
 }
 
-const shownIdsOf = (nodes: ChartOutput, rows: Rows): string[] =>
+const shownIdsOf = (nodes: readonly ChartNodeOutput[], rows: Rows): string[] =>
   nodes.flatMap((node) =>
     node.kind === 'group'
       ? [node.group.id]
@@ -262,7 +264,7 @@ function TypeList({
   rows,
 }: {
   readonly accountType: AccountType;
-  readonly chart: ChartOutput;
+  readonly chart: readonly ChartNodeOutput[];
   readonly rows: Rows;
 }): ReactNode {
   const { open, openDelete } = rows;
@@ -270,7 +272,7 @@ function TypeList({
   const place: ChartPlace = { accountType, groupId: null };
 
   return (
-    <SortableList place={place} ids={shownIdsOf(nodes, rows)} className="px-2">
+    <SortableList place={place} name={en.accountTypes[accountType]} ids={shownIdsOf(nodes, rows)} className="px-2">
       {nodes.map((node) =>
         node.kind === 'account' ? (
           <AccountRows key={node.account.id} accounts={[node.account]} {...rows} />
@@ -306,7 +308,10 @@ export function AccountsSection({ chart, actions }: AccountsSectionProps): React
   const [target, setTarget] = useState<AccountDialogTarget>();
   const [deleteTarget, setDeleteTarget] = useState<DeleteAccountTarget>();
   const [showEnded, setShowEnded] = useState(false);
-  const [shown, showMove] = useOptimistic(chart, movedInChart);
+  const [shown, showMove] = useOptimistic<readonly ChartNodeOutput[], MoveChartNodeInput>(
+    chart,
+    movedInChart,
+  );
   const [, startMove] = useTransition();
   const [moveRefusal, setMoveRefusal] = useState<DomainErrorCode>();
 

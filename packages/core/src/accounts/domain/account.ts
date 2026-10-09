@@ -1,8 +1,13 @@
 import {
   accountTypeSchema,
+  domainError,
+  err,
+  ok,
   type AccountGroupId,
   type AccountId,
   type AccountType,
+  type DomainError,
+  type Result,
 } from '@repo/contracts';
 
 export const ACCOUNT_TYPES: readonly AccountType[] = accountTypeSchema.options;
@@ -103,4 +108,18 @@ export function chartInOrder({ accounts, groups }: Chart): readonly ChartNode[] 
 
 export function accountNames(accounts: readonly Account[]): AccountNames {
   return new Map(accounts.map(({ id, name }) => [id, { id, name }]));
+}
+
+export function findAccount(chart: Chart, id: AccountId): Result<Account, DomainError> {
+  const account = chart.accounts.find((candidate) => candidate.id === id);
+  return account === undefined
+    ? err(domainError('NOT_FOUND', `Account ${id} is not in the User's chart of accounts.`))
+    : ok(account);
+}
+
+export function findGroup(chart: Chart, id: AccountGroupId): Result<AccountGroup, DomainError> {
+  const group = chart.groups.find((candidate) => candidate.id === id);
+  return group === undefined
+    ? err(domainError('NOT_FOUND', `Account group ${id} is not in the User's chart of accounts.`))
+    : ok(group);
 }

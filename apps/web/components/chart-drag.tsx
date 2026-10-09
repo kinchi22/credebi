@@ -8,10 +8,13 @@ import {
   useDroppable,
   useSensor,
   useSensors,
+  type Active,
+  type Announcements,
   type ClientRect,
   type CollisionDetection,
   type DragEndEvent,
   type DroppableContainer,
+  type Over,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -21,53 +24,51 @@ import {
 } from '@dnd-kit/sortable';
 import {
   moveBefore,
-  type AccountGroupId,
-  type AccountType,
+  type ChartNodeOutput,
   type ChartNodeRef,
-  type ChartOutput,
+  type ChartPlace,
   type MoveChartNodeInput,
 } from '@repo/contracts';
 import { GripIcon } from '@repo/ui';
-import { type CSSProperties, type ReactNode } from 'react';
+import { useId, type CSSProperties, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { BARE_ICON_BUTTON } from './control-classes';
-
-export type ChartPlace = {
-  readonly accountType: AccountType;
-  readonly groupId: AccountGroupId | null;
-};
 
 type NodeData = {
   readonly node: ChartNodeRef;
   readonly place: ChartPlace;
+  readonly name: string;
 };
 
 type ZoneData = {
   readonly zone: ChartPlace;
+  readonly name: string;
 };
 
 type SortableData = NodeData & {
   readonly sortable: {
-    readonly containerId: string;
     readonly index: number;
     readonly items: readonly string[];
   };
 };
 
-const listId = ({ accountType, groupId }: ChartPlace): string => groupId ?? accountType;
+type Holder = { readonly data: { readonly current?: unknown } };
 
-const nodeData = (container: { readonly data: { readonly current?: unknown } }): NodeData | undefined => {
-  const data = container.data.current as Partial<NodeData> | undefined;
+const nodeData = (holder: Holder): NodeData | undefined => {
+  const data = holder.data.current as Partial<NodeData> | undefined;
   return data?.node === undefined ? undefined : (data as NodeData);
 };
 
-const zoneData = (container: { readonly data: { readonly current?: unknown } }): ZoneData | undefined => {
-  const data = container.data.current as Partial<ZoneData> | undefined;
+const zoneData = (holder: Holder): ZoneData | undefined => {
+  const data = holder.data.current as Partial<ZoneData> | undefined;
   return data?.zone === undefined ? undefined : (data as ZoneData);
 };
 
 const placeOf = (container: DroppableContainer): ChartPlace | undefined =>
   nodeData(container)?.place ?? zoneData(container)?.zone;
+
+const samePlace = (first: ChartPlace, second: ChartPlace): boolean =>
+  first.accountType === second.accountType && first.groupId === second.groupId;
 
 const firstHit = (
   args: Parameters<CollisionDetection>[0],
@@ -125,8 +126,8 @@ function droppedBefore({ active, over }: DragEndEvent): {
   if (target === undefined) {
     return undefined;
   }
-  const { items, index, containerId } = target.sortable;
-  if (containerId === moving.sortable.containerId) {
+  const { items, index } = target.sortable;
+  if (samePlace(target.place, moving.place)) {
     if (index === moving.sortable.index) {
       return undefined;
     }
@@ -135,15 +136,34 @@ function droppedBefore({ active, over }: DragEndEvent): {
 
   const dragged = active.rect.current.translated;
   const below = dragged !== null && middle(dragged) > middle(over.rect);
-  return { place: target.place, before: below ? (items[index + 1] ?? null) : items[index] ?? null };
+  return { place: target.place, before: below ? (items[index + 1] ?? null) : (items[index] ?? null) };
 }
+
+const nameOf = (holder: Holder): string => nodeData(holder)?.name ?? zoneData(holder)?.name ?? '';
+
+const { drag } = en.accountsSection;
+
+const overNow = (active: Active, over: Over | null): string =>
+  over === null
+    ? `${nameOf(active)} ${drag.overNothing}`
+    : `${nameOf(active)} ${drag.over} ${nameOf(over)}`;
+
+const announcements: Announcements = {
+  onDragStart: ({ active }) => `${drag.pickedUp} ${nameOf(active)}`,
+  onDragOver: ({ active, over }) => overNow(active, over),
+  onDragEnd: ({ active, over }) =>
+    over === null
+      ? `${nameOf(active)} ${drag.putBack}`
+      : `${nameOf(active)} ${drag.dropped} ${nameOf(over)}`,
+  onDragCancel: ({ active }) => `${nameOf(active)} ${drag.putBack}`,
+};
 
 export function ChartDrag({
   chart,
   onMove,
   children,
 }: {
-  readonly chart: ChartOutput;
+  readonly chart: readonly ChartNodeOutput[];
   readonly onMove: (move: MoveChartNodeInput) => void;
   readonly children: ReactNode;
 }): ReactNode {
@@ -153,6 +173,7 @@ export function ChartDrag({
     <DndContext
       sensors={sensors}
       collisionDetection={collide}
+      accessibility={{ announcements, screenReaderInstructions: { draggable: drag.instructions } }}
       onDragEnd={(event) => {
         const moving = nodeData(event.active);
         const dropped = droppedBefore(event);
@@ -169,23 +190,25 @@ export function ChartDrag({
 
 export function SortableList({
   place,
+  name,
   ids,
   className,
   children,
 }: {
   readonly place: ChartPlace;
+  readonly name: string;
   readonly ids: readonly string[];
   readonly className: string;
   readonly children: ReactNode;
 }): ReactNode {
   const { setNodeRef } = useDroppable({
-    id: `zone-${listId(place)}`,
-    data: { zone: place } satisfies ZoneData,
+    id: useId(),
+    data: { zone: place, name } satisfies ZoneData,
     disabled: place.groupId === null,
   });
 
   return (
-    <SortableContext id={listId(place)} items={[...ids]} strategy={verticalListSortingStrategy}>
+    <SortableContext items={[...ids]} strategy={verticalListSortingStrategy}>
       <ul ref={setNodeRef} className={className}>
         {children}
       </ul>
@@ -197,17 +220,17 @@ export function SortableItem({
   node,
   place,
   name,
-  className,
+  className = '',
   children,
 }: {
   readonly node: ChartNodeRef;
   readonly place: ChartPlace;
   readonly name: string;
-  readonly className: string;
+  readonly className?: string;
   readonly children: (grip: ReactNode) => ReactNode;
 }): ReactNode {
   const { setNodeRef, setActivatorNodeRef, listeners, transform, transition, isDragging } =
-    useSortable({ id: node.id, data: { node, place } satisfies NodeData });
+    useSortable({ id: node.id, data: { node, place, name } satisfies NodeData });
   const style: CSSProperties = {
     transform: transform === null ? undefined : `translate3d(${String(transform.x)}px, ${String(transform.y)}px, 0)`,
     transition,

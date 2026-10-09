@@ -325,6 +325,14 @@ describe('movedInChart', () => {
     ).toEqual(OUTLINE);
     expect(
       movedInChart(OUTLINE, {
+        node: { kind: 'group', id: CASH as string as AccountGroupId },
+        accountType: 'asset',
+        groupId: null,
+        index: 2,
+      }),
+    ).toEqual(OUTLINE);
+    expect(
+      movedInChart(OUTLINE, {
         node: { kind: 'group', id: SAVINGS_GROUP.id },
         accountType: 'asset',
         groupId: BANK,
