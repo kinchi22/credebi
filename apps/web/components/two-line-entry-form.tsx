@@ -17,6 +17,7 @@ import {
   AccountPicker,
   AccountRow,
   ChooseAccountButton,
+  chartOn,
   useAccountSheet,
   type AccountChoice,
 } from './account-picker';
@@ -51,17 +52,25 @@ type TwoLineFieldsProps = EntryFormParts & {
 
 function TwoLineFields({
   id,
+  day,
   chart,
   entry,
   heading,
   refusal,
   submitButton,
 }: TwoLineFieldsProps): ReactNode {
-  const [chosen, setChosen] = useState<AccountChoice>(() => choiceOf(chart, entry));
+  const [picked, setPicked] = useState<AccountChoice>(() => choiceOf(chart, entry));
   const sheet = useAccountSheet();
+  const offered = chartOn(chart, day);
+  const offeredAccount = (account: AccountOutput | undefined): AccountOutput | undefined =>
+    accountsIn(offered).find((candidate) => candidate.id === account?.id);
+  const chosen: AccountChoice = {
+    debit: offeredAccount(picked.debit),
+    credit: offeredAccount(picked.credit),
+  };
 
   const choose = (side: Side, account: AccountOutput): void => {
-    setChosen((current) => ({ ...current, [side]: account }));
+    setPicked((current) => ({ ...current, [side]: account }));
   };
 
   const isChosen = (side: Side, account: AccountId): boolean => chosen[side]?.id === account;
@@ -90,7 +99,7 @@ function TwoLineFields({
         </div>
         {refusal}
       </div>
-      <AccountPicker id={id} chart={chart} isChosen={isChosen} onPick={choose} sheet={sheet} />
+      <AccountPicker id={id} chart={offered} isChosen={isChosen} onPick={choose} sheet={sheet} />
     </div>
   );
 }

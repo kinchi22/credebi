@@ -2,6 +2,7 @@ import { type DomainError, type EditAccountInput, type Result } from '@repo/cont
 import { type AuthContext } from '../../auth/domain/auth-context';
 import { type Account } from '../domain/account';
 import { editedAccount } from '../domain/account-details';
+import { checkKeepsShownEntries } from '../domain/active-period';
 import { type AccountRepository } from '../ports/account-repository';
 import { changeChart } from './change-chart';
 
@@ -20,6 +21,13 @@ export function createEditAccount({ accounts }: EditAccountDependencies): EditAc
       accounts,
       auth,
       (chart) => editedAccount(chart, id, details),
-      accounts.updateAccount,
+      async (userId, account) => {
+        const shown = await accounts.readShownSpan(userId, account.id);
+        if (!shown.ok) {
+          return shown;
+        }
+        const kept = checkKeepsShownEntries(account, shown.value);
+        return kept.ok ? accounts.updateAccount(userId, account) : kept;
+      },
     );
 }

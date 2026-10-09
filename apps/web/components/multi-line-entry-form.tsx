@@ -4,6 +4,7 @@ import {
   ENTRY_FORM_FIELDS,
   entryFormModeSchema,
   type AccountId,
+  accountsIn,
   type AccountOutput,
   type ChartOutput,
   type DomainError,
@@ -23,7 +24,7 @@ import { CloseIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useState, type ReactNode } from 'react';
 import { en } from '../messages/en';
-import { AccountPicker, AddAccountButton, useAccountSheet } from './account-picker';
+import { AccountPicker, AddAccountButton, chartOn, useAccountSheet } from './account-picker';
 import { formatAmount } from './amount';
 import { BARE_ICON_BUTTON } from './control-classes';
 import {
@@ -170,17 +171,22 @@ type MultiLineFieldsProps = EntryFormParts & {
 
 function MultiLineFields({
   id,
+  day,
   chart,
   entry,
   heading,
   refusal,
   submitButton,
 }: MultiLineFieldsProps): ReactNode {
-  const [chosen, setChosen] = useState<readonly ChosenLine[]>(() => linesOf(entry));
+  const [picked, setPicked] = useState<readonly ChosenLine[]>(() => linesOf(entry));
   const sheet = useAccountSheet();
+  const offered = chartOn(chart, day);
+  const chosen = picked.filter((line) =>
+    accountsIn(offered).some((account) => account.id === line.account),
+  );
 
   const remove = (side: Side, account: AccountId): void => {
-    setChosen((current) => current.filter((line) => !isLine(side, account)(line)));
+    setPicked((current) => current.filter((line) => !isLine(side, account)(line)));
   };
 
   const pick = (side: Side, account: AccountOutput, ticked: boolean): void => {
@@ -188,14 +194,14 @@ function MultiLineFields({
       remove(side, account.id);
       return;
     }
-    setChosen((current) => [
+    setPicked((current) => [
       ...current,
       { side, account: account.id, accountName: account.name, amount: '' },
     ]);
   };
 
   const changeAmount = (side: Side, account: AccountId, amount: string): void => {
-    setChosen((current) =>
+    setPicked((current) =>
       current.map((line) => (isLine(side, account)(line) ? { ...line, amount } : line)),
     );
   };
@@ -244,7 +250,7 @@ function MultiLineFields({
       </div>
       <AccountPicker
         id={id}
-        chart={chart}
+        chart={offered}
         multiple
         isChosen={isChosen}
         onPick={pick}

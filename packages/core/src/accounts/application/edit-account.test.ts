@@ -114,6 +114,52 @@ describe('createEditAccount', () => {
     expect(await getChart(ADA)).toEqual(ok(ungrouped(CASH, SALES)));
   });
 
+  it('refuses with IN_USE an Active period that would leave a shown Entry naming the Account outside it, and changes nothing', async () => {
+    const { editAccount, getChart, showInEntry } = useCases();
+    showInEntry(CASH.id, '2026-09-10');
+    showInEntry(CASH.id, '2026-09-20');
+
+    const startsLater = await editAccount(ADA, renamed({ activeFrom: '2026-09-11' }));
+    const endsSooner = await editAccount(ADA, renamed({ activeUntil: '2026-09-19' }));
+
+    expect(!startsLater.ok && startsLater.error.code).toBe('IN_USE');
+    expect(!endsSooner.ok && endsSooner.error.code).toBe('IN_USE');
+    expect(await getChart(ADA)).toEqual(ok(ungrouped(CASH, SALES)));
+  });
+
+  it('changes an Active period that still holds every day a shown Entry names the Account on', async () => {
+    const { editAccount, showInEntry } = useCases();
+    showInEntry(CASH.id, '2026-09-10');
+    showInEntry(CASH.id, '2026-09-20');
+
+    const edited = await editAccount(
+      ADA,
+      renamed({ activeFrom: '2026-09-10', activeUntil: '2026-09-20' }),
+    );
+
+    expect(edited.ok && edited.value.activeUntil).toBe('2026-09-20');
+  });
+
+  it('changes an Active period freely when only hidden Entries name the Account', async () => {
+    const { editAccount, nameInEntry } = useCases();
+    nameInEntry(CASH.id);
+
+    const edited = await editAccount(ADA, renamed({ activeFrom: '2030-01-01', activeUntil: null }));
+
+    expect(edited.ok && edited.value.activeFrom).toBe('2030-01-01');
+  });
+
+  it('reports a failed read of the days shown Entries name the Account on as its own result, and changes nothing', async () => {
+    const down = domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.');
+    const { accounts, getChart } = useCases();
+    const editAccount = createEditAccount({
+      accounts: { ...accounts, readShownSpan: () => Promise.resolve(err(down)) },
+    });
+
+    expect(await editAccount(ADA, renamed())).toEqual(err(down));
+    expect(await getChart(ADA)).toEqual(ok(ungrouped(CASH, SALES)));
+  });
+
   it('moves an Account into, between and out of Account groups of its Account type, last in each list', async () => {
     const { editAccount, getChart, hold } = useCases();
     const abcBank = { ...account(4, 'asset', 'ABC Bank'), groupId: BANK.id };

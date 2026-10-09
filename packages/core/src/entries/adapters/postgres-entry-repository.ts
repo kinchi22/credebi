@@ -270,11 +270,14 @@ function reversed(id: typeof schema.entries.id): SQL {
   );
 }
 
+export function shownEntry(): SQL | undefined {
+  return and(isNull(schema.entries.reversesEntryId), not(reversed(schema.entries.id)));
+}
+
 function matches(userId: UserId, criteria: SearchCriteria): SQL | undefined {
   return and(
     eq(schema.entries.userId, userId),
-    isNull(schema.entries.reversesEntryId),
-    not(reversed(schema.entries.id)),
+    shownEntry(),
     ...(criteria.from === undefined ? [] : [gte(schema.entries.entryDate, criteria.from)]),
     ...(criteria.to === undefined ? [] : [lte(schema.entries.entryDate, criteria.to)]),
     ...(criteria.account === undefined ? [] : [touches(criteria.account)]),

@@ -238,6 +238,17 @@ describe('createEditEntry', () => {
     expect(await visible(ADA)).toEqual([original]);
   });
 
+  it('refuses, as invalid input, a replacement dated outside the Active period of an Account it names, and leaves the Entry', async () => {
+    const { rows, post, editEntry, visible } = useCases();
+    const original = await post(ADA, 'Office supplies');
+
+    const edited = await editEntry(ADA, original.id, { ...REWRITTEN, entryDate: '2025-12-31' });
+
+    expect(isErr(edited) && edited.error.code).toBe('INVALID_INPUT');
+    expect(rows).toHaveLength(1);
+    expect(await visible(ADA)).toEqual([original]);
+  });
+
   it('answers not found for an id no Entry has, though the draft breaks a rule too', async () => {
     const { editEntry } = useCases();
 

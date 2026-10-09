@@ -1,8 +1,7 @@
 import { type DomainError, type EntryId, type Result } from '@repo/contracts';
-import { readAccountNames } from '../../accounts/application/read-account-names';
 import { type AccountRepository } from '../../accounts/ports/account-repository';
 import { requireUser, type AuthContext } from '../../auth/domain/auth-context';
-import { makeEntry, type Entry, type EntryDraft } from '../domain/entry';
+import { makePostedEntry, type Entry, type EntryDraft } from '../domain/entry';
 import { type EntryRepository } from '../ports/entry-repository';
 
 export type PostEntryDependencies = {
@@ -29,15 +28,15 @@ export function createPostEntry({
       return userId;
     }
 
-    const names = await readAccountNames(accounts, userId.value);
-    if (!names.ok) {
-      return names;
+    const chart = await accounts.readChart(userId.value);
+    if (!chart.ok) {
+      return chart;
     }
 
-    const entry = makeEntry(
+    const entry = makePostedEntry(
       draft,
       { id: newEntryId(), createdAt: now() },
-      names.value,
+      chart.value.accounts,
     );
     if (!entry.ok) {
       return entry;
