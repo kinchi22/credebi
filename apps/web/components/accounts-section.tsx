@@ -49,6 +49,7 @@ type Open = (target: AccountDialogTarget, opener: HTMLElement) => void;
 type OpenDelete = (target: DeleteAccountTarget, opener: HTMLElement) => void;
 
 type RowActions = {
+  readonly held: boolean;
   readonly onEdit: (opener: HTMLElement) => void;
   readonly onDelete: (opener: HTMLElement) => void;
 };
@@ -63,11 +64,12 @@ const BAND_BUTTON = 'text-accent-text hover:underline';
 
 const UNMOVED: ChartChange = { outcome: 'rejected', code: 'DEPENDENCY_UNAVAILABLE' };
 
-function RowButtons({ onEdit, onDelete }: RowActions): ReactNode {
+function RowButtons({ held, onEdit, onDelete }: RowActions): ReactNode {
   return (
     <>
       <button
         type="button"
+        disabled={held}
         aria-label={en.accountsSection.edit}
         onClick={(event) => {
           onEdit(event.currentTarget);
@@ -78,6 +80,7 @@ function RowButtons({ onEdit, onDelete }: RowActions): ReactNode {
       </button>
       <button
         type="button"
+        disabled={held}
         aria-label={en.accountsSection.delete}
         onClick={(event) => {
           onDelete(event.currentTarget);
@@ -134,6 +137,7 @@ function AccountRow({
 
 type Rows = {
   readonly today: string | undefined;
+  readonly held: boolean;
   readonly showEnded: boolean;
   readonly open: Open;
   readonly openDelete: OpenDelete;
@@ -157,6 +161,7 @@ function AccountRows({
       key={account.id}
       account={account}
       today={shown.today}
+      held={shown.held}
       onEdit={(opener) => {
         open({ kind: 'account', accountType: account.accountType, editing: account }, opener);
       }}
@@ -211,10 +216,12 @@ function GroupRow({
 function TypeBand({
   accountType,
   id,
+  held,
   open,
 }: {
   readonly accountType: AccountType;
   readonly id: string;
+  readonly held: boolean;
   readonly open: Open;
 }): ReactNode {
   return (
@@ -225,6 +232,7 @@ function TypeBand({
       <span className="flex gap-3">
         <button
           type="button"
+          disabled={held}
           aria-label={en.accountsSection.addAccount}
           onClick={(event) => {
             open({ kind: 'account', accountType, editing: undefined }, event.currentTarget);
@@ -235,6 +243,7 @@ function TypeBand({
         </button>
         <button
           type="button"
+          disabled={held}
           aria-label={en.accountsSection.addGroup}
           onClick={(event) => {
             open({ kind: 'group', accountType, editing: undefined }, event.currentTarget);
@@ -264,7 +273,7 @@ function TypeList({
   readonly chart: readonly ChartNodeOutput[];
   readonly rows: Rows;
 }): ReactNode {
-  const { open, openDelete } = rows;
+  const { held, open, openDelete } = rows;
   const nodes = nodesOfType(chart, accountType);
   const place: ChartPlace = { accountType, groupId: null };
 
@@ -277,6 +286,7 @@ function TypeList({
           <GroupRow
             key={node.group.id}
             group={node.group}
+            held={held}
             shownIds={shownAccounts(node.accounts, rows).map((account) => account.id)}
             onEdit={(opener) => {
               open({ kind: 'group', accountType, editing: node.group }, opener);
@@ -309,7 +319,7 @@ export function AccountsSection({ chart, actions }: AccountsSectionProps): React
     chart,
     movedInChart,
   );
-  const [, startMove] = useTransition();
+  const [held, startMove] = useTransition();
   const [moveRefusal, setMoveRefusal] = useState<DomainErrorCode>();
 
   const open: Open = (next, opener) => {
@@ -336,17 +346,23 @@ export function AccountsSection({ chart, actions }: AccountsSectionProps): React
     });
   };
 
-  const rows: Rows = { today, showEnded, open, openDelete };
+  const rows: Rows = { today, held, showEnded, open, openDelete };
+  const stillWhileHeld = held ? 'opacity-60' : '';
 
   return (
-    <section aria-labelledby={titleId} className="flex flex-col gap-2 border-b border-border pb-4">
+    <section
+      aria-labelledby={titleId}
+      aria-busy={held}
+      className="flex flex-col gap-2 border-b border-border pb-4"
+    >
       <div className="flex items-center justify-between gap-3">
         <h3 id={titleId} className={LEGEND}>
           {en.accountsSection.title}
         </h3>
-        <label className={`flex items-center gap-2 ${typeClasses['body-sm']}`}>
+        <label className={`flex items-center gap-2 ${typeClasses['body-sm']} ${stillWhileHeld}`}>
           <input
             type="checkbox"
+            disabled={held}
             checked={showEnded}
             onChange={(event) => {
               setShowEnded(event.currentTarget.checked);
@@ -360,11 +376,16 @@ export function AccountsSection({ chart, actions }: AccountsSectionProps): React
           {en.accountsSection.moveRefusals[moveRefusal]}
         </p>
       )}
-      <ChartDrag chart={shown} onMove={move}>
-        <div className={`flex flex-col gap-4 ${typeClasses['body-sm']}`}>
+      <ChartDrag chart={shown} held={held} onMove={move}>
+        <div className={`flex flex-col gap-4 ${typeClasses['body-sm']} ${stillWhileHeld}`}>
           {accountTypeSchema.options.map((accountType) => (
             <div key={accountType} role="group" aria-labelledby={`${bandId}-${accountType}`}>
-              <TypeBand accountType={accountType} id={`${bandId}-${accountType}`} open={open} />
+              <TypeBand
+                accountType={accountType}
+                id={`${bandId}-${accountType}`}
+                held={held}
+                open={open}
+              />
               <TypeList accountType={accountType} chart={shown} rows={rows} />
               <EndZone accountType={accountType} />
             </div>

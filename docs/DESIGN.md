@@ -402,7 +402,10 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   before the group. A 24px drop zone after each Account type's list, not a
   row, takes an Account last at the top level. A drop does not animate.
   Screen readers hear where it would land each time that changes: into a
-  group, before a row, or last in an Account type.
+  group, before a row, or last in an Account type. From the drop until the
+  move is saved or refused, the section holds still: its rows, bands and
+  `Show ended accounts` are at 60% opacity, every button, grip and the toggle
+  is disabled, nothing can be dragged, and the section is `aria-busy`.
 - **Date presets.** A row of secondary buttons, `Year`, `Quarter`, `Month`
   and `Relative`, below a `border` hairline at the foot of the Entry search
   form, from `wide` up. Each opens its choices on hover in a `surface` panel
