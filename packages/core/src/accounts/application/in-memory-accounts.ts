@@ -42,6 +42,11 @@ export function inMemoryAccounts(): InMemoryAccounts {
         change(userId, (chart) => ({ ...chart, groups: [...chart.groups, group] })),
       updateGroup: (userId, group) =>
         change(userId, (chart) => ({ ...chart, groups: replaced(chart.groups, group) })),
+      placeNodes: (userId, placed) =>
+        change(userId, (chart) => ({
+          accounts: placed.accounts.reduce(replaced, chart.accounts),
+          groups: placed.groups.reduce(replaced, chart.groups),
+        })),
       isAccountNamed: (userId, id) =>
         Promise.resolve(
           ok(named.has(id) && chartOf(userId).accounts.some((account) => account.id === id)),

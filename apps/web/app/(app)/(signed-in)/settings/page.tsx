@@ -15,6 +15,7 @@ import {
   deleteAccountGroup,
   editAccount,
   editAccountGroup,
+  moveChartNode,
 } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -43,6 +44,7 @@ export default async function SettingsPage(): Promise<ReactNode> {
           editAccountGroup,
           deleteAccount,
           deleteAccountGroup,
+          moveChartNode,
         }}
       />
     </>

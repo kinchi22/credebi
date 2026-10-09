@@ -5,6 +5,7 @@ import {
   accountIdSchema,
   accountTypeSchema,
   changeEntryFormModeInputSchema,
+  moveChartNodeInputSchema,
   parseAccountForm,
   parseAccountGroupForm,
   type DomainError,
@@ -123,4 +124,14 @@ export async function deleteAccountGroup(id: string): Promise<ChartDeletionOutco
   return deleteFromChart(accountGroupIdSchema.safeParse(id).data, (caller, groupId) =>
     caller.accounts.deleteGroup({ id: groupId }),
   );
+}
+
+export async function moveChartNode(move: unknown): Promise<ChartChange> {
+  const input = moveChartNodeInputSchema.safeParse(move);
+  if (!input.success) {
+    return { outcome: 'rejected', code: 'INVALID_INPUT' };
+  }
+
+  const code = await refusalOf((caller) => caller.accounts.move(input.data));
+  return code === undefined ? { outcome: 'saved' } : { outcome: 'rejected', code };
 }

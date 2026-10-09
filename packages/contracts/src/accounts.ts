@@ -45,7 +45,22 @@ export const chartNodeSchema = z.discriminatedUnion('kind', [
   }),
 ]);
 
-export type ChartNodeOutput = z.infer<typeof chartNodeSchema>;
+type PlacedAccount = {
+  readonly id: AccountId;
+  readonly accountType: AccountType;
+  readonly groupId: AccountGroupId | null;
+};
+
+type PlacedGroup = {
+  readonly id: AccountGroupId;
+  readonly accountType: AccountType;
+};
+
+export type OutlineNode<Account extends PlacedAccount, Group extends PlacedGroup> =
+  | { readonly kind: 'account'; readonly account: Account }
+  | { readonly kind: 'group'; readonly group: Group; readonly accounts: readonly Account[] };
+
+export type ChartNodeOutput = OutlineNode<AccountOutput, AccountGroupOutput>;
 
 export const chartSchema = z.array(chartNodeSchema);
 
@@ -103,10 +118,10 @@ export function toChart(outline: readonly StoredNode[]): ChartOutput {
   );
 }
 
-export function nodesOfType(
-  chart: readonly ChartNodeOutput[],
+export function nodesOfType<Account extends PlacedAccount, Group extends PlacedGroup>(
+  chart: readonly OutlineNode<Account, Group>[],
   accountType: AccountType,
-): ChartNodeOutput[] {
+): OutlineNode<Account, Group>[] {
   return chart.filter(
     (node) => (node.kind === 'account' ? node.account : node.group).accountType === accountType,
   );
@@ -172,6 +187,133 @@ export const deleteAccountGroupInputSchema = z.object({
 });
 
 export type DeleteAccountGroupInput = z.infer<typeof deleteAccountGroupInputSchema>;
+
+export const chartNodeRefSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('account'), id: accountIdSchema }),
+  z.object({ kind: z.literal('group'), id: accountGroupIdSchema }),
+]);
+
+export type ChartNodeRef = z.infer<typeof chartNodeRefSchema>;
+
+export const chartPlaceSchema = z.object({
+  accountType: accountTypeSchema,
+  groupId: accountGroupIdSchema.nullable(),
+});
+
+export type ChartPlace = z.infer<typeof chartPlaceSchema>;
+
+export const moveChartNodeInputSchema = chartPlaceSchema.extend({
+  node: chartNodeRefSchema,
+  index: z.number().int().nonnegative(),
+});
+
+export type MoveChartNodeInput = z.infer<typeof moveChartNodeInputSchema>;
+
+export const idOfNode = (node: OutlineNode<PlacedAccount, PlacedGroup>): string =>
+  node.kind === 'account' ? node.account.id : node.group.id;
+
+export function listIn<Account extends PlacedAccount, Group extends PlacedGroup>(
+  chart: readonly OutlineNode<Account, Group>[],
+  { accountType, groupId }: ChartPlace,
+): OutlineNode<Account, Group>[] {
+  const nodes = nodesOfType(chart, accountType);
+  if (groupId === null) {
+    return nodes;
+  }
+  return nodes.flatMap((node) =>
+    node.kind === 'group' && node.group.id === groupId
+      ? node.accounts.map((account) => ({ kind: 'account' as const, account }))
+      : [],
+  );
+}
+
+export function moveBefore(
+  chart: readonly ChartNodeOutput[],
+  node: ChartNodeRef,
+  to: ChartPlace,
+  before: string | null,
+): MoveChartNodeInput {
+  const others = listIn(chart, to)
+    .map(idOfNode)
+    .filter((id) => id !== node.id);
+  const index = others.findIndex((id) => id === before);
+  return { node, ...to, index: index === -1 ? others.length : index };
+}
+
+function found<Account extends PlacedAccount, Group extends PlacedGroup>(
+  chart: readonly OutlineNode<Account, Group>[],
+  { kind, id }: ChartNodeRef,
+): OutlineNode<Account, Group> | undefined {
+  const candidates =
+    kind === 'group'
+      ? chart
+      : chart.flatMap((node) =>
+          node.kind === 'group'
+            ? node.accounts.map((account) => ({ kind: 'account' as const, account }))
+            : [node],
+        );
+  return candidates.find((node) => node.kind === kind && idOfNode(node) === id);
+}
+
+function without<Account extends PlacedAccount, Group extends PlacedGroup>(
+  chart: readonly OutlineNode<Account, Group>[],
+  id: string,
+): OutlineNode<Account, Group>[] {
+  return chart.flatMap((node): OutlineNode<Account, Group>[] => {
+    if (idOfNode(node) === id) {
+      return [];
+    }
+    return node.kind === 'group'
+      ? [{ ...node, accounts: node.accounts.filter((account) => account.id !== id) }]
+      : [node];
+  });
+}
+
+const insertedAt = <Item>(items: readonly Item[], index: number, item: Item): Item[] => [
+  ...items.slice(0, index),
+  item,
+  ...items.slice(index),
+];
+
+function withList<Account extends PlacedAccount, Group extends PlacedGroup>(
+  chart: readonly OutlineNode<Account, Group>[],
+  accountType: AccountType,
+  change: (nodes: OutlineNode<Account, Group>[]) => OutlineNode<Account, Group>[],
+): OutlineNode<Account, Group>[] {
+  return accountTypeSchema.options.flatMap((type) =>
+    type === accountType ? change(nodesOfType(chart, type)) : nodesOfType(chart, type),
+  );
+}
+
+export function movedInChart<Account extends PlacedAccount, Group extends PlacedGroup>(
+  chart: readonly OutlineNode<Account, Group>[],
+  move: MoveChartNodeInput,
+): OutlineNode<Account, Group>[] {
+  const taken = found(chart, move.node);
+  const { groupId } = move;
+  if (taken === undefined || (taken.kind === 'group' && groupId !== null)) {
+    return [...chart];
+  }
+
+  const rest = without(chart, move.node.id);
+  if (taken.kind === 'group') {
+    return withList(rest, move.accountType, (nodes) => insertedAt(nodes, move.index, taken));
+  }
+
+  const account: Account = { ...taken.account, groupId };
+  if (groupId === null) {
+    return withList(rest, move.accountType, (nodes) =>
+      insertedAt(nodes, move.index, { kind: 'account', account }),
+    );
+  }
+  return withList(rest, move.accountType, (nodes) =>
+    nodes.map((node) =>
+      node.kind === 'group' && node.group.id === groupId
+        ? { ...node, accounts: insertedAt(node.accounts, move.index, account) }
+        : node,
+    ),
+  );
+}
 
 export const ACCOUNT_FORM_FIELDS = {
   name: 'name',

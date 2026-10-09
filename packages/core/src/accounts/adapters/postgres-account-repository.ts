@@ -1,4 +1,4 @@
-import { and, asc, eq, max, min } from 'drizzle-orm';
+import { and, asc, eq, max, min, TransactionRollbackError } from 'drizzle-orm';
 import {
   accountTypeSchema,
   domainError,
@@ -167,6 +167,46 @@ export function createPostgresAccountRepository(
             domainError('NOT_FOUND', `Account group ${group.id} is not in the User's chart of accounts.`),
           )
         : ok(undefined);
+    },
+
+    placeNodes: async (userId: UserId, placed: Chart): Promise<Result<void, DomainError>> => {
+      try {
+        await database.transaction(async (transaction) => {
+          const counts: number[] = [];
+          for (const account of placed.accounts) {
+            const updated = await transaction
+              .update(schema.accounts)
+              .set({ groupId: account.groupId, position: account.position })
+              .where(and(eq(schema.accounts.id, account.id), eq(schema.accounts.userId, userId)))
+              .returning({ id: schema.accounts.id });
+            counts.push(updated.length);
+          }
+          for (const group of placed.groups) {
+            const updated = await transaction
+              .update(schema.accountGroups)
+              .set({ position: group.position })
+              .where(
+                and(eq(schema.accountGroups.id, group.id), eq(schema.accountGroups.userId, userId)),
+              )
+              .returning({ id: schema.accountGroups.id });
+            counts.push(updated.length);
+          }
+          if (counts.includes(0)) {
+            transaction.rollback();
+          }
+        });
+        return ok(undefined);
+      } catch (error) {
+        if (
+          error instanceof TransactionRollbackError ||
+          describeError(error).code === FOREIGN_KEY_VIOLATION
+        ) {
+          return err(
+            domainError('NOT_FOUND', "A node to place is not in the User's chart of accounts."),
+          );
+        }
+        return databaseFailure(logger, 'accounts.place_failed', error, 'The chart could not be reordered.');
+      }
     },
 
     isAccountNamed: async (userId: UserId, id: AccountId): Promise<Result<boolean, DomainError>> => {

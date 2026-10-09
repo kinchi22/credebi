@@ -13,6 +13,9 @@ import {
   editAccountGroupInputSchema,
   editAccountInputSchema,
   groupsIn,
+  moveBefore,
+  moveChartNodeInputSchema,
+  movedInChart,
   nodesOfType,
   parseAccountForm,
   parseAccountGroupForm,
@@ -177,6 +180,168 @@ describe('nodesOfType', () => {
   });
 });
 
+const WALLET_ACCOUNT = {
+  ...CASH_ACCOUNT,
+  id: '01920000-0000-7000-8000-00000000c005' as AccountId,
+  name: 'Wallet',
+} as const;
+
+const XYZ_BANK = {
+  ...ABC_BANK,
+  id: '01920000-0000-7000-8000-00000000c006' as AccountId,
+  name: 'XYZ Bank',
+} as const;
+
+const SAVINGS_GROUP = {
+  ...BANK_GROUP,
+  id: '01920000-0000-7000-8000-00000000b002' as AccountGroupId,
+  name: 'Savings',
+} as const;
+
+const OUTLINE: ChartOutput = [
+  { kind: 'account', account: CASH_ACCOUNT },
+  { kind: 'group', group: BANK_GROUP, accounts: [ABC_BANK, XYZ_BANK] },
+  { kind: 'account', account: WALLET_ACCOUNT },
+  { kind: 'group', group: SAVINGS_GROUP, accounts: [] },
+  { kind: 'account', account: SALES_ACCOUNT },
+];
+
+describe('moveBefore', () => {
+  const asset = { accountType: 'asset', groupId: null } as const;
+  const inBank = { accountType: 'asset', groupId: BANK } as const;
+
+  it('places a node at the place of the node it goes before, counted among the others of the list', () => {
+    expect(moveBefore(OUTLINE, { kind: 'account', id: WALLET_ACCOUNT.id }, asset, CASH)).toEqual({
+      node: { kind: 'account', id: WALLET_ACCOUNT.id },
+      ...asset,
+      index: 0,
+    });
+    expect(
+      moveBefore(OUTLINE, { kind: 'account', id: CASH }, asset, SAVINGS_GROUP.id).index,
+    ).toBe(2);
+  });
+
+  it("places a node into an Account group's list, before one of its Accounts", () => {
+    expect(moveBefore(OUTLINE, { kind: 'account', id: CASH }, inBank, XYZ_BANK.id)).toEqual({
+      node: { kind: 'account', id: CASH },
+      ...inBank,
+      index: 1,
+    });
+  });
+
+  it('places a node last when it goes before nothing, or before a node not in the list', () => {
+    expect(moveBefore(OUTLINE, { kind: 'account', id: CASH }, asset, null).index).toBe(3);
+    expect(moveBefore(OUTLINE, { kind: 'account', id: CASH }, inBank, null).index).toBe(2);
+    expect(moveBefore(OUTLINE, { kind: 'account', id: WALLET_ACCOUNT.id }, inBank, CASH).index).toBe(
+      2,
+    );
+    expect(
+      moveBefore(OUTLINE, { kind: 'account', id: CASH }, { accountType: 'asset', groupId: SAVINGS_GROUP.id }, null)
+        .index,
+    ).toBe(0);
+  });
+});
+
+describe('movedInChart', () => {
+  it("reorders a node within its Account type's list, leaving every other Account type as it was", () => {
+    expect(
+      movedInChart(OUTLINE, {
+        node: { kind: 'group', id: SAVINGS_GROUP.id },
+        accountType: 'asset',
+        groupId: null,
+        index: 0,
+      }),
+    ).toEqual([OUTLINE[3], OUTLINE[0], OUTLINE[1], OUTLINE[2], OUTLINE[4]]);
+  });
+
+  it('moves an Account into an Account group at the place given, as one of its Accounts', () => {
+    expect(
+      movedInChart(OUTLINE, {
+        node: { kind: 'account', id: WALLET_ACCOUNT.id },
+        accountType: 'asset',
+        groupId: BANK,
+        index: 1,
+      }),
+    ).toEqual([
+      OUTLINE[0],
+      {
+        kind: 'group',
+        group: BANK_GROUP,
+        accounts: [ABC_BANK, { ...WALLET_ACCOUNT, groupId: BANK }, XYZ_BANK],
+      },
+      OUTLINE[3],
+      OUTLINE[4],
+    ]);
+  });
+
+  it('moves an Account out of its Account group, and between Account groups', () => {
+    expect(
+      movedInChart(OUTLINE, {
+        node: { kind: 'account', id: XYZ_BANK.id },
+        accountType: 'asset',
+        groupId: null,
+        index: 0,
+      }),
+    ).toEqual([
+      { kind: 'account', account: { ...XYZ_BANK, groupId: null } },
+      OUTLINE[0],
+      { kind: 'group', group: BANK_GROUP, accounts: [ABC_BANK] },
+      OUTLINE[2],
+      OUTLINE[3],
+      OUTLINE[4],
+    ]);
+    expect(
+      movedInChart(OUTLINE, {
+        node: { kind: 'account', id: ABC_BANK.id },
+        accountType: 'asset',
+        groupId: SAVINGS_GROUP.id,
+        index: 0,
+      }),
+    ).toEqual([
+      OUTLINE[0],
+      { kind: 'group', group: BANK_GROUP, accounts: [XYZ_BANK] },
+      OUTLINE[2],
+      { kind: 'group', group: SAVINGS_GROUP, accounts: [{ ...ABC_BANK, groupId: SAVINGS_GROUP.id }] },
+      OUTLINE[4],
+    ]);
+  });
+
+  it('leaves the chart as it is for a node it does not hold, an Account taken for a group, or a group moved into a group', () => {
+    expect(
+      movedInChart(OUTLINE, {
+        node: { kind: 'account', id: BANK as string as AccountId },
+        accountType: 'asset',
+        groupId: null,
+        index: 0,
+      }),
+    ).toEqual(OUTLINE);
+    expect(
+      movedInChart(OUTLINE, {
+        node: { kind: 'group', id: ABC_BANK.id as string as AccountGroupId },
+        accountType: 'asset',
+        groupId: null,
+        index: 0,
+      }),
+    ).toEqual(OUTLINE);
+    expect(
+      movedInChart(OUTLINE, {
+        node: { kind: 'group', id: CASH as string as AccountGroupId },
+        accountType: 'asset',
+        groupId: null,
+        index: 2,
+      }),
+    ).toEqual(OUTLINE);
+    expect(
+      movedInChart(OUTLINE, {
+        node: { kind: 'group', id: SAVINGS_GROUP.id },
+        accountType: 'asset',
+        groupId: BANK,
+        index: 0,
+      }),
+    ).toEqual(OUTLINE);
+  });
+});
+
 const form = (fields: Readonly<Record<string, string>>): { get: (name: string) => unknown } => ({
   get: (name) => fields[name] ?? null,
 });
@@ -309,6 +474,35 @@ describe('addAccountInputSchema and editAccountInputSchema', () => {
   it('refuses an unknown Account type, or an id that is not an Account id', () => {
     expect(addAccountInputSchema.safeParse({ ...details, accountType: 'cash' }).success).toBe(false);
     expect(editAccountInputSchema.safeParse({ ...details, id: 'cash' }).success).toBe(false);
+  });
+});
+
+describe('moveChartNodeInputSchema', () => {
+  const move = {
+    node: { kind: 'account', id: CASH },
+    accountType: 'asset',
+    groupId: BANK,
+    index: 2,
+  } as const;
+
+  it('carries the Account or Account group to move, and the list and place it moves to', () => {
+    expect(moveChartNodeInputSchema.parse(move)).toEqual(move);
+    expect(
+      moveChartNodeInputSchema.parse({ ...move, node: { kind: 'group', id: BANK }, groupId: null, index: 0 }),
+    ).toEqual({ ...move, node: { kind: 'group', id: BANK }, groupId: null, index: 0 });
+  });
+
+  it('refuses a node of no kind or no id, an unknown Account type, and a place that is not a whole number from nought', () => {
+    for (const malformed of [
+      { ...move, node: { kind: 'ledger', id: CASH } },
+      { ...move, node: { kind: 'account', id: 'cash' } },
+      { ...move, accountType: 'cash' },
+      { ...move, groupId: 'bank' },
+      { ...move, index: -1 },
+      { ...move, index: 1.5 },
+    ]) {
+      expect(moveChartNodeInputSchema.safeParse(malformed).success).toBe(false);
+    }
   });
 });
 
