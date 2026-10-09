@@ -1,5 +1,5 @@
 import { ok, type DomainError, type EntryId, type Result } from '@repo/contracts';
-import { accountNames } from '../../accounts/domain/account';
+import { readAccountNames } from '../../accounts/application/read-account-names';
 import { type AccountRepository } from '../../accounts/ports/account-repository';
 import { requireUser, type AuthContext } from '../../auth/domain/auth-context';
 import { changesEntry } from '../domain/correction';
@@ -47,16 +47,16 @@ export function createEditEntry({
       return ok(entry);
     }
 
-    const chart = await accounts.readChart(userId.value);
-    if (!chart.ok) {
-      return chart;
+    const names = await readAccountNames(accounts, userId.value);
+    if (!names.ok) {
+      return names;
     }
 
     const createdAt = now();
     const replacement = makeEntry(
       draft,
       { id: newEntryId(), createdAt },
-      accountNames(chart.value),
+      names.value,
     );
     if (!replacement.ok) {
       return replacement;

@@ -88,6 +88,12 @@ Reordering is a write per drag, and the order is state every list must read.
 Drag is the only way to reorder, so ordering is not reachable from a keyboard;
 moving an Account between groups is, through its edit dialog.
 
+Between the first release's migration and its Promotion, Current Production
+still writes Entry lines with no `account_id` and creates Users with no Accounts.
+After Promotion, such a User's Entries fail to read and their posts are refused.
+This is accepted with no healing and no backfill, because the owner is the only
+User and does not write during that window.
+
 The domain loses a compile-time set of Accounts, so posting an Entry needs the
 repository, which is the testability ADR-0015 already accepted losing.
 

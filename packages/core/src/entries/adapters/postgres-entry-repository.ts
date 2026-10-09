@@ -60,7 +60,7 @@ const LINE_COLUMNS = {
   amount: schema.entryLines.amount,
 };
 
-function codeFor(account: AccountId): SQL {
+function legacyAccountCodeFor(account: AccountId): SQL {
   return sql`(select case ${schema.accounts.accountType}
       when 'asset' then 'cash'
       when 'liability' then 'payable'
@@ -93,7 +93,7 @@ export function postgresEntriesOn(database: PostgresExecutor, logger: Logger): E
         entry.lines.map((line, index) => ({
           entryId: entry.id,
           lineNumber: index + 1,
-          account: codeFor(line.account),
+          account: legacyAccountCodeFor(line.account),
           accountId: line.account,
           side: line.side,
           amount: line.amount,

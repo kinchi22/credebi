@@ -1,5 +1,5 @@
 import { type DomainError, type Result } from '@repo/contracts';
-import { accountNames } from '../../accounts/domain/account';
+import { readAccountNames } from '../../accounts/application/read-account-names';
 import { type AccountRepository } from '../../accounts/ports/account-repository';
 import { requireUser, type AuthContext } from '../../auth/domain/auth-context';
 import { type Entry } from '../domain/entry';
@@ -26,12 +26,12 @@ export function createSearchEntries({
       return userId;
     }
 
-    const chart = await accounts.readChart(userId.value);
-    if (!chart.ok) {
-      return chart;
+    const names = await readAccountNames(accounts, userId.value);
+    if (!names.ok) {
+      return names;
     }
 
-    const criteria = makeSearchCriteria(draft, accountNames(chart.value));
+    const criteria = makeSearchCriteria(draft, names.value);
     if (!criteria.ok) {
       return criteria;
     }
