@@ -22,7 +22,8 @@ import { SETTINGS_PATH } from '../server/return-path';
 import { CONTROL, PRIMARY_BUTTON } from './control-classes';
 import { useHydrated } from './hydrated';
 import { useModalDialog, type ModalDialog } from './modal-dialog';
-import { SheetBar, SheetCloseButton, SheetTabs } from './sheet';
+import { CloseButton } from './close-button';
+import { SheetBar, SheetTabs } from './sheet';
 import { SIDE_TONE, SIDES } from './side-classes';
 import { LINK } from './text-classes';
 import { useWide } from './wide';
@@ -550,7 +551,7 @@ function AccountSheetDialog({
               {en.accountSheet.done}
             </button>
           ) : (
-            <SheetCloseButton label={en.accountSheet.close} onClose={sheet.close} />
+            <CloseButton label={en.accountSheet.close} onClose={sheet.close} />
           )}
         </SheetBar>
         <SheetTabs

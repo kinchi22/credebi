@@ -1,6 +1,5 @@
 'use client';
 
-import { CloseIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useRef, type KeyboardEvent, type ReactNode } from 'react';
 
@@ -40,24 +39,6 @@ export function SheetBar({ titleId, title, children }: SheetBarProps): ReactNode
       </h2>
       {children}
     </div>
-  );
-}
-
-export type SheetCloseButtonProps = {
-  readonly label: string;
-  readonly onClose: () => void;
-};
-
-export function SheetCloseButton({ label, onClose }: SheetCloseButtonProps): ReactNode {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      onClick={onClose}
-      className="-mr-2 inline-flex size-10 items-center justify-center rounded text-text"
-    >
-      <CloseIcon />
-    </button>
   );
 }
 

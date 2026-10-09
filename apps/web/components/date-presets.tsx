@@ -25,7 +25,8 @@ import {
 import { en } from '../messages/en';
 import { BUTTON, ICON_CONTROL } from './control-classes';
 import { useModalDialog } from './modal-dialog';
-import { SheetBar, SheetCloseButton, SheetTabs } from './sheet';
+import { CloseButton } from './close-button';
+import { SheetBar, SheetTabs } from './sheet';
 
 type Category = keyof typeof en.datePresets.categories;
 
@@ -370,7 +371,7 @@ export function DatePresetsSheet({ today, onChoose }: DatePresetsProps): ReactNo
         {sheet.open && today !== undefined ? (
           <div className="flex h-full flex-col">
             <SheetBar titleId={titleId} title={en.datePresets.choosePeriod}>
-              <SheetCloseButton label={en.datePresets.close} onClose={sheet.close} />
+              <CloseButton label={en.datePresets.close} onClose={sheet.close} />
             </SheetBar>
             <SheetTabs
               tabs={CATEGORIES}
