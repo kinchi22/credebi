@@ -87,7 +87,7 @@ export const textPairs: readonly ColorPair[] = [
   { foreground: 'sage', background: 'ink-raised' },
   { foreground: 'ink', background: 'mint' },
   { foreground: 'white', background: 'rust' },
-  { foreground: 'slate', background: 'fog' },
+  { foreground: 'ink', background: 'fog' },
 ];
 
 export const controlEdgePairs: readonly ColorPair[] = [

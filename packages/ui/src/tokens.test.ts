@@ -56,7 +56,7 @@ describe('the declared pairs', () => {
     expect(foregroundsOn('ink')).toEqual(['frost', 'sage']);
     expect(foregroundsOn('ink-raised')).toEqual(['frost', 'sage']);
     expect(foregroundsOn('mint')).toEqual(['ink']);
-    expect(foregroundsOn('fog')).toEqual(['slate']);
+    expect(foregroundsOn('fog')).toEqual(['ink']);
   });
 
   it('checks the control edge and the focus ring on every ground', () => {

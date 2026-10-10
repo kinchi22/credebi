@@ -14,7 +14,6 @@ import {
   type DomainErrorCode,
   type MoveChartNodeInput,
 } from '@repo/contracts';
-import { hasEndedBy } from '@repo/core/accounts';
 import { PencilIcon, TrashIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useId, useOptimistic, useState, useTransition, type ReactNode } from 'react';
@@ -25,6 +24,7 @@ import {
   type ChartChange,
   type AccountDialogTarget,
 } from './account-dialog';
+import { branchesOf, shownInSection, type Branch, type SectionFilter } from './chart-tree';
 import { ChartDrag, ChartList, ChartRow, EndZone, GroupHeading } from './chart-drag';
 import { useBrowserToday } from './browser-today';
 import {
@@ -35,6 +35,7 @@ import {
 import { LEGEND, ROW_ICON_BUTTON } from './control-classes';
 import { useModalDialog } from './modal-dialog';
 import { DANGER_TEXT } from './text-classes';
+import { GroupFolder, TreeBranch } from './tree-branch';
 
 export type AccountsSectionProps = {
   readonly chart: ChartOutput;
@@ -53,9 +54,6 @@ type RowActions = {
   readonly onEdit: (opener: HTMLElement) => void;
   readonly onDelete: (opener: HTMLElement) => void;
 };
-
-const mayHaveEnded = (account: AccountOutput, today: string | undefined): boolean =>
-  today === undefined ? account.activeUntil !== null : hasEndedBy(account, today);
 
 const startsLater = (account: AccountOutput, today: string | undefined): boolean =>
   today !== undefined && account.activeFrom > today;
@@ -102,65 +100,70 @@ function Description({ text }: { readonly text: string | null }): ReactNode {
 function AccountRow({
   account,
   today,
+  branch,
   ...actions
 }: RowActions & {
   readonly account: AccountOutput;
   readonly today: string | undefined;
+  readonly branch: Branch | undefined;
 }): ReactNode {
   return (
     <ChartRow
       node={{ kind: 'account', id: account.id }}
       place={{ accountType: account.accountType, groupId: account.groupId }}
-      className="flex items-center gap-2 py-1.5"
+      className="flex items-stretch gap-1"
     >
       {(grip) => (
         <>
-          {grip}
-          <span className="flex min-w-0 flex-1 flex-col">
-            <span>
-              {account.name}
-              {startsLater(account, today) ? (
-                <span className={`ml-2 ${typeClasses.date} text-text-muted`}>
-                  {en.accountsSection.startsOn}{' '}
-                  <time dateTime={account.activeFrom}>{account.activeFrom}</time>
-                </span>
-              ) : null}
+          {branch === undefined ? null : <TreeBranch branch={branch} />}
+          <span className="flex min-w-0 flex-1 items-center gap-2 py-1.5">
+            {grip}
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span>
+                {account.name}
+                {startsLater(account, today) ? (
+                  <span className={`ml-2 ${typeClasses.date} text-text-muted`}>
+                    {en.accountsSection.startsOn}{' '}
+                    <time dateTime={account.activeFrom}>{account.activeFrom}</time>
+                  </span>
+                ) : null}
+              </span>
+              <Description text={account.description} />
             </span>
-            <Description text={account.description} />
+            <RowButtons {...actions} />
           </span>
-          <RowButtons {...actions} />
         </>
       )}
     </ChartRow>
   );
 }
 
-type Rows = {
-  readonly today: string | undefined;
+type Rows = SectionFilter & {
   readonly held: boolean;
-  readonly showEnded: boolean;
   readonly open: Open;
   readonly openDelete: OpenDelete;
 };
 
-const shownAccounts = (
-  accounts: readonly AccountOutput[],
-  { showEnded, today }: Pick<Rows, 'showEnded' | 'today'>,
-): AccountOutput[] => accounts.filter((account) => showEnded || !mayHaveEnded(account, today));
+const shownAccounts = (accounts: readonly AccountOutput[], filter: SectionFilter): AccountOutput[] =>
+  accounts.filter(shownInSection(filter));
 
 function AccountRows({
   accounts,
+  inGroup,
   open,
   openDelete,
   ...shown
 }: Rows & {
   readonly accounts: readonly AccountOutput[];
+  readonly inGroup: boolean;
 }): ReactNode {
+  const branches = branchesOf(accounts, shownInSection(shown));
   return shownAccounts(accounts, shown).map((account) => (
     <AccountRow
       key={account.id}
       account={account}
       today={shown.today}
+      branch={inGroup ? branches.get(account.id) : undefined}
       held={shown.held}
       onEdit={(opener) => {
         open({ kind: 'account', accountType: account.accountType, editing: account }, opener);
@@ -194,6 +197,7 @@ function GroupRow({
         <>
           <GroupHeading accountType={group.accountType} groupId={group.id}>
             {grip}
+            <GroupFolder size={16} />
             <span className="flex min-w-0 flex-1 flex-col">
               <span className="font-semibold">{group.name}</span>
               <Description text={group.description} />
@@ -203,7 +207,7 @@ function GroupRow({
           <ChartList
             place={{ accountType: group.accountType, groupId: group.id }}
             ids={shownIds}
-            className={shownIds.length === 0 ? 'min-h-8 pl-6' : 'pl-6'}
+            className={shownIds.length === 0 ? 'min-h-8 pl-5.5' : 'pl-5.5'}
           >
             {children}
           </ChartList>
@@ -225,8 +229,8 @@ function TypeBand({
   readonly open: Open;
 }): ReactNode {
   return (
-    <div className="flex items-center justify-between gap-3 bg-band px-2 py-1">
-      <span id={id} className={`${typeClasses.label} text-text-muted`}>
+    <div className="flex items-center justify-between gap-3 rounded bg-band px-3 py-2">
+      <span id={id} className={`${typeClasses.label} font-medium text-text`}>
         {en.accountTypes[accountType]}
       </span>
       <span className="flex gap-3">
@@ -281,7 +285,7 @@ function TypeList({
     <ChartList place={place} ids={shownIdsOf(nodes, rows)} className="px-2">
       {nodes.map((node) =>
         node.kind === 'account' ? (
-          <AccountRows key={node.account.id} accounts={[node.account]} {...rows} />
+          <AccountRows key={node.account.id} accounts={[node.account]} inGroup={false} {...rows} />
         ) : (
           <GroupRow
             key={node.group.id}
@@ -298,7 +302,7 @@ function TypeList({
               );
             }}
           >
-            <AccountRows accounts={node.accounts} {...rows} />
+            <AccountRows accounts={node.accounts} inGroup {...rows} />
           </GroupRow>
         ),
       )}
