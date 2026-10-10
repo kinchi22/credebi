@@ -8,8 +8,7 @@ import {
 } from '@repo/contracts';
 import { endedLast } from '@repo/core/accounts';
 import { type DayRange } from '@repo/core/entries';
-import { PANEL } from '@repo/ui';
-import { typeClasses } from '@repo/ui/type-classes';
+import { PANEL, PANEL_TITLE } from '@repo/ui';
 import { useId, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import { en } from '../messages/en';
@@ -59,7 +58,7 @@ export function EntrySearchForm({ criteria, chart }: EntrySearchFormProps): Reac
     >
       <h2
         id={`${id}-title`}
-        className={`w-full ${typeClasses.title} text-text`}
+        className={`w-full ${PANEL_TITLE}`}
       >
         {en.entrySearch.title}
       </h2>

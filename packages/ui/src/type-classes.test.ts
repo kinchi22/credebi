@@ -34,7 +34,7 @@ describe('typeClasses', () => {
     expect(typeClasses['body-dense']).toBe('text-body-dense font-sans');
   });
 
-  it('sets labels in IBM Plex Sans capitals and body text in IBM Plex Sans', () => {
+  it('sets labels in capitals, in the same sans face as body text', () => {
     expect(typeClasses.label).toBe('text-label font-sans uppercase');
     expect(typeClasses.body).toBe('text-body font-sans');
   });

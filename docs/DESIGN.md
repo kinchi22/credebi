@@ -335,8 +335,10 @@ with no box nested inside the panel; from `wide` up the gutter is 40px above and
 below and 56px at the sides.
 
 A panel, as `PANEL` in `packages/ui` draws it, is padded 8px below `wide` and
-16px from `wide` up. Its visible title, as `Panel` draws it and as the entry
-form and Entry search head theirs, is in `title` and `text`. `PANEL_BLEED` follows that padding, so the Entries rows
+16px from `wide` up. A panel's own title, `PANEL_TITLE` beside it, is in `title`
+and `text`: `Panel`'s visible title, `New entry` and `Search entries`. A heading
+inside a panel that names a part of it, such as Entry search's results or the
+`Test sign-in` form, stays in `label` and `text-muted`. `PANEL_BLEED` follows that padding, so the Entries rows
 reach the panel's edges at every width.
 
 ## Elevation & Depth
@@ -728,10 +730,10 @@ hidden.
 | Term           | Meaning |
 | -------------- | ------- |
 | Mark           | The Credebi symbol alone, the offset split coin, without any lettering. |
-| Wordmark       | The name "Credebi" drawn as outlined glyphs, as `Logo` states, with C and d in the accent colour of its tone. |
+| Wordmark       | The name "Credebi" drawn as outlined glyphs, as the Wordmark paragraph under `Logo` states, with C and d in the accent colour of its tone. |
 | Lockup         | A fixed arrangement of the Mark and the Wordmark: horizontal or stacked. The Mark alone is also a variant of the logo. |
 | Semantic token | A colour named by its role, such as `text-muted` or `danger`, mapped onto a brand palette colour. Components use only these. |
-| Band           | A strip tinted `band` with 4px corners behind an Account type's name, set in `label`, medium and `text`, so the Account types read apart from the groups and Accounts under them. It is drawn in the Accounts section, the Account picker and the Account sheet. |
+| Band           | A strip tinted `band` with 4px corners behind an Account type's name, set in `label` and `text`, so the Account types read apart from the groups and Accounts under them. It is drawn in the Accounts section, the Account picker and the Account sheet. |
 | Tree connector | A 1px `border-control` line from an Account group's folder icon to the Accounts in it: `├` before each Account shown but the last, `└`, rounded 4px, before the last shown. It is decoration, hidden from assistive technology. |
 | Chip           | A choice drawn as a small inline box that sits beside others and wraps, rather than one per row; a chosen chip takes a fill and an edge. |
 | Scrim          | The `ground-dark` tint at 60% behind a modal dialog. A click on the scrim is a press that began on it as well as ended there: a press that began inside the dialog, as when selecting a field's text by dragging, and was released on the scrim closes nothing. |

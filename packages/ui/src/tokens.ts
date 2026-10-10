@@ -132,7 +132,7 @@ export type TypeStepName =
 
 export const typeScale: Readonly<Record<TypeStepName, TypeStep>> = {
   display: {
-    fontFamily: 'IBM Plex Sans',
+    fontFamily: fontFaces.sans,
     fontSize: 32,
     lineHeight: 40,
     fontWeight: 600,
@@ -141,7 +141,7 @@ export const typeScale: Readonly<Record<TypeStepName, TypeStep>> = {
     tabularNumerals: false,
   },
   h1: {
-    fontFamily: 'IBM Plex Sans',
+    fontFamily: fontFaces.sans,
     fontSize: 22,
     lineHeight: 30,
     fontWeight: 600,
@@ -150,7 +150,7 @@ export const typeScale: Readonly<Record<TypeStepName, TypeStep>> = {
     tabularNumerals: false,
   },
   h2: {
-    fontFamily: 'IBM Plex Sans',
+    fontFamily: fontFaces.sans,
     fontSize: 20,
     lineHeight: 28,
     fontWeight: 600,
@@ -158,7 +158,7 @@ export const typeScale: Readonly<Record<TypeStepName, TypeStep>> = {
     tabularNumerals: false,
   },
   title: {
-    fontFamily: 'IBM Plex Sans',
+    fontFamily: fontFaces.sans,
     fontSize: 15,
     lineHeight: 22,
     fontWeight: 600,
@@ -167,7 +167,7 @@ export const typeScale: Readonly<Record<TypeStepName, TypeStep>> = {
     tabularNumerals: false,
   },
   body: {
-    fontFamily: 'IBM Plex Sans',
+    fontFamily: fontFaces.sans,
     fontSize: 14,
     lineHeight: 20,
     fontWeight: 400,
@@ -175,7 +175,7 @@ export const typeScale: Readonly<Record<TypeStepName, TypeStep>> = {
     tabularNumerals: false,
   },
   'body-sm': {
-    fontFamily: 'IBM Plex Sans',
+    fontFamily: fontFaces.sans,
     fontSize: 14,
     lineHeight: 20,
     fontWeight: 400,
@@ -183,7 +183,7 @@ export const typeScale: Readonly<Record<TypeStepName, TypeStep>> = {
     tabularNumerals: false,
   },
   'body-dense': {
-    fontFamily: 'IBM Plex Sans',
+    fontFamily: fontFaces.sans,
     fontSize: 13,
     lineHeight: 20,
     fontWeight: 400,
@@ -191,7 +191,7 @@ export const typeScale: Readonly<Record<TypeStepName, TypeStep>> = {
     tabularNumerals: false,
   },
   label: {
-    fontFamily: 'IBM Plex Sans',
+    fontFamily: fontFaces.sans,
     fontSize: 11.5,
     lineHeight: 16,
     fontWeight: 600,
@@ -200,7 +200,7 @@ export const typeScale: Readonly<Record<TypeStepName, TypeStep>> = {
     tabularNumerals: false,
   },
   figure: {
-    fontFamily: 'IBM Plex Mono',
+    fontFamily: fontFaces.mono,
     fontSize: 14,
     lineHeight: 20,
     fontWeight: 400,
@@ -208,7 +208,7 @@ export const typeScale: Readonly<Record<TypeStepName, TypeStep>> = {
     tabularNumerals: true,
   },
   date: {
-    fontFamily: 'IBM Plex Mono',
+    fontFamily: fontFaces.mono,
     fontSize: 13,
     lineHeight: 20,
     fontWeight: 400,

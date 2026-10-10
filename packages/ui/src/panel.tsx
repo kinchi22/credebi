@@ -3,6 +3,8 @@ import { typeClasses } from './type-classes';
 
 export const PANEL = 'rounded border border-border bg-surface p-2 wide:p-4';
 
+export const PANEL_TITLE = `${typeClasses.title} text-text`;
+
 export const PANEL_BLEED = '-mx-2 px-2 wide:-mx-4 wide:px-4';
 
 export type PanelProps = {
@@ -18,7 +20,7 @@ export function Panel({ title, titleHidden = false, children }: PanelProps): Rea
     <section aria-labelledby={titleId} className={PANEL}>
       <h2
         id={titleId}
-        className={titleHidden ? 'sr-only' : `mb-2 ${typeClasses.title} text-text`}
+        className={titleHidden ? 'sr-only' : `mb-2 ${PANEL_TITLE}`}
       >
         {title}
       </h2>
