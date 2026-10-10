@@ -62,8 +62,8 @@ When the trigger holds, accounts become their own feature,
   `entry_lines.account_id` referencing it, seeds the five Accounts for every
   existing User, the Smoke User included, and fills `account_id` from each
   line's code. The code column stays, because Current Production still reads
-  it. A later release drops it. `tools/seed-smoke-user.ts` seeds the Smoke
-  User's Accounts too.
+  it. The second release, migration 0006, drops it and makes `account_id` not
+  null. `tools/seed-smoke-user.ts` seeds the Smoke User's Accounts too.
 - **Validation moves out of the pure domain.** The chart constant in `domain/`
   is deleted. Whether a line names an Account of the User's chart, active on the
   Entry's day, is decided in the use case from a repository read, and the rule
@@ -94,6 +94,11 @@ still writes Entry lines with no `account_id` and creates Users with no Accounts
 After Promotion, such a User's Entries fail to read and their posts are refused.
 This is accepted with no healing and no backfill, because the owner is the only
 User and does not write during that window.
+
+Between the second release's migration and its Promotion, Current Production
+still writes `entry_lines.account`, which no longer exists, so its Entry posts
+fail. This is accepted for the same reason: the owner is the only User and does
+not write during that window, as for the first release.
 
 The domain loses a compile-time set of Accounts, so posting an Entry needs the
 repository, which is the testability ADR-0015 already accepted losing.

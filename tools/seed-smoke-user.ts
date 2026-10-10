@@ -36,7 +36,7 @@ insert into entries (id, entry_date, memo, created_at, user_id)
 values ('${SMOKE_ENTRY_ID}', '2026-09-18', 'Smoke run', now(), '${SMOKE_USER_ID}')
 on conflict (id) do nothing;
 
-update entry_lines set account_id = null
+delete from entry_lines
 where entry_id = '${SMOKE_ENTRY_ID}';
 
 delete from accounts
@@ -53,11 +53,10 @@ ${accountRows}
 where users.id = '${SMOKE_USER_ID}'
 on conflict (id) do nothing;
 
-insert into entry_lines (entry_id, line_number, account, account_id, side, amount)
+insert into entry_lines (entry_id, line_number, account_id, side, amount)
 values
-  ('${SMOKE_ENTRY_ID}', 1, 'expense', '${EXPENSES.id}', 'debit', 100),
-  ('${SMOKE_ENTRY_ID}', 2, 'cash', '${CASH.id}', 'credit', 100)
-on conflict (entry_id, line_number) do update set account_id = excluded.account_id;
+  ('${SMOKE_ENTRY_ID}', 1, '${EXPENSES.id}', 'debit', 100),
+  ('${SMOKE_ENTRY_ID}', 2, '${CASH.id}', 'credit', 100);
 
 delete from sessions where user_id = '${SMOKE_USER_ID}';
 

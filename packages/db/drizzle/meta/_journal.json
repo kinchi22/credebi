@@ -43,6 +43,13 @@
       "when": 1791487461824,
       "tag": "0005_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791610905911,
+      "tag": "0006_entry_lines_drop_account",
+      "breakpoints": true
     }
   ]
 }
