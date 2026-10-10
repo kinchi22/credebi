@@ -59,6 +59,7 @@ describe('the declared pairs', () => {
     expect(foregroundsOn('mist')).toEqual(foregroundsOn('white'));
     expect(foregroundsOn('ink')).toEqual(['frost', 'sage']);
     expect(foregroundsOn('ink-raised')).toEqual(['frost', 'sage']);
+    expect(foregroundsOn('ink-mid')).toEqual(['frost', 'sage']);
     expect(foregroundsOn('mint')).toEqual(['ink']);
     expect(foregroundsOn('fog')).toEqual(['ink', 'mint-deeper']);
   });
@@ -71,6 +72,7 @@ describe('the declared pairs', () => {
       { foreground: 'mint-deep', background: 'mist' },
       { foreground: 'mint', background: 'ink' },
       { foreground: 'mint', background: 'ink-raised' },
+      { foreground: 'mint', background: 'ink-mid' },
       { foreground: 'pewter', background: 'white' },
     ]);
   });
@@ -87,6 +89,7 @@ describe('the semantic tokens', () => {
       'text-muted-on-dark': 'sage',
       'ground-dark': 'ink',
       'ground-dark-raised': 'ink-raised',
+      'ground-dark-hover': 'ink-mid',
       accent: 'mint',
       'accent-text': 'mint-deep',
       'accent-text-hover': 'mint-deeper',
@@ -121,6 +124,18 @@ describe('the semantic tokens', () => {
     expect(palette[semanticColors.credit]).toBe('#7F6500');
     expect(ratio(semanticColors.debit, semanticColors.ground)).toBeGreaterThanOrEqual(TEXT_MINIMUM);
     expect(ratio(semanticColors.credit, semanticColors.ground)).toBeGreaterThanOrEqual(TEXT_MINIMUM);
+  });
+});
+
+describe('the hover fill on dark', () => {
+  it('mixes 60% of ink-raised into ink', () => {
+    const [ink, raised, mid] = [palette.ink, palette['ink-raised'], palette['ink-mid']].map(
+      rgbChannels,
+    );
+    const mixed = ink?.map((channel, index) =>
+      Math.round(channel * 0.4 + (raised?.[index] ?? 0) * 0.6),
+    );
+    expect(mid).toEqual(mixed);
   });
 });
 
