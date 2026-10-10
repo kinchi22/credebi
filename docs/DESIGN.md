@@ -7,7 +7,7 @@ omitted:
     reason: Spacing stays on Tailwind's default scale; no spacing token is decided.
 colors:
   mint: "#2FD0A2"
-  mint-pale: "#E6F9F4"
+  mint-pale: "#DBF3EB"
   mint-deep: "#0B7A5E"
   mint-deeper: "#09644D"
   ink: "#0B2B2A"
@@ -213,7 +213,7 @@ a palette colour.
 | Palette       | Value     | What it is for                             |
 | ------------- | --------- | ------------------------------------------ |
 | `mint`        | `#2FD0A2` | the mark, the primary button fill           |
-| `mint-pale`   | `#E6F9F4` | a chosen chip in the Account picker        |
+| `mint-pale`   | `#DBF3EB` | a chosen chip in the Account picker        |
 | `mint-deep`   | `#0B7A5E` | mint as text on a light ground, focus ring |
 | `mint-deeper` | `#09644D` | link hover                                 |
 | `ink`         | `#0B2B2A` | text, the Sidebar                          |
@@ -305,16 +305,20 @@ unit test checks every one:
   `accent-text-hover` on a `band` (5.90:1); `ink`, `slate`, `cobalt` and `gold`
   on `mist-pale`, which is `text`, `text-muted`, `debit` and `credit` on
   `surface-hover` (14.32:1, 6.07:1, 5.57:1 and 5.30:1); `ink` on `mint-pale`,
-  which is `text` on `surface-chosen` (13.80:1).
+  which is `text` on `surface-chosen` (12.94:1).
 - **Control edges, 3:1.** `steel` and `mint-deep` on `white` and on `mist`;
   `mint`, the `focus-on-dark` ring, on `ink`, on `ink-raised` and on `ink-mid`
   (7.66:1 on `ink`), which is also the active Sidebar link's `accent` icon on
-  `ground-dark-raised` (5.91:1); `pewter`, the Google sign-in button's edge, on `white` (4.53:1).
+  `ground-dark-raised` (5.91:1); `pewter`, the Google sign-in button's edge, on `white` (4.53:1);
+  `mint-deep` on `mist-pale`, the `focus` ring on an Entry under the pointer
+  (5.04:1), and on `mint-pale`, a chosen chip's `accent-text` edge on its fill
+  (4.55:1).
 
 `ink-mid` is `ink-raised` mixed 60% into `ink`, so a Sidebar item under the
 pointer reads between the idle ground and the active item. `mist-pale` is
 `mist` mixed 70% into `white`, so an Entry under the pointer reads between a
-panel and the page ground; `mint-pale` is `mint` mixed 12% into `white`.
+panel and the page ground; `mint-pale` is `mint` mixed 12% into `mist`, the
+ground a chip sits on in the Account picker.
 
 A new text colour or ground is added to these pairs in the same change.
 
@@ -406,7 +410,7 @@ two shadows tinted from `ink`, `shadows` in the tokens module and
 
 | Shadow      | Layers                                                  | On |
 | ----------- | ------------------------------------------------------- | -- |
-| `lift`      | `0 1px 2px` at 5% and `0 1px 3px` at 4%                 | every panel `PANEL` draws, the Account picker, the Segmented control's strip and the Accounts section's list |
+| `lift`      | `0 1px 2px` at 5% and `0 1px 3px` at 4%                 | every panel `PANEL` draws, the Account picker and the Segmented control's strip |
 | `lift-card` | `0 1px 2px` at 5% and `0 12px 32px` at 8%               | the Sign in card |
 
 Nothing else casts a shadow: not a dialog, a menu, a chip or any other control. The
@@ -424,7 +428,7 @@ used:
 | Radius    | Size | Utility           | On |
 | --------- | ---- | ----------------- | -- |
 | `control` | 6px  | `rounded-control` | inputs, buttons, chips, segments, menus, Sidebar links, Bands, the drag copy and drop marks, and a tree connector's corner |
-| `panel`   | 8px  | `rounded-panel`   | panels, the Account picker, dialogs, the Segmented control's strip and the Accounts section's list |
+| `panel`   | 8px  | `rounded-panel`   | panels, the Account picker, dialogs and the Segmented control's strip |
 | `card`    | 12px | `rounded-card`    | the Sign in card |
 
 A surface fixed to a screen edge rounds only its free corners: the Account sheet
@@ -481,8 +485,9 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   stroke icon in `text-on-dark`, with the `focus-on-dark` ring and an accessible
   name in place of text. It is `Menu`, a hamburger icon, in the bar that opens
   the Sidebar drawer.
-- **Segmented control.** A radiogroup drawn as one `surface` strip with a
-  `border` edge, the `panel` radius and the `lift` shadow, each choice a
+- **Segmented control.** A radiogroup drawn as one `surface` strip framed as
+  a panel is, `PANEL_FRAME` in `packages/ui`: a `border` edge, the `panel`
+  radius and the `lift` shadow, without a panel's padding. Each choice is a
   segment with the `control` radius. Only the chosen segment is
   marked: an `accent` tint at 15%, a 1.5px inset `accent-text` edge beside it,
   and the semibold weight. It is the Entry form mode in
@@ -498,7 +503,8 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   Choosing a mode saves it silently, as the Accounts section saves: no
   confirmation shows. A refused save puts the earlier mode back and shows the
   refusal in `danger` below the strip.
-- **Settings row.** Settings has no panel: each setting is a row between
+- **Settings row.** Settings' rows sit on the page ground, not in a panel:
+  each setting is a row between
   `border` hairlines, padded 20px above and below, its name on the left and its
   control on the right, and stacked below `wide`.
 - **Accounts section.** The Chart of accounts in Settings, under its
@@ -847,9 +853,8 @@ hidden.
   else in it.
 - Don't round a corner by anything but the `control`, `panel` or `card`
   radius; the status dot is the one circle.
-- Don't cast a shadow but `lift` on a panel, the Account picker, the Segmented
-  control's strip and the Accounts section's list, and `lift-card` on the Sign
-  in card.
+- Don't cast a shadow but `lift` on a panel, the Account picker and the
+  Segmented control's strip, and `lift-card` on the Sign in card.
 - Don't set text below 11.5px.
 - Don't add a dark mapping before the dark theme Feature.
 

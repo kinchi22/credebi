@@ -36,15 +36,17 @@ type Layout = {
 
 const CREDIT_DIVIDER = 'border-l border-l-border';
 
+const SIDE_RULE = 'border-t-[1.5px]';
+
 const COMPACT: Layout = {
   grid: 'grid-cols-[5rem_minmax(0,1fr)_5rem_minmax(0,1fr)]',
   heading: {
-    debit: 'col-start-1 row-start-2 border-t-[1.5px] py-2 pl-4',
-    credit: `col-start-3 row-start-2 border-t-[1.5px] py-2 pl-4 ${CREDIT_DIVIDER}`,
+    debit: `col-start-1 row-start-2 ${SIDE_RULE} py-2 pl-4`,
+    credit: `col-start-3 row-start-2 ${SIDE_RULE} py-2 pl-4 ${CREDIT_DIVIDER}`,
   },
   lines: {
-    debit: 'col-start-2 row-start-2 border-t-[1.5px] py-2 pr-4',
-    credit: 'col-start-4 row-start-2 border-t-[1.5px] py-2 pr-4',
+    debit: `col-start-2 row-start-2 ${SIDE_RULE} py-2 pr-4`,
+    credit: `col-start-4 row-start-2 ${SIDE_RULE} py-2 pr-4`,
   },
   lineAmount: 'sr-only',
 };
@@ -52,8 +54,8 @@ const COMPACT: Layout = {
 const STACKED: Layout = {
   grid: 'grid-cols-2',
   heading: {
-    debit: 'col-start-1 row-start-2 border-t-[1.5px] px-4 pt-2',
-    credit: `col-start-2 row-start-2 border-t-[1.5px] px-4 pt-2 ${CREDIT_DIVIDER}`,
+    debit: `col-start-1 row-start-2 ${SIDE_RULE} px-4 pt-2`,
+    credit: `col-start-2 row-start-2 ${SIDE_RULE} px-4 pt-2 ${CREDIT_DIVIDER}`,
   },
   lines: {
     debit: 'col-start-1 row-start-3 px-4 pb-1',

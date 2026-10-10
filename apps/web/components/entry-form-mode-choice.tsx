@@ -7,6 +7,7 @@ import {
   type Side,
 } from '@repo/contracts';
 import { useId, useState, useTransition, type ChangeEvent, type ReactNode } from 'react';
+import { PANEL_FRAME } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { en } from '../messages/en';
 import { LEGEND } from './control-classes';
@@ -92,7 +93,7 @@ export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps
         <legend className={`float-left p-0 ${LEGEND}`}>
           {en.settingsPage.entryFormMode}
         </legend>
-        <div className="grid auto-cols-fr grid-flow-col grid-rows-[auto_auto_auto] gap-y-2 self-stretch rounded-panel border border-border bg-surface p-0.5 shadow-lift wide:max-w-2xl wide:flex-1 wide:self-auto">
+        <div className={`grid auto-cols-fr grid-flow-col grid-rows-[auto_auto_auto] gap-y-2 self-stretch p-0.5 ${PANEL_FRAME} wide:max-w-2xl wide:flex-1 wide:self-auto`}>
           {entryFormModeSchema.options.map((mode) => (
             <label key={mode} className={`relative row-span-3 grid grid-rows-subgrid ${typeClasses['body-sm']}`}>
               <input

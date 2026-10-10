@@ -3,7 +3,9 @@ import { typeClasses } from './type-classes';
 
 const PANEL_SURFACE = 'border border-border bg-surface';
 
-export const PANEL = `${PANEL_SURFACE} rounded-panel shadow-lift p-2 wide:p-4`;
+export const PANEL_FRAME = `${PANEL_SURFACE} rounded-panel shadow-lift`;
+
+export const PANEL = `${PANEL_FRAME} p-2 wide:p-4`;
 
 export const SIGN_IN_CARD = `${PANEL_SURFACE} rounded-card shadow-lift-card`;
 

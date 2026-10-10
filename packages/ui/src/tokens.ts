@@ -1,6 +1,6 @@
 export const palette = {
   mint: '#2FD0A2',
-  'mint-pale': '#E6F9F4',
+  'mint-pale': '#DBF3EB',
   'mint-deep': '#0B7A5E',
   'mint-deeper': '#09644D',
   ink: '#0B2B2A',
@@ -113,6 +113,8 @@ export const controlEdgePairs: readonly ColorPair[] = [
   { foreground: 'mint', background: 'ink-raised' },
   { foreground: 'mint', background: 'ink-mid' },
   { foreground: 'pewter', background: 'white' },
+  { foreground: 'mint-deep', background: 'mist-pale' },
+  { foreground: 'mint-deep', background: 'mint-pale' },
 ];
 
 export type TypeStep = {

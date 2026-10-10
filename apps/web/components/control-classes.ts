@@ -4,12 +4,13 @@ const FIELD_LAYOUT = 'flex flex-col gap-1';
 
 export const FIELD = `${FIELD_LAYOUT} ${typeClasses['body-sm']}`;
 export const DENSE_FIELD = `${FIELD_LAYOUT} ${typeClasses['body-dense']}`;
-const CONTROL_SHAPE = 'h-control rounded-control border text-text';
-const CONTROL_FRAME = `${CONTROL_SHAPE} border-border-control bg-surface`;
-const FOCUS_HALO = 'px-2 focus-visible:ring-3 focus-visible:ring-accent/25';
+const CONTROL_SHAPE = 'h-control rounded-control border';
+const CONTROL_FRAME = `${CONTROL_SHAPE} border-border-control bg-surface text-text`;
+const FOCUS_HALO = 'focus-visible:ring-3 focus-visible:ring-accent/25';
+const TYPED_CONTROL = `px-2 ${FOCUS_HALO}`;
 
-export const CONTROL = `${CONTROL_FRAME} ${FOCUS_HALO}`;
-export const SEARCH_ON_STRIP = `${CONTROL_SHAPE} border-transparent bg-ground ${FOCUS_HALO}`;
+export const CONTROL = `${CONTROL_FRAME} ${TYPED_CONTROL}`;
+export const SEARCH_ON_STRIP = `${CONTROL_SHAPE} border-transparent bg-ground text-text ${TYPED_CONTROL}`;
 export const FIELD_LABEL = 'font-medium text-text-muted';
 export const DATE_CONTROL = `${CONTROL} appearance-none ${typeClasses.date}`;
 export const ICON_CONTROL = `${CONTROL_FRAME} inline-flex aspect-square items-center justify-center disabled:opacity-50`;
