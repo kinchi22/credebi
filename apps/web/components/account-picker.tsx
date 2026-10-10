@@ -22,11 +22,13 @@ import { SETTINGS_PATH } from '../server/return-path';
 import { CONTROL, PRIMARY_BUTTON } from './control-classes';
 import { useHydrated } from './hydrated';
 import { useModalDialog, type ModalDialog } from './modal-dialog';
+import { branchesOf, nameContains, type Branch } from './chart-tree';
 import { CloseButton } from './close-button';
 import { type Offered } from './lines-on-day';
 import { SheetBar, SheetTabs } from './sheet';
 import { SIDE_TONE, SIDES } from './side-classes';
 import { LINK } from './text-classes';
+import { GroupFolder, TreeBranch, TreeHook } from './tree-branch';
 import { useWide } from './wide';
 
 export type AccountChoice = Readonly<Record<Side, AccountOutput | undefined>>;
@@ -77,11 +79,6 @@ const PICK_MANY: PickControl = {
 };
 
 const otherSide = (side: Side): Side => (side === 'debit' ? 'credit' : 'debit');
-
-const nameContains =
-  (query: string) =>
-  (account: AccountOutput): boolean =>
-    account.name.toLowerCase().includes(query.trim().toLowerCase());
 
 export function useAccountSheet(): AccountSheet {
   const id = useId();
@@ -213,33 +210,42 @@ type SideChoicesProps = {
 const FOCUSED_CHOICE =
   'peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus';
 
-const SHEET_CHOICE = `grow rounded px-2 py-1 text-text peer-checked:bg-accent/15 peer-checked:font-semibold ${FOCUSED_CHOICE}`;
+const SHEET_CHOICE = `grow rounded px-2 py-1.5 text-text peer-checked:bg-accent/15 peer-checked:font-semibold ${FOCUSED_CHOICE}`;
 
 const CHIP = `rounded border border-transparent px-1.5 py-1 text-text peer-checked:border-accent-text peer-checked:bg-surface peer-checked:font-semibold ${FOCUSED_CHOICE}`;
 
 type ChoicesLook = {
   readonly sideNameShown: boolean;
-  readonly typeName: string;
   readonly groupName: string;
   readonly accounts: string;
+  readonly groupAccounts: string;
+  readonly tree: 'branches' | 'hook';
   readonly account: string;
   readonly choice: string;
 };
 
+const TYPE_BAND = `rounded bg-band px-2 py-1.5 ${typeClasses.label} font-medium text-text`;
+
+const GROUP_NAME = 'flex items-center gap-1.5 pt-1 font-semibold';
+
 const SHEET_LOOK: ChoicesLook = {
   sideNameShown: false,
-  typeName: `${typeClasses.label} text-text-muted`,
-  groupName: 'px-2 pt-1 font-semibold',
+  groupName: `${GROUP_NAME} px-2`,
   accounts: 'flex flex-col gap-1',
+  groupAccounts: 'flex flex-col pl-1',
+  tree: 'branches',
   account: 'relative flex',
   choice: SHEET_CHOICE,
 };
 
+const INLINE_ACCOUNTS = 'flex flex-wrap gap-x-3 gap-y-0.5';
+
 const INLINE_LOOK: ChoicesLook = {
   sideNameShown: true,
-  typeName: `-mx-3 bg-band px-3 py-1 ${typeClasses.label} text-text-muted`,
-  groupName: 'pt-1 font-semibold',
-  accounts: 'flex flex-wrap gap-x-3 gap-y-0.5',
+  groupName: GROUP_NAME,
+  accounts: INLINE_ACCOUNTS,
+  groupAccounts: INLINE_ACCOUNTS,
+  tree: 'hook',
   account: 'relative inline-flex',
   choice: CHIP,
 };
@@ -267,11 +273,14 @@ function runsOf(chart: ChartOutput, type: AccountType): readonly Run[] {
   return runs;
 }
 
+const NO_BRANCHES: ReadonlyMap<AccountId, Branch> = new Map();
+
 type ChoiceProps = Pick<SideChoicesProps, 'side' | 'control' | 'look'> & {
   readonly onInvalid: (() => void) | undefined;
   readonly account: AccountOutput;
   readonly shown: boolean;
   readonly chosen: boolean;
+  readonly branch: Branch | undefined;
   readonly onPick: (chosen: boolean) => void;
 };
 
@@ -281,6 +290,7 @@ function Choice({
   control,
   shown,
   chosen,
+  branch,
   onPick,
   onInvalid,
   look,
@@ -299,6 +309,7 @@ function Choice({
         onInvalid={onInvalid}
         className="peer absolute inset-0 m-0 appearance-none opacity-0"
       />
+      {branch === undefined ? null : <TreeBranch branch={branch} />}
       <span className={look.choice}>{account.name}</span>
     </label>
   );
@@ -316,8 +327,12 @@ function SideChoices({
 }: SideChoicesProps): ReactNode {
   const typeId = useId();
 
-  const choices = (accounts: readonly AccountOutput[]): ReactNode => (
-    <div className={look.accounts}>
+  const choices = (
+    accounts: readonly AccountOutput[],
+    className: string,
+    branches: ReadonlyMap<AccountId, Branch>,
+  ): ReactNode => (
+    <div className={className}>
       {accounts.map((account) => (
         <Choice
           key={account.id}
@@ -326,6 +341,7 @@ function SideChoices({
           control={control}
           shown={matches(account)}
           chosen={isChosen(account.id)}
+          branch={branches.get(account.id)}
           onPick={(chosen) => {
             onPick(account, chosen);
           }}
@@ -358,19 +374,31 @@ function SideChoices({
               runs.some((run) => run.accounts.some(matches)) ? 'flex flex-col gap-1' : 'hidden'
             }
           >
-            <p id={`${typeId}-${type}`} className={look.typeName}>
+            <p id={`${typeId}-${type}`} className={TYPE_BAND}>
               {en.accountTypes[type]}
             </p>
             {runs.map((run, index) =>
               run.kind === 'accounts' ? (
-                <Fragment key={`accounts-${String(index)}`}>{choices(run.accounts)}</Fragment>
+                <Fragment key={`accounts-${String(index)}`}>
+                  {choices(run.accounts, look.accounts, NO_BRANCHES)}
+                </Fragment>
               ) : (
                 <div
                   key={run.group.id}
                   className={run.accounts.some(matches) ? 'flex flex-col gap-1' : 'hidden'}
                 >
-                  <p className={look.groupName}>{run.group.name}</p>
-                  <div className="pl-3">{choices(run.accounts)}</div>
+                  <p className={look.groupName}>
+                    <GroupFolder size={14} />
+                    {run.group.name}
+                  </p>
+                  {look.tree === 'branches' ? (
+                    choices(run.accounts, look.groupAccounts, branchesOf(run.accounts, matches))
+                  ) : (
+                    <div className="relative pl-4">
+                      <TreeHook />
+                      {choices(run.accounts, look.groupAccounts, NO_BRANCHES)}
+                    </div>
+                  )}
                 </div>
               ),
             )}

@@ -12,6 +12,7 @@ export {
   CalendarIcon,
   ChevronIcon,
   CloseIcon,
+  FolderIcon,
   GoogleMark,
   GripIcon,
   MenuIcon,

@@ -226,8 +226,8 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `accent-text`        | `mint-deep` | links, accent text on a light ground  |
 | `accent-text-hover`  | `mint-deeper` | a link under the pointer            |
 | `border`             | `fog`       | dividers, panel edges                 |
-| `band`               | `fog`       | an Account-type heading's tinted band |
-| `border-control`     | `steel`     | inputs, secondary buttons             |
+| `band`               | `fog`       | an Account type's Band                |
+| `border-control`     | `steel`     | inputs, secondary buttons, tree connectors |
 | `danger`             | `rust`      | refusals, errors                      |
 | `warning`            | `ochre`     | a degraded health status, a Difference not 0, a line not active on the day |
 | `positive`           | `mint-deep` | a healthy status                      |
@@ -260,8 +260,8 @@ unit test checks every one:
 - **Text, 4.5:1.** `ink`, `slate`, `mint-deep`, `mint-deeper`, `rust`,
   `ochre`, `cobalt` and `gold` on `white` and on `mist`; `frost` and `sage` on
   `ink` and on `ink-raised`, which is `text-on-dark` and `text-muted-on-dark` on
-  `ground-dark` and `ground-dark-raised`; `ink` on `mint`; `slate` on `fog`,
-  which is `text-muted` on a `band` (5.28:1).
+  `ground-dark` and `ground-dark-raised`; `ink` on `mint`; `ink` on `fog`,
+  which is `text` on a `band` (12.46:1).
 - **Control edges, 3:1.** `steel` and `mint-deep` on `white` and on `mist`;
   `mint`, the `focus-on-dark` ring, on `ink` and on `ink-raised` (7.66:1 on
   `ink`); `pewter`, the Google sign-in button's edge, on `white` (4.53:1).
@@ -353,8 +353,8 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
 - **Danger button.** `danger` fill, `surface` text, semibold, with a
   transparent edge as wide as a secondary button's, so the two stand the same
   height side by side. It is kept for the action a confirmation dialog asks
-  about when that action takes something away: `Delete` in `Delete entry`
-  and `Discard` in `Discard changes`.
+  about when that action takes something away: `Delete` in `Delete entry`,
+  `Delete account` and `Delete group`, and `Discard` in `Discard changes`.
 - **Google sign-in button.** "Sign in with Google" follows Google's sign-in
   branding rather than the primary button: a `surface` fill, `text`, a
   `border-google` edge, 40px tall and as wide as the Sign in card, with Google's
@@ -393,6 +393,26 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
 - **Settings row.** Settings has no panel: each setting is a row between
   `border` hairlines, its name on the left and its control on the right, and
   stacked below `wide`.
+- **Accounts section.** The Chart of accounts in Settings, under its
+  `Accounts` heading, semibold in `body-sm`, with `Show ended accounts`, a
+  checkbox in `body-sm`, at the heading's right. The rows are in `body-sm`.
+  Each Account type is a Band, padded 8px 12px, with no account count: its
+  name, then at the Band's right `+ Account` and `+ Group`, text buttons in
+  `accent-text`, underlined under the pointer, named `Add account` and
+  `Add group`. Every row starts with its grip and ends with `Edit` and then
+  `Delete`, drawn as the Entry row actions are, and an optional description
+  sits under its name in `body-dense` and `text-muted`. An Account group's row holds the
+  folder icon, 16px in `text-muted`, between its grip and its name, semibold.
+  The Accounts in a group hang from it by tree connectors, a 20px column
+  before each Account's grip: `├` before each Account shown but the last, and
+  `└` before the last shown, its corner rounded 4px. The connectors' vertical
+  runs under the folder icon's centre and starts below it, never over it. An
+  Account outside a group has none, and an empty group draws none. The
+  connectors follow the rows shown: with `Show ended accounts` off an ended
+  Account is not shown, and the Account above it draws the `└`. An Account
+  whose start day is still to come shows `Starts` and that day in `date` and
+  `text-muted` after its name. Until the browser knows today, an Account with
+  any end day counts as ended.
 - **Accounts section drag.** A grip moves an Account or an Account group.
   While it is dragged, a copy of its row, its grip, name and description on a
   `surface` fill with an `accent` edge, follows the pointer, and the row itself stays in
@@ -438,11 +458,14 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   shown, so the browser's message is visible. From `split`
   up there are no tabs and the two Sides sit side by side, Credit's column
   behind a `border` hairline. Each Side is headed by its name in `label` and the
-  Side's colour over a 2px rule in that colour. Each Account type's name, in
-  `label` and `text-muted`, is a full-width `band`, and its Accounts sit after
+  Side's colour over a 2px rule in that colour. Each Account type's name is a
+  Band inset in the Side's column, padded 6px 8px, and its Accounts sit after
   it as chips that wrap, so many Accounts list across rather than down: a chip
   has no fill and a transparent edge, and a chosen one a `surface` fill, an
-  `accent-text` edge and semibold text.
+  `accent-text` edge and semibold text. An Account group's name, semibold,
+  follows the folder icon, 14px in `text-muted`, and its chips wrap 16px in
+  from it. A single `└` tree connector runs from below the folder icon's
+  centre down to the middle of the first row of chips.
 - **Account sheet.** Below `wide` the Accounts leave the form
   and open `Choose accounts` as a modal dialog rising from the foot of the page
   to 64px below its top, on the `ground` over a `ground-dark` scrim at 60%. In
@@ -458,6 +481,13 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   the Date presets sheet's, then a `Find an account` search field, then the
   shown Side's Accounts grouped by Account type, narrowed to those whose name
   holds the text typed, or `No account matches` and the text when none does.
+  Each Account type's name is a Band, padded 6px 8px, and each Account is a
+  row 32px tall; a chosen one is tinted `accent` at 15% and semibold. An
+  Account group's name, semibold, follows the folder icon, 14px in
+  `text-muted`, and its Accounts hang from it by tree connectors as in the
+  Accounts section: `├` before each but the last shown, `└` before the last
+  shown, so Accounts that `Find an account` or the Entry's day leave out draw
+  none.
   The tab names the Side, so no Side heading is shown above the Accounts, though
   each column from `wide` up keeps one. In Two-line mode, choosing an Account
   on one Side while the other has none shows the other Side's tab, and a choice
@@ -552,6 +582,9 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   buttons are disabled and the dialog does not close. It is `Delete entry`,
   opened by an Entry's `Delete`, whose thing is the Entry's date in `date` and
   `text-muted`, memo, semibold, and total in `figure`, as its row shows them.
+  It is also `Delete account` and `Delete group`, opened by a row's `Delete`
+  in the Accounts section, with the Account type in `text-muted` below the
+  title and the Account's or group's name, semibold, as the thing.
 - **Edit entry dialog.** `Edit entry`, opened by an Entry's `Edit`, holds the
   entry form filled with the Entry. Below `wide` it is a full-screen modal
   dialog on the `ground`, as the Date presets sheet is: a `surface` bar holds
@@ -610,6 +643,12 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   rule in `apps/web/app/globals.css` gives it, so no component sets a cursor of
   its own. A disabled control keeps the default cursor. Links have the pointer
   already.
+- **Icons.** Stroke icons in `currentColor`, 2px strokes with round caps and
+  joins on a 24px grid, from `packages/ui`. Each is hidden from assistive
+  technology, so a control holding one is named by its text or its accessible
+  name. The folder icon marks an Account group in the Accounts section, the
+  Account picker and the Account sheet; it is decoration, and the group keeps
+  its name alone.
 - **Status.** `positive` for healthy, `warning` for degraded, `danger` for a
   refusal or an error.
 
@@ -670,6 +709,7 @@ hidden.
 | Wordmark       | The name "Credebi" set as outlined Sora SemiBold, with C and d in the accent colour of its tone. |
 | Lockup         | A fixed arrangement of the Mark and the Wordmark: horizontal or stacked. The Mark alone is also a variant of the logo. |
 | Semantic token | A colour named by its role, such as `text-muted` or `danger`, mapped onto a brand palette colour. Components use only these. |
-| Band           | A full-width strip tinted `band` behind a heading, such as an Account type's name in the Account picker, so the groups under it read apart. |
+| Band           | A strip tinted `band` with 4px corners behind an Account type's name, set in `label`, medium and `text`, so the Account types read apart from the groups and Accounts under them. It is drawn in the Accounts section, the Account picker and the Account sheet. |
+| Tree connector | A 1px `border-control` line from an Account group's folder icon to the Accounts in it: `├` before each Account shown but the last, `└`, rounded 4px, before the last shown. It is decoration, hidden from assistive technology. |
 | Chip           | A choice drawn as a small inline box that sits beside others and wraps, rather than one per row; a chosen chip takes a fill and an edge. |
 | Scrim          | The `ground-dark` tint at 60% behind a modal dialog. A click on the scrim is a press that began on it as well as ended there: a press that began inside the dialog, as when selecting a field's text by dragging, and was released on the scrim closes nothing. |
