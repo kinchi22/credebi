@@ -19,15 +19,6 @@ export function TreeBranch({ branch }: { readonly branch: Branch }): ReactNode {
   );
 }
 
-export function TreeHook(): ReactNode {
-  return (
-    <span
-      aria-hidden="true"
-      className="absolute -top-1.5 left-1.5 h-5.5 w-2.5 rounded-bl-control border-b border-l border-border-control"
-    />
-  );
-}
-
 export function GroupFolder({ size }: { readonly size: 14 | 16 }): ReactNode {
   return (
     <span aria-hidden="true" className="flex shrink-0 text-text-muted">

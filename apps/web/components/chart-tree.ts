@@ -1,4 +1,11 @@
-import type { AccountId, AccountOutput } from '@repo/contracts';
+import {
+  nodesOfType,
+  type AccountGroupOutput,
+  type AccountId,
+  type AccountOutput,
+  type AccountType,
+  type ChartOutput,
+} from '@repo/contracts';
 import { hasEndedBy } from '@repo/core/accounts';
 
 export type Branch = 'tee' | 'elbow';
@@ -13,6 +20,45 @@ export function branchesOf(
   return new Map(
     ids.map((id, index): [AccountId, Branch] => [id, index === ids.length - 1 ? 'elbow' : 'tee']),
   );
+}
+
+export type Run =
+  | { readonly kind: 'accounts'; readonly accounts: readonly AccountOutput[] }
+  | {
+      readonly kind: 'group';
+      readonly group: AccountGroupOutput;
+      readonly accounts: readonly AccountOutput[];
+    };
+
+export function runsOf(chart: ChartOutput, type: AccountType): readonly Run[] {
+  const runs: Run[] = [];
+  for (const node of nodesOfType(chart, type)) {
+    const last = runs.at(-1);
+    if (node.kind === 'group') {
+      runs.push(node);
+    } else if (last?.kind === 'accounts') {
+      runs[runs.length - 1] = { kind: 'accounts', accounts: [...last.accounts, node.account] };
+    } else {
+      runs.push({ kind: 'accounts', accounts: [node.account] });
+    }
+  }
+  return runs;
+}
+
+export type GroupRules = { readonly above: boolean; readonly below: boolean };
+
+export type RuledRun = { readonly run: Run; readonly rules: GroupRules };
+
+export function ruledRunsOf(runs: readonly Run[], shown: Shown): readonly RuledRun[] {
+  let afterGroup = false;
+  return runs.map((run) => {
+    const isGroup = run.kind === 'group';
+    const rules = { above: isGroup && !afterGroup, below: isGroup };
+    if (run.accounts.some(shown)) {
+      afterGroup = isGroup;
+    }
+    return { run, rules };
+  });
 }
 
 export type SectionFilter = {

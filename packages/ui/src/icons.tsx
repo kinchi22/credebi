@@ -77,6 +77,51 @@ export function FolderIcon({ size }: { readonly size: 14 | 16 }): ReactNode {
   );
 }
 
+export function WalletIcon(): ReactNode {
+  return (
+    <StrokeIcon size={16}>
+      <rect x="3" y="6" width="18" height="14" rx="2" />
+      <path d="M16 13h2M3 10h18M6 6V4h11v2" />
+    </StrokeIcon>
+  );
+}
+
+export function ReceiptIcon(): ReactNode {
+  return (
+    <StrokeIcon size={16}>
+      <path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" />
+      <path d="M9 8h6M9 12h6" />
+    </StrokeIcon>
+  );
+}
+
+export function PieIcon(): ReactNode {
+  return (
+    <StrokeIcon size={16}>
+      <path d="M12 3a9 9 0 1 0 9 9h-9z" />
+      <path d="M15 3.5a9 9 0 0 1 5.5 5.5H15z" />
+    </StrokeIcon>
+  );
+}
+
+export function RisingLineIcon(): ReactNode {
+  return (
+    <StrokeIcon size={16}>
+      <path d="m3 17 6-6 4 4 8-8" />
+      <path d="M15 7h6v6" />
+    </StrokeIcon>
+  );
+}
+
+export function FallingLineIcon(): ReactNode {
+  return (
+    <StrokeIcon size={16}>
+      <path d="m3 7 6 6 4-4 8 8" />
+      <path d="M15 17h6v-6" />
+    </StrokeIcon>
+  );
+}
+
 export function GripIcon(): ReactNode {
   return (
     <StrokeIcon size={16}>
