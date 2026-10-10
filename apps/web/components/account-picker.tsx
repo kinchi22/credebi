@@ -239,7 +239,7 @@ const SHEET_LOOK: ChoicesLook = {
 const INLINE_LOOK: ChoicesLook = {
   sideNameShown: true,
   groups: 'captions',
-  accounts: 'flex min-w-0 flex-wrap gap-x-3 gap-y-0.5',
+  accounts: 'flex min-w-0 flex-wrap content-start gap-x-3 gap-y-0.5',
   account: 'relative inline-flex',
   choice: CHIP,
 };
