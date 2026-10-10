@@ -29,11 +29,11 @@ const LOGO_HEIGHT = 40;
 const BAR_LOGO_HEIGHT = 32;
 
 const ON_DARK_FOCUS = 'focus-visible:outline-focus-on-dark';
-const ITEM = `flex items-center gap-2.5 rounded-control px-2.5 py-2 ${ON_DARK_FOCUS}`;
-const IDLE = 'text-text-muted-on-dark hover:bg-ground-dark-hover hover:text-text-on-dark';
-const ACTIVE_LINK = `${ITEM} bg-ground-dark-raised font-medium text-text-on-dark`;
-const IDLE_LINK = `${ITEM} ${IDLE}`;
-const QUIET_BUTTON = `${ITEM} w-full ${typeClasses['body-sm']} ${IDLE}`;
+const SIDEBAR_ITEM = `flex items-center gap-2.5 rounded-control px-2.5 py-2 ${ON_DARK_FOCUS}`;
+const IDLE_TONE = 'text-text-muted-on-dark hover:bg-ground-dark-hover hover:text-text-on-dark';
+const ACTIVE_LINK = `${SIDEBAR_ITEM} bg-ground-dark-raised font-medium text-text-on-dark`;
+const IDLE_LINK = `${SIDEBAR_ITEM} ${IDLE_TONE}`;
+const QUIET_BUTTON = `${SIDEBAR_ITEM} w-full ${typeClasses['body-sm']} ${IDLE_TONE}`;
 const ICON_BUTTON = `-ml-2 inline-flex size-10 items-center justify-center rounded-control text-text-on-dark ${ON_DARK_FOCUS}`;
 const SIDEBAR = 'flex-col gap-7 bg-ground-dark px-3 pt-5 pb-4 text-text-on-dark';
 const WIDE_SIDEBAR = `hidden ${SIDEBAR} wide:sticky wide:top-0 wide:flex wide:h-screen wide:w-58 wide:shrink-0 wide:overflow-y-auto`;

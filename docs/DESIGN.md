@@ -213,7 +213,7 @@ a palette colour.
 | `mint-deeper` | `#09644D` | link hover                                 |
 | `ink`         | `#0B2B2A` | text, the Sidebar                          |
 | `ink-raised`  | `#133F3C` | a raised dark surface, the active Sidebar item |
-| `ink-mid`     | `#103735` | a Sidebar item under the pointer, 60% `ink-raised` into `ink` |
+| `ink-mid`     | `#103735` | a Sidebar item under the pointer           |
 | `mist`        | `#F2F8F5` | the page ground                            |
 | `frost`       | `#EAF7F2` | text on ink                                |
 | `white`       | `#FFFFFF` | panels                                     |
@@ -252,7 +252,7 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `text-muted-on-dark` | `sage`      | links in the Sidebar                  |
 | `ground-dark`        | `ink`       | the Sidebar's ground                  |
 | `ground-dark-raised` | `ink-raised` | the active Sidebar item              |
-| `ground-dark-hover`  | `ink-mid`   | an idle Sidebar item under the pointer |
+| `ground-dark-hover`  | `ink-mid`    | an idle Sidebar item under the pointer |
 | `accent`             | `mint`      | the primary button fill, the mark     |
 | `accent-text`        | `mint-deep` | links, accent text on a light ground  |
 | `accent-text-hover`  | `mint-deeper` | a link under the pointer            |
@@ -300,12 +300,16 @@ unit test checks every one:
   (7.66:1 on `ink`), which is also the active Sidebar link's `accent` icon on
   `ground-dark-raised` (5.91:1); `pewter`, the Google sign-in button's edge, on `white` (4.53:1).
 
+`ink-mid` is `ink-raised` mixed 60% into `ink`, so a Sidebar item under the
+pointer reads between the idle ground and the active item.
+
 A new text colour or ground is added to these pairs in the same change.
 
 ## Typography
 
 Text is set in **IBM Plex Sans**: SemiBold for headings, panel titles and
-labels, Regular for reading. Only figures and dates are set in a monospaced
+labels, Regular for reading, and Medium, weight 500 (`font-medium`), for the
+active Sidebar link alone. Only figures and dates are set in a monospaced
 face, **IBM Plex Mono** Regular, so every column of amounts lines up; a label,
 a panel title or a Side's name is never monospaced. A figure that must stand
 out, such as an Entry's total or a Difference that is not zero, is IBM Plex
