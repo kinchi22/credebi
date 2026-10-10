@@ -50,12 +50,17 @@ export type GroupRules = { readonly above: boolean; readonly below: boolean };
 export type RuledRun = { readonly run: Run; readonly rules: GroupRules };
 
 export function ruledRunsOf(runs: readonly Run[], shown: Shown): readonly RuledRun[] {
-  let afterGroup = false;
-  return runs.map((run) => {
+  const visible = runs.map((run) => run.accounts.some(shown));
+  const last = visible.lastIndexOf(true);
+  let before: Run['kind'] | undefined;
+  return runs.map((run, index) => {
     const isGroup = run.kind === 'group';
-    const rules = { above: isGroup && !afterGroup, below: isGroup };
-    if (run.accounts.some(shown)) {
-      afterGroup = isGroup;
+    const rules = {
+      above: isGroup && before === 'accounts',
+      below: isGroup && index < last,
+    };
+    if (visible[index]) {
+      before = run.kind;
     }
     return { run, rules };
   });

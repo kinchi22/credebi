@@ -132,21 +132,60 @@ describe('ruledRunsOf', () => {
   });
 
   it('lets two groups that meet share one rule', () => {
-    expect(rulesOf([CARDS, PETTY], () => true)).toEqual([
+    expect(rulesOf([CASH, CARDS, PETTY, RECEIVABLE], () => true)).toEqual([
+      { above: false, below: false },
       { above: true, below: true },
       { above: false, below: true },
+      { above: false, below: false },
     ]);
   });
 
   it('gives a group its own rule above when the group before it has no Account shown', () => {
-    expect(rulesOf([CARDS, PETTY], nameContains('float'))[1]).toEqual({
-      above: true,
+    expect(
+      rulesOf([CASH, CARDS, PETTY, RECEIVABLE], (shown) => shown.name !== 'Visa')[2],
+    ).toEqual({ above: true, below: true });
+  });
+
+  it('lets groups meet across ungrouped Accounts that are not shown', () => {
+    expect(
+      rulesOf([RECEIVABLE, CARDS, CASH, PETTY, RECEIVABLE], (shown) => shown.name !== 'Cash')[3],
+    ).toEqual({ above: false, below: true });
+  });
+
+  it('draws no rule for a group that is the only run of its type', () => {
+    expect(rulesOf([BANK_RUN], () => true)).toEqual([{ above: false, below: false }]);
+  });
+
+  it('draws no rule above a group first in its type', () => {
+    expect(rulesOf([CARDS, CASH], () => true)[0]).toEqual({ above: false, below: true });
+  });
+
+  it('draws no rule below a group last in its type', () => {
+    expect(rulesOf([CASH, CARDS], () => true)[1]).toEqual({ above: true, below: false });
+  });
+
+  it('keeps only the shared rule between two groups that make up their type', () => {
+    expect(rulesOf([CARDS, PETTY], () => true)).toEqual([
+      { above: false, below: true },
+      { above: false, below: false },
+    ]);
+  });
+
+  it('draws no rule above a group that a search leaves first in its type', () => {
+    expect(rulesOf([CASH, CARDS, RECEIVABLE], (shown) => shown.name !== 'Cash')[1]).toEqual({
+      above: false,
       below: true,
     });
   });
 
-  it('lets groups meet across ungrouped Accounts that are not shown', () => {
-    expect(rulesOf([CARDS, CASH, PETTY], (shown) => shown.name !== 'Cash')[2]).toEqual({
+  it('draws no rule below a group that a search leaves last in its type', () => {
+    expect(rulesOf([CASH, CARDS, RECEIVABLE], (shown) => shown.name !== 'Receivable')[1]).toEqual(
+      { above: true, below: false },
+    );
+  });
+
+  it('draws no rule above a group when the group before it is first in its type and has no Account shown', () => {
+    expect(rulesOf([CARDS, PETTY, CASH], (shown) => shown.name !== 'Visa')[1]).toEqual({
       above: false,
       below: true,
     });
