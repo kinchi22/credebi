@@ -7,7 +7,7 @@ import {
   type EntryFormMode,
   type PostedEntry,
 } from '@repo/contracts';
-import { PANEL } from '@repo/ui';
+import { PANEL, PANEL_TITLE } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import {
   Fragment,
@@ -209,7 +209,7 @@ export function EntryFormShell({
   const heading = (
     <>
       {variant.labelledBy === undefined ? (
-        <h2 id={`${id}-title`} className={`${typeClasses.label} text-text-muted`}>
+        <h2 id={`${id}-title`} className={PANEL_TITLE}>
           {en.entryForm.title}
         </h2>
       ) : null}

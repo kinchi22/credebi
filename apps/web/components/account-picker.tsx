@@ -224,7 +224,7 @@ type ChoicesLook = {
   readonly choice: string;
 };
 
-const TYPE_BAND = `rounded bg-band px-2 py-1.5 ${typeClasses.label} font-medium text-text`;
+const TYPE_BAND = `rounded bg-band px-2 py-1.5 ${typeClasses.label} text-text`;
 
 const GROUP_NAME = 'flex items-center gap-1.5 pt-1 font-semibold';
 

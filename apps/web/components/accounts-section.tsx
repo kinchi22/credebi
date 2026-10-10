@@ -230,7 +230,7 @@ function TypeBand({
 }): ReactNode {
   return (
     <div className="flex items-center justify-between gap-3 rounded bg-band px-3 py-2">
-      <span id={id} className={`${typeClasses.label} font-medium text-text`}>
+      <span id={id} className={`${typeClasses.label} text-text`}>
         {en.accountTypes[accountType]}
       </span>
       <span className="flex gap-3">

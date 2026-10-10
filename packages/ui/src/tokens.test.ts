@@ -127,10 +127,10 @@ describe('the breakpoints', () => {
 });
 
 describe('themeDeclarations', () => {
-  it('sets Sora as the sans face and DM Mono as the mono face, from the fonts the app serves', () => {
+  it('sets IBM Plex Sans as the sans face and IBM Plex Mono as the mono face, from the fonts the app serves', () => {
     const declarations = themeDeclarations();
-    expect(declarations['--font-sans']).toBe('var(--font-sora)');
-    expect(declarations['--font-mono']).toBe('var(--font-dm-mono)');
+    expect(declarations['--font-sans']).toBe('var(--font-ibm-plex-sans)');
+    expect(declarations['--font-mono']).toBe('var(--font-ibm-plex-mono)');
   });
 
   it('declares each semantic colour at its palette value', () => {
@@ -160,7 +160,8 @@ describe('themeDeclarations', () => {
   it('declares letter spacing only where a step sets it', () => {
     const declarations = themeDeclarations();
     expect(declarations['--text-display--letter-spacing']).toBe('-0.01em');
-    expect(declarations['--text-label--letter-spacing']).toBe('0.06em');
+    expect(declarations['--text-h1--letter-spacing']).toBe('-0.015em');
+    expect(declarations['--text-label--letter-spacing']).toBe('0.04em');
     expect(declarations['--text-body--letter-spacing']).toBeUndefined();
   });
 
@@ -190,32 +191,33 @@ describe('the type scale', () => {
     }
   });
 
-  it('sets nothing smaller than 12px', () => {
+  it('sets nothing smaller than 11.5px', () => {
     for (const step of Object.values(typeScale)) {
-      expect(step.fontSize).toBeGreaterThanOrEqual(12);
+      expect(step.fontSize).toBeGreaterThanOrEqual(11.5);
     }
   });
 
   it('holds the type scale the design states', () => {
-    const sora = { fontFamily: 'Sora', caps: false, tabularNumerals: false };
-    const dmMono = { fontFamily: 'DM Mono', fontWeight: 400 };
+    const sans = { fontFamily: 'IBM Plex Sans', caps: false, tabularNumerals: false };
+    const mono = { fontFamily: 'IBM Plex Mono', fontWeight: 400, caps: false, tabularNumerals: true };
     expect(typeScale).toEqual({
-      display: { ...sora, fontSize: 32, lineHeight: 40, fontWeight: 600, letterSpacing: '-0.01em' },
-      h1: { ...sora, fontSize: 28, lineHeight: 36, fontWeight: 600, letterSpacing: '-0.01em' },
-      h2: { ...sora, fontSize: 20, lineHeight: 28, fontWeight: 600 },
-      body: { ...sora, fontSize: 15, lineHeight: 24, fontWeight: 400 },
-      'body-sm': { ...sora, fontSize: 14, lineHeight: 20, fontWeight: 400 },
-      'body-dense': { ...sora, fontSize: 13, lineHeight: 20, fontWeight: 400 },
+      display: { ...sans, fontSize: 32, lineHeight: 40, fontWeight: 600, letterSpacing: '-0.01em' },
+      h1: { ...sans, fontSize: 22, lineHeight: 30, fontWeight: 600, letterSpacing: '-0.015em' },
+      h2: { ...sans, fontSize: 20, lineHeight: 28, fontWeight: 600 },
+      title: { ...sans, fontSize: 15, lineHeight: 22, fontWeight: 600, letterSpacing: '-0.005em' },
+      body: { ...sans, fontSize: 14, lineHeight: 20, fontWeight: 400 },
+      'body-sm': { ...sans, fontSize: 14, lineHeight: 20, fontWeight: 400 },
+      'body-dense': { ...sans, fontSize: 13, lineHeight: 20, fontWeight: 400 },
       label: {
-        ...dmMono,
-        fontSize: 12,
+        ...sans,
+        fontSize: 11.5,
         lineHeight: 16,
-        letterSpacing: '0.06em',
+        fontWeight: 600,
+        letterSpacing: '0.04em',
         caps: true,
-        tabularNumerals: false,
       },
-      figure: { ...dmMono, fontSize: 14, lineHeight: 20, caps: false, tabularNumerals: true },
-      date: { ...dmMono, fontSize: 13, lineHeight: 20, caps: false, tabularNumerals: true },
+      figure: { ...mono, fontSize: 14, lineHeight: 20 },
+      date: { ...mono, fontSize: 13, lineHeight: 20 },
     });
   });
 });

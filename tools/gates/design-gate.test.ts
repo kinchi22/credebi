@@ -42,7 +42,7 @@ describe('readDesignTokens', () => {
     '  accent: "{colors.mint}"',
     'typography:',
     '  body:',
-    '    fontFamily: Sora',
+    '    fontFamily: IBM Plex Sans',
     '    fontSize: 15px',
     '  label:',
     '    fontFeature: \'"tnum" 1\'',
@@ -62,7 +62,7 @@ describe('readDesignTokens', () => {
     expect(readDesignTokens(document)).toEqual({
       colors: { mint: '#2FD0A2', accent: '{colors.mint}' },
       typography: {
-        body: { fontFamily: 'Sora', fontSize: '15px' },
+        body: { fontFamily: 'IBM Plex Sans', fontSize: '15px' },
         label: { fontFeature: '"tnum" 1' },
       },
     });
