@@ -36,6 +36,7 @@ import { LEGEND, ROW_ICON_BUTTON } from './control-classes';
 import { useModalDialog } from './modal-dialog';
 import { DANGER_TEXT } from './text-classes';
 import { GroupFolder, TreeBranch } from './tree-branch';
+import { TYPE_BAND, TYPE_NAME, TypeName } from './type-band';
 
 export type AccountsSectionProps = {
   readonly chart: ChartOutput;
@@ -229,9 +230,9 @@ function TypeBand({
   readonly open: Open;
 }): ReactNode {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-control bg-band px-3 py-2">
-      <span id={id} className={`${typeClasses.label} text-text`}>
-        {en.accountTypes[accountType]}
+    <div className={`flex items-center justify-between gap-3 ${TYPE_BAND} px-3 py-2`}>
+      <span id={id} className={TYPE_NAME}>
+        <TypeName accountType={accountType} />
       </span>
       <span className="flex gap-3">
         <button

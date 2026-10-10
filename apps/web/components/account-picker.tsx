@@ -3,11 +3,8 @@
 import {
   ENTRY_FORM_FIELDS,
   accountsIn,
-  nodesOfType,
-  type AccountGroupOutput,
   type AccountId,
   type AccountOutput,
-  type AccountType,
   type ChartOutput,
   type PostedEntry,
   type Side,
@@ -22,13 +19,22 @@ import { SETTINGS_PATH } from '../server/return-path';
 import { CONTROL, PRIMARY_BUTTON } from './control-classes';
 import { useHydrated } from './hydrated';
 import { useModalDialog, type ModalDialog } from './modal-dialog';
-import { branchesOf, nameContains, type Branch } from './chart-tree';
+import {
+  branchesOf,
+  nameContains,
+  ruledRunsOf,
+  runsOf,
+  type Branch,
+  type GroupRules,
+  type Run,
+} from './chart-tree';
 import { CloseButton } from './close-button';
 import { type Offered } from './lines-on-day';
 import { SheetBar, SheetTabs } from './sheet';
 import { SIDE_TONE, SIDES } from './side-classes';
 import { LINK } from './text-classes';
-import { GroupFolder, TreeBranch, TreeHook } from './tree-branch';
+import { GroupFolder, TreeBranch } from './tree-branch';
+import { TYPE_BAND, TYPE_NAME, TypeName } from './type-band';
 import { useWide } from './wide';
 
 export type AccountChoice = Readonly<Record<Side, AccountOutput | undefined>>;
@@ -216,62 +222,36 @@ const CHIP = `rounded-control border border-transparent px-1.5 py-1 text-text pe
 
 type ChoicesLook = {
   readonly sideNameShown: boolean;
-  readonly groupName: string;
+  readonly groups: 'tree' | 'captions';
   readonly accounts: string;
-  readonly groupAccounts: string;
-  readonly tree: 'branches' | 'hook';
   readonly account: string;
   readonly choice: string;
 };
 
-const TYPE_BAND = `rounded-control bg-band px-2 py-1.5 ${typeClasses.label} text-text`;
-
-const GROUP_NAME = 'flex items-center gap-1.5 pt-1 font-semibold';
-
 const SHEET_LOOK: ChoicesLook = {
   sideNameShown: false,
-  groupName: `${GROUP_NAME} px-2`,
+  groups: 'tree',
   accounts: 'flex flex-col gap-1',
-  groupAccounts: 'flex flex-col pl-1',
-  tree: 'branches',
   account: 'relative flex',
   choice: SHEET_CHOICE,
 };
 
-const INLINE_ACCOUNTS = 'flex flex-wrap gap-x-3 gap-y-0.5';
-
 const INLINE_LOOK: ChoicesLook = {
   sideNameShown: true,
-  groupName: GROUP_NAME,
-  accounts: INLINE_ACCOUNTS,
-  groupAccounts: INLINE_ACCOUNTS,
-  tree: 'hook',
+  groups: 'captions',
+  accounts: 'flex min-w-0 flex-wrap gap-x-3 gap-y-0.5',
   account: 'relative inline-flex',
   choice: CHIP,
 };
 
-type Run =
-  | { readonly kind: 'accounts'; readonly accounts: readonly AccountOutput[] }
-  | {
-      readonly kind: 'group';
-      readonly group: AccountGroupOutput;
-      readonly accounts: readonly AccountOutput[];
-    };
+const SHEET_GROUP_NAME = 'flex items-center gap-1.5 px-2 pt-1 font-semibold';
 
-function runsOf(chart: ChartOutput, type: AccountType): readonly Run[] {
-  const runs: Run[] = [];
-  for (const node of nodesOfType(chart, type)) {
-    const last = runs.at(-1);
-    if (node.kind === 'group') {
-      runs.push(node);
-    } else if (last?.kind === 'accounts') {
-      runs[runs.length - 1] = { kind: 'accounts', accounts: [...last.accounts, node.account] };
-    } else {
-      runs.push({ kind: 'accounts', accounts: [node.account] });
-    }
-  }
-  return runs;
-}
+const CAPTION_ROW = 'grid grid-cols-[84px_minmax(0,1fr)] gap-x-2.5';
+
+const GROUP_CAPTION = 'leading-7.5 font-medium wrap-anywhere text-text-muted';
+
+const groupBounds = ({ above, below }: GroupRules): string =>
+  `border-dashed border-border-control/55 ${above ? 'border-t' : ''} ${below ? 'border-b' : ''}`;
 
 const NO_BRANCHES: ReadonlyMap<AccountId, Branch> = new Map();
 
@@ -352,6 +332,46 @@ function SideChoices({
     </div>
   );
 
+  const shownIn = (run: Run): string => (run.accounts.some(matches) ? '' : 'hidden');
+
+  const treeOf = (runs: readonly Run[]): ReactNode =>
+    runs.map((run, index) =>
+      run.kind === 'accounts' ? (
+        <Fragment key={`accounts-${String(index)}`}>
+          {choices(run.accounts, look.accounts, NO_BRANCHES)}
+        </Fragment>
+      ) : (
+        <div key={run.group.id} className={`flex flex-col gap-1 ${shownIn(run)}`}>
+          <p className={SHEET_GROUP_NAME}>
+            <GroupFolder size={14} />
+            {run.group.name}
+          </p>
+          {choices(run.accounts, 'flex flex-col pl-1', branchesOf(run.accounts, matches))}
+        </div>
+      ),
+    );
+
+  const captionsOf = (runs: readonly Run[]): ReactNode => (
+    <div className="flex flex-col">
+      {ruledRunsOf(runs, matches).map(({ run, rules }, index) =>
+        run.kind === 'accounts' ? (
+          <div key={`accounts-${String(index)}`} className={`${CAPTION_ROW} py-1.5 ${shownIn(run)}`}>
+            <span />
+            {choices(run.accounts, look.accounts, NO_BRANCHES)}
+          </div>
+        ) : (
+          <div
+            key={run.group.id}
+            className={`${CAPTION_ROW} py-2 ${groupBounds(rules)} ${shownIn(run)}`}
+          >
+            <p className={GROUP_CAPTION}>{run.group.name}</p>
+            {choices(run.accounts, look.accounts, NO_BRANCHES)}
+          </div>
+        ),
+      )}
+    </div>
+  );
+
   return (
     <div
       role={control.groupRole}
@@ -374,34 +394,10 @@ function SideChoices({
               runs.some((run) => run.accounts.some(matches)) ? 'flex flex-col gap-1' : 'hidden'
             }
           >
-            <p id={`${typeId}-${type}`} className={TYPE_BAND}>
-              {en.accountTypes[type]}
+            <p id={`${typeId}-${type}`} className={`${TYPE_BAND} ${TYPE_NAME} px-2 py-1.5`}>
+              <TypeName accountType={type} />
             </p>
-            {runs.map((run, index) =>
-              run.kind === 'accounts' ? (
-                <Fragment key={`accounts-${String(index)}`}>
-                  {choices(run.accounts, look.accounts, NO_BRANCHES)}
-                </Fragment>
-              ) : (
-                <div
-                  key={run.group.id}
-                  className={run.accounts.some(matches) ? 'flex flex-col gap-1' : 'hidden'}
-                >
-                  <p className={look.groupName}>
-                    <GroupFolder size={14} />
-                    {run.group.name}
-                  </p>
-                  {look.tree === 'branches' ? (
-                    choices(run.accounts, look.groupAccounts, branchesOf(run.accounts, matches))
-                  ) : (
-                    <div className="relative pl-4">
-                      <TreeHook />
-                      {choices(run.accounts, look.groupAccounts, NO_BRANCHES)}
-                    </div>
-                  )}
-                </div>
-              ),
-            )}
+            {look.groups === 'tree' ? treeOf(runs) : captionsOf(runs)}
           </div>
         );
       })}

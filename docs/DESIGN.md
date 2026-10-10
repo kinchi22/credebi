@@ -258,7 +258,7 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `accent-text-hover`  | `mint-deeper` | a link under the pointer            |
 | `border`             | `fog`       | dividers, panel edges                 |
 | `band`               | `fog`       | an Account type's Band                |
-| `border-control`     | `steel`     | inputs, secondary buttons, tree connectors |
+| `border-control`     | `steel`     | inputs, secondary buttons, tree connectors, and at 55% the Account picker's group rules |
 | `danger`             | `rust`      | refusals, errors                      |
 | `warning`            | `ochre`     | a degraded health status, a Difference not 0, a line not active on the day |
 | `positive`           | `mint-deep` | a healthy status                      |
@@ -489,9 +489,9 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   `Accounts` heading, semibold in `body-sm`, with `Show ended accounts`, a
   checkbox in `body-sm`, at the heading's right. The rows are in `body-sm`.
   Each Account type is a Band, padded 8px 12px, with no account count: its
-  name, then at the Band's right `+ Account` and `+ Group`, text buttons in
-  `accent-text-hover`, since `accent-text` on a `band` falls short of 4.5:1,
-  underlined under the pointer, named `Add account` and
+  icon and name, then at the Band's right `+ Account` and `+ Group`, text
+  buttons in `accent-text-hover`, since `accent-text` on a `band` falls short
+  of 4.5:1, underlined under the pointer, named `Add account` and
   `Add group`. Every row starts with its grip and ends with `Edit` and then
   `Delete`, drawn as the Entry row actions are, and an optional description
   sits under its name in `body-dense` and `text-muted`. An Account group's row holds the
@@ -551,14 +551,21 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   shown, so the browser's message is visible. From `split`
   up there are no tabs and the two Sides sit side by side, Credit's column
   behind a `border` hairline. Each Side is headed by its name in `label` and the
-  Side's colour over a 2px rule in that colour. Each Account type's name is a
-  Band inset in the Side's column, padded 6px 8px, and its Accounts sit after
-  it as chips that wrap, so many Accounts list across rather than down: a chip
-  has no fill and a transparent edge, and a chosen one a `surface` fill, an
-  `accent-text` edge and semibold text. An Account group's name, semibold,
-  follows the folder icon, 14px in `text-muted`, and its chips wrap 16px in
-  from it. A single `└` tree connector runs from below the folder icon's
-  centre down to the middle of the first row of chips.
+  Side's colour over a 2px rule in that colour. Each Account type is a Band
+  inset in the Side's column, padded 6px 8px, and its Accounts sit after it as
+  chips that wrap, so many Accounts list across rather than down: a chip has no
+  fill and a transparent edge, and a chosen one a `surface` fill, an
+  `accent-text` edge and semibold text. Under each Band the Accounts sit in two
+  columns, an 84px caption column with 10px after it, and the chips. An Account
+  group's name sits in the caption column, medium and in `text-muted`, level
+  with the first row of its chips, which wrap beside it; it is a heading over
+  its Accounts, not a control. The group is padded 8px above and below and
+  bounded by 1px dashed rules across the Side's column, above and below, in
+  `border-control` at 55%; two groups that meet share one rule. The rules are
+  decoration and carry no contrast pair. Ungrouped Accounts, wherever they fall
+  in the User's order, are padded 6px above and below, carry no rule and leave
+  the caption column empty. The picker draws no folder icon and no tree
+  connector.
 - **Account sheet.** Below `wide` the Accounts leave the form
   and open `Choose accounts` as a modal dialog rising from the foot of the page
   to 64px below its top, on the `ground` over a `ground-dark` scrim at 60%. In
@@ -574,7 +581,7 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   the Date presets sheet's, then a `Find an account` search field, then the
   shown Side's Accounts grouped by Account type, narrowed to those whose name
   holds the text typed, or `No account matches` and the text when none does.
-  Each Account type's name is a Band, padded 6px 8px, and each Account is a
+  Each Account type is a Band, padded 6px 8px, and each Account is a
   row 32px tall; a chosen one is tinted `accent` at 15% and semibold. An
   Account group's name, semibold, follows the folder icon, 14px in
   `text-muted`, and its Accounts hang from it by tree connectors as in the
@@ -750,11 +757,14 @@ light ground is 36px tall, `controlHeight` in the tokens module and
 - **Icons.** Stroke icons in `currentColor`, 2px strokes with round caps and
   joins on a 24px grid, from `packages/ui`. Each is hidden from assistive
   technology, so a control holding one is named by its text or its accessible
-  name. The folder icon marks an Account group in the Accounts section, the
-  Account picker and the Account sheet; it is decoration, and the group keeps
-  its name alone. Each Sidebar link and Sign out leads with an 18px icon -- a
-  list, a magnifier, sliders and an exit -- so each is named by its text alone;
-  the magnifier is the Account picker's search icon at 18px rather than 16px.
+  name. The folder icon marks an Account group in the Accounts section and the
+  Account sheet; it is decoration, and the group keeps its name alone. Each
+  Account type's Band leads with a 16px icon in `text` -- Assets a wallet,
+  Liabilities a receipt, Equity a pie, Revenue a rising line and Expenses a
+  falling line -- decoration too, so the Band is named by its type alone. Each
+  Sidebar link and Sign out leads with an 18px icon -- a list, a magnifier,
+  sliders and an exit -- so each is named by its text alone; the magnifier is
+  the Account picker's search icon at 18px rather than 16px.
 - **Status.** `positive` for healthy, `warning` for degraded, `danger` for a
   refusal or an error.
 
@@ -826,7 +836,7 @@ hidden.
 | Wordmark       | The name "Credebi" drawn as outlined glyphs, as the Wordmark paragraph under `Logo` states, with C and d in the accent colour of its tone. |
 | Lockup         | A fixed arrangement of the Mark and the Wordmark: horizontal or stacked. The Mark alone is also a variant of the logo. |
 | Semantic token | A colour named by its role, such as `text-muted` or `danger`, mapped onto a brand palette colour. Components use only these. |
-| Band           | A strip tinted `band` with the `control` radius behind an Account type's name, set in `label` and `text`, so the Account types read apart from the groups and Accounts under them. It is drawn in the Accounts section, the Account picker and the Account sheet. |
-| Tree connector | A 1px `border-control` line from an Account group's folder icon to the Accounts in it: `├` before each Account shown but the last, `└`, its corner rounded by the `control` radius, before the last shown. It is decoration, hidden from assistive technology. |
+| Band           | A strip tinted `band` with the `control` radius behind an Account type's name, set 14px semibold in `text` and led by the type's icon, so the Account types read apart from the groups and Accounts under them. It is drawn in the Accounts section, the Account picker and the Account sheet. |
+| Tree connector | A 1px `border-control` line from an Account group's folder icon to the Accounts in it, in the Accounts section and the Account sheet: `├` before each Account shown but the last, `└`, its corner rounded by the `control` radius, before the last shown. It is decoration, hidden from assistive technology. |
 | Chip           | A choice drawn as a small inline box that sits beside others and wraps, rather than one per row; a chosen chip takes a fill and an edge. |
 | Scrim          | The `ground-dark` tint at 60% behind a modal dialog. A click on the scrim is a press that began on it as well as ended there: a press that began inside the dialog, as when selecting a field's text by dragging, and was released on the scrim closes nothing. |
