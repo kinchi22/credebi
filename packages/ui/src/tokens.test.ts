@@ -8,6 +8,7 @@ import {
   fontFaces,
   palette,
   radii,
+  rgbChannels,
   semanticColors,
   shadows,
   TEXT_MINIMUM,
@@ -274,5 +275,16 @@ describe('the type scale', () => {
       figure: { ...mono, fontSize: 14, lineHeight: 20 },
       date: { ...mono, fontSize: 13, lineHeight: 20 },
     });
+  });
+});
+
+describe('rgbChannels', () => {
+  it('splits a colour into its red, green and blue channels', () => {
+    expect(rgbChannels('#0B2B2A')).toEqual([11, 43, 42]);
+    expect(rgbChannels('#ff8001')).toEqual([255, 128, 1]);
+  });
+
+  it('refuses a colour that is not six hex digits', () => {
+    expect(() => rgbChannels('#FFF')).toThrow('#FFF');
   });
 });

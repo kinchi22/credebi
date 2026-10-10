@@ -1,5 +1,5 @@
 import { createEslintConfig } from '@repo/config/eslint';
-import { semanticColors, shadows, typeScale } from '@repo/ui/tokens';
+import { radii, semanticColors, shadows, typeScale } from '@repo/ui/tokens';
 
 export default createEslintConfig({
   tsconfigRootDir: import.meta.dirname,
@@ -7,5 +7,6 @@ export default createEslintConfig({
     colors: Object.keys(semanticColors),
     textSizes: Object.keys(typeScale),
     shadows: Object.keys(shadows),
+    radii: Object.keys(radii),
   },
 });

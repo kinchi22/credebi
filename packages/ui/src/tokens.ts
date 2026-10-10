@@ -266,13 +266,18 @@ const ROOT_FONT_SIZE = 16;
 
 const px = (value: number): string => `${String(value)}px`;
 
-function rgbChannels(hex: string): string {
-  const rgb = Number.parseInt(hex.slice(1), 16);
-  return [(rgb >> 16) & 0xff, (rgb >> 8) & 0xff, rgb & 0xff].map(String).join(' ');
+const HEX_COLOR = /^#[0-9a-f]{6}$/iu;
+
+export function rgbChannels(color: string): readonly [number, number, number] {
+  if (!HEX_COLOR.test(color)) {
+    throw new Error(`Expected a colour as #RRGGBB, got ${color}`);
+  }
+  const rgb = Number.parseInt(color.slice(1), 16);
+  return [(rgb >> 16) & 0xff, (rgb >> 8) & 0xff, rgb & 0xff];
 }
 
 function shadowValue({ tint, layers }: Shadow): string {
-  const channels = rgbChannels(palette[tint]);
+  const channels = rgbChannels(palette[tint]).map(String).join(' ');
   return layers
     .map(
       (layer) =>
@@ -319,6 +324,13 @@ export function themeDeclarations(): Readonly<Record<string, string>> {
     `--shadow-${name}`,
     shadowValue(shadow),
   ]);
-  const heights: [string, string][] = [['--height-control', px(controlHeight)]];
-  return Object.fromEntries([...colors, ...faces, ...type, ...widths, ...corners, ...lifts, ...heights]);
+  return Object.fromEntries([
+    ...colors,
+    ...faces,
+    ...type,
+    ...widths,
+    ...corners,
+    ...lifts,
+    ['--height-control', px(controlHeight)],
+  ]);
 }

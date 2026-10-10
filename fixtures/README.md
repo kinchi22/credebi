@@ -53,6 +53,7 @@ the test-collection gate excludes this directory too.
 | `violations/apps/web/app/inline-metadata.ts`            | `repo/no-inline-copy` (`export const metadata`) |
 | `violations/apps/web/components/raw-color.tsx`          | `repo/no-raw-color` (a hex literal, a Tailwind palette class and a palette colour that is not a token) |
 | `violations/packages/ui/src/palette-class.ts`           | `repo/no-raw-color` (palette classes, behind a variant too) |
+| `violations/apps/web/components/raw-shape.tsx`          | `repo/no-raw-shape` (a Tailwind radius and a Tailwind shadow outside the token set) |
 
 ## dependency-cruiser
 

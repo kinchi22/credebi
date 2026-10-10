@@ -22,7 +22,7 @@ export const DEFAULT_IGNORES = [
 export function createEslintConfig({
   tsconfigRootDir,
   ignores = [],
-  tokens = { colors: [], textSizes: [], shadows: [] },
+  tokens = { colors: [], textSizes: [], shadows: [], radii: [] },
 }) {
   return [
     { name: 'repo/ignores', ignores: [...DEFAULT_IGNORES, ...ignores] },

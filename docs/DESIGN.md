@@ -371,8 +371,10 @@ two shadows tinted from `ink`, `shadows` in the tokens module and
 
 Nothing else casts a shadow: not a dialog, a menu, a chip or a control. The
 stylesheet resets `--shadow-*` to `initial`, so these two are the only shadow
-utilities, `shadow-lift` and `shadow-lift-card`, and the lint rule
-`repo/no-raw-color` reads their names from the tokens module.
+utilities, `shadow-lift` and `shadow-lift-card`. The lint rule
+`repo/no-raw-shape` rejects a bare `shadow`, Tailwind's own shadows and an
+arbitrary one, and `repo/no-raw-color`, which reads the shadow names from the
+tokens module, rejects any other.
 
 ## Shapes
 
@@ -389,7 +391,9 @@ A surface fixed to a screen edge rounds only its free corners: the Account sheet
 its top ones with `rounded-t-panel`, the Sidebar drawer its right ones with
 `rounded-r-panel`. The 8px status dot is a circle, `rounded-full`, the one
 corner outside the three. The stylesheet resets `--radius-*` to `initial`, so a
-bare `rounded` or any of Tailwind's own radii draws a square corner.
+bare `rounded` or any of Tailwind's own radii would draw a square corner; the
+lint rule `repo/no-raw-shape` rejects one anywhere in `apps/web` or
+`packages/ui`, reading the radius names from the tokens module.
 
 Every input, select, secondary, primary and danger button and Icon button on a
 light ground is 36px tall, `controlHeight` in the tokens module and
