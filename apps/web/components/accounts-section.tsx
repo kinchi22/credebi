@@ -14,7 +14,7 @@ import {
   type DomainErrorCode,
   type MoveChartNodeInput,
 } from '@repo/contracts';
-import { PencilIcon, TrashIcon } from '@repo/ui';
+import { PANEL, PencilIcon, TrashIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useId, useOptimistic, useState, useTransition, type ReactNode } from 'react';
 import { en } from '../messages/en';
@@ -355,7 +355,7 @@ export function AccountsSection({ chart, actions }: AccountsSectionProps): React
     <section
       aria-labelledby={titleId}
       aria-busy={held}
-      className="flex flex-col gap-2 border-b border-border pb-4"
+      className="flex flex-col gap-2 border-b border-border py-5"
     >
       <div className="flex items-center justify-between gap-3">
         <h3 id={titleId} className={LEGEND}>
@@ -379,7 +379,7 @@ export function AccountsSection({ chart, actions }: AccountsSectionProps): React
         </p>
       )}
       <ChartDrag chart={shown} held={held} onMove={move}>
-        <div className={`flex flex-col gap-4 ${typeClasses['body-sm']} ${stillWhileHeld}`}>
+        <div className={`${PANEL} flex flex-col gap-4 ${typeClasses['body-sm']} ${stillWhileHeld}`}>
           {accountTypeSchema.options.map((accountType) => (
             <div key={accountType} role="group" aria-labelledby={`${bandId}-${accountType}`}>
               <SectionBand

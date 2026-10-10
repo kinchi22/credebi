@@ -1,11 +1,13 @@
 export const palette = {
   mint: '#2FD0A2',
+  'mint-pale': '#DBF3EB',
   'mint-deep': '#0B7A5E',
   'mint-deeper': '#09644D',
   ink: '#0B2B2A',
   'ink-raised': '#133F3C',
   'ink-mid': '#103735',
   mist: '#F2F8F5',
+  'mist-pale': '#F6FAF8',
   frost: '#EAF7F2',
   white: '#FFFFFF',
   slate: '#4A6461',
@@ -35,6 +37,8 @@ export const semanticColors = {
   'ground-dark': 'ink',
   'ground-dark-raised': 'ink-raised',
   'ground-dark-hover': 'ink-mid',
+  'surface-hover': 'mist-pale',
+  'surface-chosen': 'mint-pale',
   accent: 'mint',
   'accent-text': 'mint-deep',
   'accent-text-hover': 'mint-deeper',
@@ -93,6 +97,11 @@ export const textPairs: readonly ColorPair[] = [
   { foreground: 'white', background: 'rust' },
   { foreground: 'ink', background: 'fog' },
   { foreground: 'mint-deeper', background: 'fog' },
+  { foreground: 'ink', background: 'mist-pale' },
+  { foreground: 'slate', background: 'mist-pale' },
+  { foreground: 'cobalt', background: 'mist-pale' },
+  { foreground: 'gold', background: 'mist-pale' },
+  { foreground: 'ink', background: 'mint-pale' },
 ];
 
 export const controlEdgePairs: readonly ColorPair[] = [
@@ -104,6 +113,8 @@ export const controlEdgePairs: readonly ColorPair[] = [
   { foreground: 'mint', background: 'ink-raised' },
   { foreground: 'mint', background: 'ink-mid' },
   { foreground: 'pewter', background: 'white' },
+  { foreground: 'mint-deep', background: 'mist-pale' },
+  { foreground: 'mint-deep', background: 'mint-pale' },
 ];
 
 export type TypeStep = {

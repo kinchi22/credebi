@@ -7,12 +7,14 @@ omitted:
     reason: Spacing stays on Tailwind's default scale; no spacing token is decided.
 colors:
   mint: "#2FD0A2"
+  mint-pale: "#DBF3EB"
   mint-deep: "#0B7A5E"
   mint-deeper: "#09644D"
   ink: "#0B2B2A"
   ink-raised: "#133F3C"
   ink-mid: "#103735"
   mist: "#F2F8F5"
+  mist-pale: "#F6FAF8"
   frost: "#EAF7F2"
   white: "#FFFFFF"
   slate: "#4A6461"
@@ -37,6 +39,8 @@ colors:
   ground-dark: "{colors.ink}"
   ground-dark-raised: "{colors.ink-raised}"
   ground-dark-hover: "{colors.ink-mid}"
+  surface-hover: "{colors.mist-pale}"
+  surface-chosen: "{colors.mint-pale}"
   accent: "{colors.mint}"
   accent-text: "{colors.mint-deep}"
   accent-text-hover: "{colors.mint-deeper}"
@@ -209,12 +213,14 @@ a palette colour.
 | Palette       | Value     | What it is for                             |
 | ------------- | --------- | ------------------------------------------ |
 | `mint`        | `#2FD0A2` | the mark, the primary button fill           |
+| `mint-pale`   | `#DBF3EB` | a chosen chip in the Account picker        |
 | `mint-deep`   | `#0B7A5E` | mint as text on a light ground, focus ring |
 | `mint-deeper` | `#09644D` | link hover                                 |
 | `ink`         | `#0B2B2A` | text, the Sidebar                          |
 | `ink-raised`  | `#133F3C` | a raised dark surface, the active Sidebar item |
 | `ink-mid`     | `#103735` | a Sidebar item under the pointer           |
 | `mist`        | `#F2F8F5` | the page ground                            |
+| `mist-pale`   | `#F6FAF8` | an Entry under the pointer                 |
 | `frost`       | `#EAF7F2` | text on ink                                |
 | `white`       | `#FFFFFF` | panels                                     |
 | `slate`       | `#4A6461` | muted text                                 |
@@ -253,6 +259,8 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `ground-dark`        | `ink`       | the Sidebar's ground                  |
 | `ground-dark-raised` | `ink-raised` | the active Sidebar item              |
 | `ground-dark-hover`  | `ink-mid`    | an idle Sidebar item under the pointer |
+| `surface-hover`      | `mist-pale`  | an Entry in the Entries list under the pointer |
+| `surface-chosen`     | `mint-pale`  | a chosen chip in the Account picker  |
 | `accent`             | `mint`      | the primary button fill, the mark     |
 | `accent-text`        | `mint-deep` | links, accent text on a light ground  |
 | `accent-text-hover`  | `mint-deeper` | a link under the pointer            |
@@ -294,14 +302,23 @@ unit test checks every one:
   `text-muted-on-dark` on `ground-dark`, `ground-dark-raised` and
   `ground-dark-hover` (11.78:1 and 6.85:1 on `ink-mid`); `ink` on `mint`; `ink` on `fog`,
   which is `text` on a `band` (12.46:1); `mint-deeper` on `fog`, which is
-  `accent-text-hover` on a `band` (5.90:1).
+  `accent-text-hover` on a `band` (5.90:1); `ink`, `slate`, `cobalt` and `gold`
+  on `mist-pale`, which is `text`, `text-muted`, `debit` and `credit` on
+  `surface-hover` (14.32:1, 6.07:1, 5.57:1 and 5.30:1); `ink` on `mint-pale`,
+  which is `text` on `surface-chosen` (12.94:1).
 - **Control edges, 3:1.** `steel` and `mint-deep` on `white` and on `mist`;
   `mint`, the `focus-on-dark` ring, on `ink`, on `ink-raised` and on `ink-mid`
   (7.66:1 on `ink`), which is also the active Sidebar link's `accent` icon on
-  `ground-dark-raised` (5.91:1); `pewter`, the Google sign-in button's edge, on `white` (4.53:1).
+  `ground-dark-raised` (5.91:1); `pewter`, the Google sign-in button's edge, on `white` (4.53:1);
+  `mint-deep` on `mist-pale`, the `focus` ring on an Entry under the pointer
+  (5.04:1), and on `mint-pale`, a chosen chip's `accent-text` edge on its fill
+  (4.55:1).
 
 `ink-mid` is `ink-raised` mixed 60% into `ink`, so a Sidebar item under the
-pointer reads between the idle ground and the active item.
+pointer reads between the idle ground and the active item. `mist-pale` is
+`mist` mixed 70% into `white`, so an Entry under the pointer reads between a
+panel and the page ground; `mint-pale` is `mint` mixed 12% into `mist`, the
+ground a chip sits on in the Account picker.
 
 A new text colour or ground is added to these pairs in the same change.
 
@@ -309,7 +326,9 @@ A new text colour or ground is added to these pairs in the same change.
 
 Text is set in **IBM Plex Sans**: SemiBold for headings, panel titles and
 labels, Regular for reading, and Medium, weight 500 (`font-medium`), for the
-active Sidebar link alone. Only figures and dates are set in a monospaced
+active Sidebar link, an Entry's memo in the Entries list, the entry form's
+Date and Memo labels, an Account group's caption and a chosen chip in the
+Account picker alone. Only figures and dates are set in a monospaced
 face, **IBM Plex Mono** Regular, so every column of amounts lines up; a label,
 a panel title or a Side's name is never monospaced. A figure that must stand
 out, such as an Entry's total or a Difference that is not zero, is IBM Plex
@@ -391,10 +410,10 @@ two shadows tinted from `ink`, `shadows` in the tokens module and
 
 | Shadow      | Layers                                                  | On |
 | ----------- | ------------------------------------------------------- | -- |
-| `lift`      | `0 1px 2px` at 5% and `0 1px 3px` at 4%                 | every panel `PANEL` draws, and the Account picker |
+| `lift`      | `0 1px 2px` at 5% and `0 1px 3px` at 4%                 | every panel `PANEL` draws, the Account picker and the Segmented control's strip |
 | `lift-card` | `0 1px 2px` at 5% and `0 12px 32px` at 8%               | the Sign in card |
 
-Nothing else casts a shadow: not a dialog, a menu, a chip or a control. The
+Nothing else casts a shadow: not a dialog, a menu, a chip or any other control. The
 stylesheet resets `--shadow-*` to `initial`, so these two are the only shadow
 utilities, `shadow-lift` and `shadow-lift-card`. The lint rule
 `repo/no-raw-shape` rejects a bare `shadow`, Tailwind's own shadows and an
@@ -466,10 +485,12 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   stroke icon in `text-on-dark`, with the `focus-on-dark` ring and an accessible
   name in place of text. It is `Menu`, a hamburger icon, in the bar that opens
   the Sidebar drawer.
-- **Segmented control.** A radiogroup drawn as one `surface` strip with a
-  `border-control` edge and the `panel` radius, each choice a segment with the
-  `control` radius. Only the chosen segment is
-  marked: an `accent` tint and the semibold weight. It is the Entry form mode in
+- **Segmented control.** A radiogroup drawn as one `surface` strip framed as
+  a panel is, `PANEL_FRAME` in `packages/ui`: a `border` edge, the `panel`
+  radius and the `lift` shadow, without a panel's padding. Each choice is a
+  segment with the `control` radius. Only the chosen segment is
+  marked: an `accent` tint at 15%, a 1.5px inset `accent-text` edge beside it,
+  and the semibold weight. It is the Entry form mode in
   Settings, where each segment fills an equal share of the strip. From `wide`
   up the strip sits right of its legend and grows to fill the space beside it,
   up to 42rem. The segments are equal height and share three rows: a
@@ -482,12 +503,16 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   Choosing a mode saves it silently, as the Accounts section saves: no
   confirmation shows. A refused save puts the earlier mode back and shows the
   refusal in `danger` below the strip.
-- **Settings row.** Settings has no panel: each setting is a row between
-  `border` hairlines, its name on the left and its control on the right, and
-  stacked below `wide`.
+- **Settings row.** Settings' rows sit on the page ground, not in a panel:
+  each setting is a row between
+  `border` hairlines, padded 20px above and below, its name on the left and its
+  control on the right, and stacked below `wide`.
 - **Accounts section.** The Chart of accounts in Settings, under its
   `Accounts` heading, semibold in `body-sm`, with `Show ended accounts`, a
-  checkbox in `body-sm`, at the heading's right. The rows are in `body-sm`.
+  checkbox in `body-sm`, at the heading's right. Below them the Account types
+  and their rows sit in one list drawn as a panel: a `surface` fill, a `border`
+  edge, the `panel` radius and the `lift` shadow, padded as `PANEL` pads. The
+  rows are in `body-sm`.
   Each Account type is a Band, padded 8px 12px, with no account count: its
   icon and name, then at the Band's right `+ Account` and `+ Group`, text
   buttons in `accent-text-hover`, since `accent-text` on a `band` falls short
@@ -543,7 +568,8 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   the entry form in a `ground` panel with a `border` edge, the `panel` radius
   and the `lift` shadow. At its top a
   `surface` strip holds a `Find an account` search field with a search icon
-  inside its start, narrowing both Sides as the Account sheet's does, with the
+  inside its start, on the `ground` with a transparent edge rather than an
+  Input's, narrowing both Sides as the Account sheet's does, with the
   same `No account matches` line. From `wide` to below `split` one Side is
   shown at a time under `Debit` and `Credit` tabs, drawn as the Account sheet's
   but with the shown tab underlined and set in its Side's colour; when a submit
@@ -554,8 +580,9 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   Side's colour over a 2px rule in that colour. Each Account type is a Band
   inset in the Side's column, padded 6px 8px, and its Accounts sit after it as
   chips that wrap, so many Accounts list across rather than down: a chip has no
-  fill and a transparent edge, and a chosen one a `surface` fill, an
-  `accent-text` edge and semibold text. Under each Band the Accounts sit in two
+  fill and a `border` edge, `border-control` under the pointer, and a chosen
+  one a `surface-chosen` fill, `accent` at 12%, an `accent-text` edge and
+  medium text. Under each Band the Accounts sit in two
   columns, an 84px caption column with 10px after it, and the chips. An Account
   group's name sits in the caption column, medium and in `text-muted`, level
   with the first row of its chips, which wrap beside it; it is a heading over
@@ -601,9 +628,10 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   colour.
 - **Date and Memo.** From `wide` up they share one row: Date in a 148px
   column, Memo filling the rest. Below `wide` they wrap, Date at its own width
-  and Memo growing beside it.
+  and Memo growing beside it. Their labels are medium, in `text-muted`.
 - **Entry form dividers.** In both Entry form modes a 2px rule in the Side's
-  colour sits above each Side: above its row in Two-line mode, above its block
+  colour sits above each Side: above its row, padded 12px above and below, in
+  Two-line mode, above its block
   in Multi-line mode. In Multi-line mode the lines of one Side have no rule
   between them, and a dashed `border` hairline sits above the Side's total,
   below its `+ Add … account`; from `wide` up, where that button is not shown,
@@ -650,11 +678,13 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   search. Its panel shows no `Entries` heading, which is visually hidden, not
   removed, so the region is still named `Entries`. A full-width `border`
   hairline parts each Entry from the one above; the first has none and starts
-  at the panel's padding. Its first row holds the date in `date` and
-  `text-muted`, the memo semibold and filling the space, and the Entry's total
+  4px below the panel's padding. Each Entry is padded 16px above and below and
+  reaches the panel's edges, as `PANEL_BLEED` does, and under the pointer it is
+  tinted `surface-hover`. Its first row holds the date in `date` and
+  `text-muted`, the memo medium and filling the space, and the Entry's total
   on the right in `figure`, medium. Below it two equal columns, Debit and Credit,
   Credit's behind a `border` hairline, each headed by the Side in `label` and
-  the Side's colour over a 2px rule in that colour. In `body-dense`, each line
+  the Side's colour over a 1.5px rule in that colour. In `body-dense`, each line
   is one row, the Account name on the left and its amount on the right in
   `figure` and the Side's colour. An Entry with one Account on each Side puts
   the Account name beside its Side's name and shows no line amount: the total
@@ -666,7 +696,7 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   total, `Edit` and then `Delete` are bare icon buttons, drawn as the Remove
   button: a stroke icon in `text-muted`, `text` under the pointer, no fill and
   no border, a pencil for `Edit` and a trash can for `Delete`, each named by
-  its action rather than by text. They are 32px square below `wide` and 24px
+  its action rather than by text. They are 32px square below `wide` and 28px
   from `wide` up, and they do not make the row taller than its text. They sit
   there at every width, in Entries and in Entry search.
 - **Confirmation dialog.** A modal dialog centred on the page over a
@@ -823,8 +853,8 @@ hidden.
   else in it.
 - Don't round a corner by anything but the `control`, `panel` or `card`
   radius; the status dot is the one circle.
-- Don't cast a shadow but `lift` on a panel and the Account picker and
-  `lift-card` on the Sign in card.
+- Don't cast a shadow but `lift` on a panel, the Account picker and the
+  Segmented control's strip, and `lift-card` on the Sign in card.
 - Don't set text below 11.5px.
 - Don't add a dark mapping before the dark theme Feature.
 

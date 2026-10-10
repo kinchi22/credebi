@@ -7,6 +7,7 @@ import {
   type Side,
 } from '@repo/contracts';
 import { useId, useState, useTransition, type ChangeEvent, type ReactNode } from 'react';
+import { PANEL_FRAME } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { en } from '../messages/en';
 import { LEGEND } from './control-classes';
@@ -24,7 +25,7 @@ export type EntryFormModeChoiceProps = {
 
 type Bar = { readonly side: Side; readonly width: number };
 
-const CHOSEN_SEGMENT = 'bg-accent/15 text-text';
+const CHOSEN_SEGMENT = 'bg-accent/15 text-text ring-[1.5px] ring-accent-text ring-inset';
 
 const BAR_HEIGHT = 4;
 const BAR_PITCH = 9;
@@ -88,11 +89,11 @@ export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps
 
   return (
     <div className="flex flex-col gap-2">
-      <fieldset className="m-0 flex flex-col gap-3 border-0 border-y border-border px-0 py-4 wide:flex-row wide:items-center wide:justify-between">
+      <fieldset className="m-0 flex flex-col gap-3 border-0 border-y border-border px-0 py-5 wide:flex-row wide:items-center wide:justify-between">
         <legend className={`float-left p-0 ${LEGEND}`}>
           {en.settingsPage.entryFormMode}
         </legend>
-        <div className="grid auto-cols-fr grid-flow-col grid-rows-[auto_auto_auto] gap-y-2 self-stretch rounded-panel border border-border-control bg-surface p-0.5 wide:max-w-2xl wide:flex-1 wide:self-auto">
+        <div className={`grid auto-cols-fr grid-flow-col grid-rows-[auto_auto_auto] gap-y-2 self-stretch p-0.5 ${PANEL_FRAME} wide:max-w-2xl wide:flex-1 wide:self-auto`}>
           {entryFormModeSchema.options.map((mode) => (
             <label key={mode} className={`relative row-span-3 grid grid-rows-subgrid ${typeClasses['body-sm']}`}>
               <input
