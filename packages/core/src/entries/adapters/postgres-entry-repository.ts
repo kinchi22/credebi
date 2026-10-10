@@ -9,7 +9,6 @@ import {
   isNull,
   lte,
   getTableColumns,
-  sql,
   type SQL,
 } from 'drizzle-orm';
 import { type NodePgQueryResultHKT } from 'drizzle-orm/node-postgres';
@@ -60,16 +59,6 @@ const LINE_COLUMNS = {
   amount: schema.entryLines.amount,
 };
 
-function legacyAccountCodeFor(account: AccountId): SQL {
-  return sql`(select case ${schema.accounts.accountType}
-      when 'asset' then 'cash'
-      when 'liability' then 'payable'
-      when 'equity' then 'capital'
-      when 'revenue' then 'sales'
-      when 'expense' then 'expense'
-    end from ${schema.accounts} where ${schema.accounts.id} = ${account})`;
-}
-
 export function createPostgresEntryRepository(
   connectionString: string,
   logger: Logger,
@@ -93,7 +82,6 @@ export function postgresEntriesOn(database: PostgresExecutor, logger: Logger): E
         entry.lines.map((line, index) => ({
           entryId: entry.id,
           lineNumber: index + 1,
-          account: legacyAccountCodeFor(line.account),
           accountId: line.account,
           side: line.side,
           amount: line.amount,

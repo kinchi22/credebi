@@ -126,8 +126,9 @@ export const entryLines = pgTable(
       .notNull()
       .references(() => entries.id, { onDelete: 'cascade' }),
     lineNumber: smallint('line_number').notNull(),
-    account: text('account').notNull(),
-    accountId: uuid('account_id').references(() => accounts.id),
+    accountId: uuid('account_id')
+      .notNull()
+      .references(() => accounts.id),
     side: text('side').notNull(),
     amount: bigint('amount', { mode: 'number' }).notNull(),
   },

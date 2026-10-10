@@ -62,11 +62,11 @@ const SALES = '01920000-0000-7000-8000-00000000c004' as AccountId;
 const EXPENSES = '01920000-0000-7000-8000-00000000c005' as AccountId;
 
 const ADAS_CHART = [
-  [CASH, 'asset', 'Cash', 'cash'],
-  [PAYABLE, 'liability', 'Accounts payable', 'payable'],
-  [CAPITAL, 'equity', 'Capital', 'capital'],
-  [SALES, 'revenue', 'Sales', 'sales'],
-  [EXPENSES, 'expense', 'Expenses', 'expense'],
+  [CASH, 'asset', 'Cash'],
+  [PAYABLE, 'liability', 'Accounts payable'],
+  [CAPITAL, 'equity', 'Capital'],
+  [SALES, 'revenue', 'Sales'],
+  [EXPENSES, 'expense', 'Expenses'],
 ] as const;
 
 const NAMES = new Map(ADAS_CHART.map(([id, , name]) => [id, { id, name }]));
@@ -161,7 +161,7 @@ describe('createPostgresEntryRepository', () => {
     expect(logged).toEqual([]);
   });
 
-  it("writes each line's Account, and the code its Account type had before Accounts were data", async () => {
+  it("writes each line's Account", async () => {
     const saved = entry({
       lines: ADAS_CHART.map(([account], index) => ({
         account,
@@ -172,12 +172,10 @@ describe('createPostgresEntryRepository', () => {
 
     await repository.save(ADA, saved);
 
-    const rows = await database.execute<{ account: string; account_id: string }>(
-      sql`select account, account_id from entry_lines where entry_id = ${saved.id} order by line_number`,
+    const rows = await database.execute<{ account_id: string }>(
+      sql`select account_id from entry_lines where entry_id = ${saved.id} order by line_number`,
     );
-    expect(rows.rows).toEqual(
-      ADAS_CHART.map(([accountId, , , code]) => ({ account: code, account_id: accountId })),
-    );
+    expect(rows.rows).toEqual(ADAS_CHART.map(([accountId]) => ({ account_id: accountId })));
   });
 
   it("reads each line with its Account's name as it is now", async () => {

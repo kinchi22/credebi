@@ -95,8 +95,8 @@ async function storeEntry(
   );
   for (const [index, named] of lines.entries()) {
     await database.execute(
-      sql`insert into entry_lines (entry_id, line_number, account, account_id, side, amount)
-          values (${id}, ${index + 1}, 'cash', ${named.id}, ${index === 0 ? 'debit' : 'credit'}, 1000)`,
+      sql`insert into entry_lines (entry_id, line_number, account_id, side, amount)
+          values (${id}, ${index + 1}, ${named.id}, ${index === 0 ? 'debit' : 'credit'}, 1000)`,
     );
   }
   return id;
