@@ -588,7 +588,10 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   with the first row of its chips, which wrap beside it; it is a heading over
   its Accounts, not a control. The group is padded 8px above and below and
   bounded by 1px dashed rules across the Side's column, above and below, in
-  `border-control` at 55%; two groups that meet share one rule. The rules are
+  `border-control` at 55%; two groups that meet share one rule, and a group
+  draws none where it meets the edge of its Account type: none above when no
+  Account shows between it and the Band, none below when no Account shows
+  after it in the type. A search that hides Accounts moves those edges with it. The rules are
   decoration and carry no contrast pair. Ungrouped Accounts, wherever they fall
   in the User's order, are padded 6px above and below, carry no rule and leave
   the caption column empty. The picker draws no folder icon and no tree
