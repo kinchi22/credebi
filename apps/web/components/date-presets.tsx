@@ -39,7 +39,7 @@ export type DatePresetsProps = {
 
 type Choose = (range: DayRange) => void;
 
-const CHOICE = `whitespace-nowrap rounded px-1.5 py-1 text-left ${typeClasses['body-dense']} hover:bg-ground`;
+const CHOICE = `whitespace-nowrap rounded-control px-1.5 py-1 text-left ${typeClasses['body-dense']} hover:bg-ground`;
 const IDLE_CHOICE = `${CHOICE} text-text`;
 const CURRENT_CHOICE = `${CHOICE} font-semibold text-accent-text underline decoration-accent decoration-2 underline-offset-4`;
 
@@ -218,7 +218,7 @@ function ChoicesPanel({ id, children }: { readonly id: string; readonly children
       <div
         ref={panel}
         id={id}
-        className="relative flex max-h-72 flex-col gap-0.5 overflow-y-auto rounded border border-border bg-surface p-2"
+        className="relative flex max-h-72 flex-col gap-0.5 overflow-y-auto rounded-control border border-border bg-surface p-2"
       >
         {children}
       </div>

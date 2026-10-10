@@ -158,7 +158,7 @@ function LineFields({ id, line, active, onAmountChange, onRemove }: LineFieldsPr
           type="button"
           aria-label={en.multiLineForm.remove}
           onClick={onRemove}
-          className={`${REMOVE_COLUMN} h-7.5 ${BARE_ICON_BUTTON}`}
+          className={`${REMOVE_COLUMN} h-control ${BARE_ICON_BUTTON}`}
         >
           <CloseIcon />
         </button>

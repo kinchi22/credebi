@@ -1,4 +1,4 @@
-import { GoogleMark, Logo, PANEL } from '@repo/ui';
+import { GoogleMark, Logo, SIGN_IN_CARD } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { type ReactNode } from 'react';
 import { DANGER_TEXT } from '../../../components/text-classes';
@@ -27,7 +27,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps): Pro
 
   return (
     <main className="flex min-h-screen items-center justify-center p-4 wide:p-8">
-      <div className={`flex w-full flex-col gap-6 ${PANEL} px-5 py-7 wide:w-100 wide:px-10 wide:py-10`}>
+      <div className={`flex w-full flex-col gap-6 ${SIGN_IN_CARD} px-5 py-7 wide:w-100 wide:px-10 wide:py-10`}>
         <div className="flex justify-center">
           <Logo variant="stacked" tone="color" name={en.app.name} height={112} />
         </div>
@@ -39,7 +39,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps): Pro
         )}
         <a
           href={`/sign-in/google?${new URLSearchParams({ returnTo }).toString()}`}
-          className={`flex h-10 items-center justify-center gap-2.5 rounded border border-border-google bg-surface px-4 ${typeClasses['body-sm']} font-semibold text-text`}
+          className={`flex h-10 items-center justify-center gap-2.5 rounded-control border border-border-google bg-surface px-4 ${typeClasses['body-sm']} font-semibold text-text`}
         >
           <GoogleMark />
           {en.signInPage.google}

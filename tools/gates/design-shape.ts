@@ -1,6 +1,7 @@
 export type DesignTokens = {
   readonly colors: Readonly<Record<string, string>>;
   readonly typography: Readonly<Record<string, Readonly<Record<string, string>>>>;
+  readonly rounded: Readonly<Record<string, string>>;
 };
 
 const FRONT_MATTER = /^---\n([\s\S]*?)\n---\n/u;
@@ -19,15 +20,20 @@ const topLevelBlock = (frontMatter: string, key: string): readonly string[] => {
   return lines.slice(start + 1, end === -1 ? undefined : end);
 };
 
-export function readDesignTokens(document: string): DesignTokens {
-  const frontMatter = FRONT_MATTER.exec(document)?.[1] ?? '';
-  const colors: Record<string, string> = {};
-  for (const line of topLevelBlock(frontMatter, 'colors')) {
+const flatBlock = (frontMatter: string, key: string): Record<string, string> => {
+  const entries: Record<string, string> = {};
+  for (const line of topLevelBlock(frontMatter, key)) {
     const match = ENTRY.exec(line);
     if (match?.[2] !== undefined && match[3] !== undefined) {
-      colors[match[2]] = unquote(match[3]);
+      entries[match[2]] = unquote(match[3]);
     }
   }
+  return entries;
+};
+
+export function readDesignTokens(document: string): DesignTokens {
+  const frontMatter = FRONT_MATTER.exec(document)?.[1] ?? '';
+  const colors = flatBlock(frontMatter, 'colors');
   const typography: Record<string, Record<string, string>> = {};
   let step: Record<string, string> | undefined;
   for (const line of topLevelBlock(frontMatter, 'typography')) {
@@ -42,5 +48,5 @@ export function readDesignTokens(document: string): DesignTokens {
       step[match[2]] = unquote(match[3]);
     }
   }
-  return { colors, typography };
+  return { colors, typography, rounded: flatBlock(frontMatter, 'rounded') };
 }

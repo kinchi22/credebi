@@ -29,11 +29,11 @@ const LOGO_HEIGHT = 40;
 const BAR_LOGO_HEIGHT = 32;
 
 const ON_DARK_FOCUS = 'focus-visible:outline-focus-on-dark';
-const LINK = `flex items-center rounded px-3 py-2 ${ON_DARK_FOCUS}`;
+const LINK = `flex items-center rounded-control px-3 py-2 ${ON_DARK_FOCUS}`;
 const ACTIVE_LINK = `${LINK} bg-ground-dark-raised font-semibold text-text-on-dark`;
 const IDLE_LINK = `${LINK} text-text-muted-on-dark hover:text-text-on-dark`;
-const QUIET_BUTTON = `inline-flex items-center gap-2 rounded px-3 py-1 ${typeClasses['body-sm']} text-text-muted-on-dark hover:text-text-on-dark ${ON_DARK_FOCUS}`;
-const ICON_BUTTON = `-ml-2 inline-flex size-10 items-center justify-center rounded text-text-on-dark ${ON_DARK_FOCUS}`;
+const QUIET_BUTTON = `inline-flex items-center gap-2 rounded-control px-3 py-1 ${typeClasses['body-sm']} text-text-muted-on-dark hover:text-text-on-dark ${ON_DARK_FOCUS}`;
+const ICON_BUTTON = `-ml-2 inline-flex size-10 items-center justify-center rounded-control text-text-on-dark ${ON_DARK_FOCUS}`;
 const SIDEBAR = 'flex-col gap-4 bg-ground-dark p-4 text-text-on-dark';
 const WIDE_SIDEBAR = `hidden ${SIDEBAR} wide:sticky wide:top-0 wide:flex wide:h-screen wide:w-56 wide:shrink-0 wide:overflow-y-auto`;
 
@@ -103,7 +103,7 @@ export function Sidebar({ signOut }: SidebarProps): ReactNode {
         {...drawer.dialogProps}
         id={drawerId}
         onClick={drawer.closeOnScrim}
-        className="m-0 h-full max-h-none w-64 max-w-[calc(100%-3rem)] rounded-r border-0 bg-ground-dark p-0 backdrop:bg-ground-dark/60"
+        className="m-0 h-full max-h-none w-64 max-w-[calc(100%-3rem)] rounded-r-panel border-0 bg-ground-dark p-0 backdrop:bg-ground-dark/60"
       >
         <SidebarNav
           signOut={signOut}

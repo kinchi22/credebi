@@ -5,8 +5,6 @@ description: The brand palette, semantic tokens, type scale and logo rules of Cr
 omitted:
   - section: spacing
     reason: Spacing stays on Tailwind's default scale; no spacing token is decided.
-  - section: rounded
-    reason: Every corner radius is 4px, Tailwind's `rounded`; no radius token is decided.
 colors:
   mint: "#2FD0A2"
   mint-deep: "#0B7A5E"
@@ -112,16 +110,26 @@ typography:
     fontWeight: 400
     lineHeight: 20px
     fontFeature: '"tnum" 1'
+rounded:
+  control: 6px
+  panel: 8px
+  card: 12px
 components:
   button-primary:
     backgroundColor: "{colors.accent}"
     textColor: "{colors.text}"
+    rounded: "{rounded.control}"
+    height: 36px
   button-secondary:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.text}"
+    rounded: "{rounded.control}"
+    height: 36px
   button-danger:
     backgroundColor: "{colors.danger}"
     textColor: "{colors.surface}"
+    rounded: "{rounded.control}"
+    height: 36px
   button-quiet-on-dark:
     textColor: "{colors.text-muted-on-dark}"
   button-quiet-on-dark-hover:
@@ -141,11 +149,19 @@ components:
   input:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.text}"
+    rounded: "{rounded.control}"
+    height: 36px
   button-google:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.text}"
+    rounded: "{rounded.control}"
+    height: 40px
+  panel:
+    backgroundColor: "{colors.surface}"
+    rounded: "{rounded.panel}"
   sign-in-card:
     backgroundColor: "{colors.surface}"
+    rounded: "{rounded.card}"
 ---
 
 # Credebi design
@@ -343,16 +359,41 @@ reach the panel's edges at every width.
 
 ## Elevation & Depth
 
-Hierarchy comes from tonal layers, not shadows: `surface` panels with a
-`border` edge sit on the `ground`, and the Sidebar is the one dark layer.
+Hierarchy comes mainly from tonal layers: `surface` panels with a `border` edge
+sit on the `ground`, and the Sidebar is the one dark layer. Beside the layers,
+two shadows tinted from `ink`, `shadows` in the tokens module and
+`--shadow-lift` and `--shadow-lift-card` in the stylesheet:
+
+| Shadow      | Layers                                                  | On |
+| ----------- | ------------------------------------------------------- | -- |
+| `lift`      | `0 1px 2px` at 5% and `0 1px 3px` at 4%                 | every panel `PANEL` draws, and the Account picker |
+| `lift-card` | `0 1px 2px` at 5% and `0 12px 32px` at 8%               | the Sign in card |
+
+Nothing else casts a shadow: not a dialog, a menu, a chip or a control. The
+stylesheet resets `--shadow-*` to `initial`, so these two are the only shadow
+utilities, `shadow-lift` and `shadow-lift-card`, and the lint rule
+`repo/no-raw-color` reads their names from the tokens module.
 
 ## Shapes
 
-Every rounded corner is 4px, Tailwind's `rounded`, and no other radius is used:
-panels, controls, buttons, chips, menus and the Sign in card. A surface fixed
-to a screen edge rounds only its free corners: the Account sheet its top ones
-with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
-8px status dot takes the same 4px, which draws it as a circle.
+Three radii, `radii` in the tokens module and `rounded` above, and no other is
+used:
+
+| Radius    | Size | Utility           | On |
+| --------- | ---- | ----------------- | -- |
+| `control` | 6px  | `rounded-control` | inputs, buttons, chips, segments, menus, Sidebar links, Bands, the drag copy and drop marks, and a tree connector's corner |
+| `panel`   | 8px  | `rounded-panel`   | panels, the Account picker, dialogs and the Segmented control's strip |
+| `card`    | 12px | `rounded-card`    | the Sign in card |
+
+A surface fixed to a screen edge rounds only its free corners: the Account sheet
+its top ones with `rounded-t-panel`, the Sidebar drawer its right ones with
+`rounded-r-panel`. The 8px status dot is a circle, `rounded-full`, the one
+corner outside the three. The stylesheet resets `--radius-*` to `initial`, so a
+bare `rounded` or any of Tailwind's own radii draws a square corner.
+
+Every input, select, secondary, primary and danger button and Icon button on a
+light ground is 36px tall, `controlHeight` in the tokens module and
+`h-control` from `--height-control` in the stylesheet, at every width.
 
 ## Components
 
@@ -360,23 +401,27 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   is never used. It is kept for a page's main action: the entry form's submit
   and Entry search's submit. Every other button on a light ground is
   secondary, except the Google sign-in button, the danger button and the bare
-  icon buttons named below. A transparent edge as wide as an Input's border
-  makes it as tall as the Input it sits beside: Entry search's submit beside
-  the memo field, and the entry form's submit beside the amount field in
-  Two-line mode.
-- **Secondary button.** `surface` fill, `text`, a `border-control` edge.
-- **Danger button.** `danger` fill, `surface` text, semibold, with a
-  transparent edge as wide as a secondary button's, so the two stand the same
+  icon buttons named below. It is 36px tall, as an Input is, so it stands as
+  tall as the Input it sits beside: Entry search's submit beside the memo
+  field, and the entry form's submit beside the amount field in Two-line mode.
+  A transparent edge as wide as an Input's border keeps its text where a
+  secondary button's sits.
+- **Secondary button.** `surface` fill, `text`, a `border-control` edge, 36px
+  tall.
+- **Danger button.** `danger` fill, `surface` text, semibold, 36px tall, with
+  a transparent edge as wide as a secondary button's, so the two stand the same
   height side by side. It is kept for the action a confirmation dialog asks
   about when that action takes something away: `Delete` in `Delete entry`,
   `Delete account` and `Delete group`, and `Discard` in `Discard changes`.
 - **Google sign-in button.** "Sign in with Google" follows Google's sign-in
   branding rather than the primary button: a `surface` fill, `text`, a
   `border-google` edge, 40px tall and as wide as the Sign in card, with Google's
-  four-colour G, 18px, before its text. The G is hidden from assistive
+  four-colour G, 18px, before its text, and the `control` radius. It keeps
+  Google's 40px rather than the 36px of the app's own controls. The G is hidden from assistive
   technology, so the button's name is its text alone.
 - **Sign in card.** The sign-in page's one panel, centred on the `ground` both
-  ways. It is the panel's look, as `PANEL` in `packages/ui` draws it, with
+  ways. It is the panel's `surface` fill and `border` edge, as `SIGN_IN_CARD`
+  in `packages/ui` draws it, with the `card` radius, the `lift-card` shadow and
   roomier padding: 400px wide and 40px of padding from `wide` up; below `wide`
   as wide as the page gutter allows, with 28px above and below and 20px at the
   sides. Inside, 24px apart: the stacked Lockup, the `Sign in` heading (an `h1`
@@ -391,7 +436,8 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   name in place of text. It is `Menu`, a hamburger icon, in the bar that opens
   the Sidebar drawer.
 - **Segmented control.** A radiogroup drawn as one `surface` strip with a
-  `border-control` edge, each choice a segment. Only the chosen segment is
+  `border-control` edge and the `panel` radius, each choice a segment with the
+  `control` radius. Only the chosen segment is
   marked: an `accent` tint and the semibold weight. It is the Entry form mode in
   Settings, where each segment fills an equal share of the strip. From `wide`
   up the strip sits right of its legend and grows to fill the space beside it,
@@ -399,7 +445,7 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   decorative drawing of the mode at the top, its name, and a one-line
   description in `body-dense`, so the names of the two modes line up on one row
   and their descriptions side by side below them. The drawing is
-  rounded 4px bars, 72px wide at most: Two-line is two equal bars, one `debit`
+  4px bars with round ends, 72px wide at most: Two-line is two equal bars, one `debit`
   over one `credit`; Multi-line is four of varying length, two `debit` then two
   `credit`.
   Choosing a mode saves it silently, as the Accounts section saves: no
@@ -421,7 +467,7 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   folder icon, 16px in `text-muted`, between its grip and its name, semibold.
   The Accounts in a group hang from it by tree connectors, a 20px column
   before each Account's grip: `├` before each Account shown but the last, and
-  `└` before the last shown, its corner rounded 4px. The connectors' vertical
+  `└` before the last shown, its corner rounded by the `control` radius. The connectors' vertical
   runs under the folder icon's centre and starts below it, never over it. An
   Account outside a group has none, and an empty group draws none. The
   connectors follow the rows shown: with `Show ended accounts` off an ended
@@ -454,9 +500,8 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   marked as chosen: From and To state the range. Below `wide` the row is not
   shown: a secondary button holding a calendar icon, named `Choose a period`,
   sits beside From and To and opens the presets as a full-screen modal dialog on
-  the `ground`. The button is square and as tall as From and To: it keeps an
-  Input's edge and vertical padding, pads its sides by that same amount, and
-  its icon is as tall as an Input's line. A `surface` bar holds its title and a
+  the `ground`. The button is an Icon button: square, 36px, as tall as From
+  and To, with an Input's edge. A `surface` bar holds its title and a
   close icon, and below it the four categories are tabs running the sheet's
   full width with no side padding, the shown one underlined in `accent` and set
   in `accent-text`, semibold. Each tab lists its
@@ -464,7 +509,8 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   the sheet. Escape or the close icon closes it without choosing, and focus
   returns to the button.
 - **Account picker.** From `wide` up the Accounts to choose from sit right of
-  the entry form in a `ground` panel with a `border` edge. At its top a
+  the entry form in a `ground` panel with a `border` edge, the `panel` radius
+  and the `lift` shadow. At its top a
   `surface` strip holds a `Find an account` search field with a search icon
   inside its start, narrowing both Sides as the Account sheet's does, with the
   same `No account matches` line. From `wide` to below `split` one Side is
@@ -558,9 +604,9 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   total.
 - **Remove button.** A bare × icon in `text-muted`, `text` under the pointer,
   with no fill and no border, named `Remove`, on each Multi-line line: 32px
-  wide below `wide` and 24px from `wide` up, as tall as the amount field.
+  wide below `wide` and 24px from `wide` up, as tall as the amount field, 36px.
 - **Icon button.** A secondary button holding a stroke icon in place of text,
-  with an accessible name: square and as tall as the Input beside it, as
+  with an accessible name: square and 36px, as tall as the Input beside it, as
   `Choose a period` is.
 - **Entries list.** Laid out the same at every width, in Entries and in Entry
   search. Its panel shows no `Entries` heading, which is visually hidden, not
@@ -637,11 +683,12 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   nothing, and focus returns to the button that opened the edit.
 - **Link.** `accent-text`, underlined, and `accent-text-hover` under the
   pointer.
-- **Input.** `surface` fill, `text`, a `border-control` edge. The spec's
-  component properties have no border colour, so the edge is stated here only.
-  A date Input drops the browser's own drawing, so it is as tall as the text
-  Input beside it: the entry form's Date beside Memo, and Entry search's From
-  and To.
+- **Input.** `surface` fill, `text`, a `border-control` edge, the `control`
+  radius, 36px tall. The spec's component properties have no border colour, so
+  the edge is stated here only. A select is drawn the same. A date Input drops
+  the browser's own drawing, so it stands as tall as the text Input beside it:
+  the entry form's Date beside Memo, and Entry search's From and To. Focused,
+  it shows a 3px `accent` halo at 25% around its edge, beside the focus ring.
 - **Sidebar.** Dark: a `ground-dark` ground, `text-on-dark` text,
   `text-muted-on-dark` links, and the active item on `ground-dark-raised`. The
   logo there is the horizontal Lockup in the reverse tone. Sign out sits at the
@@ -653,7 +700,10 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   The bar's logo hides while it is open, so one logo shows. Escape, a click on
   the scrim or following a link closes it, and focus returns to `Menu`.
 - **Focus.** A 2px ring on every focusable element: `focus` on a light ground,
-  `focus-on-dark` on a dark one.
+  `focus-on-dark` on a dark one, 2px outside its edge. A focused Input adds a
+  3px `accent` halo at 25%, `ring-3 ring-accent/25`, around its edge and under
+  the ring. The halo is decoration beside the ring, which alone carries the focus,
+  so it has no contrast pair.
 - **Pointer.** Every enabled control a click acts on shows the pointer cursor:
   a button, a tab, a radio or checkbox and the label that wraps one. One base
   rule in `apps/web/app/globals.css` gives it, so no component sets a cursor of
@@ -721,7 +771,10 @@ hidden.
 - Do use `accent-text`, never `accent`, for mint text on a light ground.
 - Do set figures and dates in IBM Plex Mono with tabular numerals, and nothing
   else in it.
-- Don't round a corner by anything but 4px.
+- Don't round a corner by anything but the `control`, `panel` or `card`
+  radius; the status dot is the one circle.
+- Don't cast a shadow but `lift` on a panel and the Account picker and
+  `lift-card` on the Sign in card.
 - Don't set text below 11.5px.
 - Don't add a dark mapping before the dark theme Feature.
 
@@ -733,7 +786,7 @@ hidden.
 | Wordmark       | The name "Credebi" drawn as outlined glyphs, as the Wordmark paragraph under `Logo` states, with C and d in the accent colour of its tone. |
 | Lockup         | A fixed arrangement of the Mark and the Wordmark: horizontal or stacked. The Mark alone is also a variant of the logo. |
 | Semantic token | A colour named by its role, such as `text-muted` or `danger`, mapped onto a brand palette colour. Components use only these. |
-| Band           | A strip tinted `band` with 4px corners behind an Account type's name, set in `label` and `text`, so the Account types read apart from the groups and Accounts under them. It is drawn in the Accounts section, the Account picker and the Account sheet. |
-| Tree connector | A 1px `border-control` line from an Account group's folder icon to the Accounts in it: `├` before each Account shown but the last, `└`, rounded 4px, before the last shown. It is decoration, hidden from assistive technology. |
+| Band           | A strip tinted `band` with the `control` radius behind an Account type's name, set in `label` and `text`, so the Account types read apart from the groups and Accounts under them. It is drawn in the Accounts section, the Account picker and the Account sheet. |
+| Tree connector | A 1px `border-control` line from an Account group's folder icon to the Accounts in it: `├` before each Account shown but the last, `└`, its corner rounded by the `control` radius, before the last shown. It is decoration, hidden from assistive technology. |
 | Chip           | A choice drawn as a small inline box that sits beside others and wraps, rather than one per row; a chosen chip takes a fill and an edge. |
 | Scrim          | The `ground-dark` tint at 60% behind a modal dialog. A click on the scrim is a press that began on it as well as ended there: a press that began inside the dialog, as when selecting a field's text by dragging, and was released on the scrim closes nothing. |

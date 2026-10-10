@@ -210,9 +210,9 @@ type SideChoicesProps = {
 const FOCUSED_CHOICE =
   'peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus';
 
-const SHEET_CHOICE = `grow rounded px-2 py-1.5 text-text peer-checked:bg-accent/15 peer-checked:font-semibold ${FOCUSED_CHOICE}`;
+const SHEET_CHOICE = `grow rounded-control px-2 py-1.5 text-text peer-checked:bg-accent/15 peer-checked:font-semibold ${FOCUSED_CHOICE}`;
 
-const CHIP = `rounded border border-transparent px-1.5 py-1 text-text peer-checked:border-accent-text peer-checked:bg-surface peer-checked:font-semibold ${FOCUSED_CHOICE}`;
+const CHIP = `rounded-control border border-transparent px-1.5 py-1 text-text peer-checked:border-accent-text peer-checked:bg-surface peer-checked:font-semibold ${FOCUSED_CHOICE}`;
 
 type ChoicesLook = {
   readonly sideNameShown: boolean;
@@ -224,7 +224,7 @@ type ChoicesLook = {
   readonly choice: string;
 };
 
-const TYPE_BAND = `rounded bg-band px-2 py-1.5 ${typeClasses.label} text-text`;
+const TYPE_BAND = `rounded-control bg-band px-2 py-1.5 ${typeClasses.label} text-text`;
 
 const GROUP_NAME = 'flex items-center gap-1.5 pt-1 font-semibold';
 
@@ -466,7 +466,7 @@ function AccountColumns({
 
   return (
     <div
-      className={`hidden min-w-0 flex-col overflow-hidden rounded border border-border bg-ground wide:flex ${typeClasses['body-dense']}`}
+      className={`hidden min-w-0 flex-col overflow-hidden rounded-panel border border-border bg-ground shadow-lift wide:flex ${typeClasses['body-dense']}`}
     >
       <div className="relative flex items-center border-b border-border bg-surface px-4 py-3">
         <span className="pointer-events-none absolute left-7 flex text-text-muted">
@@ -548,7 +548,7 @@ function AccountSheetDialog({
       id={sheet.id}
       aria-labelledby={titleId}
       onClick={sheet.closeOnScrim}
-      className="mx-0 mt-auto mb-0 h-[calc(100%-4rem)] max-h-none w-full max-w-none rounded-t border-0 bg-ground p-0 text-text backdrop:bg-ground-dark/60"
+      className="mx-0 mt-auto mb-0 h-[calc(100%-4rem)] max-h-none w-full max-w-none rounded-t-panel border-0 bg-ground p-0 text-text backdrop:bg-ground-dark/60"
     >
       <div className="flex h-full flex-col">
         <SheetBar titleId={titleId} title={en.accountSheet.title}>
@@ -605,7 +605,7 @@ function AccountSheetDialog({
 
 function NoActiveAccount(): ReactNode {
   return (
-    <p className={`rounded border border-border bg-ground px-4 py-3 ${typeClasses['body-dense']}`}>
+    <p className={`rounded-panel border border-border bg-ground px-4 py-3 ${typeClasses['body-dense']}`}>
       {en.accountSheet.noActiveAccount}{' '}
       <Link href={SETTINGS_PATH} className={LINK}>
         {en.accountSheet.settingsLink}

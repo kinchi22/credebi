@@ -1,4 +1,4 @@
-export { PANEL, PANEL_BLEED, PANEL_TITLE, Panel } from './panel';
+export { PANEL, PANEL_BLEED, PANEL_TITLE, Panel, SIGN_IN_CARD } from './panel';
 export type { PanelProps } from './panel';
 
 export { StatusDot } from './status-dot';

@@ -222,7 +222,64 @@ export const breakpoints = {
   split: 1280,
 } as const satisfies Record<string, number>;
 
+export type RadiusName = 'control' | 'panel' | 'card';
+
+export const radii: Readonly<Record<RadiusName, number>> = {
+  control: 6,
+  panel: 8,
+  card: 12,
+};
+
+export const controlHeight = 36;
+
+export type ShadowLayer = {
+  readonly offsetY: number;
+  readonly blur: number;
+  readonly opacity: number;
+};
+
+export type Shadow = {
+  readonly tint: PaletteColor;
+  readonly layers: readonly ShadowLayer[];
+};
+
+export type ShadowName = 'lift' | 'lift-card';
+
+export const shadows: Readonly<Record<ShadowName, Shadow>> = {
+  lift: {
+    tint: 'ink',
+    layers: [
+      { offsetY: 1, blur: 2, opacity: 0.05 },
+      { offsetY: 1, blur: 3, opacity: 0.04 },
+    ],
+  },
+  'lift-card': {
+    tint: 'ink',
+    layers: [
+      { offsetY: 1, blur: 2, opacity: 0.05 },
+      { offsetY: 12, blur: 32, opacity: 0.08 },
+    ],
+  },
+};
+
 const ROOT_FONT_SIZE = 16;
+
+const px = (value: number): string => `${String(value)}px`;
+
+function rgbChannels(hex: string): string {
+  const rgb = Number.parseInt(hex.slice(1), 16);
+  return [(rgb >> 16) & 0xff, (rgb >> 8) & 0xff, rgb & 0xff].map(String).join(' ');
+}
+
+function shadowValue({ tint, layers }: Shadow): string {
+  const channels = rgbChannels(palette[tint]);
+  return layers
+    .map(
+      (layer) =>
+        `0 ${px(layer.offsetY)} ${px(layer.blur)} rgb(${channels} / ${String(layer.opacity)})`,
+    )
+    .join(', ');
+}
 
 const fontVariable = (family: FontFamily): string =>
   `--font-${family.toLowerCase().replaceAll(' ', '-')}`;
@@ -254,5 +311,14 @@ export function themeDeclarations(): Readonly<Record<string, string>> {
     `--breakpoint-${name}`,
     `${String(width / ROOT_FONT_SIZE)}rem`,
   ]);
-  return Object.fromEntries([...colors, ...faces, ...type, ...widths]);
+  const corners = Object.entries(radii).map(([name, radius]): [string, string] => [
+    `--radius-${name}`,
+    px(radius),
+  ]);
+  const lifts = Object.entries(shadows).map(([name, shadow]): [string, string] => [
+    `--shadow-${name}`,
+    shadowValue(shadow),
+  ]);
+  const heights: [string, string][] = [['--height-control', px(controlHeight)]];
+  return Object.fromEntries([...colors, ...faces, ...type, ...widths, ...corners, ...lifts, ...heights]);
 }

@@ -220,7 +220,7 @@ const utilityOf = (className) => (className.split(':').at(-1) ?? '').replace(/^[
 
 const withoutOpacity = (value) => value.replace(/\/[^/]*$/u, '');
 
-function namesANonTokenColor(className, allowed, textSizes) {
+function namesANonTokenColor(className, allowed, textSizes, shadows) {
   const name = utilityOf(className);
   if (allowed.has(name)) return false;
   const utility = COLOR_UTILITY.exec(name);
@@ -230,6 +230,7 @@ function namesANonTokenColor(className, allowed, textSizes) {
   if (!NAMED_VALUE.test(value)) return false;
   if (allowed.has(value) || NON_COLOR_VALUES.has(value)) return false;
   if (prefix === 'text' && textSizes.has(value)) return false;
+  if (prefix === 'shadow' && shadows.has(value)) return false;
   return !NON_COLOR_PREFIXES.some((start) => value.startsWith(start));
 }
 
@@ -247,6 +248,7 @@ const noRawColor = {
         properties: {
           colors: { type: 'array', items: { type: 'string' } },
           textSizes: { type: 'array', items: { type: 'string' } },
+          shadows: { type: 'array', items: { type: 'string' } },
         },
         additionalProperties: false,
       },
@@ -266,6 +268,7 @@ const noRawColor = {
     const options = context.options[0] ?? {};
     const allowed = new Set([...ALWAYS_ALLOWED, ...(options.colors ?? [])]);
     const textSizes = new Set(options.textSizes ?? []);
+    const shadows = new Set(options.shadows ?? []);
     const report = (node, messageId, text) => {
       context.report({ node, messageId, data: { text: JSON.stringify(text) } });
     };
@@ -277,7 +280,7 @@ const noRawColor = {
       for (const match of text.matchAll(COLOR_FUNCTION)) report(node, 'rawColor', match[0]);
       if (!CLASS_LIST.test(text.trim())) return;
       for (const className of text.trim().split(/\s+/u)) {
-        if (namesANonTokenColor(className, allowed, textSizes)) {
+        if (namesANonTokenColor(className, allowed, textSizes, shadows)) {
           report(node, 'nonTokenClass', className);
         }
       }

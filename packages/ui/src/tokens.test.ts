@@ -4,9 +4,12 @@ import {
   breakpoints,
   CONTROL_EDGE_MINIMUM,
   controlEdgePairs,
+  controlHeight,
   fontFaces,
   palette,
+  radii,
   semanticColors,
+  shadows,
   TEXT_MINIMUM,
   textPairs,
   themeDeclarations,
@@ -126,6 +129,35 @@ describe('the breakpoints', () => {
   });
 });
 
+describe('the shapes', () => {
+  it('rounds a control 6px, a panel 8px and the Sign in card 12px', () => {
+    expect(radii).toEqual({ control: 6, panel: 8, card: 12 });
+  });
+
+  it('stands every control on a light ground 36px tall', () => {
+    expect(controlHeight).toBe(36);
+  });
+
+  it('lifts a panel faintly and the Sign in card a little deeper, both tinted from ink', () => {
+    expect(shadows).toEqual({
+      lift: {
+        tint: 'ink',
+        layers: [
+          { offsetY: 1, blur: 2, opacity: 0.05 },
+          { offsetY: 1, blur: 3, opacity: 0.04 },
+        ],
+      },
+      'lift-card': {
+        tint: 'ink',
+        layers: [
+          { offsetY: 1, blur: 2, opacity: 0.05 },
+          { offsetY: 12, blur: 32, opacity: 0.08 },
+        ],
+      },
+    });
+  });
+});
+
 describe('themeDeclarations', () => {
   it('sets IBM Plex Sans as the sans face and IBM Plex Mono as the mono face, from the fonts the app serves', () => {
     const declarations = themeDeclarations();
@@ -170,15 +202,38 @@ describe('themeDeclarations', () => {
     expect(themeDeclarations()['--breakpoint-split']).toBe('80rem');
   });
 
-  it('declares nothing but the colours, the faces, the type scale and the breakpoints', () => {
+  it('declares each radius in px', () => {
+    const declarations = themeDeclarations();
+    expect(declarations['--radius-control']).toBe('6px');
+    expect(declarations['--radius-panel']).toBe('8px');
+    expect(declarations['--radius-card']).toBe('12px');
+  });
+
+  it('declares each shadow in the colour of its tint, layer by layer', () => {
+    const declarations = themeDeclarations();
+    expect(declarations['--shadow-lift']).toBe(
+      '0 1px 2px rgb(11 43 42 / 0.05), 0 1px 3px rgb(11 43 42 / 0.04)',
+    );
+    expect(declarations['--shadow-lift-card']).toBe(
+      '0 1px 2px rgb(11 43 42 / 0.05), 0 12px 32px rgb(11 43 42 / 0.08)',
+    );
+  });
+
+  it('declares the control height in px', () => {
+    expect(themeDeclarations()['--height-control']).toBe('36px');
+  });
+
+  it('declares nothing but the colours, the faces, the type scale, the breakpoints, the radii, the shadows and the control height', () => {
     const declarations = themeDeclarations();
     const colours = Object.keys(semanticColors).length;
     const faces = Object.keys(fontFaces).length;
     const typeSteps = Object.values(typeScale);
     const spacing = typeSteps.filter((step) => step.letterSpacing !== undefined).length;
     const widths = Object.keys(breakpoints).length;
+    const corners = Object.keys(radii).length;
+    const lifts = Object.keys(shadows).length;
     expect(Object.keys(declarations)).toHaveLength(
-      colours + faces + typeSteps.length * 3 + spacing + widths,
+      colours + faces + typeSteps.length * 3 + spacing + widths + corners + lifts + 1,
     );
   });
 });

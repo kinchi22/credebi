@@ -15,6 +15,7 @@ export declare function createEslintConfig(options: {
   readonly tokens?: {
     readonly colors: readonly string[];
     readonly textSizes: readonly string[];
+    readonly shadows: readonly string[];
   };
 }): readonly EslintConfigBlock[];
 
