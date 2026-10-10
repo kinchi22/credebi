@@ -175,6 +175,9 @@ export const en = {
       'The group was not deleted, because it still holds accounts. Move them out of it or delete them first.',
     ),
   },
+  entrySearchPage: {
+    heading: 'Entry search',
+  },
   entrySearch: {
     title: 'Search entries',
     from: 'From',
