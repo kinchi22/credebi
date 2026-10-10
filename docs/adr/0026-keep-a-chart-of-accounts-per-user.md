@@ -1,8 +1,9 @@
 # ADR-0026: Keep a chart of accounts per User
 
-**Status:** Deferred
+**Status:** Accepted
 **Date:** 2026-10-09
 **Trigger:** Feature #252, the owner managing their own Accounts in Settings.
+**Adopted:** 2026-10-10, PR #282
 
 ## Problem
 
