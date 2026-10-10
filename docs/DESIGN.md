@@ -350,6 +350,16 @@ width. Below `wide` the page gutter is 16px and a panel sits directly in it,
 with no box nested inside the panel; from `wide` up the gutter is 40px above and
 below and 56px at the sides.
 
+Each signed-in page is named by its one level-1 heading, `PAGE_HEADING` in
+`apps/web/components/text-classes.ts`: an `h1` in the `h1` step and `text`,
+first in `main` above the page's content, so it sits below the drawer bar under
+`wide` and beside the Sidebar from `wide` up. It reads `Entries`, `Entry search`
+or `Settings`, as the Sidebar link to the page does. The page's content starts
+20px below it under `wide` and 24px below it from `wide` up, while the panels
+under it stay 16px apart. No other heading on a signed-in page is an `h1`: the
+Entries panel keeps its visually hidden `Entries` heading, which names its
+region.
+
 A panel, as `PANEL` in `packages/ui` draws it, is padded 8px below `wide` and
 16px from `wide` up. A panel's own title, `PANEL_TITLE` beside it, is in `title`
 and `text`: `Panel`'s visible title, `New entry` and `Search entries`. A heading

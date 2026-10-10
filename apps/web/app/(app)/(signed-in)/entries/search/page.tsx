@@ -4,6 +4,7 @@ import { type ReactNode } from 'react';
 import { EntrySearchColdVisit } from '../../../../../components/entry-search-cold-visit';
 import { EntrySearchForm } from '../../../../../components/entry-search-form';
 import { EntrySearchOutcome } from '../../../../../components/entry-search-results';
+import { PAGE_HEADING } from '../../../../../components/text-classes';
 import { en } from '../../../../../messages/en';
 import { createContext } from '../../../../../server/context';
 import { answerEntrySearch } from '../../../../../server/entry-search';
@@ -18,6 +19,8 @@ export const dynamic = 'force-dynamic';
 export const metadata = {
   title: en.entrySearch.title,
 };
+
+const heading = <h1 className={PAGE_HEADING}>{en.entrySearchPage.heading}</h1>;
 
 type EntrySearchPageProps = {
   readonly searchParams: Promise<SearchQuery>;
@@ -38,10 +41,13 @@ export default async function EntrySearchPage({
       orSignIn(caller.accounts.chart(), path),
     ]);
     return (
-      <EntrySearchColdVisit
-        search={searchDefaultRange}
-        controls={{ chart, entryFormMode, editEntry, deleteEntry }}
-      />
+      <>
+        {heading}
+        <EntrySearchColdVisit
+          search={searchDefaultRange}
+          controls={{ chart, entryFormMode, editEntry, deleteEntry }}
+        />
+      </>
     );
   }
 
@@ -53,6 +59,7 @@ export default async function EntrySearchPage({
 
   return (
     <>
+      {heading}
       <EntrySearchForm criteria={answer.criteria} chart={chart} />
       <EntrySearchOutcome
         answer={answer}
