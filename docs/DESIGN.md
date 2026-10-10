@@ -230,7 +230,7 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `border-control`     | `steel`     | inputs, secondary buttons             |
 | `danger`             | `rust`      | refusals, errors                      |
 | `warning`            | `ochre`     | a degraded health status, a Difference not 0, a line not active on the day |
-| `positive`           | `mint-deep` | a healthy status, a saved confirmation |
+| `positive`           | `mint-deep` | a healthy status                      |
 | `focus`              | `mint-deep` | the 2px focus ring on a light ground  |
 | `focus-on-dark`      | `mint`      | the 2px focus ring on a dark ground   |
 | `debit`              | `cobalt`    | a Debit amount or label               |
@@ -387,6 +387,9 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   rounded 4px bars, 72px wide at most: Two-line is two equal bars, one `debit`
   over one `credit`; Multi-line is four of varying length, two `debit` then two
   `credit`.
+  Choosing a mode saves it silently, as the Accounts section saves: no
+  confirmation shows. A refused save puts the earlier mode back and shows the
+  refusal in `danger` below the strip.
 - **Settings row.** Settings has no panel: each setting is a row between
   `border` hairlines, its name on the left and its control on the right, and
   stacked below `wide`.
