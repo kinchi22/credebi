@@ -18,7 +18,7 @@ export function Panel({ title, titleHidden = false, children }: PanelProps): Rea
     <section aria-labelledby={titleId} className={PANEL}>
       <h2
         id={titleId}
-        className={titleHidden ? 'sr-only' : `mb-2 ${typeClasses.label} text-text-muted`}
+        className={titleHidden ? 'sr-only' : `mb-2 ${typeClasses.title} text-text`}
       >
         {title}
       </h2>

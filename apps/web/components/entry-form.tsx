@@ -209,7 +209,7 @@ export function EntryFormShell({
   const heading = (
     <>
       {variant.labelledBy === undefined ? (
-        <h2 id={`${id}-title`} className={`${typeClasses.label} text-text-muted`}>
+        <h2 id={`${id}-title`} className={`${typeClasses.title} text-text`}>
           {en.entryForm.title}
         </h2>
       ) : null}

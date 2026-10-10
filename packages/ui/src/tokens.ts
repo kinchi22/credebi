@@ -111,17 +111,18 @@ export type TypeStep = {
   readonly tabularNumerals: boolean;
 };
 
-export type FontFamily = 'Sora' | 'DM Mono';
+export type FontFamily = 'IBM Plex Sans' | 'IBM Plex Mono';
 
 export const fontFaces = {
-  sans: 'Sora',
-  mono: 'DM Mono',
+  sans: 'IBM Plex Sans',
+  mono: 'IBM Plex Mono',
 } as const satisfies Record<string, FontFamily>;
 
 export type TypeStepName =
   | 'display'
   | 'h1'
   | 'h2'
+  | 'title'
   | 'body'
   | 'body-sm'
   | 'body-dense'
@@ -131,7 +132,7 @@ export type TypeStepName =
 
 export const typeScale: Readonly<Record<TypeStepName, TypeStep>> = {
   display: {
-    fontFamily: 'Sora',
+    fontFamily: 'IBM Plex Sans',
     fontSize: 32,
     lineHeight: 40,
     fontWeight: 600,
@@ -140,32 +141,41 @@ export const typeScale: Readonly<Record<TypeStepName, TypeStep>> = {
     tabularNumerals: false,
   },
   h1: {
-    fontFamily: 'Sora',
-    fontSize: 28,
-    lineHeight: 36,
+    fontFamily: 'IBM Plex Sans',
+    fontSize: 22,
+    lineHeight: 30,
     fontWeight: 600,
-    letterSpacing: '-0.01em',
+    letterSpacing: '-0.015em',
     caps: false,
     tabularNumerals: false,
   },
   h2: {
-    fontFamily: 'Sora',
+    fontFamily: 'IBM Plex Sans',
     fontSize: 20,
     lineHeight: 28,
     fontWeight: 600,
     caps: false,
     tabularNumerals: false,
   },
-  body: {
-    fontFamily: 'Sora',
+  title: {
+    fontFamily: 'IBM Plex Sans',
     fontSize: 15,
-    lineHeight: 24,
+    lineHeight: 22,
+    fontWeight: 600,
+    letterSpacing: '-0.005em',
+    caps: false,
+    tabularNumerals: false,
+  },
+  body: {
+    fontFamily: 'IBM Plex Sans',
+    fontSize: 14,
+    lineHeight: 20,
     fontWeight: 400,
     caps: false,
     tabularNumerals: false,
   },
   'body-sm': {
-    fontFamily: 'Sora',
+    fontFamily: 'IBM Plex Sans',
     fontSize: 14,
     lineHeight: 20,
     fontWeight: 400,
@@ -173,7 +183,7 @@ export const typeScale: Readonly<Record<TypeStepName, TypeStep>> = {
     tabularNumerals: false,
   },
   'body-dense': {
-    fontFamily: 'Sora',
+    fontFamily: 'IBM Plex Sans',
     fontSize: 13,
     lineHeight: 20,
     fontWeight: 400,
@@ -181,16 +191,16 @@ export const typeScale: Readonly<Record<TypeStepName, TypeStep>> = {
     tabularNumerals: false,
   },
   label: {
-    fontFamily: 'DM Mono',
-    fontSize: 12,
+    fontFamily: 'IBM Plex Sans',
+    fontSize: 11.5,
     lineHeight: 16,
-    fontWeight: 400,
-    letterSpacing: '0.06em',
+    fontWeight: 600,
+    letterSpacing: '0.04em',
     caps: true,
     tabularNumerals: false,
   },
   figure: {
-    fontFamily: 'DM Mono',
+    fontFamily: 'IBM Plex Mono',
     fontSize: 14,
     lineHeight: 20,
     fontWeight: 400,
@@ -198,7 +208,7 @@ export const typeScale: Readonly<Record<TypeStepName, TypeStep>> = {
     tabularNumerals: true,
   },
   date: {
-    fontFamily: 'DM Mono',
+    fontFamily: 'IBM Plex Mono',
     fontSize: 13,
     lineHeight: 20,
     fontWeight: 400,

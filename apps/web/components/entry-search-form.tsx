@@ -59,7 +59,7 @@ export function EntrySearchForm({ criteria, chart }: EntrySearchFormProps): Reac
     >
       <h2
         id={`${id}-title`}
-        className={`w-full ${typeClasses.label} text-text-muted`}
+        className={`w-full ${typeClasses.title} text-text`}
       >
         {en.entrySearch.title}
       </h2>

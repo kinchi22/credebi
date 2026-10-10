@@ -57,51 +57,57 @@ colors:
   google-red: "{colors.scarlet}"
 typography:
   display:
-    fontFamily: Sora
+    fontFamily: IBM Plex Sans
     fontSize: 32px
     fontWeight: 600
     lineHeight: 40px
     letterSpacing: -0.01em
   h1:
-    fontFamily: Sora
-    fontSize: 28px
+    fontFamily: IBM Plex Sans
+    fontSize: 22px
     fontWeight: 600
-    lineHeight: 36px
-    letterSpacing: -0.01em
+    lineHeight: 30px
+    letterSpacing: -0.015em
   h2:
-    fontFamily: Sora
+    fontFamily: IBM Plex Sans
     fontSize: 20px
     fontWeight: 600
     lineHeight: 28px
-  body:
-    fontFamily: Sora
+  title:
+    fontFamily: IBM Plex Sans
     fontSize: 15px
+    fontWeight: 600
+    lineHeight: 22px
+    letterSpacing: -0.005em
+  body:
+    fontFamily: IBM Plex Sans
+    fontSize: 14px
     fontWeight: 400
-    lineHeight: 24px
+    lineHeight: 20px
   body-sm:
-    fontFamily: Sora
+    fontFamily: IBM Plex Sans
     fontSize: 14px
     fontWeight: 400
     lineHeight: 20px
   body-dense:
-    fontFamily: Sora
+    fontFamily: IBM Plex Sans
     fontSize: 13px
     fontWeight: 400
     lineHeight: 20px
   label:
-    fontFamily: DM Mono
-    fontSize: 12px
-    fontWeight: 400
+    fontFamily: IBM Plex Sans
+    fontSize: 11.5px
+    fontWeight: 600
     lineHeight: 16px
-    letterSpacing: 0.06em
+    letterSpacing: 0.04em
   figure:
-    fontFamily: DM Mono
+    fontFamily: IBM Plex Mono
     fontSize: 14px
     fontWeight: 400
     lineHeight: 20px
     fontFeature: '"tnum" 1'
   date:
-    fontFamily: DM Mono
+    fontFamily: IBM Plex Mono
     fontSize: 13px
     fontWeight: 400
     lineHeight: 20px
@@ -271,37 +277,42 @@ A new text colour or ground is added to these pairs in the same change.
 
 ## Typography
 
-Headings and body text are set in **Sora**: SemiBold for headings, Regular for
-reading. Labels, figures and dates are set in **DM Mono** Regular, so every
-column of amounts lines up, and a figure that must stand out, such as an Entry's
-total or a Difference that is not zero, is DM Mono Medium, weight 500
-(`font-medium`), never bold. Nothing is set below 12px.
+Text is set in **IBM Plex Sans**: SemiBold for headings, panel titles and
+labels, Regular for reading. Only figures and dates are set in a monospaced
+face, **IBM Plex Mono** Regular, so every column of amounts lines up; a label,
+a panel title or a Side's name is never monospaced. A figure that must stand
+out, such as an Entry's total or a Difference that is not zero, is IBM Plex
+Mono Medium, weight 500 (`font-medium`), never bold. Nothing is set below
+11.5px.
 
-| Step      | Face             | Size / line height | Letter spacing | Also             |
-| --------- | ---------------- | ------------------ | -------------- | ---------------- |
-| `display` | Sora SemiBold    | 32 / 40            | -0.01em        |                  |
-| `h1`      | Sora SemiBold    | 28 / 36            | -0.01em        |                  |
-| `h2`      | Sora SemiBold    | 20 / 28            |                |                  |
-| `body`    | Sora Regular     | 15 / 24            |                |                  |
-| `body-sm` | Sora Regular     | 14 / 20            |                |                  |
-| `body-dense` | Sora Regular  | 13 / 20            |                |                  |
-| `label`   | DM Mono Regular  | 12 / 16            | 0.06em         | capitals         |
-| `figure`  | DM Mono Regular  | 14 / 20            |                | tabular numerals |
-| `date`    | DM Mono Regular  | 13 / 20            |                | tabular numerals |
+| Step         | Face                   | Size / line height | Letter spacing | Also             |
+| ------------ | ---------------------- | ------------------ | -------------- | ---------------- |
+| `display`    | IBM Plex Sans SemiBold | 32 / 40            | -0.01em        |                  |
+| `h1`         | IBM Plex Sans SemiBold | 22 / 30            | -0.015em       |                  |
+| `h2`         | IBM Plex Sans SemiBold | 20 / 28            |                |                  |
+| `title`      | IBM Plex Sans SemiBold | 15 / 22            | -0.005em       |                  |
+| `body`       | IBM Plex Sans Regular  | 14 / 20            |                |                  |
+| `body-sm`    | IBM Plex Sans Regular  | 14 / 20            |                |                  |
+| `body-dense` | IBM Plex Sans Regular  | 13 / 20            |                |                  |
+| `label`      | IBM Plex Sans SemiBold | 11.5 / 16          | 0.04em         | capitals         |
+| `figure`     | IBM Plex Mono Regular  | 14 / 20            |                | tabular numerals |
+| `date`       | IBM Plex Mono Regular  | 13 / 20            |                | tabular numerals |
 
 Each step is a Tailwind `text-<step>` utility, which sets its size, line height,
 weight and letter spacing. The face, the capitals and the tabular numerals are
-applied beside it: `font-sans` is Sora and the page's default, `font-mono` is DM
-Mono, `uppercase` sets the capitals and `tabular-nums` the numerals.
-`typeClasses` in `packages/ui/src/type-classes.ts` holds each step's full set,
-and a component takes a step from it: a date, shown or typed, is
-`typeClasses.date`, an amount `typeClasses.figure`, and a section label
-`typeClasses.label`. `body-dense` is the entry form's step, so the form stays
-short. The fonts are served from the
-repository, never fetched from a font service at build or run time. The font
-files and their OFL licences are in `apps/web/app/fonts/`: the pages load the
-woff2 files through `next/font/local`, and the share image reads Sora as TTF, as
-"Metadata files" in `docs/ARCHITECTURE.md` states.
+applied beside it: `font-sans` is IBM Plex Sans and the page's default,
+`font-mono` is IBM Plex Mono, `uppercase` sets the capitals and `tabular-nums`
+the numerals. `typeClasses` in `packages/ui/src/type-classes.ts` holds each
+step's full set, and a component takes a step from it: a date, shown or typed,
+is `typeClasses.date`, an amount `typeClasses.figure`, a section label or a
+Side's name `typeClasses.label`, and a panel's visible title
+`typeClasses.title`. `body-dense` is the entry form's step, so the form stays
+short. The fonts are served from the repository, never fetched from a font
+service at build or run time. The font files and their OFL licences are in
+`apps/web/app/fonts/`: the pages load IBM Plex Sans 400, 500 and 600 and IBM
+Plex Mono 400 and 500 as Latin woff2 files through `next/font/local`, and the
+share image reads IBM Plex Sans Regular as TTF, as "Metadata files" in
+`docs/ARCHITECTURE.md` states.
 
 ## Layout
 
@@ -324,7 +335,8 @@ with no box nested inside the panel; from `wide` up the gutter is 40px above and
 below and 56px at the sides.
 
 A panel, as `PANEL` in `packages/ui` draws it, is padded 8px below `wide` and
-16px from `wide` up. `PANEL_BLEED` follows that padding, so the Entries rows
+16px from `wide` up. Its visible title, as `Panel` draws it and as the entry
+form and Entry search head theirs, is in `title` and `text`. `PANEL_BLEED` follows that padding, so the Entries rows
 reach the panel's edges at every width.
 
 ## Elevation & Depth
@@ -688,6 +700,13 @@ height. Keep at least x clear on every side of the Mark or a Lockup.
 **Don'ts.** Never stretch the logo, recolour it outside its tones, close the gap
 or the offset between the halves, or rotate it.
 
+**Wordmark.** The Wordmark stays outlined Sora SemiBold, fixed apart from the
+face the UI is set in: it is glyph data in `packages/ui/src/wordmark.ts`, a
+drawing rather than text, so it looks the same wherever the logo shows -- the
+Sidebar, the drawer bar, the Sign in card and the share image. Sora's OFL
+licence stays in `apps/web/app/fonts/Sora-OFL.txt` for it; no Sora font file is
+served.
+
 The logo is one image named "Credebi" to assistive technology; its parts are
 hidden.
 
@@ -698,9 +717,10 @@ hidden.
 - Do add a new text/background pair to the tokens module when a new pairing
   appears, so the contrast test checks it.
 - Do use `accent-text`, never `accent`, for mint text on a light ground.
-- Do set figures and dates in DM Mono with tabular numerals.
+- Do set figures and dates in IBM Plex Mono with tabular numerals, and nothing
+  else in it.
 - Don't round a corner by anything but 4px.
-- Don't set text below 12px.
+- Don't set text below 11.5px.
 - Don't add a dark mapping before the dark theme Feature.
 
 ## Terms
@@ -708,7 +728,7 @@ hidden.
 | Term           | Meaning |
 | -------------- | ------- |
 | Mark           | The Credebi symbol alone, the offset split coin, without any lettering. |
-| Wordmark       | The name "Credebi" set as outlined Sora SemiBold, with C and d in the accent colour of its tone. |
+| Wordmark       | The name "Credebi" drawn as outlined glyphs, as `Logo` states, with C and d in the accent colour of its tone. |
 | Lockup         | A fixed arrangement of the Mark and the Wordmark: horizontal or stacked. The Mark alone is also a variant of the logo. |
 | Semantic token | A colour named by its role, such as `text-muted` or `danger`, mapped onto a brand palette colour. Components use only these. |
 | Band           | A strip tinted `band` with 4px corners behind an Account type's name, set in `label`, medium and `text`, so the Account types read apart from the groups and Accounts under them. It is drawn in the Accounts section, the Account picker and the Account sheet. |
