@@ -29,9 +29,9 @@ import {
   type EntryFormProps,
   type SubmitButton,
 } from './entry-form';
-import { linesOnDay, offeredOn } from './lines-on-day';
+import { lineHoldingSubmit, linesOnDay, offeredOn } from './lines-on-day';
 import { SIDE_TONE, SIDES } from './side-classes';
-import { DANGER_TEXT } from './text-classes';
+import { DANGER_TEXT, FORM_REFUSAL } from './text-classes';
 
 type ChosenLine = DraftLine & {
   readonly account: AccountId;
@@ -134,7 +134,7 @@ function LineFields({ id, line, active, onAmountChange, onRemove }: LineFieldsPr
 
   return (
     <fieldset
-      aria-label={`${en.sides[line.side]} ${line.accountName}`}
+      aria-label={lineName(line)}
       className={`${LINE_GRID} items-center py-1 ${typeClasses['body-dense']}`}
     >
       <input type="hidden" name={ENTRY_FORM_FIELDS.account} value={line.account} />
@@ -171,7 +171,7 @@ type MultiLineFieldsProps = EntryFormParts & {
   readonly chart: ChartOutput;
 };
 
-type Refused = {
+type NotActiveRefusalRaised = {
   readonly day: string | undefined;
   readonly side: Side;
   readonly account: AccountId;
@@ -185,13 +185,16 @@ type NotActiveRefusalProps = {
 function NotActiveRefusal({ editing, line }: NotActiveRefusalProps): ReactNode {
   const { notActive } = en.multiLineForm;
   return (
-    <p role="alert" className={`min-w-0 flex-1 text-danger ${typeClasses['body-dense']}`}>
+    <p role="alert" className={FORM_REFUSAL}>
       {editing ? notActive.notSaved : notActive.notAdded} {lineName(line)} {notActive.refusal}
     </p>
   );
 }
 
-const heldSubmit = (submitButton: SubmitButton, hold: (() => void) | undefined): ReactNode =>
+const submitButtonHeldWith = (
+  submitButton: SubmitButton,
+  hold: (() => void) | undefined,
+): ReactNode =>
   submitButton(
     hold === undefined
       ? undefined
@@ -211,17 +214,19 @@ function MultiLineFields({
   submitButton,
 }: MultiLineFieldsProps): ReactNode {
   const [picked, setPicked] = useState<readonly ChosenLine[]>(() => linesOf(entry));
-  const [refused, setRefused] = useState<Refused>();
+  const [raised, setRaised] = useState<NotActiveRefusalRaised>();
+  if (raised !== undefined && raised.day !== day) {
+    setRaised(undefined);
+  }
   const sheet = useAccountSheet();
   const offered = offeredOn(chart, day);
   const lines = linesOnDay(offered, picked);
-  const [heldBy] = lines.notActive;
+  const holdingLine = lineHoldingSubmit(lines);
   const refusedLine =
-    refused !== undefined && refused.day === day
-      ? lines.notActive.find(isLine(refused.side, refused.account))
-      : undefined;
+    raised === undefined ? undefined : lines.notActive.find(isLine(raised.side, raised.account));
 
   const remove = (side: Side, account: AccountId): void => {
+    setRaised(undefined);
     setPicked((current) => current.filter((line) => !isLine(side, account)(line)));
   };
 
@@ -293,12 +298,12 @@ function MultiLineFields({
               <NotActiveRefusal editing={entry !== undefined} line={refusedLine} />
             )
           }
-          submitButton={heldSubmit(
+          submitButton={submitButtonHeldWith(
             submitButton,
-            heldBy === undefined
+            holdingLine === undefined
               ? undefined
               : () => {
-                  setRefused({ day, side: heldBy.side, account: heldBy.account });
+                  setRaised({ day, side: holdingLine.side, account: holdingLine.account });
                 },
           )}
         />

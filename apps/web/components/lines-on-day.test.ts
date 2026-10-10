@@ -1,6 +1,6 @@
 import type { AccountGroupId, AccountId, ChartOutput, Side } from '@repo/contracts';
 import { describe, expect, it } from 'vitest';
-import { linesOnDay, offeredOn } from './lines-on-day';
+import { lineHoldingSubmit, linesOnDay, offeredOn } from './lines-on-day';
 
 const id = (tail: string): string => `01920000-0000-7000-8000-${tail.padStart(12, '0')}`;
 
@@ -68,6 +68,25 @@ describe('offeredOn', () => {
       { kind: 'account', account: CASH },
       { kind: 'group', group: BANK, accounts: [NEW_BANK] },
     ]);
+  });
+});
+
+describe('lineHoldingSubmit', () => {
+  it('holds the submit by no line when every Account is active on the day', () => {
+    expect(lineHoldingSubmit(linesOnDay(offeredOn(CHART, '2026-09-30'), [DEBIT_WALLET, CREDIT_CASH]))).toBeUndefined();
+  });
+
+  it('holds the submit by the first line not active on the day, debits first', () => {
+    const lines = linesOnDay(offeredOn(CHART, '2026-09-15'), [
+      line('credit', NEW_BANK, '1'),
+      DEBIT_WALLET,
+      DEBIT_BANK,
+    ]);
+    expect(lineHoldingSubmit(lines)).toBe(DEBIT_BANK);
+  });
+
+  it('lets a form with no line submit', () => {
+    expect(lineHoldingSubmit(linesOnDay(offeredOn(CHART, '2026-09-15'), []))).toBeUndefined();
   });
 });
 

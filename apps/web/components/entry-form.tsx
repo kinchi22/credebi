@@ -24,6 +24,7 @@ import {
 import { en } from '../messages/en';
 import { useBrowserToday } from './browser-today';
 import { CONTROL, DATE_CONTROL, DENSE_FIELD, PRIMARY_BUTTON } from './control-classes';
+import { FORM_REFUSAL } from './text-classes';
 
 export type EntryFormState =
   | { readonly outcome: 'idle' }
@@ -246,7 +247,7 @@ export function EntryFormShell({
 
   const refusal =
     state.outcome === 'rejected' ? (
-      <p role="alert" className={`min-w-0 flex-1 text-danger ${typeClasses['body-dense']}`}>
+      <p role="alert" className={FORM_REFUSAL}>
         {variant.refusals[state.code]}
       </p>
     ) : null;

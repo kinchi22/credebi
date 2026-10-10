@@ -46,3 +46,7 @@ export function linesOnDay<Line extends AccountLine>(
   };
 }
 
+export const lineHoldingSubmit = <Line extends AccountLine>(
+  lines: LinesOnDay<Line>,
+): Line | undefined => lines.notActive[0];
+
