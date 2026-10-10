@@ -17,12 +17,14 @@ import {
   useId,
   useRef,
   useState,
+  type MouseEvent,
   type ReactNode,
   type SubmitEvent,
 } from 'react';
 import { en } from '../messages/en';
 import { useBrowserToday } from './browser-today';
 import { CONTROL, DATE_CONTROL, DENSE_FIELD, PRIMARY_BUTTON } from './control-classes';
+import { FORM_REFUSAL } from './text-classes';
 
 export type EntryFormState =
   | { readonly outcome: 'idle' }
@@ -49,8 +51,12 @@ export type EntryFormParts = {
   readonly entry: PostedEntry | undefined;
   readonly heading: ReactNode;
   readonly refusal: ReactNode;
-  readonly submitButton: ReactNode;
+  readonly submitButton: SubmitButton;
 };
+
+export type SubmitButton = (
+  onClick?: (event: MouseEvent<HTMLButtonElement>) => void,
+) => ReactNode;
 
 type EntryFormShellProps = Omit<EntryFormProps, 'chart'> & {
   readonly mode: EntryFormMode;
@@ -241,13 +247,18 @@ export function EntryFormShell({
 
   const refusal =
     state.outcome === 'rejected' ? (
-      <p role="alert" className={`min-w-0 flex-1 text-danger ${typeClasses['body-dense']}`}>
+      <p role="alert" className={FORM_REFUSAL}>
         {variant.refusals[state.code]}
       </p>
     ) : null;
 
-  const submitButton = (
-    <button type="submit" disabled={pending} className={`shrink-0 ${PRIMARY_BUTTON}`}>
+  const submitButton: SubmitButton = (onClick) => (
+    <button
+      type="submit"
+      disabled={pending}
+      onClick={onClick}
+      className={`shrink-0 ${PRIMARY_BUTTON}`}
+    >
       {pending ? variant.pending : variant.submit}
     </button>
   );

@@ -18,7 +18,6 @@ import {
   AccountRow,
   ChooseAccountButton,
   OutsideActivePeriod,
-  offeredOn,
   useAccountSheet,
   type AccountChoice,
 } from './account-picker';
@@ -30,6 +29,7 @@ import {
   type EntryFormProps,
 } from './entry-form';
 import { linesOn } from './entry-lines';
+import { offeredOn } from './lines-on-day';
 
 const NOTHING_CHOSEN: AccountChoice = { debit: undefined, credit: undefined };
 
@@ -98,7 +98,7 @@ function TwoLineFields({
               defaultValue={entry === undefined ? undefined : String(entry.total)}
             />
           </div>
-          {submitButton}
+          {submitButton()}
         </div>
         <OutsideActivePeriod entry={entry} offered={offered} />
         {refusal}

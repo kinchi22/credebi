@@ -229,7 +229,7 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `band`               | `fog`       | an Account-type heading's tinted band |
 | `border-control`     | `steel`     | inputs, secondary buttons             |
 | `danger`             | `rust`      | refusals, errors                      |
-| `warning`            | `ochre`     | a degraded health status              |
+| `warning`            | `ochre`     | a degraded health status, a Difference not 0, a line not active on the day |
 | `positive`           | `mint-deep` | a healthy status, a saved confirmation |
 | `focus`              | `mint-deep` | the 2px focus ring on a light ground  |
 | `focus-on-dark`      | `mint`      | the 2px focus ring on a dark ground   |
@@ -483,6 +483,20 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   widths, about 6:4, the Account's the wider: the left holds the Account name,
   semibold and wrapping; the right holds the amount field and, beside it, the
   Remove button.
+- **Line not active on the day.** In Multi-line mode a line whose Account is
+  not active on the Entry's day stays in the form with its amount, and below
+  its Account name `Not active on this day` in `body-dense` and `warning`. It
+  counts in neither Side's total nor the Difference, and choosing a day on which
+  its Account is active counts it again. While one is shown, the submit posts or
+  saves nothing: the refusal below the Difference row, in place of any earlier
+  one, names the first such line, debits first, as `<Side> <Account>`, and
+  every input is kept.
+  Removing that line or any change of day clears the refusal, and only a
+  submit shows it again. The mark on each line stands in for the form-wide
+  `outside the Active period` message, which Multi-line mode does not show. In
+  Two-line mode such an Account's choice is cleared instead, the required
+  choice holds the submit, and an edited Entry whose Account is cleared keeps
+  that message, with its link to Settings.
 - **Multi-line totals.** At every width each Side ends with its own total,
   `Debit total` or `Credit total` in `body-dense` and `text-muted`, its amount
   in `figure` on the line grid, right-aligned with the lines' amounts and

@@ -12,24 +12,13 @@ import {
   type Result,
   type Side,
 } from '@repo/contracts';
-import {
-  draftLinesInOrder,
-  draftTotals,
-  type DraftLine,
-  type DraftTotals,
-} from '@repo/core/entries';
+import { draftTotals, type DraftLine, type DraftTotals } from '@repo/core/entries';
 import { isZeroMoney } from '@repo/core/money';
 import { CloseIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useState, type ReactNode } from 'react';
 import { en } from '../messages/en';
-import {
-  AccountPicker,
-  AddAccountButton,
-  OutsideActivePeriod,
-  offeredOn,
-  useAccountSheet,
-} from './account-picker';
+import { AccountPicker, AddAccountButton, useAccountSheet } from './account-picker';
 import { formatAmount } from './amount';
 import { BARE_ICON_BUTTON } from './control-classes';
 import {
@@ -38,9 +27,11 @@ import {
   EntryFormShell,
   type EntryFormParts,
   type EntryFormProps,
+  type SubmitButton,
 } from './entry-form';
+import { lineHoldingSubmit, linesOnDay, offeredOn } from './lines-on-day';
 import { SIDE_TONE, SIDES } from './side-classes';
-import { DANGER_TEXT } from './text-classes';
+import { DANGER_TEXT, FORM_REFUSAL } from './text-classes';
 
 type ChosenLine = DraftLine & {
   readonly account: AccountId;
@@ -51,6 +42,8 @@ const isLine =
   (side: Side, account: AccountId) =>
   (line: ChosenLine): boolean =>
     line.side === side && line.account === account;
+
+const lineName = (line: ChosenLine): string => `${en.sides[line.side]} ${line.accountName}`;
 
 const linesOf = (entry: PostedEntry | undefined): readonly ChosenLine[] =>
   (entry?.lines ?? []).map((line) => ({
@@ -131,23 +124,27 @@ function DifferenceRow({ totals, refusal, submitButton }: DifferenceRowProps): R
 type LineFieldsProps = {
   readonly id: string;
   readonly line: ChosenLine;
+  readonly active: boolean;
   readonly onAmountChange: (amount: string) => void;
   readonly onRemove: () => void;
 };
 
-function LineFields({ id, line, onAmountChange, onRemove }: LineFieldsProps): ReactNode {
+function LineFields({ id, line, active, onAmountChange, onRemove }: LineFieldsProps): ReactNode {
   const lineId = `${id}-${line.side}-${line.account}`;
 
   return (
     <fieldset
-      aria-label={`${en.sides[line.side]} ${line.accountName}`}
+      aria-label={lineName(line)}
       className={`${LINE_GRID} items-center py-1 ${typeClasses['body-dense']}`}
     >
       <input type="hidden" name={ENTRY_FORM_FIELDS.account} value={line.account} />
       <input type="hidden" name={ENTRY_FORM_FIELDS.side} value={line.side} />
-      <p aria-hidden className="min-w-0 font-semibold break-words">
-        {line.accountName}
-      </p>
+      <div className="flex min-w-0 flex-col">
+        <p aria-hidden className="font-semibold break-words">
+          {line.accountName}
+        </p>
+        {active ? null : <p className="text-warning">{en.multiLineForm.notActive.mark}</p>}
+      </div>
       <div className={`${AMOUNT_COLUMN} items-center`}>
         <div className="min-w-0 grow">
           <AmountInput
@@ -174,6 +171,39 @@ type MultiLineFieldsProps = EntryFormParts & {
   readonly chart: ChartOutput;
 };
 
+type NotActiveRefusalRaised = {
+  readonly day: string | undefined;
+  readonly side: Side;
+  readonly account: AccountId;
+};
+
+type NotActiveRefusalProps = {
+  readonly editing: boolean;
+  readonly line: ChosenLine;
+};
+
+function NotActiveRefusal({ editing, line }: NotActiveRefusalProps): ReactNode {
+  const { notActive } = en.multiLineForm;
+  return (
+    <p role="alert" className={FORM_REFUSAL}>
+      {editing ? notActive.notSaved : notActive.notAdded} {lineName(line)} {notActive.refusal}
+    </p>
+  );
+}
+
+const submitButtonHeldWith = (
+  submitButton: SubmitButton,
+  hold: (() => void) | undefined,
+): ReactNode =>
+  submitButton(
+    hold === undefined
+      ? undefined
+      : (event) => {
+          event.preventDefault();
+          hold();
+        },
+  );
+
 function MultiLineFields({
   id,
   day,
@@ -184,11 +214,19 @@ function MultiLineFields({
   submitButton,
 }: MultiLineFieldsProps): ReactNode {
   const [picked, setPicked] = useState<readonly ChosenLine[]>(() => linesOf(entry));
+  const [raised, setRaised] = useState<NotActiveRefusalRaised>();
+  if (raised !== undefined && raised.day !== day) {
+    setRaised(undefined);
+  }
   const sheet = useAccountSheet();
   const offered = offeredOn(chart, day);
-  const chosen = picked.filter((line) => offered.ids.has(line.account));
+  const lines = linesOnDay(offered, picked);
+  const holdingLine = lineHoldingSubmit(lines);
+  const refusedLine =
+    raised === undefined ? undefined : lines.notActive.find(isLine(raised.side, raised.account));
 
   const remove = (side: Side, account: AccountId): void => {
+    setRaised(undefined);
     setPicked((current) => current.filter((line) => !isLine(side, account)(line)));
   };
 
@@ -210,9 +248,10 @@ function MultiLineFields({
   };
 
   const isChosen = (side: Side, account: AccountId): boolean =>
-    chosen.some(isLine(side, account));
+    picked.some(isLine(side, account));
 
-  const totals = draftTotals(chosen);
+  const totals = draftTotals(lines.counted);
+  const isActive = (line: ChosenLine): boolean => !lines.notActive.includes(line);
 
   return (
     <div className={ENTRY_FORM_GRID}>
@@ -220,18 +259,19 @@ function MultiLineFields({
         {heading}
         <div className="flex flex-col">
           {SIDES.map((side) => {
-            const lines = draftLinesInOrder(chosen).filter((line) => line.side === side);
+            const sideLines = picked.filter((line) => line.side === side);
             return (
               <div key={side} className={`flex flex-col border-t-2 pt-2 ${SIDE_TONE[side].edge}`}>
                 <p aria-hidden className={`${typeClasses.label} pb-1 ${SIDE_TONE[side].text}`}>
                   {en.sides[side]}
                 </p>
                 <div className="flex flex-col">
-                  {lines.map((line) => (
+                  {sideLines.map((line) => (
                     <LineFields
                       key={`${line.side}-${line.account}`}
                       id={id}
                       line={line}
+                      active={isActive(line)}
                       onAmountChange={(amount) => {
                         changeAmount(line.side, line.account, amount);
                       }}
@@ -243,14 +283,30 @@ function MultiLineFields({
                 </div>
                 {offered.ids.size === 0 ? null : <AddAccountButton side={side} sheet={sheet} />}
                 {totals.ok ? (
-                  <SideTotal side={side} amount={totals.value[side]} ruled={lines.length > 0} />
+                  <SideTotal side={side} amount={totals.value[side]} ruled={sideLines.length > 0} />
                 ) : null}
               </div>
             );
           })}
         </div>
-        <OutsideActivePeriod entry={entry} offered={offered} />
-        <DifferenceRow totals={totals} refusal={refusal} submitButton={submitButton} />
+        <DifferenceRow
+          totals={totals}
+          refusal={
+            refusedLine === undefined ? (
+              refusal
+            ) : (
+              <NotActiveRefusal editing={entry !== undefined} line={refusedLine} />
+            )
+          }
+          submitButton={submitButtonHeldWith(
+            submitButton,
+            holdingLine === undefined
+              ? undefined
+              : () => {
+                  setRaised({ day, side: holdingLine.side, account: holdingLine.account });
+                },
+          )}
+        />
       </div>
       <AccountPicker
         id={id}
