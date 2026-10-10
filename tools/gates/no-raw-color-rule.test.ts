@@ -10,7 +10,11 @@ const { rules } = repoPlugin as { readonly rules: Readonly<Record<string, Rule.R
 const rule = rules['no-raw-color'];
 if (rule === undefined) throw new Error('repo/no-raw-color is not in the repository plugin');
 
-const tokens = { colors: ['surface', 'text', 'text-on-dark', 'danger'], textSizes: ['h1', 'body'] };
+const tokens = {
+  colors: ['surface', 'text', 'text-on-dark', 'danger'],
+  textSizes: ['h1', 'body'],
+  shadows: ['lift'],
+};
 
 const tester = new RuleTester({
   languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
@@ -34,6 +38,7 @@ tester.run('repo/no-raw-color', rule, {
     valid('const classes = "bg-surface text-text hover:text-danger text-h1 border-2 bg-transparent";'),
     valid('const classes = "text-2xl text-left border-dashed ring-offset-2 shadow-sm outline-none";'),
     valid('const classes = "bg-linear-to-r bg-clip-text fill-none divide-y border-x text-current";'),
+    valid('const classes = "shadow-lift wide:shadow-lift";'),
     valid('const fill = "text-on-dark";'),
     valid('const copy = "Up to-date entries";'),
   ],
@@ -50,6 +55,8 @@ tester.run('repo/no-raw-color', rule, {
     invalid('const classes = "hover:bg-white/50";', ['nonTokenClass']),
     invalid('const classes = "bg-mint";', ['nonTokenClass']),
     invalid('const classes = "text-foo";', ['nonTokenClass']),
+    invalid('const classes = "shadow-foo";', ['nonTokenClass']),
+    invalid('const classes = "text-lift";', ['nonTokenClass']),
     invalid('const classes = "!border-ink";', ['nonTokenClass']),
     invalid('const classes = `p-2 ${"x"} ring-emerald-500`;', ['nonTokenClass']),
   ],

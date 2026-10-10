@@ -4,6 +4,7 @@ import { type ReactNode } from 'react';
 import { type EntryFormProps } from '../../../../components/entry-form';
 import { EntryList } from '../../../../components/entry-list';
 import { MultiLineEntryForm } from '../../../../components/multi-line-entry-form';
+import { PAGE_HEADING } from '../../../../components/text-classes';
 import { TwoLineEntryForm } from '../../../../components/two-line-entry-form';
 import { en } from '../../../../messages/en';
 import { createContext } from '../../../../server/context';
@@ -34,6 +35,7 @@ export default async function EntriesPage(): Promise<ReactNode> {
 
   return (
     <>
+      <h1 className={PAGE_HEADING}>{en.entriesPage.title}</h1>
       <EntryForm action={postEntry} chart={chart} />
       <EntryList
         entries={entries}

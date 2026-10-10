@@ -25,17 +25,21 @@ describe('typeClasses', () => {
     },
   );
 
-  it('sets dates and amounts in DM Mono with tabular numerals', () => {
+  it('sets dates and amounts in IBM Plex Mono with tabular numerals', () => {
     expect(typeClasses.date).toBe('text-date font-mono tabular-nums');
     expect(typeClasses.figure).toBe('text-figure font-mono tabular-nums');
   });
 
-  it('sets the dense body step of the entry form in Sora', () => {
+  it('sets the dense body step of the entry form in IBM Plex Sans', () => {
     expect(typeClasses['body-dense']).toBe('text-body-dense font-sans');
   });
 
-  it('sets labels in DM Mono capitals and body text in Sora', () => {
-    expect(typeClasses.label).toBe('text-label font-mono uppercase');
+  it('sets labels in capitals, in the same sans face as body text', () => {
+    expect(typeClasses.label).toBe('text-label font-sans uppercase');
     expect(typeClasses.body).toBe('text-body font-sans');
+  });
+
+  it('sets a panel title in IBM Plex Sans', () => {
+    expect(typeClasses.title).toBe('text-title font-sans');
   });
 });

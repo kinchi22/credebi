@@ -14,7 +14,7 @@ import {
   type DomainErrorCode,
   type MoveChartNodeInput,
 } from '@repo/contracts';
-import { PencilIcon, TrashIcon } from '@repo/ui';
+import { PANEL, PencilIcon, TrashIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useId, useOptimistic, useState, useTransition, type ReactNode } from 'react';
 import { en } from '../messages/en';
@@ -36,6 +36,7 @@ import { LEGEND, ROW_ICON_BUTTON } from './control-classes';
 import { useModalDialog } from './modal-dialog';
 import { DANGER_TEXT } from './text-classes';
 import { GroupFolder, TreeBranch } from './tree-branch';
+import { Band } from './type-band';
 
 export type AccountsSectionProps = {
   readonly chart: ChartOutput;
@@ -217,7 +218,7 @@ function GroupRow({
   );
 }
 
-function TypeBand({
+function SectionBand({
   accountType,
   id,
   held,
@@ -229,10 +230,7 @@ function TypeBand({
   readonly open: Open;
 }): ReactNode {
   return (
-    <div className="flex items-center justify-between gap-3 rounded bg-band px-3 py-2">
-      <span id={id} className={`${typeClasses.label} font-medium text-text`}>
-        {en.accountTypes[accountType]}
-      </span>
+    <Band accountType={accountType} id={id} className="px-3 py-2">
       <span className="flex gap-3">
         <button
           type="button"
@@ -257,7 +255,7 @@ function TypeBand({
           {en.accountsSection.addGroupText}
         </button>
       </span>
-    </div>
+    </Band>
   );
 }
 
@@ -357,7 +355,7 @@ export function AccountsSection({ chart, actions }: AccountsSectionProps): React
     <section
       aria-labelledby={titleId}
       aria-busy={held}
-      className="flex flex-col gap-2 border-b border-border pb-4"
+      className="flex flex-col gap-2 border-b border-border py-5"
     >
       <div className="flex items-center justify-between gap-3">
         <h3 id={titleId} className={LEGEND}>
@@ -381,10 +379,10 @@ export function AccountsSection({ chart, actions }: AccountsSectionProps): React
         </p>
       )}
       <ChartDrag chart={shown} held={held} onMove={move}>
-        <div className={`flex flex-col gap-4 ${typeClasses['body-sm']} ${stillWhileHeld}`}>
+        <div className={`${PANEL} flex flex-col gap-4 ${typeClasses['body-sm']} ${stillWhileHeld}`}>
           {accountTypeSchema.options.map((accountType) => (
             <div key={accountType} role="group" aria-labelledby={`${bandId}-${accountType}`}>
-              <TypeBand
+              <SectionBand
                 accountType={accountType}
                 id={`${bandId}-${accountType}`}
                 held={held}

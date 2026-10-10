@@ -20,23 +20,33 @@ const themeBlock = (css: string): Readonly<Record<string, string>> =>
 
 const COLOUR_RESET = '--color-*';
 const BREAKPOINT_RESET = '--breakpoint-*';
+const RADIUS_RESET = '--radius-*';
+const SHADOW_RESET = '--shadow-*';
 
 describe('the global stylesheet', () => {
-  it('declares in @theme exactly the tokens the tokens module holds, after resetting the colours and the breakpoints', () => {
+  it('declares in @theme exactly the tokens the tokens module holds, after resetting the colours, the breakpoints, the radii and the shadows', () => {
     const {
       [COLOUR_RESET]: colourReset,
       [BREAKPOINT_RESET]: breakpointReset,
+      [RADIUS_RESET]: radiusReset,
+      [SHADOW_RESET]: shadowReset,
       ...declarations
     } = themeBlock(stylesheet);
-    expect(colourReset).toBe('initial');
-    expect(breakpointReset).toBe('initial');
+    expect([colourReset, breakpointReset, radiusReset, shadowReset]).toEqual([
+      'initial',
+      'initial',
+      'initial',
+      'initial',
+    ]);
     expect(declarations).toEqual(themeDeclarations());
   });
 
-  it('resets the colours and the breakpoints before declaring any token, so only token colours and token breakpoints exist', () => {
-    expect(themeLines(stylesheet).slice(0, 2).map((line) => line.trim())).toEqual([
+  it('resets the colours, the breakpoints, the radii and the shadows before declaring any token, so only token ones exist', () => {
+    expect(themeLines(stylesheet).slice(0, 4).map((line) => line.trim())).toEqual([
       `${COLOUR_RESET}: initial;`,
       `${BREAKPOINT_RESET}: initial;`,
+      `${RADIUS_RESET}: initial;`,
+      `${SHADOW_RESET}: initial;`,
     ]);
   });
 

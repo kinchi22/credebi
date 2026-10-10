@@ -161,11 +161,11 @@ const ListIds = createContext<readonly string[]>([]);
 
 const Held = createContext(false);
 
-const LINE = 'before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:-translate-y-1/2 before:rounded before:bg-accent';
+const LINE = 'before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:-translate-y-1/2 before:rounded-control before:bg-accent';
 
-const LINE_AT_END = 'after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded after:bg-accent';
+const LINE_AT_END = 'after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-control after:bg-accent';
 
-const GROUP_HIGHLIGHT = 'rounded bg-accent/15 ring-1 ring-inset ring-accent';
+const GROUP_HIGHLIGHT = 'rounded-control bg-accent/15 ring-1 ring-inset ring-accent';
 
 const keyOf = ({ landing, over }: Landed): string =>
   landing === undefined
@@ -178,7 +178,7 @@ function Overlay({ moving, rows }: { readonly moving: NodeData | undefined; read
     <DragOverlay dropAnimation={null}>
       {moving === undefined || row === undefined ? null : (
         <div
-          className={`flex items-center gap-2 rounded border border-accent bg-surface px-2 py-1.5 ${typeClasses['body-sm']}`}
+          className={`flex items-center gap-2 rounded-control border border-accent bg-surface px-2 py-1.5 ${typeClasses['body-sm']}`}
         >
           <span className={`${BARE_ICON_BUTTON} shrink-0 cursor-grabbing`}>
             <GripIcon />

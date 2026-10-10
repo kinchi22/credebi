@@ -4,21 +4,22 @@ import { type ReactNode } from 'react';
 import { en } from '../messages/en';
 import './globals.css';
 
-const sora = localFont({
+const plexSans = localFont({
   src: [
-    { path: './fonts/Sora-Regular.woff2', weight: '400', style: 'normal' },
-    { path: './fonts/Sora-SemiBold.woff2', weight: '600', style: 'normal' },
+    { path: './fonts/IBMPlexSans-Regular.woff2', weight: '400', style: 'normal' },
+    { path: './fonts/IBMPlexSans-Medium.woff2', weight: '500', style: 'normal' },
+    { path: './fonts/IBMPlexSans-SemiBold.woff2', weight: '600', style: 'normal' },
   ],
-  variable: '--font-sora',
+  variable: '--font-ibm-plex-sans',
   display: 'swap',
 });
 
-const dmMono = localFont({
+const plexMono = localFont({
   src: [
-    { path: './fonts/DMMono-Regular.woff2', weight: '400', style: 'normal' },
-    { path: './fonts/DMMono-Medium.woff2', weight: '500', style: 'normal' },
+    { path: './fonts/IBMPlexMono-Regular.woff2', weight: '400', style: 'normal' },
+    { path: './fonts/IBMPlexMono-Medium.woff2', weight: '500', style: 'normal' },
   ],
-  variable: '--font-dm-mono',
+  variable: '--font-ibm-plex-mono',
   display: 'swap',
 });
 
@@ -30,7 +31,7 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }): ReactNode {
   return (
-    <html lang="en" className={`${sora.variable} ${dmMono.variable}`}>
+    <html lang="en" className={`${plexSans.variable} ${plexMono.variable}`}>
       <body className={`bg-ground ${typeClasses.body} text-text antialiased`}>{children}</body>
     </html>
   );

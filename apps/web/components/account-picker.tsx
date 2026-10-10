@@ -3,11 +3,8 @@
 import {
   ENTRY_FORM_FIELDS,
   accountsIn,
-  nodesOfType,
-  type AccountGroupOutput,
   type AccountId,
   type AccountOutput,
-  type AccountType,
   type ChartOutput,
   type PostedEntry,
   type Side,
@@ -19,16 +16,25 @@ import Link from 'next/link';
 import { Fragment, useId, useState, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { SETTINGS_PATH } from '../server/return-path';
-import { CONTROL, PRIMARY_BUTTON } from './control-classes';
+import { CONTROL, PRIMARY_BUTTON, SEARCH_ON_STRIP } from './control-classes';
 import { useHydrated } from './hydrated';
 import { useModalDialog, type ModalDialog } from './modal-dialog';
-import { branchesOf, nameContains, type Branch } from './chart-tree';
+import {
+  branchesOf,
+  nameContains,
+  ruledRunsOf,
+  runsOf,
+  type Branch,
+  type GroupRules,
+  type Run,
+} from './chart-tree';
 import { CloseButton } from './close-button';
 import { type Offered } from './lines-on-day';
 import { SheetBar, SheetTabs } from './sheet';
 import { SIDE_TONE, SIDES } from './side-classes';
 import { LINK } from './text-classes';
-import { GroupFolder, TreeBranch, TreeHook } from './tree-branch';
+import { GroupFolder, TreeBranch } from './tree-branch';
+import { Band } from './type-band';
 import { useWide } from './wide';
 
 export type AccountChoice = Readonly<Record<Side, AccountOutput | undefined>>;
@@ -146,7 +152,7 @@ export function ChooseAccountButton({ side, account, sheet }: ChooseAccountButto
       onClick={(event) => {
         sheet.openOn(side, event.currentTarget);
       }}
-      className={`flex min-h-10 w-full items-center gap-3 border-t-2 py-1 text-left disabled:opacity-50 wide:hidden ${SIDE_TONE[side].edge}`}
+      className={`flex min-h-10 w-full items-center gap-3 border-t-2 py-3 text-left disabled:opacity-50 wide:hidden ${SIDE_TONE[side].edge}`}
     >
       <AccountRowContent side={side} account={account} placeholderInSideTone />
       {account === undefined ? null : (
@@ -165,7 +171,7 @@ type AccountRowProps = {
 
 export function AccountRow({ side, account }: AccountRowProps): ReactNode {
   return (
-    <div className={`hidden items-center gap-3 border-t-2 py-1 wide:flex ${SIDE_TONE[side].edge}`}>
+    <div className={`hidden items-center gap-3 border-t-2 py-3 wide:flex ${SIDE_TONE[side].edge}`}>
       <AccountRowContent side={side} account={account} placeholderInSideTone={false} />
     </div>
   );
@@ -210,68 +216,42 @@ type SideChoicesProps = {
 const FOCUSED_CHOICE =
   'peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus';
 
-const SHEET_CHOICE = `grow rounded px-2 py-1.5 text-text peer-checked:bg-accent/15 peer-checked:font-semibold ${FOCUSED_CHOICE}`;
+const SHEET_CHOICE = `grow rounded-control px-2 py-1.5 text-text peer-checked:bg-accent/15 peer-checked:font-semibold ${FOCUSED_CHOICE}`;
 
-const CHIP = `rounded border border-transparent px-1.5 py-1 text-text peer-checked:border-accent-text peer-checked:bg-surface peer-checked:font-semibold ${FOCUSED_CHOICE}`;
+const CHIP = `rounded-control border border-border px-1.5 py-1 text-text peer-not-checked:peer-hover:border-border-control peer-checked:border-accent-text peer-checked:bg-surface-chosen peer-checked:font-medium ${FOCUSED_CHOICE}`;
 
 type ChoicesLook = {
   readonly sideNameShown: boolean;
-  readonly groupName: string;
+  readonly groups: 'tree' | 'captions';
   readonly accounts: string;
-  readonly groupAccounts: string;
-  readonly tree: 'branches' | 'hook';
   readonly account: string;
   readonly choice: string;
 };
 
-const TYPE_BAND = `rounded bg-band px-2 py-1.5 ${typeClasses.label} font-medium text-text`;
-
-const GROUP_NAME = 'flex items-center gap-1.5 pt-1 font-semibold';
-
 const SHEET_LOOK: ChoicesLook = {
   sideNameShown: false,
-  groupName: `${GROUP_NAME} px-2`,
+  groups: 'tree',
   accounts: 'flex flex-col gap-1',
-  groupAccounts: 'flex flex-col pl-1',
-  tree: 'branches',
   account: 'relative flex',
   choice: SHEET_CHOICE,
 };
 
-const INLINE_ACCOUNTS = 'flex flex-wrap gap-x-3 gap-y-0.5';
-
 const INLINE_LOOK: ChoicesLook = {
   sideNameShown: true,
-  groupName: GROUP_NAME,
-  accounts: INLINE_ACCOUNTS,
-  groupAccounts: INLINE_ACCOUNTS,
-  tree: 'hook',
+  groups: 'captions',
+  accounts: 'flex min-w-0 flex-wrap gap-x-3 gap-y-0.5',
   account: 'relative inline-flex',
   choice: CHIP,
 };
 
-type Run =
-  | { readonly kind: 'accounts'; readonly accounts: readonly AccountOutput[] }
-  | {
-      readonly kind: 'group';
-      readonly group: AccountGroupOutput;
-      readonly accounts: readonly AccountOutput[];
-    };
+const SHEET_GROUP_NAME = 'flex items-center gap-1.5 px-2 pt-1 font-semibold';
 
-function runsOf(chart: ChartOutput, type: AccountType): readonly Run[] {
-  const runs: Run[] = [];
-  for (const node of nodesOfType(chart, type)) {
-    const last = runs.at(-1);
-    if (node.kind === 'group') {
-      runs.push(node);
-    } else if (last?.kind === 'accounts') {
-      runs[runs.length - 1] = { kind: 'accounts', accounts: [...last.accounts, node.account] };
-    } else {
-      runs.push({ kind: 'accounts', accounts: [node.account] });
-    }
-  }
-  return runs;
-}
+const CAPTION_ROW = 'grid grid-cols-[84px_minmax(0,1fr)] gap-x-2.5';
+
+const GROUP_CAPTION = 'leading-7.5 font-medium wrap-anywhere text-text-muted';
+
+const groupBounds = ({ above, below }: GroupRules): string =>
+  `border-dashed border-border-control/55 ${above ? 'border-t' : ''} ${below ? 'border-b' : ''}`;
 
 const NO_BRANCHES: ReadonlyMap<AccountId, Branch> = new Map();
 
@@ -352,6 +332,48 @@ function SideChoices({
     </div>
   );
 
+  const isShown = (run: Run): boolean => run.accounts.some(matches);
+
+  const shownIn = (run: Run): string => (isShown(run) ? '' : 'hidden');
+
+  const treeOf = (runs: readonly Run[]): ReactNode =>
+    runs.map((run, index) =>
+      run.kind === 'accounts' ? (
+        <Fragment key={`accounts-${String(index)}`}>
+          {choices(run.accounts, look.accounts, NO_BRANCHES)}
+        </Fragment>
+      ) : (
+        <div key={run.group.id} className={`flex flex-col gap-1 ${shownIn(run)}`}>
+          <p className={SHEET_GROUP_NAME}>
+            <GroupFolder size={14} />
+            {run.group.name}
+          </p>
+          {choices(run.accounts, 'flex flex-col pl-1', branchesOf(run.accounts, matches))}
+        </div>
+      ),
+    );
+
+  const captionsOf = (runs: readonly Run[]): ReactNode => (
+    <div className="flex flex-col">
+      {ruledRunsOf(runs, matches).map(({ run, rules }, index) =>
+        run.kind === 'accounts' ? (
+          <div key={`accounts-${String(index)}`} className={`${CAPTION_ROW} py-1.5 ${shownIn(run)}`}>
+            <span />
+            {choices(run.accounts, look.accounts, NO_BRANCHES)}
+          </div>
+        ) : (
+          <div
+            key={run.group.id}
+            className={`${CAPTION_ROW} py-2 ${groupBounds(rules)} ${shownIn(run)}`}
+          >
+            <p className={GROUP_CAPTION}>{run.group.name}</p>
+            {choices(run.accounts, look.accounts, NO_BRANCHES)}
+          </div>
+        ),
+      )}
+    </div>
+  );
+
   return (
     <div
       role={control.groupRole}
@@ -370,38 +392,10 @@ function SideChoices({
             key={type}
             role="group"
             aria-labelledby={`${typeId}-${type}`}
-            className={
-              runs.some((run) => run.accounts.some(matches)) ? 'flex flex-col gap-1' : 'hidden'
-            }
+            className={runs.some(isShown) ? 'flex flex-col gap-1' : 'hidden'}
           >
-            <p id={`${typeId}-${type}`} className={TYPE_BAND}>
-              {en.accountTypes[type]}
-            </p>
-            {runs.map((run, index) =>
-              run.kind === 'accounts' ? (
-                <Fragment key={`accounts-${String(index)}`}>
-                  {choices(run.accounts, look.accounts, NO_BRANCHES)}
-                </Fragment>
-              ) : (
-                <div
-                  key={run.group.id}
-                  className={run.accounts.some(matches) ? 'flex flex-col gap-1' : 'hidden'}
-                >
-                  <p className={look.groupName}>
-                    <GroupFolder size={14} />
-                    {run.group.name}
-                  </p>
-                  {look.tree === 'branches' ? (
-                    choices(run.accounts, look.groupAccounts, branchesOf(run.accounts, matches))
-                  ) : (
-                    <div className="relative pl-4">
-                      <TreeHook />
-                      {choices(run.accounts, look.groupAccounts, NO_BRANCHES)}
-                    </div>
-                  )}
-                </div>
-              ),
-            )}
+            <Band accountType={type} id={`${typeId}-${type}`} className="px-2 py-1.5" />
+            {look.groups === 'tree' ? treeOf(runs) : captionsOf(runs)}
           </div>
         );
       })}
@@ -412,10 +406,10 @@ function SideChoices({
 type FindAnAccountProps = {
   readonly query: string;
   readonly setQuery: (query: string) => void;
-  readonly className?: string;
+  readonly className: string;
 };
 
-function FindAnAccount({ query, setQuery, className = '' }: FindAnAccountProps): ReactNode {
+function FindAnAccount({ query, setQuery, className }: FindAnAccountProps): ReactNode {
   return (
     <input
       type="search"
@@ -428,7 +422,7 @@ function FindAnAccount({ query, setQuery, className = '' }: FindAnAccountProps):
       onKeyDown={(event) => {
         if (event.key === 'Enter') event.preventDefault();
       }}
-      className={`${CONTROL} w-full ${className}`}
+      className={`w-full ${className}`}
     />
   );
 }
@@ -466,13 +460,13 @@ function AccountColumns({
 
   return (
     <div
-      className={`hidden min-w-0 flex-col overflow-hidden rounded border border-border bg-ground wide:flex ${typeClasses['body-dense']}`}
+      className={`hidden min-w-0 flex-col overflow-hidden rounded-panel border border-border bg-ground shadow-lift wide:flex ${typeClasses['body-dense']}`}
     >
       <div className="relative flex items-center border-b border-border bg-surface px-4 py-3">
         <span className="pointer-events-none absolute left-7 flex text-text-muted">
-          <SearchIcon />
+          <SearchIcon size={16} />
         </span>
-        <FindAnAccount query={query} setQuery={setQuery} className="pl-8" />
+        <FindAnAccount query={query} setQuery={setQuery} className={`${SEARCH_ON_STRIP} pl-8`} />
       </div>
       <div className="split:hidden">
         <SheetTabs
@@ -548,7 +542,7 @@ function AccountSheetDialog({
       id={sheet.id}
       aria-labelledby={titleId}
       onClick={sheet.closeOnScrim}
-      className="mx-0 mt-auto mb-0 h-[calc(100%-4rem)] max-h-none w-full max-w-none rounded-t border-0 bg-ground p-0 text-text backdrop:bg-ground-dark/60"
+      className="mx-0 mt-auto mb-0 h-[calc(100%-4rem)] max-h-none w-full max-w-none rounded-t-panel border-0 bg-ground p-0 text-text backdrop:bg-ground-dark/60"
     >
       <div className="flex h-full flex-col">
         <SheetBar titleId={titleId} title={en.accountSheet.title}>
@@ -569,7 +563,7 @@ function AccountSheetDialog({
           label={(side) => en.sides[side]}
         />
         <div className="shrink-0 border-b border-border bg-surface px-4 py-3">
-          <FindAnAccount query={sheet.query} setQuery={sheet.setQuery} />
+          <FindAnAccount query={sheet.query} setQuery={sheet.setQuery} className={CONTROL} />
         </div>
         <div className={`min-h-0 grow overflow-y-auto ${typeClasses['body-dense']}`}>
           {SIDES.map((side) => (
@@ -605,7 +599,7 @@ function AccountSheetDialog({
 
 function NoActiveAccount(): ReactNode {
   return (
-    <p className={`rounded border border-border bg-ground px-4 py-3 ${typeClasses['body-dense']}`}>
+    <p className={`rounded-panel border border-border bg-ground px-4 py-3 ${typeClasses['body-dense']}`}>
       {en.accountSheet.noActiveAccount}{' '}
       <Link href={SETTINGS_PATH} className={LINK}>
         {en.accountSheet.settingsLink}

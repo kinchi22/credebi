@@ -1,7 +1,7 @@
-import { typeClasses } from '@repo/ui/type-classes';
 import { type ReactNode } from 'react';
 import { AccountsSection } from '../../../../components/accounts-section';
 import { EntryFormModeChoice } from '../../../../components/entry-form-mode-choice';
+import { PAGE_HEADING } from '../../../../components/text-classes';
 import { en } from '../../../../messages/en';
 import { createContext } from '../../../../server/context';
 import { SETTINGS_PATH } from '../../../../server/return-path';
@@ -33,7 +33,7 @@ export default async function SettingsPage(): Promise<ReactNode> {
 
   return (
     <>
-      <h2 className={typeClasses.h2}>{en.settingsPage.title}</h2>
+      <h1 className={PAGE_HEADING}>{en.settingsPage.title}</h1>
       <EntryFormModeChoice chosen={settings.entryFormMode} action={changeEntryFormMode} />
       <AccountsSection
         chart={chart}

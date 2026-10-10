@@ -220,7 +220,7 @@ const utilityOf = (className) => (className.split(':').at(-1) ?? '').replace(/^[
 
 const withoutOpacity = (value) => value.replace(/\/[^/]*$/u, '');
 
-function namesANonTokenColor(className, allowed, textSizes) {
+function namesANonTokenColor(className, allowed, textSizes, shadows) {
   const name = utilityOf(className);
   if (allowed.has(name)) return false;
   const utility = COLOR_UTILITY.exec(name);
@@ -230,6 +230,7 @@ function namesANonTokenColor(className, allowed, textSizes) {
   if (!NAMED_VALUE.test(value)) return false;
   if (allowed.has(value) || NON_COLOR_VALUES.has(value)) return false;
   if (prefix === 'text' && textSizes.has(value)) return false;
+  if (prefix === 'shadow' && shadows.has(value)) return false;
   return !NON_COLOR_PREFIXES.some((start) => value.startsWith(start));
 }
 
@@ -247,6 +248,7 @@ const noRawColor = {
         properties: {
           colors: { type: 'array', items: { type: 'string' } },
           textSizes: { type: 'array', items: { type: 'string' } },
+          shadows: { type: 'array', items: { type: 'string' } },
         },
         additionalProperties: false,
       },
@@ -266,6 +268,7 @@ const noRawColor = {
     const options = context.options[0] ?? {};
     const allowed = new Set([...ALWAYS_ALLOWED, ...(options.colors ?? [])]);
     const textSizes = new Set(options.textSizes ?? []);
+    const shadows = new Set(options.shadows ?? []);
     const report = (node, messageId, text) => {
       context.report({ node, messageId, data: { text: JSON.stringify(text) } });
     };
@@ -277,8 +280,94 @@ const noRawColor = {
       for (const match of text.matchAll(COLOR_FUNCTION)) report(node, 'rawColor', match[0]);
       if (!CLASS_LIST.test(text.trim())) return;
       for (const className of text.trim().split(/\s+/u)) {
-        if (namesANonTokenColor(className, allowed, textSizes)) {
+        if (namesANonTokenColor(className, allowed, textSizes, shadows)) {
           report(node, 'nonTokenClass', className);
+        }
+      }
+    };
+
+    return {
+      Literal(node) {
+        if (typeof node.value === 'string') check(node, node.value);
+      },
+      TemplateElement(node) {
+        check(node, node.value.cooked ?? node.value.raw);
+      },
+    };
+  },
+};
+
+const RADIUS_UTILITY = /^rounded(?:-(?:tl|tr|br|bl|ss|se|es|ee|t|r|b|l|s|e))?(?:-(.+))?$/u;
+
+const STATIC_RADII = ['none', 'full'];
+
+const SHADOW_UTILITY = /^shadow(?:-(.+))?$/u;
+
+const DEFAULT_SHADOW = /^(?:\d?xs|sm|md|lg|\d?xl|inner)$/u;
+
+const ARBITRARY = /^[[(]/u;
+
+const UTILITY_SHAPED = /[-:]/u;
+
+function namesANonTokenRadius(className, radii, amongUtilities) {
+  const name = utilityOf(className);
+  const utility = RADIUS_UTILITY.exec(name);
+  if (utility === null) return false;
+  const value = utility[1];
+  if (value === undefined) return amongUtilities || UTILITY_SHAPED.test(className);
+  return !radii.has(value);
+}
+
+function namesANonTokenShadow(className, amongUtilities) {
+  const utility = SHADOW_UTILITY.exec(utilityOf(className));
+  if (utility === null) return false;
+  const value = utility[1];
+  if (value === undefined) return amongUtilities || UTILITY_SHAPED.test(className);
+  return ARBITRARY.test(value) || DEFAULT_SHADOW.test(withoutOpacity(value));
+}
+
+const noRawShape = {
+  meta: {
+    type: 'problem',
+    docs: {
+      description:
+        'Disallow corner radii and shadows outside the token set, which the stylesheet resets ' +
+        'so that they draw nothing.',
+    },
+    schema: [
+      {
+        type: 'object',
+        properties: {
+          radii: { type: 'array', items: { type: 'string' } },
+        },
+        additionalProperties: false,
+      },
+    ],
+    messages: {
+      nonTokenRadius:
+        'Class {{text}} rounds a corner by a radius outside the token set, so it draws a square ' +
+        'corner. Use `rounded-control`, `rounded-panel` or `rounded-card`, or `rounded-full` for ' +
+        'a circle; packages/ui/src/tokens.ts holds them and docs/DESIGN.md lists them.',
+      nonTokenShadow:
+        'Class {{text}} casts a shadow outside the token set, so it draws nothing. Use a shadow ' +
+        'from packages/ui/src/tokens.ts, which docs/DESIGN.md lists.',
+    },
+  },
+  create(context) {
+    const options = context.options[0] ?? {};
+    const radii = new Set([...STATIC_RADII, ...(options.radii ?? [])]);
+
+    const check = (node, text) => {
+      if (!CLASS_LIST.test(text.trim())) return;
+      const classNames = text.trim().split(/\s+/u);
+      const amongUtilities =
+        classNames.length === 1 || classNames.some((className) => UTILITY_SHAPED.test(className));
+      for (const className of classNames) {
+        if (namesANonTokenRadius(className, radii, amongUtilities)) {
+          context.report({ node, messageId: 'nonTokenRadius', data: { text: JSON.stringify(className) } });
+        }
+        if (namesANonTokenShadow(className, amongUtilities)) {
+          context.report({ node, messageId: 'nonTokenShadow', data: { text: JSON.stringify(className) } });
         }
       }
     };
@@ -339,6 +428,7 @@ export const repoPlugin = {
     'no-inline-copy': noInlineCopy,
     'no-non-ascii': noNonAscii,
     'no-raw-color': noRawColor,
+    'no-raw-shape': noRawShape,
   },
 };
 

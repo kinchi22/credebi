@@ -5,15 +5,16 @@ description: The brand palette, semantic tokens, type scale and logo rules of Cr
 omitted:
   - section: spacing
     reason: Spacing stays on Tailwind's default scale; no spacing token is decided.
-  - section: rounded
-    reason: Every corner radius is 4px, Tailwind's `rounded`; no radius token is decided.
 colors:
   mint: "#2FD0A2"
+  mint-pale: "#DBF3EB"
   mint-deep: "#0B7A5E"
   mint-deeper: "#09644D"
   ink: "#0B2B2A"
   ink-raised: "#133F3C"
+  ink-mid: "#103735"
   mist: "#F2F8F5"
+  mist-pale: "#F6FAF8"
   frost: "#EAF7F2"
   white: "#FFFFFF"
   slate: "#4A6461"
@@ -37,6 +38,9 @@ colors:
   text-muted-on-dark: "{colors.sage}"
   ground-dark: "{colors.ink}"
   ground-dark-raised: "{colors.ink-raised}"
+  ground-dark-hover: "{colors.ink-mid}"
+  surface-hover: "{colors.mist-pale}"
+  surface-chosen: "{colors.mint-pale}"
   accent: "{colors.mint}"
   accent-text: "{colors.mint-deep}"
   accent-text-hover: "{colors.mint-deeper}"
@@ -57,68 +61,85 @@ colors:
   google-red: "{colors.scarlet}"
 typography:
   display:
-    fontFamily: Sora
+    fontFamily: IBM Plex Sans
     fontSize: 32px
     fontWeight: 600
     lineHeight: 40px
     letterSpacing: -0.01em
   h1:
-    fontFamily: Sora
-    fontSize: 28px
+    fontFamily: IBM Plex Sans
+    fontSize: 22px
     fontWeight: 600
-    lineHeight: 36px
-    letterSpacing: -0.01em
+    lineHeight: 30px
+    letterSpacing: -0.015em
   h2:
-    fontFamily: Sora
+    fontFamily: IBM Plex Sans
     fontSize: 20px
     fontWeight: 600
     lineHeight: 28px
-  body:
-    fontFamily: Sora
+  title:
+    fontFamily: IBM Plex Sans
     fontSize: 15px
+    fontWeight: 600
+    lineHeight: 22px
+    letterSpacing: -0.005em
+  body:
+    fontFamily: IBM Plex Sans
+    fontSize: 14px
     fontWeight: 400
-    lineHeight: 24px
+    lineHeight: 20px
   body-sm:
-    fontFamily: Sora
+    fontFamily: IBM Plex Sans
     fontSize: 14px
     fontWeight: 400
     lineHeight: 20px
   body-dense:
-    fontFamily: Sora
+    fontFamily: IBM Plex Sans
     fontSize: 13px
     fontWeight: 400
     lineHeight: 20px
   label:
-    fontFamily: DM Mono
-    fontSize: 12px
-    fontWeight: 400
+    fontFamily: IBM Plex Sans
+    fontSize: 11.5px
+    fontWeight: 600
     lineHeight: 16px
-    letterSpacing: 0.06em
+    letterSpacing: 0.04em
   figure:
-    fontFamily: DM Mono
+    fontFamily: IBM Plex Mono
     fontSize: 14px
     fontWeight: 400
     lineHeight: 20px
     fontFeature: '"tnum" 1'
   date:
-    fontFamily: DM Mono
+    fontFamily: IBM Plex Mono
     fontSize: 13px
     fontWeight: 400
     lineHeight: 20px
     fontFeature: '"tnum" 1'
+rounded:
+  control: 6px
+  panel: 8px
+  card: 12px
 components:
   button-primary:
     backgroundColor: "{colors.accent}"
     textColor: "{colors.text}"
+    rounded: "{rounded.control}"
+    height: 36px
   button-secondary:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.text}"
+    rounded: "{rounded.control}"
+    height: 36px
   button-danger:
     backgroundColor: "{colors.danger}"
     textColor: "{colors.surface}"
+    rounded: "{rounded.control}"
+    height: 36px
   button-quiet-on-dark:
     textColor: "{colors.text-muted-on-dark}"
   button-quiet-on-dark-hover:
+    backgroundColor: "{colors.ground-dark-hover}"
     textColor: "{colors.text-on-dark}"
   link:
     textColor: "{colors.accent-text}"
@@ -129,17 +150,29 @@ components:
     textColor: "{colors.text-on-dark}"
   sidebar-link:
     textColor: "{colors.text-muted-on-dark}"
+    rounded: "{rounded.control}"
+  sidebar-link-hover:
+    backgroundColor: "{colors.ground-dark-hover}"
+    textColor: "{colors.text-on-dark}"
   sidebar-item-active:
     backgroundColor: "{colors.ground-dark-raised}"
     textColor: "{colors.text-on-dark}"
   input:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.text}"
+    rounded: "{rounded.control}"
+    height: 36px
   button-google:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.text}"
+    rounded: "{rounded.control}"
+    height: 40px
+  panel:
+    backgroundColor: "{colors.surface}"
+    rounded: "{rounded.panel}"
   sign-in-card:
     backgroundColor: "{colors.surface}"
+    rounded: "{rounded.card}"
 ---
 
 # Credebi design
@@ -180,11 +213,14 @@ a palette colour.
 | Palette       | Value     | What it is for                             |
 | ------------- | --------- | ------------------------------------------ |
 | `mint`        | `#2FD0A2` | the mark, the primary button fill           |
+| `mint-pale`   | `#DBF3EB` | a chosen chip in the Account picker        |
 | `mint-deep`   | `#0B7A5E` | mint as text on a light ground, focus ring |
 | `mint-deeper` | `#09644D` | link hover                                 |
 | `ink`         | `#0B2B2A` | text, the Sidebar                          |
 | `ink-raised`  | `#133F3C` | a raised dark surface, the active Sidebar item |
+| `ink-mid`     | `#103735` | a Sidebar item under the pointer           |
 | `mist`        | `#F2F8F5` | the page ground                            |
+| `mist-pale`   | `#F6FAF8` | an Entry under the pointer                 |
 | `frost`       | `#EAF7F2` | text on ink                                |
 | `white`       | `#FFFFFF` | panels                                     |
 | `slate`       | `#4A6461` | muted text                                 |
@@ -222,12 +258,15 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `text-muted-on-dark` | `sage`      | links in the Sidebar                  |
 | `ground-dark`        | `ink`       | the Sidebar's ground                  |
 | `ground-dark-raised` | `ink-raised` | the active Sidebar item              |
+| `ground-dark-hover`  | `ink-mid`    | an idle Sidebar item under the pointer |
+| `surface-hover`      | `mist-pale`  | an Entry in the Entries list under the pointer |
+| `surface-chosen`     | `mint-pale`  | a chosen chip in the Account picker  |
 | `accent`             | `mint`      | the primary button fill, the mark     |
 | `accent-text`        | `mint-deep` | links, accent text on a light ground  |
 | `accent-text-hover`  | `mint-deeper` | a link under the pointer            |
 | `border`             | `fog`       | dividers, panel edges                 |
 | `band`               | `fog`       | an Account type's Band                |
-| `border-control`     | `steel`     | inputs, secondary buttons, tree connectors |
+| `border-control`     | `steel`     | inputs, secondary buttons, tree connectors, and at 55% the Account picker's group rules |
 | `danger`             | `rust`      | refusals, errors                      |
 | `warning`            | `ochre`     | a degraded health status, a Difference not 0, a line not active on the day |
 | `positive`           | `mint-deep` | a healthy status                      |
@@ -259,49 +298,71 @@ unit test checks every one:
 
 - **Text, 4.5:1.** `ink`, `slate`, `mint-deep`, `mint-deeper`, `rust`,
   `ochre`, `cobalt` and `gold` on `white` and on `mist`; `frost` and `sage` on
-  `ink` and on `ink-raised`, which is `text-on-dark` and `text-muted-on-dark` on
-  `ground-dark` and `ground-dark-raised`; `ink` on `mint`; `ink` on `fog`,
+  `ink`, on `ink-raised` and on `ink-mid`, which is `text-on-dark` and
+  `text-muted-on-dark` on `ground-dark`, `ground-dark-raised` and
+  `ground-dark-hover` (11.78:1 and 6.85:1 on `ink-mid`); `ink` on `mint`; `ink` on `fog`,
   which is `text` on a `band` (12.46:1); `mint-deeper` on `fog`, which is
-  `accent-text-hover` on a `band` (5.90:1).
+  `accent-text-hover` on a `band` (5.90:1); `ink`, `slate`, `cobalt` and `gold`
+  on `mist-pale`, which is `text`, `text-muted`, `debit` and `credit` on
+  `surface-hover` (14.32:1, 6.07:1, 5.57:1 and 5.30:1); `ink` on `mint-pale`,
+  which is `text` on `surface-chosen` (12.94:1).
 - **Control edges, 3:1.** `steel` and `mint-deep` on `white` and on `mist`;
-  `mint`, the `focus-on-dark` ring, on `ink` and on `ink-raised` (7.66:1 on
-  `ink`); `pewter`, the Google sign-in button's edge, on `white` (4.53:1).
+  `mint`, the `focus-on-dark` ring, on `ink`, on `ink-raised` and on `ink-mid`
+  (7.66:1 on `ink`), which is also the active Sidebar link's `accent` icon on
+  `ground-dark-raised` (5.91:1); `pewter`, the Google sign-in button's edge, on `white` (4.53:1);
+  `mint-deep` on `mist-pale`, the `focus` ring on an Entry under the pointer
+  (5.04:1), and on `mint-pale`, a chosen chip's `accent-text` edge on its fill
+  (4.55:1).
+
+`ink-mid` is `ink-raised` mixed 60% into `ink`, so a Sidebar item under the
+pointer reads between the idle ground and the active item. `mist-pale` is
+`mist` mixed 70% into `white`, so an Entry under the pointer reads between a
+panel and the page ground; `mint-pale` is `mint` mixed 12% into `mist`, the
+ground a chip sits on in the Account picker.
 
 A new text colour or ground is added to these pairs in the same change.
 
 ## Typography
 
-Headings and body text are set in **Sora**: SemiBold for headings, Regular for
-reading. Labels, figures and dates are set in **DM Mono** Regular, so every
-column of amounts lines up, and a figure that must stand out, such as an Entry's
-total or a Difference that is not zero, is DM Mono Medium, weight 500
-(`font-medium`), never bold. Nothing is set below 12px.
+Text is set in **IBM Plex Sans**: SemiBold for headings, panel titles and
+labels, Regular for reading, and Medium, weight 500 (`font-medium`), for the
+active Sidebar link, an Entry's memo in the Entries list, the entry form's
+Date and Memo labels, an Account group's caption and a chosen chip in the
+Account picker alone. Only figures and dates are set in a monospaced
+face, **IBM Plex Mono** Regular, so every column of amounts lines up; a label,
+a panel title or a Side's name is never monospaced. A figure that must stand
+out, such as an Entry's total or a Difference that is not zero, is IBM Plex
+Mono Medium, weight 500 (`font-medium`), never bold. Nothing is set below
+11.5px.
 
-| Step      | Face             | Size / line height | Letter spacing | Also             |
-| --------- | ---------------- | ------------------ | -------------- | ---------------- |
-| `display` | Sora SemiBold    | 32 / 40            | -0.01em        |                  |
-| `h1`      | Sora SemiBold    | 28 / 36            | -0.01em        |                  |
-| `h2`      | Sora SemiBold    | 20 / 28            |                |                  |
-| `body`    | Sora Regular     | 15 / 24            |                |                  |
-| `body-sm` | Sora Regular     | 14 / 20            |                |                  |
-| `body-dense` | Sora Regular  | 13 / 20            |                |                  |
-| `label`   | DM Mono Regular  | 12 / 16            | 0.06em         | capitals         |
-| `figure`  | DM Mono Regular  | 14 / 20            |                | tabular numerals |
-| `date`    | DM Mono Regular  | 13 / 20            |                | tabular numerals |
+| Step         | Face                   | Size / line height | Letter spacing | Also             |
+| ------------ | ---------------------- | ------------------ | -------------- | ---------------- |
+| `display`    | IBM Plex Sans SemiBold | 32 / 40            | -0.01em        |                  |
+| `h1`         | IBM Plex Sans SemiBold | 22 / 30            | -0.015em       |                  |
+| `h2`         | IBM Plex Sans SemiBold | 20 / 28            |                |                  |
+| `title`      | IBM Plex Sans SemiBold | 15 / 22            | -0.005em       |                  |
+| `body`       | IBM Plex Sans Regular  | 14 / 20            |                |                  |
+| `body-sm`    | IBM Plex Sans Regular  | 14 / 20            |                |                  |
+| `body-dense` | IBM Plex Sans Regular  | 13 / 20            |                |                  |
+| `label`      | IBM Plex Sans SemiBold | 11.5 / 16          | 0.04em         | capitals         |
+| `figure`     | IBM Plex Mono Regular  | 14 / 20            |                | tabular numerals |
+| `date`       | IBM Plex Mono Regular  | 13 / 20            |                | tabular numerals |
 
 Each step is a Tailwind `text-<step>` utility, which sets its size, line height,
 weight and letter spacing. The face, the capitals and the tabular numerals are
-applied beside it: `font-sans` is Sora and the page's default, `font-mono` is DM
-Mono, `uppercase` sets the capitals and `tabular-nums` the numerals.
-`typeClasses` in `packages/ui/src/type-classes.ts` holds each step's full set,
-and a component takes a step from it: a date, shown or typed, is
-`typeClasses.date`, an amount `typeClasses.figure`, and a section label
-`typeClasses.label`. `body-dense` is the entry form's step, so the form stays
-short. The fonts are served from the
-repository, never fetched from a font service at build or run time. The font
-files and their OFL licences are in `apps/web/app/fonts/`: the pages load the
-woff2 files through `next/font/local`, and the share image reads Sora as TTF, as
-"Metadata files" in `docs/ARCHITECTURE.md` states.
+applied beside it: `font-sans` is IBM Plex Sans and the page's default,
+`font-mono` is IBM Plex Mono, `uppercase` sets the capitals and `tabular-nums`
+the numerals. `typeClasses` in `packages/ui/src/type-classes.ts` holds each
+step's full set, and a component takes a step from it: a date, shown or typed,
+is `typeClasses.date`, an amount `typeClasses.figure`, a section label or a
+Side's name `typeClasses.label`, and a panel's visible title
+`typeClasses.title`. `body-dense` is the entry form's step, so the form stays
+short. The fonts are served from the repository, never fetched from a font
+service at build or run time. The font files and their OFL licences are in
+`apps/web/app/fonts/`: the pages load IBM Plex Sans 400, 500 and 600 and IBM
+Plex Mono 400 and 500 as Latin woff2 files through `next/font/local`, and the
+share image reads IBM Plex Sans Regular as TTF, as "Metadata files" in
+`docs/ARCHITECTURE.md` states.
 
 ## Layout
 
@@ -323,22 +384,64 @@ width. Below `wide` the page gutter is 16px and a panel sits directly in it,
 with no box nested inside the panel; from `wide` up the gutter is 40px above and
 below and 56px at the sides.
 
+Each signed-in page is named by its one level-1 heading, `PAGE_HEADING` in
+`apps/web/components/text-classes.ts`: an `h1` in the `h1` step and `text`,
+first in `main` above the page's content, so it sits below the drawer bar under
+`wide` and beside the Sidebar from `wide` up. It reads `Entries`, `Entry search`
+or `Settings`, as the Sidebar link to the page does. The page's content starts
+20px below it under `wide` and 24px below it from `wide` up, while the panels
+under it stay 16px apart. No other heading on a signed-in page is an `h1`: the
+Entries panel keeps its visually hidden `Entries` heading, which names its
+region.
+
 A panel, as `PANEL` in `packages/ui` draws it, is padded 8px below `wide` and
-16px from `wide` up. `PANEL_BLEED` follows that padding, so the Entries rows
+16px from `wide` up. A panel's own title, `PANEL_TITLE` beside it, is in `title`
+and `text`: `Panel`'s visible title, `New entry` and `Search entries`. A heading
+inside a panel that names a part of it, such as Entry search's results or the
+`Test sign-in` form, stays in `label` and `text-muted`. `PANEL_BLEED` follows that padding, so the Entries rows
 reach the panel's edges at every width.
 
 ## Elevation & Depth
 
-Hierarchy comes from tonal layers, not shadows: `surface` panels with a
-`border` edge sit on the `ground`, and the Sidebar is the one dark layer.
+Hierarchy comes mainly from tonal layers: `surface` panels with a `border` edge
+sit on the `ground`, and the Sidebar is the one dark layer. Beside the layers,
+two shadows tinted from `ink`, `shadows` in the tokens module and
+`--shadow-lift` and `--shadow-lift-card` in the stylesheet:
+
+| Shadow      | Layers                                                  | On |
+| ----------- | ------------------------------------------------------- | -- |
+| `lift`      | `0 1px 2px` at 5% and `0 1px 3px` at 4%                 | every panel `PANEL` draws, the Account picker and the Segmented control's strip |
+| `lift-card` | `0 1px 2px` at 5% and `0 12px 32px` at 8%               | the Sign in card |
+
+Nothing else casts a shadow: not a dialog, a menu, a chip or any other control. The
+stylesheet resets `--shadow-*` to `initial`, so these two are the only shadow
+utilities, `shadow-lift` and `shadow-lift-card`. The lint rule
+`repo/no-raw-shape` rejects a bare `shadow`, Tailwind's own shadows and an
+arbitrary one, and `repo/no-raw-color`, which reads the shadow names from the
+tokens module, rejects any other.
 
 ## Shapes
 
-Every rounded corner is 4px, Tailwind's `rounded`, and no other radius is used:
-panels, controls, buttons, chips, menus and the Sign in card. A surface fixed
-to a screen edge rounds only its free corners: the Account sheet its top ones
-with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
-8px status dot takes the same 4px, which draws it as a circle.
+Three radii, `radii` in the tokens module and `rounded` above, and no other is
+used:
+
+| Radius    | Size | Utility           | On |
+| --------- | ---- | ----------------- | -- |
+| `control` | 6px  | `rounded-control` | inputs, buttons, chips, segments, menus, Sidebar links, Bands, the drag copy and drop marks, and a tree connector's corner |
+| `panel`   | 8px  | `rounded-panel`   | panels, the Account picker, dialogs and the Segmented control's strip |
+| `card`    | 12px | `rounded-card`    | the Sign in card |
+
+A surface fixed to a screen edge rounds only its free corners: the Account sheet
+its top ones with `rounded-t-panel`, the Sidebar drawer its right ones with
+`rounded-r-panel`. The 8px status dot is a circle, `rounded-full`, the one
+corner outside the three. The stylesheet resets `--radius-*` to `initial`, so a
+bare `rounded` or any of Tailwind's own radii would draw a square corner; the
+lint rule `repo/no-raw-shape` rejects one anywhere in `apps/web` or
+`packages/ui`, reading the radius names from the tokens module.
+
+Every input, select, secondary, primary and danger button and Icon button on a
+light ground is 36px tall, `controlHeight` in the tokens module and
+`h-control` from `--height-control` in the stylesheet, at every width.
 
 ## Components
 
@@ -346,23 +449,27 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   is never used. It is kept for a page's main action: the entry form's submit
   and Entry search's submit. Every other button on a light ground is
   secondary, except the Google sign-in button, the danger button and the bare
-  icon buttons named below. A transparent edge as wide as an Input's border
-  makes it as tall as the Input it sits beside: Entry search's submit beside
-  the memo field, and the entry form's submit beside the amount field in
-  Two-line mode.
-- **Secondary button.** `surface` fill, `text`, a `border-control` edge.
-- **Danger button.** `danger` fill, `surface` text, semibold, with a
-  transparent edge as wide as a secondary button's, so the two stand the same
+  icon buttons named below. It is 36px tall, as an Input is, so it stands as
+  tall as the Input it sits beside: Entry search's submit beside the memo
+  field, and the entry form's submit beside the amount field in Two-line mode.
+  A transparent edge as wide as an Input's border keeps its text where a
+  secondary button's sits.
+- **Secondary button.** `surface` fill, `text`, a `border-control` edge, 36px
+  tall.
+- **Danger button.** `danger` fill, `surface` text, semibold, 36px tall, with
+  a transparent edge as wide as a secondary button's, so the two stand the same
   height side by side. It is kept for the action a confirmation dialog asks
   about when that action takes something away: `Delete` in `Delete entry`,
   `Delete account` and `Delete group`, and `Discard` in `Discard changes`.
 - **Google sign-in button.** "Sign in with Google" follows Google's sign-in
   branding rather than the primary button: a `surface` fill, `text`, a
   `border-google` edge, 40px tall and as wide as the Sign in card, with Google's
-  four-colour G, 18px, before its text. The G is hidden from assistive
+  four-colour G, 18px, before its text, and the `control` radius. It keeps
+  Google's 40px rather than the 36px of the app's own controls. The G is hidden from assistive
   technology, so the button's name is its text alone.
 - **Sign in card.** The sign-in page's one panel, centred on the `ground` both
-  ways. It is the panel's look, as `PANEL` in `packages/ui` draws it, with
+  ways. It is the panel's `surface` fill and `border` edge, as `SIGN_IN_CARD`
+  in `packages/ui` draws it, with the `card` radius, the `lift-card` shadow and
   roomier padding: 400px wide and 40px of padding from `wide` up; below `wide`
   as wide as the page gutter allows, with 28px above and below and 20px at the
   sides. Inside, 24px apart: the stacked Lockup, the `Sign in` heading (an `h1`
@@ -370,44 +477,53 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   centred, the Google sign-in button, and, where test sign-in is offered, the
   `Test sign-in` form below a dashed `border` rule with 20px above it.
 - **Quiet button on dark.** No fill and no border: `text-muted-on-dark` text,
-  `text-on-dark` under the pointer, and the `focus-on-dark` ring. It is Sign out
-  in the Sidebar, an exit icon in `currentColor` before its text.
+  and under the pointer `text-on-dark` on a `ground-dark-hover` fill, with the
+  `control` radius and the `focus-on-dark` ring. It is Sign out in the Sidebar:
+  an 18px exit icon in `currentColor` 10px before its text, padded 8px by 10px
+  as a Sidebar link is, and as wide as the Sidebar's links.
 - **Icon button on dark.** No fill and no border: a 40px square holding a
   stroke icon in `text-on-dark`, with the `focus-on-dark` ring and an accessible
   name in place of text. It is `Menu`, a hamburger icon, in the bar that opens
   the Sidebar drawer.
-- **Segmented control.** A radiogroup drawn as one `surface` strip with a
-  `border-control` edge, each choice a segment. Only the chosen segment is
-  marked: an `accent` tint and the semibold weight. It is the Entry form mode in
+- **Segmented control.** A radiogroup drawn as one `surface` strip framed as
+  a panel is, `PANEL_FRAME` in `packages/ui`: a `border` edge, the `panel`
+  radius and the `lift` shadow, without a panel's padding. Each choice is a
+  segment with the `control` radius. Only the chosen segment is
+  marked: an `accent` tint at 15%, a 1.5px inset `accent-text` edge beside it,
+  and the semibold weight. It is the Entry form mode in
   Settings, where each segment fills an equal share of the strip. From `wide`
   up the strip sits right of its legend and grows to fill the space beside it,
   up to 42rem. The segments are equal height and share three rows: a
   decorative drawing of the mode at the top, its name, and a one-line
   description in `body-dense`, so the names of the two modes line up on one row
   and their descriptions side by side below them. The drawing is
-  rounded 4px bars, 72px wide at most: Two-line is two equal bars, one `debit`
+  4px bars with round ends, 72px wide at most: Two-line is two equal bars, one `debit`
   over one `credit`; Multi-line is four of varying length, two `debit` then two
   `credit`.
   Choosing a mode saves it silently, as the Accounts section saves: no
   confirmation shows. A refused save puts the earlier mode back and shows the
   refusal in `danger` below the strip.
-- **Settings row.** Settings has no panel: each setting is a row between
-  `border` hairlines, its name on the left and its control on the right, and
-  stacked below `wide`.
+- **Settings row.** Settings' rows sit on the page ground, not in a panel:
+  each setting is a row between
+  `border` hairlines, padded 20px above and below, its name on the left and its
+  control on the right, and stacked below `wide`.
 - **Accounts section.** The Chart of accounts in Settings, under its
   `Accounts` heading, semibold in `body-sm`, with `Show ended accounts`, a
-  checkbox in `body-sm`, at the heading's right. The rows are in `body-sm`.
+  checkbox in `body-sm`, at the heading's right. Below them the Account types
+  and their rows sit in one list drawn as a panel: a `surface` fill, a `border`
+  edge, the `panel` radius and the `lift` shadow, padded as `PANEL` pads. The
+  rows are in `body-sm`.
   Each Account type is a Band, padded 8px 12px, with no account count: its
-  name, then at the Band's right `+ Account` and `+ Group`, text buttons in
-  `accent-text-hover`, since `accent-text` on a `band` falls short of 4.5:1,
-  underlined under the pointer, named `Add account` and
+  icon and name, then at the Band's right `+ Account` and `+ Group`, text
+  buttons in `accent-text-hover`, since `accent-text` on a `band` falls short
+  of 4.5:1, underlined under the pointer, named `Add account` and
   `Add group`. Every row starts with its grip and ends with `Edit` and then
   `Delete`, drawn as the Entry row actions are, and an optional description
   sits under its name in `body-dense` and `text-muted`. An Account group's row holds the
   folder icon, 16px in `text-muted`, between its grip and its name, semibold.
   The Accounts in a group hang from it by tree connectors, a 20px column
   before each Account's grip: `├` before each Account shown but the last, and
-  `└` before the last shown, its corner rounded 4px. The connectors' vertical
+  `└` before the last shown, its corner rounded by the `control` radius. The connectors' vertical
   runs under the folder icon's centre and starts below it, never over it. An
   Account outside a group has none, and an empty group draws none. The
   connectors follow the rows shown: with `Show ended accounts` off an ended
@@ -440,9 +556,8 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   marked as chosen: From and To state the range. Below `wide` the row is not
   shown: a secondary button holding a calendar icon, named `Choose a period`,
   sits beside From and To and opens the presets as a full-screen modal dialog on
-  the `ground`. The button is square and as tall as From and To: it keeps an
-  Input's edge and vertical padding, pads its sides by that same amount, and
-  its icon is as tall as an Input's line. A `surface` bar holds its title and a
+  the `ground`. The button is an Icon button: square, 36px, as tall as From
+  and To, with an Input's edge. A `surface` bar holds its title and a
   close icon, and below it the four categories are tabs running the sheet's
   full width with no side padding, the shown one underlined in `accent` and set
   in `accent-text`, semibold. Each tab lists its
@@ -450,9 +565,11 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   the sheet. Escape or the close icon closes it without choosing, and focus
   returns to the button.
 - **Account picker.** From `wide` up the Accounts to choose from sit right of
-  the entry form in a `ground` panel with a `border` edge. At its top a
+  the entry form in a `ground` panel with a `border` edge, the `panel` radius
+  and the `lift` shadow. At its top a
   `surface` strip holds a `Find an account` search field with a search icon
-  inside its start, narrowing both Sides as the Account sheet's does, with the
+  inside its start, on the `ground` with a transparent edge rather than an
+  Input's, narrowing both Sides as the Account sheet's does, with the
   same `No account matches` line. From `wide` to below `split` one Side is
   shown at a time under `Debit` and `Credit` tabs, drawn as the Account sheet's
   but with the shown tab underlined and set in its Side's colour; when a submit
@@ -460,14 +577,25 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   shown, so the browser's message is visible. From `split`
   up there are no tabs and the two Sides sit side by side, Credit's column
   behind a `border` hairline. Each Side is headed by its name in `label` and the
-  Side's colour over a 2px rule in that colour. Each Account type's name is a
-  Band inset in the Side's column, padded 6px 8px, and its Accounts sit after
-  it as chips that wrap, so many Accounts list across rather than down: a chip
-  has no fill and a transparent edge, and a chosen one a `surface` fill, an
-  `accent-text` edge and semibold text. An Account group's name, semibold,
-  follows the folder icon, 14px in `text-muted`, and its chips wrap 16px in
-  from it. A single `└` tree connector runs from below the folder icon's
-  centre down to the middle of the first row of chips.
+  Side's colour over a 2px rule in that colour. Each Account type is a Band
+  inset in the Side's column, padded 6px 8px, and its Accounts sit after it as
+  chips that wrap, so many Accounts list across rather than down: a chip has no
+  fill and a `border` edge, `border-control` under the pointer, and a chosen
+  one a `surface-chosen` fill, `accent` at 12%, an `accent-text` edge and
+  medium text. Under each Band the Accounts sit in two
+  columns, an 84px caption column with 10px after it, and the chips. An Account
+  group's name sits in the caption column, medium and in `text-muted`, level
+  with the first row of its chips, which wrap beside it; it is a heading over
+  its Accounts, not a control. The group is padded 8px above and below and
+  bounded by 1px dashed rules across the Side's column, above and below, in
+  `border-control` at 55%; two groups that meet share one rule, and a group
+  draws none where it meets the edge of its Account type: none above when no
+  Account shows between it and the Band, none below when no Account shows
+  after it in the type. A search that hides Accounts moves those edges with it. The rules are
+  decoration and carry no contrast pair. Ungrouped Accounts, wherever they fall
+  in the User's order, are padded 6px above and below, carry no rule and leave
+  the caption column empty. The picker draws no folder icon and no tree
+  connector.
 - **Account sheet.** Below `wide` the Accounts leave the form
   and open `Choose accounts` as a modal dialog rising from the foot of the page
   to 64px below its top, on the `ground` over a `ground-dark` scrim at 60%. In
@@ -483,7 +611,7 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   the Date presets sheet's, then a `Find an account` search field, then the
   shown Side's Accounts grouped by Account type, narrowed to those whose name
   holds the text typed, or `No account matches` and the text when none does.
-  Each Account type's name is a Band, padded 6px 8px, and each Account is a
+  Each Account type is a Band, padded 6px 8px, and each Account is a
   row 32px tall; a chosen one is tinted `accent` at 15% and semibold. An
   Account group's name, semibold, follows the folder icon, 14px in
   `text-muted`, and its Accounts hang from it by tree connectors as in the
@@ -503,9 +631,10 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   colour.
 - **Date and Memo.** From `wide` up they share one row: Date in a 148px
   column, Memo filling the rest. Below `wide` they wrap, Date at its own width
-  and Memo growing beside it.
+  and Memo growing beside it. Their labels are medium, in `text-muted`.
 - **Entry form dividers.** In both Entry form modes a 2px rule in the Side's
-  colour sits above each Side: above its row in Two-line mode, above its block
+  colour sits above each Side: above its row, padded 12px above and below, in
+  Two-line mode, above its block
   in Multi-line mode. In Multi-line mode the lines of one Side have no rule
   between them, and a dashed `border` hairline sits above the Side's total,
   below its `+ Add … account`; from `wide` up, where that button is not shown,
@@ -544,19 +673,21 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   total.
 - **Remove button.** A bare × icon in `text-muted`, `text` under the pointer,
   with no fill and no border, named `Remove`, on each Multi-line line: 32px
-  wide below `wide` and 24px from `wide` up, as tall as the amount field.
+  wide below `wide` and 24px from `wide` up, as tall as the amount field, 36px.
 - **Icon button.** A secondary button holding a stroke icon in place of text,
-  with an accessible name: square and as tall as the Input beside it, as
+  with an accessible name: square and 36px, as tall as the Input beside it, as
   `Choose a period` is.
 - **Entries list.** Laid out the same at every width, in Entries and in Entry
   search. Its panel shows no `Entries` heading, which is visually hidden, not
   removed, so the region is still named `Entries`. A full-width `border`
   hairline parts each Entry from the one above; the first has none and starts
-  at the panel's padding. Its first row holds the date in `date` and
-  `text-muted`, the memo semibold and filling the space, and the Entry's total
+  4px below the panel's padding. Each Entry is padded 16px above and below and
+  reaches the panel's edges, as `PANEL_BLEED` does, and under the pointer it is
+  tinted `surface-hover`. Its first row holds the date in `date` and
+  `text-muted`, the memo medium and filling the space, and the Entry's total
   on the right in `figure`, medium. Below it two equal columns, Debit and Credit,
   Credit's behind a `border` hairline, each headed by the Side in `label` and
-  the Side's colour over a 2px rule in that colour. In `body-dense`, each line
+  the Side's colour over a 1.5px rule in that colour. In `body-dense`, each line
   is one row, the Account name on the left and its amount on the right in
   `figure` and the Side's colour. An Entry with one Account on each Side puts
   the Account name beside its Side's name and shows no line amount: the total
@@ -568,7 +699,7 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   total, `Edit` and then `Delete` are bare icon buttons, drawn as the Remove
   button: a stroke icon in `text-muted`, `text` under the pointer, no fill and
   no border, a pencil for `Edit` and a trash can for `Delete`, each named by
-  its action rather than by text. They are 32px square below `wide` and 24px
+  its action rather than by text. They are 32px square below `wide` and 28px
   from `wide` up, and they do not make the row taller than its text. They sit
   there at every width, in Entries and in Entry search.
 - **Confirmation dialog.** A modal dialog centred on the page over a
@@ -623,23 +754,34 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   nothing, and focus returns to the button that opened the edit.
 - **Link.** `accent-text`, underlined, and `accent-text-hover` under the
   pointer.
-- **Input.** `surface` fill, `text`, a `border-control` edge. The spec's
-  component properties have no border colour, so the edge is stated here only.
-  A date Input drops the browser's own drawing, so it is as tall as the text
-  Input beside it: the entry form's Date beside Memo, and Entry search's From
-  and To.
-- **Sidebar.** Dark: a `ground-dark` ground, `text-on-dark` text,
-  `text-muted-on-dark` links, and the active item on `ground-dark-raised`. The
-  logo there is the horizontal Lockup in the reverse tone. Sign out sits at the
-  foot, below a `ground-dark-raised` hairline; from `wide` up the Sidebar is as
+- **Input.** `surface` fill, `text`, a `border-control` edge, the `control`
+  radius, 36px tall. The spec's component properties have no border colour, so
+  the edge is stated here only. A select is drawn the same. A date Input drops
+  the browser's own drawing, so it stands as tall as the text Input beside it:
+  the entry form's Date beside Memo, and Entry search's From and To. Focused,
+  it shows a 3px `accent` halo at 25% around its edge, beside the focus ring.
+- **Sidebar.** Dark: a `ground-dark` ground and `text-on-dark` text, 232px
+  wide from `wide` up, padded 20px above, 16px below and 12px at the sides. The
+  logo there is the horizontal Lockup in the reverse tone, inset 8px, with 28px
+  below it before the links. Each link, 2px from the next, leads with an 18px
+  stroke icon 10px before its text and is padded 8px by 10px with the `control`
+  radius: `Entries` a list, `Entry search` a magnifier, `Settings` sliders. An
+  idle link is `text-muted-on-dark`, and under the pointer `text-on-dark` on a
+  `ground-dark-hover` fill. The active link is `text-on-dark` in the medium
+  weight on `ground-dark-raised`, its icon in `accent`. No link carries a
+  coloured edge. Sign out sits at the foot, below a `ground-dark-raised`
+  hairline with 12px above it; from `wide` up the Sidebar is as
   tall as the viewport and stays in place as the page scrolls. Below `wide` it is
   a drawer: a `ground-dark` bar holds `Menu` at its left and the logo after it,
   and `Menu` opens the Sidebar as a modal dialog on the page's left edge over a
-  `ground-dark` scrim at 60%.
+  `ground-dark` scrim at 60%, with the same logo, links and Sign out.
   The bar's logo hides while it is open, so one logo shows. Escape, a click on
   the scrim or following a link closes it, and focus returns to `Menu`.
 - **Focus.** A 2px ring on every focusable element: `focus` on a light ground,
-  `focus-on-dark` on a dark one.
+  `focus-on-dark` on a dark one, 2px outside its edge. A focused Input adds a
+  3px `accent` halo at 25%, `ring-3 ring-accent/25`, around its edge and under
+  the ring. The halo is decoration beside the ring, which alone carries the focus,
+  so it has no contrast pair.
 - **Pointer.** Every enabled control a click acts on shows the pointer cursor:
   a button, a tab, a radio or checkbox and the label that wraps one. One base
   rule in `apps/web/app/globals.css` gives it, so no component sets a cursor of
@@ -648,9 +790,14 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
 - **Icons.** Stroke icons in `currentColor`, 2px strokes with round caps and
   joins on a 24px grid, from `packages/ui`. Each is hidden from assistive
   technology, so a control holding one is named by its text or its accessible
-  name. The folder icon marks an Account group in the Accounts section, the
-  Account picker and the Account sheet; it is decoration, and the group keeps
-  its name alone.
+  name. The folder icon marks an Account group in the Accounts section and the
+  Account sheet; it is decoration, and the group keeps its name alone. Each
+  Account type's Band leads with a 16px icon in `text` -- Assets a wallet,
+  Liabilities a receipt, Equity a pie, Revenue a rising line and Expenses a
+  falling line -- decoration too, so the Band is named by its type alone. Each
+  Sidebar link and Sign out leads with an 18px icon -- a list, a magnifier,
+  sliders and an exit -- so each is named by its text alone; the magnifier is
+  the Account picker's search icon at 18px rather than 16px.
 - **Status.** `positive` for healthy, `warning` for degraded, `danger` for a
   refusal or an error.
 
@@ -688,6 +835,13 @@ height. Keep at least x clear on every side of the Mark or a Lockup.
 **Don'ts.** Never stretch the logo, recolour it outside its tones, close the gap
 or the offset between the halves, or rotate it.
 
+**Wordmark.** The Wordmark stays outlined Sora SemiBold, fixed apart from the
+face the UI is set in: it is glyph data in `packages/ui/src/wordmark.ts`, a
+drawing rather than text, so it looks the same wherever the logo shows -- the
+Sidebar, the drawer bar, the Sign in card and the share image. Sora's OFL
+licence stays in `apps/web/app/fonts/Sora-OFL.txt` for it; no Sora font file is
+served.
+
 The logo is one image named "Credebi" to assistive technology; its parts are
 hidden.
 
@@ -698,9 +852,13 @@ hidden.
 - Do add a new text/background pair to the tokens module when a new pairing
   appears, so the contrast test checks it.
 - Do use `accent-text`, never `accent`, for mint text on a light ground.
-- Do set figures and dates in DM Mono with tabular numerals.
-- Don't round a corner by anything but 4px.
-- Don't set text below 12px.
+- Do set figures and dates in IBM Plex Mono with tabular numerals, and nothing
+  else in it.
+- Don't round a corner by anything but the `control`, `panel` or `card`
+  radius; the status dot is the one circle.
+- Don't cast a shadow but `lift` on a panel, the Account picker and the
+  Segmented control's strip, and `lift-card` on the Sign in card.
+- Don't set text below 11.5px.
 - Don't add a dark mapping before the dark theme Feature.
 
 ## Terms
@@ -708,10 +866,10 @@ hidden.
 | Term           | Meaning |
 | -------------- | ------- |
 | Mark           | The Credebi symbol alone, the offset split coin, without any lettering. |
-| Wordmark       | The name "Credebi" set as outlined Sora SemiBold, with C and d in the accent colour of its tone. |
+| Wordmark       | The name "Credebi" drawn as outlined glyphs, as the Wordmark paragraph under `Logo` states, with C and d in the accent colour of its tone. |
 | Lockup         | A fixed arrangement of the Mark and the Wordmark: horizontal or stacked. The Mark alone is also a variant of the logo. |
 | Semantic token | A colour named by its role, such as `text-muted` or `danger`, mapped onto a brand palette colour. Components use only these. |
-| Band           | A strip tinted `band` with 4px corners behind an Account type's name, set in `label`, medium and `text`, so the Account types read apart from the groups and Accounts under them. It is drawn in the Accounts section, the Account picker and the Account sheet. |
-| Tree connector | A 1px `border-control` line from an Account group's folder icon to the Accounts in it: `├` before each Account shown but the last, `└`, rounded 4px, before the last shown. It is decoration, hidden from assistive technology. |
+| Band           | A strip tinted `band` with the `control` radius behind an Account type's name, set in `body-sm`, semibold, in `text`, and led by the type's icon, so the Account types read apart from the groups and Accounts under them. It is drawn in the Accounts section, the Account picker and the Account sheet. |
+| Tree connector | A 1px `border-control` line from an Account group's folder icon to the Accounts in it, in the Accounts section and the Account sheet: `├` before each Account shown but the last, `└`, its corner rounded by the `control` radius, before the last shown. It is decoration, hidden from assistive technology. |
 | Chip           | A choice drawn as a small inline box that sits beside others and wraps, rather than one per row; a chosen chip takes a fill and an edge. |
 | Scrim          | The `ground-dark` tint at 60% behind a modal dialog. A click on the scrim is a press that began on it as well as ended there: a press that began inside the dialog, as when selecting a field's text by dragging, and was released on the scrim closes nothing. |

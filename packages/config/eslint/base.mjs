@@ -64,7 +64,19 @@ export function createBaseConfig({ tsconfigRootDir, tokens }) {
       ],
       plugins: { repo: repoPlugin },
       rules: {
-        'repo/no-raw-color': ['error', tokens],
+        'repo/no-raw-color': [
+          'error',
+          { colors: tokens.colors, textSizes: tokens.textSizes, shadows: tokens.shadows },
+        ],
+      },
+    },
+
+    {
+      name: 'repo/token-shapes',
+      files: ['apps/web/**/*.{ts,tsx}', 'packages/ui/**/*.{ts,tsx}'],
+      plugins: { repo: repoPlugin },
+      rules: {
+        'repo/no-raw-shape': ['error', { radii: tokens.radii }],
       },
     },
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { Logo, MenuIcon, SignOutIcon } from '@repo/ui';
+import { ListIcon, Logo, MenuIcon, SearchIcon, SignOutIcon, SlidersIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -20,30 +20,33 @@ type SidebarNavProps = SidebarProps & {
 };
 
 const LINKS = [
-  { href: SIGNED_IN_HOME, label: en.sidebar.entries },
-  { href: ENTRY_SEARCH_PATH, label: en.sidebar.entrySearch },
-  { href: SETTINGS_PATH, label: en.sidebar.settings },
+  { href: SIGNED_IN_HOME, label: en.sidebar.entries, icon: <ListIcon /> },
+  { href: ENTRY_SEARCH_PATH, label: en.sidebar.entrySearch, icon: <SearchIcon size={18} /> },
+  { href: SETTINGS_PATH, label: en.sidebar.settings, icon: <SlidersIcon /> },
 ] as const;
 
 const LOGO_HEIGHT = 40;
 const BAR_LOGO_HEIGHT = 32;
 
 const ON_DARK_FOCUS = 'focus-visible:outline-focus-on-dark';
-const LINK = `flex items-center rounded px-3 py-2 ${ON_DARK_FOCUS}`;
-const ACTIVE_LINK = `${LINK} bg-ground-dark-raised font-semibold text-text-on-dark`;
-const IDLE_LINK = `${LINK} text-text-muted-on-dark hover:text-text-on-dark`;
-const QUIET_BUTTON = `inline-flex items-center gap-2 rounded px-3 py-1 ${typeClasses['body-sm']} text-text-muted-on-dark hover:text-text-on-dark ${ON_DARK_FOCUS}`;
-const ICON_BUTTON = `-ml-2 inline-flex size-10 items-center justify-center rounded text-text-on-dark ${ON_DARK_FOCUS}`;
-const SIDEBAR = 'flex-col gap-4 bg-ground-dark p-4 text-text-on-dark';
-const WIDE_SIDEBAR = `hidden ${SIDEBAR} wide:sticky wide:top-0 wide:flex wide:h-screen wide:w-56 wide:shrink-0 wide:overflow-y-auto`;
+const SIDEBAR_ITEM = `flex items-center gap-2.5 rounded-control px-2.5 py-2 ${ON_DARK_FOCUS}`;
+const IDLE_TONE = 'text-text-muted-on-dark hover:bg-ground-dark-hover hover:text-text-on-dark';
+const ACTIVE_LINK = `${SIDEBAR_ITEM} bg-ground-dark-raised font-medium text-text-on-dark`;
+const IDLE_LINK = `${SIDEBAR_ITEM} ${IDLE_TONE}`;
+const QUIET_BUTTON = `${SIDEBAR_ITEM} w-full ${typeClasses['body-sm']} ${IDLE_TONE}`;
+const ICON_BUTTON = `-ml-2 inline-flex size-10 items-center justify-center rounded-control text-text-on-dark ${ON_DARK_FOCUS}`;
+const SIDEBAR = 'flex-col gap-7 bg-ground-dark px-3 pt-5 pb-4 text-text-on-dark';
+const WIDE_SIDEBAR = `hidden ${SIDEBAR} wide:sticky wide:top-0 wide:flex wide:h-screen wide:w-58 wide:shrink-0 wide:overflow-y-auto`;
 
 function SidebarNav({ signOut, className, firstLink, onFollow }: SidebarNavProps): ReactNode {
   const pathname = usePathname();
 
   return (
     <nav aria-label={en.sidebar.ariaLabel} className={className}>
-      <Logo variant="horizontal" tone="reverse" name={en.app.name} height={LOGO_HEIGHT} />
-      <ul className={`flex flex-col gap-1 ${typeClasses['body-sm']}`}>
+      <span className="flex px-2">
+        <Logo variant="horizontal" tone="reverse" name={en.app.name} height={LOGO_HEIGHT} />
+      </span>
+      <ul className={`flex flex-col gap-0.5 ${typeClasses['body-sm']}`}>
         {LINKS.map((link, index) => {
           const current = link.href === pathname;
           return (
@@ -57,6 +60,7 @@ function SidebarNav({ signOut, className, firstLink, onFollow }: SidebarNavProps
                   onFollow?.();
                 }}
               >
+                <span className={current ? 'flex text-accent' : 'flex'}>{link.icon}</span>
                 {link.label}
               </Link>
             </li>
@@ -103,7 +107,7 @@ export function Sidebar({ signOut }: SidebarProps): ReactNode {
         {...drawer.dialogProps}
         id={drawerId}
         onClick={drawer.closeOnScrim}
-        className="m-0 h-full max-h-none w-64 max-w-[calc(100%-3rem)] rounded-r border-0 bg-ground-dark p-0 backdrop:bg-ground-dark/60"
+        className="m-0 h-full max-h-none w-64 max-w-[calc(100%-3rem)] rounded-r-panel border-0 bg-ground-dark p-0 backdrop:bg-ground-dark/60"
       >
         <SidebarNav
           signOut={signOut}
