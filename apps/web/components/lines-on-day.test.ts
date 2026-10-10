@@ -86,7 +86,8 @@ describe('lineHoldingSubmit', () => {
   });
 
   it('lets a form with no line submit', () => {
-    expect(lineHoldingSubmit(linesOnDay(offeredOn(CHART, '2026-09-15'), []))).toBeUndefined();
+    const none: typeof LINES = [];
+    expect(lineHoldingSubmit(linesOnDay(offeredOn(CHART, '2026-09-15'), none))).toBeUndefined();
   });
 });
 
