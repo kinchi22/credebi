@@ -22,8 +22,6 @@ export type EntryFormModeChoiceProps = {
   readonly action: (entryFormMode: string) => Promise<EntryFormModeChange>;
 };
 
-type Status = 'idle' | EntryFormModeChange['outcome'];
-
 type Bar = { readonly side: Side; readonly width: number };
 
 const CHOSEN_SEGMENT = 'bg-accent/15 text-text';
@@ -67,7 +65,7 @@ function ModeDrawing({ mode }: { readonly mode: EntryFormMode }): ReactNode {
 
 export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps): ReactNode {
   const [selected, setSelected] = useState(chosen);
-  const [status, setStatus] = useState<Status>('idle');
+  const [refused, setRefused] = useState(false);
   const [pending, startTransition] = useTransition();
   const id = useId();
 
@@ -75,16 +73,16 @@ export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps
     const next = entryFormModeSchema.parse(event.currentTarget.value);
     const previous = selected;
     setSelected(next);
-    setStatus('idle');
+    setRefused(false);
     startTransition(async () => {
       const outcome = await action(next).then(
         (result) => result.outcome,
-        (): Status => 'rejected',
+        (): EntryFormModeChange['outcome'] => 'rejected',
       );
       if (outcome === 'rejected') {
         setSelected(previous);
+        setRefused(true);
       }
-      setStatus(outcome);
     });
   };
 
@@ -126,10 +124,7 @@ export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps
           ))}
         </div>
       </fieldset>
-      <p role="status" className={`${typeClasses['body-sm']} text-positive`}>
-        {status === 'saved' ? en.settingsPage.saved : null}
-      </p>
-      {status === 'rejected' ? (
+      {refused ? (
         <p role="alert" className={DANGER_TEXT}>
           {en.settingsPage.notSaved}
         </p>
