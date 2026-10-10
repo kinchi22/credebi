@@ -261,7 +261,8 @@ unit test checks every one:
   `ochre`, `cobalt` and `gold` on `white` and on `mist`; `frost` and `sage` on
   `ink` and on `ink-raised`, which is `text-on-dark` and `text-muted-on-dark` on
   `ground-dark` and `ground-dark-raised`; `ink` on `mint`; `ink` on `fog`,
-  which is `text` on a `band` (12.46:1).
+  which is `text` on a `band` (12.46:1); `mint-deeper` on `fog`, which is
+  `accent-text-hover` on a `band` (5.90:1).
 - **Control edges, 3:1.** `steel` and `mint-deep` on `white` and on `mist`;
   `mint`, the `focus-on-dark` ring, on `ink` and on `ink-raised` (7.66:1 on
   `ink`); `pewter`, the Google sign-in button's edge, on `white` (4.53:1).
@@ -398,7 +399,8 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   checkbox in `body-sm`, at the heading's right. The rows are in `body-sm`.
   Each Account type is a Band, padded 8px 12px, with no account count: its
   name, then at the Band's right `+ Account` and `+ Group`, text buttons in
-  `accent-text`, underlined under the pointer, named `Add account` and
+  `accent-text-hover`, since `accent-text` on a `band` falls short of 4.5:1,
+  underlined under the pointer, named `Add account` and
   `Add group`. Every row starts with its grip and ends with `Edit` and then
   `Delete`, drawn as the Entry row actions are, and an optional description
   sits under its name in `body-dense` and `text-muted`. An Account group's row holds the

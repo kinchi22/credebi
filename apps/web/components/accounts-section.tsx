@@ -58,7 +58,7 @@ type RowActions = {
 const startsLater = (account: AccountOutput, today: string | undefined): boolean =>
   today !== undefined && account.activeFrom > today;
 
-const BAND_BUTTON = 'text-accent-text hover:underline';
+const BAND_BUTTON = 'text-accent-text-hover hover:underline';
 
 const UNMOVED: ChartChange = { outcome: 'rejected', code: 'DEPENDENCY_UNAVAILABLE' };
 
