@@ -39,12 +39,12 @@ const CREDIT_DIVIDER = 'border-l border-l-border';
 const COMPACT: Layout = {
   grid: 'grid-cols-[5rem_minmax(0,1fr)_5rem_minmax(0,1fr)]',
   heading: {
-    debit: 'col-start-1 row-start-2 border-t-2 py-2 pl-4',
-    credit: `col-start-3 row-start-2 border-t-2 py-2 pl-4 ${CREDIT_DIVIDER}`,
+    debit: 'col-start-1 row-start-2 border-t-[1.5px] py-2 pl-4',
+    credit: `col-start-3 row-start-2 border-t-[1.5px] py-2 pl-4 ${CREDIT_DIVIDER}`,
   },
   lines: {
-    debit: 'col-start-2 row-start-2 border-t-2 py-2 pr-4',
-    credit: 'col-start-4 row-start-2 border-t-2 py-2 pr-4',
+    debit: 'col-start-2 row-start-2 border-t-[1.5px] py-2 pr-4',
+    credit: 'col-start-4 row-start-2 border-t-[1.5px] py-2 pr-4',
   },
   lineAmount: 'sr-only',
 };
@@ -52,8 +52,8 @@ const COMPACT: Layout = {
 const STACKED: Layout = {
   grid: 'grid-cols-2',
   heading: {
-    debit: 'col-start-1 row-start-2 border-t-2 px-4 pt-2',
-    credit: `col-start-2 row-start-2 border-t-2 px-4 pt-2 ${CREDIT_DIVIDER}`,
+    debit: 'col-start-1 row-start-2 border-t-[1.5px] px-4 pt-2',
+    credit: `col-start-2 row-start-2 border-t-[1.5px] px-4 pt-2 ${CREDIT_DIVIDER}`,
   },
   lines: {
     debit: 'col-start-1 row-start-3 px-4 pb-1',
@@ -119,7 +119,7 @@ function ListedEntry({
     <div
       role="rowgroup"
       data-testid="entry"
-      className={`${PANEL_BLEED} grid ${layout.grid} border-t border-border py-4 first:border-t-0 first:pt-0 ${typeClasses['body-dense']}`}
+      className={`${PANEL_BLEED} grid ${layout.grid} border-t border-border py-4 first:border-t-0 first:pt-1 hover:bg-surface-hover ${typeClasses['body-dense']}`}
     >
       <div role="row" className="contents">
         <div role="cell" className="col-span-full row-start-1 flex items-start gap-x-2 pb-2">
@@ -127,7 +127,7 @@ function ListedEntry({
             <time dateTime={entry.entryDate} className={`${typeClasses.date} shrink-0 text-text-muted`}>
               {entry.entryDate}
             </time>{' '}
-            <span className="min-w-0 grow font-semibold">{entry.memo}</span>{' '}
+            <span className="min-w-0 grow font-medium">{entry.memo}</span>{' '}
             <span className="shrink-0">
               <span className="sr-only">{en.entryList.total} </span>
               <span data-testid="entry-total" className={`${typeClasses.figure} font-medium`}>

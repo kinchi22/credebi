@@ -16,7 +16,7 @@ import Link from 'next/link';
 import { Fragment, useId, useState, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { SETTINGS_PATH } from '../server/return-path';
-import { CONTROL, PRIMARY_BUTTON } from './control-classes';
+import { CONTROL, PRIMARY_BUTTON, SEARCH_ON_STRIP } from './control-classes';
 import { useHydrated } from './hydrated';
 import { useModalDialog, type ModalDialog } from './modal-dialog';
 import {
@@ -152,7 +152,7 @@ export function ChooseAccountButton({ side, account, sheet }: ChooseAccountButto
       onClick={(event) => {
         sheet.openOn(side, event.currentTarget);
       }}
-      className={`flex min-h-10 w-full items-center gap-3 border-t-2 py-1 text-left disabled:opacity-50 wide:hidden ${SIDE_TONE[side].edge}`}
+      className={`flex min-h-10 w-full items-center gap-3 border-t-2 py-3 text-left disabled:opacity-50 wide:hidden ${SIDE_TONE[side].edge}`}
     >
       <AccountRowContent side={side} account={account} placeholderInSideTone />
       {account === undefined ? null : (
@@ -171,7 +171,7 @@ type AccountRowProps = {
 
 export function AccountRow({ side, account }: AccountRowProps): ReactNode {
   return (
-    <div className={`hidden items-center gap-3 border-t-2 py-1 wide:flex ${SIDE_TONE[side].edge}`}>
+    <div className={`hidden items-center gap-3 border-t-2 py-3 wide:flex ${SIDE_TONE[side].edge}`}>
       <AccountRowContent side={side} account={account} placeholderInSideTone={false} />
     </div>
   );
@@ -218,7 +218,7 @@ const FOCUSED_CHOICE =
 
 const SHEET_CHOICE = `grow rounded-control px-2 py-1.5 text-text peer-checked:bg-accent/15 peer-checked:font-semibold ${FOCUSED_CHOICE}`;
 
-const CHIP = `rounded-control border border-transparent px-1.5 py-1 text-text peer-checked:border-accent-text peer-checked:bg-surface peer-checked:font-semibold ${FOCUSED_CHOICE}`;
+const CHIP = `rounded-control border border-border px-1.5 py-1 text-text peer-not-checked:peer-hover:border-border-control peer-checked:border-accent-text peer-checked:bg-surface-chosen peer-checked:font-medium ${FOCUSED_CHOICE}`;
 
 type ChoicesLook = {
   readonly sideNameShown: boolean;
@@ -406,10 +406,10 @@ function SideChoices({
 type FindAnAccountProps = {
   readonly query: string;
   readonly setQuery: (query: string) => void;
-  readonly className?: string;
+  readonly className: string;
 };
 
-function FindAnAccount({ query, setQuery, className = '' }: FindAnAccountProps): ReactNode {
+function FindAnAccount({ query, setQuery, className }: FindAnAccountProps): ReactNode {
   return (
     <input
       type="search"
@@ -422,7 +422,7 @@ function FindAnAccount({ query, setQuery, className = '' }: FindAnAccountProps):
       onKeyDown={(event) => {
         if (event.key === 'Enter') event.preventDefault();
       }}
-      className={`${CONTROL} w-full ${className}`}
+      className={`w-full ${className}`}
     />
   );
 }
@@ -466,7 +466,7 @@ function AccountColumns({
         <span className="pointer-events-none absolute left-7 flex text-text-muted">
           <SearchIcon size={16} />
         </span>
-        <FindAnAccount query={query} setQuery={setQuery} className="pl-8" />
+        <FindAnAccount query={query} setQuery={setQuery} className={`${SEARCH_ON_STRIP} pl-8`} />
       </div>
       <div className="split:hidden">
         <SheetTabs
@@ -563,7 +563,7 @@ function AccountSheetDialog({
           label={(side) => en.sides[side]}
         />
         <div className="shrink-0 border-b border-border bg-surface px-4 py-3">
-          <FindAnAccount query={sheet.query} setQuery={sheet.setQuery} />
+          <FindAnAccount query={sheet.query} setQuery={sheet.setQuery} className={CONTROL} />
         </div>
         <div className={`min-h-0 grow overflow-y-auto ${typeClasses['body-dense']}`}>
           {SIDES.map((side) => (

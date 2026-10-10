@@ -23,7 +23,13 @@ import {
 } from 'react';
 import { en } from '../messages/en';
 import { useBrowserToday } from './browser-today';
-import { CONTROL, DATE_CONTROL, DENSE_FIELD, PRIMARY_BUTTON } from './control-classes';
+import {
+  CONTROL,
+  DATE_CONTROL,
+  DENSE_FIELD,
+  FIELD_LABEL,
+  PRIMARY_BUTTON,
+} from './control-classes';
 import { FORM_REFUSAL } from './text-classes';
 
 export type EntryFormState =
@@ -216,7 +222,7 @@ export function EntryFormShell({
 
       <div className="flex flex-wrap gap-3 wide:grid wide:grid-cols-[9.25rem_minmax(0,1fr)]">
         <div className={DENSE_FIELD}>
-          <label htmlFor={`${id}-date`}>{en.entryForm.date}</label>
+          <label htmlFor={`${id}-date`} className={FIELD_LABEL}>{en.entryForm.date}</label>
           <input
             id={`${id}-date`}
             name={ENTRY_FORM_FIELDS.entryDate}
@@ -231,7 +237,7 @@ export function EntryFormShell({
           />
         </div>
         <div className={`${DENSE_FIELD} grow`}>
-          <label htmlFor={`${id}-memo`}>{en.entryForm.memo}</label>
+          <label htmlFor={`${id}-memo`} className={FIELD_LABEL}>{en.entryForm.memo}</label>
           <input
             id={`${id}-memo`}
             name={ENTRY_FORM_FIELDS.memo}

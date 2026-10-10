@@ -62,6 +62,8 @@ describe('the declared pairs', () => {
     expect(foregroundsOn('ink-mid')).toEqual(['frost', 'sage']);
     expect(foregroundsOn('mint')).toEqual(['ink']);
     expect(foregroundsOn('fog')).toEqual(['ink', 'mint-deeper']);
+    expect(foregroundsOn('mist-pale')).toEqual(['ink', 'slate', 'cobalt', 'gold']);
+    expect(foregroundsOn('mint-pale')).toEqual(['ink']);
   });
 
   it('checks the control edge and the focus ring on every ground', () => {
@@ -90,6 +92,8 @@ describe('the semantic tokens', () => {
       'ground-dark': 'ink',
       'ground-dark-raised': 'ink-raised',
       'ground-dark-hover': 'ink-mid',
+      'surface-hover': 'mist-pale',
+      'surface-chosen': 'mint-pale',
       accent: 'mint',
       'accent-text': 'mint-deep',
       'accent-text-hover': 'mint-deeper',
@@ -136,6 +140,27 @@ describe('the hover fill on dark', () => {
       Math.round(channel * 0.4 + (raised?.[index] ?? 0) * 0.6),
     );
     expect(mid).toEqual(mixed);
+  });
+});
+
+const mixedInto = (
+  base: keyof typeof palette,
+  tint: keyof typeof palette,
+  share: number,
+): readonly number[] => {
+  const [under, over] = [palette[base], palette[tint]].map(rgbChannels);
+  return (under ?? [0, 0, 0]).map((channel, index) =>
+    Math.round(channel * (1 - share) + (over?.[index] ?? 0) * share),
+  );
+};
+
+describe('the light fills', () => {
+  it('tints a row under the pointer with 70% of mist mixed into white', () => {
+    expect(rgbChannels(palette['mist-pale'])).toEqual(mixedInto('white', 'mist', 0.7));
+  });
+
+  it('tints a chosen chip with 12% of mint mixed into white', () => {
+    expect(rgbChannels(palette['mint-pale'])).toEqual(mixedInto('white', 'mint', 0.12));
   });
 });
 
