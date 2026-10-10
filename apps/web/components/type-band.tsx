@@ -12,18 +12,27 @@ const TYPE_ICON: Readonly<Record<AccountType, () => ReactNode>> = {
   expense: FallingLineIcon,
 };
 
-export const TYPE_BAND = 'rounded-control bg-band';
+export type BandProps = {
+  readonly accountType: AccountType;
+  readonly id: string;
+  readonly className: string;
+  readonly children?: ReactNode;
+};
 
-export const TYPE_NAME = `flex items-center gap-2 ${typeClasses['body-sm']} font-semibold text-text`;
-
-export function TypeName({ accountType }: { readonly accountType: AccountType }): ReactNode {
+export function Band({ accountType, id, className, children }: BandProps): ReactNode {
   const Icon = TYPE_ICON[accountType];
   return (
-    <>
-      <span className="flex shrink-0">
-        <Icon />
+    <div className={`flex items-center justify-between gap-3 rounded-control bg-band ${className}`}>
+      <span
+        id={id}
+        className={`flex items-center gap-2 ${typeClasses['body-sm']} font-semibold text-text`}
+      >
+        <span className="flex shrink-0">
+          <Icon />
+        </span>
+        {en.accountTypes[accountType]}
       </span>
-      {en.accountTypes[accountType]}
-    </>
+      {children}
+    </div>
   );
 }

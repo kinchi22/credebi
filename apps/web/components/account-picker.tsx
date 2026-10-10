@@ -34,7 +34,7 @@ import { SheetBar, SheetTabs } from './sheet';
 import { SIDE_TONE, SIDES } from './side-classes';
 import { LINK } from './text-classes';
 import { GroupFolder, TreeBranch } from './tree-branch';
-import { TYPE_BAND, TYPE_NAME, TypeName } from './type-band';
+import { Band } from './type-band';
 import { useWide } from './wide';
 
 export type AccountChoice = Readonly<Record<Side, AccountOutput | undefined>>;
@@ -332,7 +332,9 @@ function SideChoices({
     </div>
   );
 
-  const shownIn = (run: Run): string => (run.accounts.some(matches) ? '' : 'hidden');
+  const isShown = (run: Run): boolean => run.accounts.some(matches);
+
+  const shownIn = (run: Run): string => (isShown(run) ? '' : 'hidden');
 
   const treeOf = (runs: readonly Run[]): ReactNode =>
     runs.map((run, index) =>
@@ -390,13 +392,9 @@ function SideChoices({
             key={type}
             role="group"
             aria-labelledby={`${typeId}-${type}`}
-            className={
-              runs.some((run) => run.accounts.some(matches)) ? 'flex flex-col gap-1' : 'hidden'
-            }
+            className={runs.some(isShown) ? 'flex flex-col gap-1' : 'hidden'}
           >
-            <p id={`${typeId}-${type}`} className={`${TYPE_BAND} ${TYPE_NAME} px-2 py-1.5`}>
-              <TypeName accountType={type} />
-            </p>
+            <Band accountType={type} id={`${typeId}-${type}`} className="px-2 py-1.5" />
             {look.groups === 'tree' ? treeOf(runs) : captionsOf(runs)}
           </div>
         );

@@ -1,6 +1,13 @@
 import type { AccountGroupId, AccountId } from '@repo/contracts';
 import { describe, expect, it } from 'vitest';
-import { branchesOf, nameContains, ruledRunsOf, shownInSection, type Run } from './chart-tree';
+import {
+  branchesOf,
+  nameContains,
+  ruledRunsOf,
+  runsOf,
+  shownInSection,
+  type Run,
+} from './chart-tree';
 
 const id = (tail: string): string => `01920000-0000-7000-8000-${tail.padStart(12, '0')}`;
 
@@ -143,5 +150,37 @@ describe('ruledRunsOf', () => {
       above: false,
       below: true,
     });
+  });
+});
+
+describe('runsOf', () => {
+  it('joins neighbouring ungrouped Accounts of a type into one run, keeps each group a run of its own, and leaves other types out', () => {
+    const cash = account('f001', 'Cash');
+    const petty = account('f002', 'Petty cash');
+    const loan = { ...account('f003', 'Loan'), accountType: 'liability' as const };
+    const receivable = account('f004', 'Receivable');
+    const bank = {
+      id: BANK,
+      accountType: 'asset' as const,
+      name: 'Bank',
+      description: null,
+    };
+
+    expect(
+      runsOf(
+        [
+          { kind: 'account', account: cash },
+          { kind: 'account', account: petty },
+          { kind: 'account', account: loan },
+          { kind: 'group', group: bank, accounts: [...IN_BANK] },
+          { kind: 'account', account: receivable },
+        ],
+        'asset',
+      ),
+    ).toEqual([
+      { kind: 'accounts', accounts: [cash, petty] },
+      { kind: 'group', group: bank, accounts: IN_BANK },
+      { kind: 'accounts', accounts: [receivable] },
+    ]);
   });
 });
