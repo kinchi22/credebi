@@ -33,7 +33,10 @@ the base branch for your Task and the `gh` commands.
    the specs Task of a Feature whose every criterion the app already meets, or
    the last Task of a Feature with no specs -- it carries `Closes #<feature>` as
    well. Set the Task In Review.
-7. **Return** the pull request number.
+7. **Return** the pull request number once its required checks finish:
+   `gh pr checks <n> --watch --required` is the one wait, and it ends by itself.
+   Every server, database and process you started is stopped first, so the
+   next Task finds port 3000 free.
 
 When the Driver sends review findings, fix them on the same branch, run the
-gates again, push, and return the number again.
+gates again, push, and return the number again, the same way.
