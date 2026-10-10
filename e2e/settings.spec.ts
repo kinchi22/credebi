@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { accountChoices, accountTicks, entryForm } from './entries';
 import { SETTINGS_URL, SIGN_IN_URL } from './routes';
 import { freshIdentifier, signIn, submitTestSignIn } from './session';
-import { entryFormModeChoice, entryFormModes, savedStatus } from './settings';
+import { entryFormModeChoice, entryFormModes } from './settings';
 
 test('sends a signed-out visitor from the settings page to sign in, and back once they do', async ({ page }) => {
   await page.goto('/settings');
@@ -29,13 +29,14 @@ test('gives a new User Two-line mode, and the Two-line form on the entries page'
   await expect(accountTicks(form, 'Debit')).toHaveCount(0);
 });
 
-test('keeps Multi-line mode once chosen, after a reload, and shows the Multi-line form on the entries page', async ({ page }) => {
+test('keeps Multi-line mode once chosen, without a Saved status, after a reload, and shows the Multi-line form on the entries page', async ({ page }) => {
   await signIn(page);
   await page.goto('/settings');
   await expect(entryFormModeChoice(page, 'Two-line mode')).toBeChecked();
 
   await entryFormModeChoice(page, 'Multi-line mode').check();
-  await expect(savedStatus(page)).toBeVisible();
+  await expect(entryFormModeChoice(page, 'Multi-line mode')).toBeEnabled();
+  await expect(page.getByRole('status').filter({ hasText: 'Saved' })).toHaveCount(0);
 
   await page.reload();
   await expect(entryFormModeChoice(page, 'Multi-line mode')).toBeChecked();

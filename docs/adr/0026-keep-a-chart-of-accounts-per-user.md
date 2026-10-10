@@ -44,7 +44,8 @@ When the trigger holds, accounts become their own feature,
   it wherever an Entry is shown. A group's name is unique among the groups of its
   Account type. A description is optional, up to 200 characters.
 - **Active period.** An Account has a start day and an optional end day, both
-  inclusive. An Entry line names an Account only on a day its Active period
+  inclusive. An end day before the start day is refused; one equal to it makes
+  a period of one day. An Entry line names an Account only on a day its Active period
   holds, checked when an Entry is posted, a Correction's replacement included.
   A change to an Active period that would leave a shown Entry outside it is
   refused; a Reversal and the Entry it reverses do not count, since together they
@@ -87,6 +88,12 @@ refusal has to say so, since the User cannot see them.
 Reordering is a write per drag, and the order is state every list must read.
 Drag is the only way to reorder, so ordering is not reachable from a keyboard;
 moving an Account between groups is, through its edit dialog.
+
+Between the first release's migration and its Promotion, Current Production
+still writes Entry lines with no `account_id` and creates Users with no Accounts.
+After Promotion, such a User's Entries fail to read and their posts are refused.
+This is accepted with no healing and no backfill, because the owner is the only
+User and does not write during that window.
 
 The domain loses a compile-time set of Accounts, so posting an Entry needs the
 repository, which is the testability ADR-0015 already accepted losing.

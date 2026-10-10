@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { accountIdSchema, type AccountId } from './accounts';
 import { type Brand } from './brand';
 import { domainError, type DomainError } from './errors';
 import { uuidV7Schema } from './id';
@@ -21,6 +22,15 @@ export const entryLineSchema = z.object({
 });
 
 export type EntryLineInput = z.infer<typeof entryLineSchema>;
+
+export const postedLineSchema = z.object({
+  account: accountIdSchema,
+  accountName: z.string(),
+  side: sideSchema,
+  amount: moneySchema,
+});
+
+export type PostedLine = z.infer<typeof postedLineSchema>;
 
 export const postEntryInputSchema = z.object({
   entryDate: entryDateSchema,
@@ -46,7 +56,7 @@ export const postedEntrySchema = z.object({
   id: entryIdSchema,
   entryDate: entryDateSchema,
   memo: z.string(),
-  lines: z.array(entryLineSchema),
+  lines: z.array(postedLineSchema),
   total: moneySchema,
   createdAt: z.iso.datetime(),
 });
@@ -57,7 +67,12 @@ export function toPostedEntry(entry: {
   readonly id: EntryId;
   readonly entryDate: string;
   readonly memo: string;
-  readonly lines: readonly EntryLineInput[];
+  readonly lines: readonly {
+    readonly account: AccountId;
+    readonly accountName: string;
+    readonly side: Side;
+    readonly amount: Money;
+  }[];
   readonly total: Money;
   readonly createdAt: Date;
 }): PostedEntry {
@@ -67,6 +82,7 @@ export function toPostedEntry(entry: {
     memo: entry.memo,
     lines: entry.lines.map((line) => ({
       account: line.account,
+      accountName: line.accountName,
       side: line.side,
       amount: line.amount,
     })),

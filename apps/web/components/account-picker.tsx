@@ -1,30 +1,44 @@
 'use client';
 
-import { ENTRY_FORM_FIELDS, type Side } from '@repo/contracts';
 import {
-  ACCOUNT_TYPE_OF,
-  ACCOUNT_TYPES,
-  CHART_OF_ACCOUNTS,
-  type AccountCode,
-} from '@repo/core/entries';
+  ENTRY_FORM_FIELDS,
+  accountsIn,
+  nodesOfType,
+  type AccountGroupOutput,
+  type AccountId,
+  type AccountOutput,
+  type AccountType,
+  type ChartOutput,
+  type PostedEntry,
+  type Side,
+} from '@repo/contracts';
+import { ACCOUNT_TYPES } from '@repo/core/accounts';
 import { ChevronIcon, SearchIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
-import { useId, useState, type ReactNode } from 'react';
+import Link from 'next/link';
+import { Fragment, useId, useState, type ReactNode } from 'react';
 import { en } from '../messages/en';
+import { SETTINGS_PATH } from '../server/return-path';
 import { CONTROL, PRIMARY_BUTTON } from './control-classes';
 import { useHydrated } from './hydrated';
 import { useModalDialog, type ModalDialog } from './modal-dialog';
-import { SheetBar, SheetCloseButton, SheetTabs } from './sheet';
+import { branchesOf, nameContains, type Branch } from './chart-tree';
+import { CloseButton } from './close-button';
+import { type Offered } from './lines-on-day';
+import { SheetBar, SheetTabs } from './sheet';
 import { SIDE_TONE, SIDES } from './side-classes';
+import { LINK } from './text-classes';
+import { GroupFolder, TreeBranch, TreeHook } from './tree-branch';
 import { useWide } from './wide';
 
-export type AccountChoice = Readonly<Record<Side, AccountCode | undefined>>;
+export type AccountChoice = Readonly<Record<Side, AccountOutput | undefined>>;
 
 export type AccountPickerProps = {
   readonly id: string;
+  readonly chart: ChartOutput;
   readonly multiple?: boolean;
-  readonly isChosen: (side: Side, account: AccountCode) => boolean;
-  readonly onPick: (side: Side, account: AccountCode, chosen: boolean) => void;
+  readonly isChosen: (side: Side, account: AccountId) => boolean;
+  readonly onPick: (side: Side, account: AccountOutput, chosen: boolean) => void;
   readonly sheet: AccountSheet;
 };
 
@@ -65,11 +79,6 @@ const PICK_MANY: PickControl = {
 };
 
 const otherSide = (side: Side): Side => (side === 'debit' ? 'credit' : 'debit');
-
-const nameContains =
-  (query: string) =>
-  (account: AccountCode): boolean =>
-    en.accounts[account].toLowerCase().includes(query.trim().toLowerCase());
 
 export function useAccountSheet(): AccountSheet {
   const id = useId();
@@ -120,7 +129,7 @@ export function AddAccountButton({ side, sheet }: AddAccountButtonProps): ReactN
 
 type ChooseAccountButtonProps = {
   readonly side: Side;
-  readonly account: AccountCode | undefined;
+  readonly account: AccountOutput | undefined;
   readonly sheet: AccountSheet;
 };
 
@@ -151,7 +160,7 @@ export function ChooseAccountButton({ side, account, sheet }: ChooseAccountButto
 
 type AccountRowProps = {
   readonly side: Side;
-  readonly account: AccountCode | undefined;
+  readonly account: AccountOutput | undefined;
 };
 
 export function AccountRow({ side, account }: AccountRowProps): ReactNode {
@@ -181,7 +190,7 @@ function AccountRowContent({
         {en.sides[side]}
       </span>
       <span className={`min-w-0 grow ${account === undefined ? placeholderClass : 'font-semibold'}`}>
-        {account === undefined ? en.entryForm.chooseAccount : en.accounts[account]}
+        {account === undefined ? en.entryForm.chooseAccount : account.name}
       </span>
     </>
   );
@@ -189,10 +198,11 @@ function AccountRowContent({
 
 type SideChoicesProps = {
   readonly side: Side;
+  readonly chart: ChartOutput;
   readonly control: PickControl;
-  readonly matches: (account: AccountCode) => boolean;
-  readonly isChosen: (account: AccountCode) => boolean;
-  readonly onPick: (account: AccountCode, chosen: boolean) => void;
+  readonly matches: (account: AccountOutput) => boolean;
+  readonly isChosen: (account: AccountId) => boolean;
+  readonly onPick: (account: AccountOutput, chosen: boolean) => void;
   readonly onInvalid?: () => void;
   readonly look: ChoicesLook;
 };
@@ -200,36 +210,114 @@ type SideChoicesProps = {
 const FOCUSED_CHOICE =
   'peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus';
 
-const SHEET_CHOICE = `grow rounded px-2 py-1 text-text peer-checked:bg-accent/15 peer-checked:font-semibold ${FOCUSED_CHOICE}`;
+const SHEET_CHOICE = `grow rounded px-2 py-1.5 text-text peer-checked:bg-accent/15 peer-checked:font-semibold ${FOCUSED_CHOICE}`;
 
 const CHIP = `rounded border border-transparent px-1.5 py-1 text-text peer-checked:border-accent-text peer-checked:bg-surface peer-checked:font-semibold ${FOCUSED_CHOICE}`;
 
 type ChoicesLook = {
   readonly sideNameShown: boolean;
-  readonly typeName: string;
+  readonly groupName: string;
   readonly accounts: string;
+  readonly groupAccounts: string;
+  readonly tree: 'branches' | 'hook';
   readonly account: string;
   readonly choice: string;
 };
 
+const TYPE_BAND = `rounded bg-band px-2 py-1.5 ${typeClasses.label} font-medium text-text`;
+
+const GROUP_NAME = 'flex items-center gap-1.5 pt-1 font-semibold';
+
 const SHEET_LOOK: ChoicesLook = {
   sideNameShown: false,
-  typeName: `${typeClasses.label} text-text-muted`,
+  groupName: `${GROUP_NAME} px-2`,
   accounts: 'flex flex-col gap-1',
+  groupAccounts: 'flex flex-col pl-1',
+  tree: 'branches',
   account: 'relative flex',
   choice: SHEET_CHOICE,
 };
 
+const INLINE_ACCOUNTS = 'flex flex-wrap gap-x-3 gap-y-0.5';
+
 const INLINE_LOOK: ChoicesLook = {
   sideNameShown: true,
-  typeName: `-mx-3 bg-band px-3 py-1 ${typeClasses.label} text-text-muted`,
-  accounts: 'flex flex-wrap gap-x-3 gap-y-0.5',
+  groupName: GROUP_NAME,
+  accounts: INLINE_ACCOUNTS,
+  groupAccounts: INLINE_ACCOUNTS,
+  tree: 'hook',
   account: 'relative inline-flex',
   choice: CHIP,
 };
 
+type Run =
+  | { readonly kind: 'accounts'; readonly accounts: readonly AccountOutput[] }
+  | {
+      readonly kind: 'group';
+      readonly group: AccountGroupOutput;
+      readonly accounts: readonly AccountOutput[];
+    };
+
+function runsOf(chart: ChartOutput, type: AccountType): readonly Run[] {
+  const runs: Run[] = [];
+  for (const node of nodesOfType(chart, type)) {
+    const last = runs.at(-1);
+    if (node.kind === 'group') {
+      runs.push(node);
+    } else if (last?.kind === 'accounts') {
+      runs[runs.length - 1] = { kind: 'accounts', accounts: [...last.accounts, node.account] };
+    } else {
+      runs.push({ kind: 'accounts', accounts: [node.account] });
+    }
+  }
+  return runs;
+}
+
+const NO_BRANCHES: ReadonlyMap<AccountId, Branch> = new Map();
+
+type ChoiceProps = Pick<SideChoicesProps, 'side' | 'control' | 'look'> & {
+  readonly onInvalid: (() => void) | undefined;
+  readonly account: AccountOutput;
+  readonly shown: boolean;
+  readonly chosen: boolean;
+  readonly branch: Branch | undefined;
+  readonly onPick: (chosen: boolean) => void;
+};
+
+function Choice({
+  side,
+  account,
+  control,
+  shown,
+  chosen,
+  branch,
+  onPick,
+  onInvalid,
+  look,
+}: ChoiceProps): ReactNode {
+  return (
+    <label className={shown ? look.account : 'hidden'}>
+      <input
+        type={control.inputType}
+        name={control.fieldName?.[side]}
+        value={account.id}
+        required={control.fieldName !== undefined}
+        checked={chosen}
+        onChange={(event) => {
+          onPick(event.target.checked);
+        }}
+        onInvalid={onInvalid}
+        className="peer absolute inset-0 m-0 appearance-none opacity-0"
+      />
+      {branch === undefined ? null : <TreeBranch branch={branch} />}
+      <span className={look.choice}>{account.name}</span>
+    </label>
+  );
+}
+
 function SideChoices({
   side,
+  chart,
   control,
   matches,
   isChosen,
@@ -238,6 +326,31 @@ function SideChoices({
   look,
 }: SideChoicesProps): ReactNode {
   const typeId = useId();
+
+  const choices = (
+    accounts: readonly AccountOutput[],
+    className: string,
+    branches: ReadonlyMap<AccountId, Branch>,
+  ): ReactNode => (
+    <div className={className}>
+      {accounts.map((account) => (
+        <Choice
+          key={account.id}
+          side={side}
+          account={account}
+          control={control}
+          shown={matches(account)}
+          chosen={isChosen(account.id)}
+          branch={branches.get(account.id)}
+          onPick={(chosen) => {
+            onPick(account, chosen);
+          }}
+          onInvalid={onInvalid}
+          look={look}
+        />
+      ))}
+    </div>
+  );
 
   return (
     <div
@@ -251,39 +364,44 @@ function SideChoices({
         </p>
       ) : null}
       {ACCOUNT_TYPES.map((type) => {
-        const accounts = CHART_OF_ACCOUNTS.filter((code) => ACCOUNT_TYPE_OF[code] === type);
+        const runs = runsOf(chart, type);
         return (
           <div
             key={type}
             role="group"
             aria-labelledby={`${typeId}-${type}`}
-            className={accounts.some(matches) ? 'flex flex-col gap-1' : 'hidden'}
+            className={
+              runs.some((run) => run.accounts.some(matches)) ? 'flex flex-col gap-1' : 'hidden'
+            }
           >
-            <p
-              id={`${typeId}-${type}`}
-              className={look.typeName}
-            >
+            <p id={`${typeId}-${type}`} className={TYPE_BAND}>
               {en.accountTypes[type]}
             </p>
-            <div className={look.accounts}>
-              {accounts.map((code) => (
-                <label key={code} className={matches(code) ? look.account : 'hidden'}>
-                  <input
-                    type={control.inputType}
-                    name={control.fieldName?.[side]}
-                    value={code}
-                    required={control.fieldName !== undefined}
-                    checked={isChosen(code)}
-                    onChange={(event) => {
-                      onPick(code, event.target.checked);
-                    }}
-                    onInvalid={onInvalid}
-                    className="peer absolute inset-0 m-0 appearance-none opacity-0"
-                  />
-                  <span className={look.choice}>{en.accounts[code]}</span>
-                </label>
-              ))}
-            </div>
+            {runs.map((run, index) =>
+              run.kind === 'accounts' ? (
+                <Fragment key={`accounts-${String(index)}`}>
+                  {choices(run.accounts, look.accounts, NO_BRANCHES)}
+                </Fragment>
+              ) : (
+                <div
+                  key={run.group.id}
+                  className={run.accounts.some(matches) ? 'flex flex-col gap-1' : 'hidden'}
+                >
+                  <p className={look.groupName}>
+                    <GroupFolder size={14} />
+                    {run.group.name}
+                  </p>
+                  {look.tree === 'branches' ? (
+                    choices(run.accounts, look.groupAccounts, branchesOf(run.accounts, matches))
+                  ) : (
+                    <div className="relative pl-4">
+                      <TreeHook />
+                      {choices(run.accounts, look.groupAccounts, NO_BRANCHES)}
+                    </div>
+                  )}
+                </div>
+              ),
+            )}
           </div>
         );
       })}
@@ -317,11 +435,12 @@ function FindAnAccount({ query, setQuery, className = '' }: FindAnAccountProps):
 
 type NoMatchProps = {
   readonly query: string;
-  readonly matches: (account: AccountCode) => boolean;
+  readonly chart: ChartOutput;
+  readonly matches: (account: AccountOutput) => boolean;
 };
 
-function NoMatch({ query, matches }: NoMatchProps): ReactNode {
-  return CHART_OF_ACCOUNTS.some(matches) ? null : (
+function NoMatch({ query, chart, matches }: NoMatchProps): ReactNode {
+  return accountsIn(chart).some(matches) ? null : (
     <p className="px-4 py-3 text-text-muted">
       {en.accountSheet.noMatch} &quot;{query.trim()}&quot;.
     </p>
@@ -330,14 +449,20 @@ function NoMatch({ query, matches }: NoMatchProps): ReactNode {
 
 const sideTone = (side: Side): string => `${SIDE_TONE[side].edge} ${SIDE_TONE[side].text}`;
 
-function AccountColumns({ id, multiple = false, isChosen, onPick }: AccountPickerProps): ReactNode {
+function AccountColumns({
+  id,
+  chart,
+  multiple = false,
+  isChosen,
+  onPick,
+}: AccountPickerProps): ReactNode {
   const [shown, setShown] = useState<Side>('debit');
   const [query, setQuery] = useState('');
   const matches = nameContains(query);
   const tabId = (side: Side): string => `${id}-${side}-tab`;
   const panelId = (side: Side): string => `${id}-${side}-panel`;
   const hasAccount = (side: Side): boolean =>
-    CHART_OF_ACCOUNTS.some((account) => isChosen(side, account));
+    accountsIn(chart).some((account) => isChosen(side, account.id));
 
   return (
     <div
@@ -371,6 +496,7 @@ function AccountColumns({ id, multiple = false, isChosen, onPick }: AccountPicke
           >
             <SideChoices
               side={side}
+              chart={chart}
               control={multiple ? PICK_MANY : PICK_ONE}
               matches={matches}
               look={INLINE_LOOK}
@@ -385,20 +511,26 @@ function AccountColumns({ id, multiple = false, isChosen, onPick }: AccountPicke
           </div>
         ))}
       </div>
-      <NoMatch query={query} matches={matches} />
+      <NoMatch query={query} chart={chart} matches={matches} />
     </div>
   );
 }
 
-function AccountSheetDialog({ multiple = false, isChosen, onPick, sheet }: AccountPickerProps): ReactNode {
+function AccountSheetDialog({
+  chart,
+  multiple = false,
+  isChosen,
+  onPick,
+  sheet,
+}: AccountPickerProps): ReactNode {
   const tabId = (side: Side): string => `${sheet.id}-${side}-tab`;
   const panelId = (side: Side): string => `${sheet.id}-${side}-panel`;
   const titleId = `${sheet.id}-title`;
   const matches = nameContains(sheet.query);
   const hasAccount = (side: Side): boolean =>
-    CHART_OF_ACCOUNTS.some((account) => isChosen(side, account));
+    accountsIn(chart).some((account) => isChosen(side, account.id));
 
-  const pick = (side: Side, account: AccountCode, chosen: boolean): void => {
+  const pick = (side: Side, account: AccountOutput, chosen: boolean): void => {
     onPick(side, account, chosen);
     if (multiple || !chosen) {
       return;
@@ -425,7 +557,7 @@ function AccountSheetDialog({ multiple = false, isChosen, onPick, sheet }: Accou
               {en.accountSheet.done}
             </button>
           ) : (
-            <SheetCloseButton label={en.accountSheet.close} onClose={sheet.close} />
+            <CloseButton label={en.accountSheet.close} onClose={sheet.close} />
           )}
         </SheetBar>
         <SheetTabs
@@ -450,6 +582,7 @@ function AccountSheetDialog({ multiple = false, isChosen, onPick, sheet }: Accou
             >
               <SideChoices
                 side={side}
+                chart={chart}
                 control={multiple ? PICK_MANY : PICK_ONE}
                 matches={matches}
                 look={SHEET_LOOK}
@@ -463,13 +596,51 @@ function AccountSheetDialog({ multiple = false, isChosen, onPick, sheet }: Accou
               />
             </div>
           ))}
-          <NoMatch query={sheet.query} matches={matches} />
+          <NoMatch query={sheet.query} chart={chart} matches={matches} />
         </div>
       </div>
     </dialog>
   );
 }
 
+function NoActiveAccount(): ReactNode {
+  return (
+    <p className={`rounded border border-border bg-ground px-4 py-3 ${typeClasses['body-dense']}`}>
+      {en.accountSheet.noActiveAccount}{' '}
+      <Link href={SETTINGS_PATH} className={LINK}>
+        {en.accountSheet.settingsLink}
+      </Link>
+    </p>
+  );
+}
+
+type OutsideActivePeriodProps = {
+  readonly entry: PostedEntry | undefined;
+  readonly offered: Offered;
+};
+
+export function OutsideActivePeriod({ entry, offered }: OutsideActivePeriodProps): ReactNode {
+  const outside = [
+    ...new Set(
+      (entry?.lines ?? [])
+        .filter((line) => !offered.ids.has(line.account))
+        .map((line) => line.accountName),
+    ),
+  ];
+  return outside.length === 0 ? null : (
+    <p className={`min-w-0 text-danger ${typeClasses['body-dense']}`}>
+      {en.accountSheet.outsideActivePeriod} {outside.join(', ')}.{' '}
+      <Link href={SETTINGS_PATH} className={LINK}>
+        {en.accountSheet.settingsLink}
+      </Link>
+    </p>
+  );
+}
+
 export function AccountPicker(props: AccountPickerProps): ReactNode {
-  return useWide() ? <AccountColumns {...props} /> : <AccountSheetDialog {...props} />;
+  const wide = useWide();
+  if (accountsIn(props.chart).length === 0) {
+    return <NoActiveAccount />;
+  }
+  return wide ? <AccountColumns {...props} /> : <AccountSheetDialog {...props} />;
 }

@@ -5,15 +5,18 @@ import {
   accountChoices,
   accountTicks,
   amountShown,
+  editButton,
   AMOUNT,
   DAY,
   entries,
   entryForm,
   entrySearchForm,
-  lineGroup,
+  lineAmount,
   lineGroups,
   listedEntry,
+  openEditEntry,
   postEntries,
+  submit,
   submitMultiLineEntry,
   TWELVE_THOUSAND_FIVE_HUNDRED,
   type MultiLineEntry,
@@ -21,26 +24,27 @@ import {
 } from './entries';
 import { resultFor, results, search } from './entry-search';
 import { ENTRY_SEARCH_PATH as SEARCH, ENTRY_SEARCH_WITH_QUERY } from './routes';
+import { BOOKS_OPEN } from './accounts';
+import {
+  clickScrim,
+  closeDialog,
+  closeDiscarding,
+  discardChanges,
+  discardDialog,
+  keepEditing,
+  selectByDraggingOntoScrim,
+} from './dialog';
 import { signIn } from './session';
 import { setEntryFormMode } from './settings';
 import { PHONE } from './viewport';
 
 const EDITED_DAY = '2026-09-20';
 
-const editButton = (entry: Locator): Locator =>
-  entry.getByRole('button', { name: 'Edit', exact: true });
-
 const deleteButton = (entry: Locator): Locator =>
   entry.getByRole('button', { name: 'Delete', exact: true });
 
-const editDialog = (page: Page): Locator =>
-  page.getByRole('dialog', { name: 'Edit entry', exact: true });
-
 const deleteDialog = (page: Page): Locator =>
   page.getByRole('dialog', { name: 'Delete entry', exact: true });
-
-const discardDialog = (page: Page): Locator =>
-  page.getByRole('dialog', { name: 'Discard changes', exact: true });
 
 const button = (scope: Locator, name: string): Locator =>
   scope.getByRole('button', { name, exact: true });
@@ -53,15 +57,8 @@ const twoLine = (day: string, memo: string): TwoLineEntry => ({
   amount: AMOUNT,
 });
 
-async function openEdit(entry: Locator): Promise<Locator> {
-  await editButton(entry).click();
-  const dialog = editDialog(entry.page());
-  await expect(dialog).toBeVisible();
-  return dialog;
-}
-
 async function save(dialog: Locator): Promise<void> {
-  await button(dialog, 'Save').click();
+  await submit(dialog, 'Save');
   await expect(dialog).toBeHidden();
 }
 
@@ -139,7 +136,7 @@ async function expectMultiLineMode(dialog: Locator, lines: number): Promise<void
 test('holds an Edit and a Delete button in each Entry of the Entry list and of Entry search results', async ({ page }) => {
   const run = randomUUID();
   const memo = `Stationery ${run}`;
-  await signIn(page);
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [twoLine(DAY, memo)]);
 
   await page.goto('/entries');
@@ -160,7 +157,7 @@ test('leaves an Entry listed when Delete entry is cancelled, and removes it from
   const run = randomUUID();
   const doomed = `Posted by mistake ${run}`;
   const kept = `Kept ${run}`;
-  await signIn(page);
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [twoLine(DAY, kept), twoLine(DAY, doomed)]);
 
   await page.goto('/entries');
@@ -185,11 +182,11 @@ test('leaves an Entry listed when Delete entry is cancelled, and removes it from
 
 test('opens Edit entry in Two-line mode, filled with the Entry, for a Two-line mode User and an Entry of one debit and one credit line', async ({ page }) => {
   const memo = `Office supplies ${randomUUID()}`;
-  await signIn(page);
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [twoLine(DAY, memo)]);
 
   await page.goto('/entries');
-  const dialog = await openEdit(listedEntry(page, memo));
+  const dialog = await openEditEntry(listedEntry(page, memo));
 
   await expectTwoLineMode(dialog);
   await expect(dialog.getByLabel('Date')).toHaveValue(DAY);
@@ -201,7 +198,7 @@ test('opens Edit entry in Two-line mode, filled with the Entry, for a Two-line m
 
 test('opens Edit entry in Multi-line mode, filled with every line, for a Two-line mode User and an Entry of more than two lines', async ({ page }) => {
   const memo = `Supplies on account ${randomUUID()}`;
-  await signIn(page);
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postMultiLine(page, {
     day: DAY,
     memo,
@@ -214,41 +211,41 @@ test('opens Edit entry in Multi-line mode, filled with every line, for a Two-lin
   await setEntryFormMode(page, 'Two-line mode');
 
   await page.goto('/entries');
-  const dialog = await openEdit(listedEntry(page, memo));
+  const dialog = await openEditEntry(listedEntry(page, memo));
 
   await expectMultiLineMode(dialog, 3);
   await expect(dialog.getByLabel('Date')).toHaveValue(DAY);
   await expect(dialog.getByLabel('Memo')).toHaveValue(memo);
-  await expect(lineGroup(dialog, 'Debit', 'Expenses').getByLabel('Amount')).toHaveValue('12500');
-  await expect(lineGroup(dialog, 'Credit', 'Cash').getByLabel('Amount')).toHaveValue('12000');
-  await expect(lineGroup(dialog, 'Credit', 'Accounts payable').getByLabel('Amount')).toHaveValue('500');
+  await expect(lineAmount(dialog, 'Debit', 'Expenses')).toHaveValue('12500');
+  await expect(lineAmount(dialog, 'Credit', 'Cash')).toHaveValue('12000');
+  await expect(lineAmount(dialog, 'Credit', 'Accounts payable')).toHaveValue('500');
 });
 
 test('opens Edit entry in Multi-line mode, filled with the Entry, for a Multi-line mode User and an Entry of one debit and one credit line', async ({ page }) => {
   const memo = `Office supplies ${randomUUID()}`;
-  await signIn(page);
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [twoLine(DAY, memo)]);
   await setEntryFormMode(page, 'Multi-line mode');
 
   await page.goto('/entries');
-  const dialog = await openEdit(listedEntry(page, memo));
+  const dialog = await openEditEntry(listedEntry(page, memo));
 
   await expectMultiLineMode(dialog, 2);
   await expect(dialog.getByLabel('Date')).toHaveValue(DAY);
   await expect(dialog.getByLabel('Memo')).toHaveValue(memo);
-  await expect(lineGroup(dialog, 'Debit', 'Expenses').getByLabel('Amount')).toHaveValue(AMOUNT);
-  await expect(lineGroup(dialog, 'Credit', 'Cash').getByLabel('Amount')).toHaveValue(AMOUNT);
+  await expect(lineAmount(dialog, 'Debit', 'Expenses')).toHaveValue(AMOUNT);
+  await expect(lineAmount(dialog, 'Credit', 'Cash')).toHaveValue(AMOUNT);
 });
 
 test('shows only the new version of an edited Entry in the Entry list, after a reload too, and Entry search finds only the new version', async ({ page }) => {
   const run = randomUUID();
   const before = `Before ${run}`;
   const after = `After ${run}`;
-  await signIn(page);
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [twoLine(DAY, before)]);
 
   await page.goto('/entries');
-  const dialog = await openEdit(listedEntry(page, before));
+  const dialog = await openEditEntry(listedEntry(page, before));
   await rewriteTwoLine(dialog, after);
   await save(dialog);
 
@@ -274,16 +271,16 @@ test('edits an edited Entry again, and deletes it', async ({ page }) => {
   const second = `Second ${run}`;
   const third = `Third ${run}`;
   const kept = `Kept ${run}`;
-  await signIn(page);
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [twoLine(DAY, kept), twoLine(DAY, first)]);
 
   await page.goto('/entries');
-  const once = await openEdit(listedEntry(page, first));
+  const once = await openEditEntry(listedEntry(page, first));
   await once.getByLabel('Memo').fill(second);
   await save(once);
   await expect(listedEntry(page, second)).toHaveCount(1);
 
-  const twice = await openEdit(listedEntry(page, second));
+  const twice = await openEditEntry(listedEntry(page, second));
   await expect(twice.getByLabel('Memo')).toHaveValue(second);
   await rewriteTwoLine(twice, third);
   await save(twice);
@@ -305,11 +302,11 @@ test('edits an edited Entry again, and deletes it', async ({ page }) => {
 test('closes Edit entry on Save with no change, and lists the Entry once, unchanged', async ({ page }) => {
   const run = randomUUID();
   const memo = `Unchanged ${run}`;
-  await signIn(page);
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [twoLine(DAY, memo)]);
 
   await page.goto('/entries');
-  await save(await openEdit(listedEntry(page, memo)));
+  await save(await openEditEntry(listedEntry(page, memo)));
 
   await expectAsPosted(listedEntry(page, memo));
   await expect(listedEntry(page, run)).toHaveCount(1);
@@ -323,7 +320,7 @@ test('keeps Edit entry open with the input and says the balance is wrong when an
   const run = randomUUID();
   const memo = `Ledger ${run}`;
   const edited = `Typo ${run}`;
-  await signIn(page);
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postMultiLine(page, {
     day: DAY,
     memo,
@@ -333,15 +330,15 @@ test('keeps Edit entry open with the input and says the balance is wrong when an
     ],
   });
 
-  const dialog = await openEdit(listedEntry(page, memo));
+  const dialog = await openEditEntry(listedEntry(page, memo));
   await dialog.getByLabel('Memo').fill(edited);
-  await lineGroup(dialog, 'Credit', 'Cash').getByLabel('Amount').fill('12000');
-  await button(dialog, 'Save').click();
+  await lineAmount(dialog, 'Credit', 'Cash').fill('12000');
+  await submit(dialog, 'Save');
 
   await expect(dialog.getByRole('alert')).toContainText(/balance/i);
   await expect(dialog).toBeVisible();
   await expect(dialog.getByLabel('Memo')).toHaveValue(edited);
-  await expect(lineGroup(dialog, 'Credit', 'Cash').getByLabel('Amount')).toHaveValue('12000');
+  await expect(lineAmount(dialog, 'Credit', 'Cash')).toHaveValue('12000');
 
   await page.reload();
   await expectAsPosted(listedEntry(page, memo));
@@ -354,7 +351,7 @@ test('keeps the Search criteria in the URL when an Entry is edited or deleted fr
   const edited = `Coffee ${run}`;
   const renamed = `Tea ${run}`;
   const deleted = `Coffee too ${run}`;
-  await signIn(page);
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [twoLine(DAY, edited), twoLine(DAY, deleted)]);
 
   await searchFor(page, 'coffee');
@@ -362,7 +359,7 @@ test('keeps the Search criteria in the URL when an Entry is edited or deleted fr
   await expect(resultFor(page, deleted)).toHaveCount(1);
   const criteria = page.url();
 
-  const dialog = await openEdit(resultFor(page, edited));
+  const dialog = await openEditEntry(resultFor(page, edited));
   await dialog.getByLabel('Memo').fill(renamed);
   await save(dialog);
 
@@ -387,43 +384,57 @@ test('asks Discard changes when Edit entry is closed with changes, by Close, by 
   const run = randomUUID();
   const memo = `Original ${run}`;
   const draft = `Draft ${run}`;
-  await signIn(page);
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [twoLine(DAY, memo)]);
 
   await page.goto('/entries');
-  const dialog = await openEdit(listedEntry(page, memo));
+  const dialog = await openEditEntry(listedEntry(page, memo));
   await dialog.getByLabel('Memo').fill(draft);
 
-  await button(dialog, 'Close').click();
-  const discard = discardDialog(page);
-  await expect(discard).toBeVisible();
-  await button(discard, 'Keep editing').click();
-  await expect(discard).toBeHidden();
-  await expect(dialog).toBeVisible();
-  await expect(dialog.getByLabel('Memo')).toHaveValue(draft);
+  const memoField = dialog.getByLabel('Memo');
+  await closeDialog(dialog);
+  await keepEditing(dialog, memoField, draft);
 
-  await page.mouse.click(4, 4);
-  await expect(discard).toBeVisible();
-  await button(discard, 'Keep editing').click();
-  await expect(discard).toBeHidden();
-  await expect(dialog).toBeVisible();
-  await expect(dialog.getByLabel('Memo')).toHaveValue(draft);
+  await clickScrim(page);
+  await keepEditing(dialog, memoField, draft);
 
-  await dialog.getByLabel('Memo').press('Escape');
-  await expect(discard).toBeVisible();
-  await button(discard, 'Discard').click();
-  await expect(discard).toBeHidden();
-  await expect(dialog).toBeHidden();
+  await memoField.press('Escape');
+  await discardChanges(dialog);
   await expectAsPosted(listedEntry(page, memo));
   await expect(listedEntry(page, draft)).toHaveCount(0);
 
-  const unchanged = await openEdit(listedEntry(page, memo));
-  await button(unchanged, 'Close').click();
+  const unchanged = await openEditEntry(listedEntry(page, memo));
+  await closeDialog(unchanged);
   await expect(unchanged).toBeHidden();
   await expect(entries(page)).toBeVisible();
-  await expect(discard).toHaveCount(0);
+  await expect(discardDialog(page)).toHaveCount(0);
 
   await page.reload();
+  await expectAsPosted(listedEntry(page, memo));
+});
+
+test('keeps Edit entry open with its input when a press inside it is released on the scrim', async ({ page }) => {
+  const run = randomUUID();
+  const memo = `Original ${run}`;
+  const draft = `Draft ${run}`;
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
+  await postEntries(page, [twoLine(DAY, memo)]);
+
+  await page.goto('/entries');
+  const dialog = await openEditEntry(listedEntry(page, memo));
+
+  await selectByDraggingOntoScrim(dialog.getByLabel('Memo'));
+  await expect(dialog).toBeVisible();
+  await expect(discardDialog(page)).toHaveCount(0);
+  await expect(dialog.getByLabel('Memo')).toHaveValue(memo);
+
+  await dialog.getByLabel('Memo').fill(draft);
+  await selectByDraggingOntoScrim(dialog.getByLabel('Memo'));
+  await expect(dialog).toBeVisible();
+  await expect(discardDialog(page)).toHaveCount(0);
+  await expect(dialog.getByLabel('Memo')).toHaveValue(draft);
+
+  await closeDiscarding(dialog);
   await expectAsPosted(listedEntry(page, memo));
 });
 
@@ -433,12 +444,12 @@ test('edits and deletes an Entry at 390px', async ({ page }) => {
   const before = `Before ${run}`;
   const after = `After ${run}`;
   const kept = `Kept ${run}`;
-  await signIn(page);
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [twoLine(DAY, kept), twoLine(DAY, before)]);
 
   await page.setViewportSize(PHONE);
   await page.goto('/entries');
-  const dialog = await openEdit(listedEntry(page, before));
+  const dialog = await openEditEntry(listedEntry(page, before));
   await expect(dialog.getByLabel('Memo')).toHaveValue(before);
   await dialog.getByLabel('Memo').fill(after);
   await dialog.getByLabel('Amount').fill('8000');

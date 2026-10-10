@@ -3,13 +3,17 @@ import { describe, expect, it } from 'vitest';
 import { toTrpcError } from './domain-error';
 import { answerDefaultRangeSearch, answerEntrySearch, type SearchForEntries } from './entry-search';
 
+const CASH = '01920000-0000-7000-8000-00000000c001';
+const EXPENSES = '01920000-0000-7000-8000-00000000c005';
+const ANOTHER_USERS_CASH = '01920000-0000-7000-8000-00000000d001';
+
 const ENTRY = {
   id: '01920000-0000-7000-8000-000000000001',
   entryDate: '2026-06-15',
   memo: 'Office supplies',
   lines: [
-    { account: 'expense', side: 'debit', amount: 12500 },
-    { account: 'cash', side: 'credit', amount: 12500 },
+    { account: EXPENSES, accountName: 'Expenses', side: 'debit', amount: 12500 },
+    { account: CASH, accountName: 'Cash', side: 'credit', amount: 12500 },
   ],
   total: 12500,
   createdAt: '2026-06-15T00:30:00.000Z',
@@ -54,19 +58,27 @@ describe('answerEntrySearch', () => {
   });
 
   it('reads the Account out of the query, and fills it back into the form', async () => {
-    const answer = await answerEntrySearch(holding([ENTRY]), { account: 'cash' });
+    const answer = await answerEntrySearch(holding([ENTRY]), { account: CASH });
 
     expect(answer).toEqual({
       outcome: 'answered',
-      criteria: { account: 'cash' },
+      criteria: { account: CASH },
       entries: [ENTRY],
     });
   });
 
   it('refuses an Account the procedure refuses, and carries the criterion back with it', async () => {
-    const answer = await answerEntrySearch(refusing('INVALID_INPUT'), { account: 'petty-cash' });
+    const answer = await answerEntrySearch(refusing('INVALID_INPUT'), {
+      account: ANOTHER_USERS_CASH,
+    });
 
-    expect(answer).toEqual({ outcome: 'refused', criteria: { account: 'petty-cash' } });
+    expect(answer).toEqual({ outcome: 'refused', criteria: { account: ANOTHER_USERS_CASH } });
+  });
+
+  it('carries an Account that is no Account id back with the refusal of the procedure', async () => {
+    const answer = await answerEntrySearch(refusing('INVALID_INPUT'), { account: 'cash' });
+
+    expect(answer).toEqual({ outcome: 'refused', criteria: { account: 'cash' } });
   });
 
   it('reads the memo term out of the query, and fills it back into the form as typed', async () => {

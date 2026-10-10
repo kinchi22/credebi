@@ -5,11 +5,13 @@ import {
   isErr,
   isOk,
   ok,
+  type AccountId,
   type DomainError,
   type Err,
   type Result,
   type UserId,
 } from '@repo/contracts';
+import { type Account } from '../../accounts/domain/account';
 import { SIGNED_OUT, type AuthContext } from '../domain/auth-context';
 import {
   sessionExpiry,
@@ -41,24 +43,28 @@ const identityKey = (identity: Identity): string => `${identity.provider}:${iden
 type UserStore = UserRepository & {
   readonly users: Map<UserId, User>;
   readonly identities: Map<string, UserId>;
+  readonly charts: Map<UserId, readonly Account[]>;
 };
 
 function inMemoryUsers(): UserStore {
   const users = new Map<UserId, User>();
   const identities = new Map<string, UserId>();
+  const charts = new Map<UserId, readonly Account[]>();
   return {
     users,
     identities,
+    charts,
     findByIdentity: (identity) => {
       const userId = identities.get(identityKey(identity));
       return Promise.resolve(ok(userId === undefined ? undefined : users.get(userId)));
     },
-    add: (user, identity) => {
+    add: (user, identity, chart) => {
       if (identities.has(identityKey(identity))) {
         return Promise.resolve(err(domainError('CONFLICT', 'That Identity has a User.')));
       }
       users.set(user.id, user);
       identities.set(identityKey(identity), user.id);
+      charts.set(user.id, chart);
       return Promise.resolve(ok(undefined));
     },
     updateProfile: (userId, profile) => {
@@ -131,6 +137,7 @@ function world(overrides: Partial<SignInDependencies> = {}) {
   const sessions = inMemorySessions();
   let clock = NOW;
   let userCount = 0;
+  let accountCount = 0;
   let tokenCount = 0;
   const dependencies: SignInDependencies = {
     users,
@@ -138,6 +145,10 @@ function world(overrides: Partial<SignInDependencies> = {}) {
     newUserId: () => {
       userCount += 1;
       return `01920000-0000-7000-8000-${String(userCount).padStart(12, '0')}` as UserId;
+    },
+    newAccountId: () => {
+      accountCount += 1;
+      return `01920000-0000-7000-8000-00000000c${String(accountCount).padStart(3, '0')}` as AccountId;
     },
     newSessionToken: () => {
       tokenCount += 1;
@@ -197,6 +208,88 @@ describe('createTestSignIn', () => {
       userId: '01920000-0000-7000-8000-000000000001',
     });
   });
+
+  it('creates a new User with Cash, Accounts payable, Capital, Sales and Expenses, starting on the day it was created', async () => {
+    const { testSignIn, users } = world({ now: () => new Date('2026-09-18T23:30:00.000Z') });
+
+    issued(await testSignIn('e2e-1'));
+
+    const starting = (n: number, accountType: Account['accountType'], name: string): Account => ({
+      id: `01920000-0000-7000-8000-00000000c00${String(n)}` as AccountId,
+      accountType,
+      groupId: null,
+      name,
+      description: null,
+      position: 0,
+      activeFrom: '2026-09-18',
+      activeUntil: null,
+    });
+    expect([...users.charts.entries()]).toEqual([
+      [
+        '01920000-0000-7000-8000-000000000001',
+        [
+          starting(1, 'asset', 'Cash'),
+          starting(2, 'liability', 'Accounts payable'),
+          starting(3, 'equity', 'Capital'),
+          starting(4, 'revenue', 'Sales'),
+          starting(5, 'expense', 'Expenses'),
+        ],
+      ],
+    ]);
+  });
+
+  it('gives a User signing in again no Accounts beyond those it was created with', async () => {
+    const { testSignIn, users } = world();
+    issued(await testSignIn('e2e-1'));
+    const created = [...users.charts.values()];
+
+    issued(await testSignIn('e2e-1'));
+
+    expect([...users.charts.values()]).toEqual(created);
+  });
+
+  it("starts a new User's five starting Accounts on the day the sign-in names", async () => {
+    const { testSignIn, users } = world();
+
+    issued(await testSignIn('e2e-1', '2000-01-01'));
+
+    const chart = [...users.charts.values()].flat();
+    expect(chart.map(({ name }) => name)).toEqual([
+      'Cash',
+      'Accounts payable',
+      'Capital',
+      'Sales',
+      'Expenses',
+    ]);
+    expect(chart.map(({ activeFrom }) => activeFrom)).toEqual(Array(5).fill('2000-01-01'));
+  });
+
+  it("changes none of an existing User's Accounts when the sign-in names a day", async () => {
+    const { testSignIn, users } = world();
+    issued(await testSignIn('e2e-1'));
+    const created = [...users.charts.values()];
+
+    issued(await testSignIn('e2e-1', '2000-01-01'));
+
+    expect([...users.charts.values()]).toEqual(created);
+    expect(created.flat().map(({ activeFrom }) => activeFrom)).toEqual(
+      Array(5).fill('2026-09-18'),
+    );
+  });
+
+  it.each(['', '2026-02-30', '18/09/2026'])(
+    'refuses %j as the day the Accounts start on, and creates nobody',
+    async (day) => {
+      const { testSignIn, users, sessions } = world();
+
+      const result = await testSignIn('e2e-1', day);
+
+      expect(isErr(result) && result.error.code).toBe('INVALID_INPUT');
+      expect(users.users.size).toBe(0);
+      expect(users.charts.size).toBe(0);
+      expect(sessions.rows.size).toBe(0);
+    },
+  );
 
   it('issues a Session for 30 days, and stores only the hash of its token', async () => {
     const { testSignIn, sessions } = world();
@@ -296,7 +389,7 @@ describe('a first sign-in that races another', () => {
       },
       add: async (_user, identity) => {
         if (earlier !== undefined) {
-          await store.add(earlier, identity);
+          await store.add(earlier, identity, []);
         }
         return err(domainError('CONFLICT', 'That Identity has a User.'));
       },
@@ -343,6 +436,9 @@ describe('createFinishGoogleSignIn', () => {
       },
     ]);
     expect([...users.identities.keys()]).toEqual(['google:google-ada']);
+    expect(
+      users.charts.get('01920000-0000-7000-8000-000000000001' as UserId)?.map(({ name }) => name),
+    ).toEqual(['Cash', 'Accounts payable', 'Capital', 'Sales', 'Expenses']);
     expect(await whoIs(resolveSession, session.token)).toEqual({
       userId: '01920000-0000-7000-8000-000000000001',
     });
@@ -356,6 +452,7 @@ describe('createFinishGoogleSignIn', () => {
       users,
       sessions: inMemorySessions(),
       newUserId: () => '01920000-0000-7000-8000-000000000009' as UserId,
+      newAccountId: () => '01920000-0000-7000-8000-00000000c009' as AccountId,
       newSessionToken: () => 'token-9' as SessionToken,
       hashSessionToken: hash,
       now: () => NOW,
@@ -414,6 +511,7 @@ describe('createFinishGoogleSignIn', () => {
       users,
       sessions,
       newUserId: () => '01920000-0000-7000-8000-000000000001' as UserId,
+      newAccountId: () => '01920000-0000-7000-8000-00000000c001' as AccountId,
       newSessionToken: () => 'token-1' as SessionToken,
       hashSessionToken: hash,
       now: () => NOW,

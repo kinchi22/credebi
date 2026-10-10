@@ -13,10 +13,11 @@ import { type ModalDialog } from './modal-dialog';
 
 export type DiscardChangesProps = {
   readonly dialog: ModalDialog;
+  readonly body: string;
   readonly onDiscard: () => void;
 };
 
-export function DiscardChanges({ dialog, onDiscard }: DiscardChangesProps): ReactNode {
+export function DiscardChanges({ dialog, body, onDiscard }: DiscardChangesProps): ReactNode {
   const titleId = useId();
 
   return (
@@ -39,7 +40,7 @@ export function DiscardChanges({ dialog, onDiscard }: DiscardChangesProps): Reac
             {en.discardChanges.title}
           </h2>
           <p className={`border-y border-border py-2 ${typeClasses['body-sm']}`}>
-            {en.discardChanges.body}
+            {body}
           </p>
           <div className="flex justify-end gap-3">
             <button type="button" autoFocus onClick={dialog.close} className={BUTTON}>

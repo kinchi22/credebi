@@ -2,6 +2,7 @@ import {
   domainError,
   err,
   ok,
+  type AccountId,
   type DomainError,
   type EntryId,
   type Err,
@@ -9,15 +10,9 @@ import {
   type Result,
   type Side,
 } from '@repo/contracts';
+import { accountNames, type Account, type AccountNames } from '../../accounts/domain/account';
+import { checkActiveOn } from '../../accounts/domain/active-period';
 import { moneyToMinorUnits, sumMoney } from '../../money/domain/money';
-
-export const CHART_OF_ACCOUNTS = ['cash', 'payable', 'capital', 'sales', 'expense'] as const;
-
-export type AccountCode = (typeof CHART_OF_ACCOUNTS)[number];
-
-export function isAccountCode(value: string): value is AccountCode {
-  return CHART_OF_ACCOUNTS.some((code) => code === value);
-}
 
 export const MEMO_MAX_LENGTH = 200;
 
@@ -27,7 +22,8 @@ export function memoLength(memo: string): number {
 }
 
 export type EntryLine = {
-  readonly account: AccountCode;
+  readonly account: AccountId;
+  readonly accountName: string;
   readonly side: Side;
   readonly amount: Money;
 };
@@ -59,14 +55,18 @@ export type EntryStamp = {
 const invalid = (message: string): Err<DomainError> =>
   err(domainError('INVALID_INPUT', message));
 
-export function makeEntry(draft: EntryDraft, stamp: EntryStamp): Result<Entry, DomainError> {
+export function makeEntry(
+  draft: EntryDraft,
+  stamp: EntryStamp,
+  names: AccountNames,
+): Result<Entry, DomainError> {
   const memo = draft.memo.trim();
   const length = memoLength(memo);
   if (length === 0 || length > MEMO_MAX_LENGTH) {
     return invalid(`A memo must be 1 to ${String(MEMO_MAX_LENGTH)} characters once trimmed.`);
   }
 
-  const lines = checkLines(draft.lines);
+  const lines = checkLines(draft.lines, names);
   if (!lines.ok) {
     return lines;
   }
@@ -86,20 +86,46 @@ export function makeEntry(draft: EntryDraft, stamp: EntryStamp): Result<Entry, D
   });
 }
 
-function checkLines(drafts: EntryDraft['lines']): Result<readonly EntryLine[], DomainError> {
+export function makePostedEntry(
+  draft: EntryDraft,
+  stamp: EntryStamp,
+  accounts: readonly Account[],
+): Result<Entry, DomainError> {
+  const entry = makeEntry(draft, stamp, accountNames(accounts));
+  if (!entry.ok) {
+    return entry;
+  }
+  const active = checkActiveOn(
+    accounts,
+    entry.value.entryDate,
+    entry.value.lines.map((line) => line.account),
+  );
+  return active.ok ? entry : active;
+}
+
+function checkLines(
+  drafts: EntryDraft['lines'],
+  names: AccountNames,
+): Result<readonly EntryLine[], DomainError> {
   if (drafts.length < 2) {
     return invalid('An entry needs two or more lines.');
   }
 
   const lines: EntryLine[] = [];
   for (const line of drafts) {
-    if (!isAccountCode(line.account)) {
-      return invalid(`"${line.account}" is not in the chart of accounts.`);
+    const account = names.get(line.account);
+    if (account === undefined) {
+      return invalid(`Account "${line.account}" is not in the User's chart of accounts.`);
     }
     if (moneyToMinorUnits(line.amount) <= 0) {
       return invalid('Every line needs an amount greater than zero.');
     }
-    lines.push({ account: line.account, side: line.side, amount: line.amount });
+    lines.push({
+      account: account.id,
+      accountName: account.name,
+      side: line.side,
+      amount: line.amount,
+    });
   }
   return ok(lines);
 }

@@ -1,15 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { isOk, type EntryId, type Money } from '@repo/contracts';
+import { isOk, type AccountId, type EntryId, type Money } from '@repo/contracts';
 import { changesEntry } from './correction';
 import { makeEntry, type Entry, type EntryDraft } from './entry';
+
+const CASH = '01920000-0000-7000-8000-00000000c001' as AccountId;
+const PAYABLE = '01920000-0000-7000-8000-00000000c002' as AccountId;
+const EXPENSES = '01920000-0000-7000-8000-00000000c005' as AccountId;
+
+const NAMES = new Map([
+  [CASH, { id: CASH, name: 'Cash' }],
+  [PAYABLE, { id: PAYABLE, name: 'Accounts payable' }],
+  [EXPENSES, { id: EXPENSES, name: 'Expenses' }],
+]);
 
 const AS_POSTED: EntryDraft = {
   entryDate: '2026-09-15',
   memo: 'Rent',
   lines: [
-    { account: 'expense', side: 'debit', amount: 70000 as Money },
-    { account: 'cash', side: 'credit', amount: 40000 as Money },
-    { account: 'payable', side: 'credit', amount: 30000 as Money },
+    { account: EXPENSES, side: 'debit', amount: 70000 as Money },
+    { account: CASH, side: 'credit', amount: 40000 as Money },
+    { account: PAYABLE, side: 'credit', amount: 30000 as Money },
   ],
 };
 
@@ -17,7 +27,7 @@ function posted(): Entry {
   const made = makeEntry(AS_POSTED, {
     id: '01920000-0000-7000-8000-000000000001' as EntryId,
     createdAt: new Date('2026-09-15T00:30:00.000Z'),
-  });
+  }, NAMES);
   expect(isOk(made), 'test setup built an entry that breaks a rule').toBe(true);
   return isOk(made) ? made.value : ({} as Entry);
 }
@@ -48,7 +58,7 @@ describe('changesEntry', () => {
 
   it("finds a change in a line's Account, Side or amount", () => {
     for (const lines of [
-      withLine(1, { account: 'payable' }),
+      withLine(1, { account: PAYABLE }),
       withLine(2, { side: 'debit' }),
       withLine(2, { amount: 30001 as Money }),
     ]) {
@@ -66,7 +76,7 @@ describe('changesEntry', () => {
   it('finds a change in a line added or a line taken away', () => {
     const added = [
       ...AS_POSTED.lines,
-      { account: 'cash', side: 'credit', amount: 1 as Money } as const,
+      { account: CASH, side: 'credit', amount: 1 as Money } as const,
     ];
 
     expect(changesEntry({ ...AS_POSTED, lines: added }, posted())).toBe(true);

@@ -2,6 +2,7 @@
 
 import {
   ENTRY_FORM_FIELDS,
+  type ChartOutput,
   type DomainErrorCode,
   type EntryFormMode,
   type PostedEntry,
@@ -15,12 +16,15 @@ import {
   useEffect,
   useId,
   useRef,
+  useState,
+  type MouseEvent,
   type ReactNode,
   type SubmitEvent,
 } from 'react';
 import { en } from '../messages/en';
 import { useBrowserToday } from './browser-today';
 import { CONTROL, DATE_CONTROL, DENSE_FIELD, PRIMARY_BUTTON } from './control-classes';
+import { FORM_REFUSAL } from './text-classes';
 
 export type EntryFormState =
   | { readonly outcome: 'idle' }
@@ -37,18 +41,24 @@ export type EditedEntry = {
 
 export type EntryFormProps = {
   readonly action: EntryFormAction;
+  readonly chart: ChartOutput;
   readonly editing?: EditedEntry | undefined;
 };
 
 export type EntryFormParts = {
   readonly id: string;
+  readonly day: string | undefined;
   readonly entry: PostedEntry | undefined;
   readonly heading: ReactNode;
   readonly refusal: ReactNode;
-  readonly submitButton: ReactNode;
+  readonly submitButton: SubmitButton;
 };
 
-type EntryFormShellProps = EntryFormProps & {
+export type SubmitButton = (
+  onClick?: (event: MouseEvent<HTMLButtonElement>) => void,
+) => ReactNode;
+
+type EntryFormShellProps = Omit<EntryFormProps, 'chart'> & {
   readonly mode: EntryFormMode;
   readonly children: (parts: EntryFormParts) => ReactNode;
 };
@@ -67,6 +77,8 @@ const refusalsWith = (invalid: string): Readonly<Record<DomainErrorCode, string>
   CONFLICT: en.entryForm.unavailable,
   DEPENDENCY_UNAVAILABLE: en.entryForm.unavailable,
   UNAUTHENTICATED: en.entryForm.signedOut,
+  NAME_TAKEN: invalid,
+  IN_USE: invalid,
 });
 
 const REFUSAL: Readonly<Record<EntryFormMode, Readonly<Record<DomainErrorCode, string>>>> = {
@@ -177,6 +189,8 @@ export function EntryFormShell({
   const today = useBrowserToday();
 
   const variant = variantFor(mode, editing, today);
+  const [typedDay, setTypedDay] = useState<{ readonly resetKey: number; readonly day: string }>();
+  const day = typedDay?.resetKey === resetKey ? typedDay.day : variant.entryDate;
   const { onSaved } = variant;
   useEffect(() => {
     if (state.outcome === 'saved') {
@@ -208,6 +222,9 @@ export function EntryFormShell({
             name={ENTRY_FORM_FIELDS.entryDate}
             type="date"
             defaultValue={variant.entryDate}
+            onChange={(event) => {
+              setTypedDay({ resetKey, day: event.target.value });
+            }}
             autoFocus={variant.autoFocus}
             required
             className={DATE_CONTROL}
@@ -230,13 +247,18 @@ export function EntryFormShell({
 
   const refusal =
     state.outcome === 'rejected' ? (
-      <p role="alert" className={`min-w-0 flex-1 text-danger ${typeClasses['body-dense']}`}>
+      <p role="alert" className={FORM_REFUSAL}>
         {variant.refusals[state.code]}
       </p>
     ) : null;
 
-  const submitButton = (
-    <button type="submit" disabled={pending} className={`shrink-0 ${PRIMARY_BUTTON}`}>
+  const submitButton: SubmitButton = (onClick) => (
+    <button
+      type="submit"
+      disabled={pending}
+      onClick={onClick}
+      className={`shrink-0 ${PRIMARY_BUTTON}`}
+    >
       {pending ? variant.pending : variant.submit}
     </button>
   );
@@ -251,7 +273,7 @@ export function EntryFormShell({
       <input type="hidden" name={ENTRY_FORM_FIELDS.entryFormMode} value={mode} />
 
       <Fragment key={resetKey}>
-        {children({ id, entry: variant.entry, heading, refusal, submitButton })}
+        {children({ id, day, entry: variant.entry, heading, refusal, submitButton })}
       </Fragment>
     </form>
   );

@@ -18,6 +18,10 @@ export function TestSignInForm({ returnTo, action }: TestSignInFormProps): React
         {en.testSignIn.identifier}
         <input name={TEST_SIGN_IN_FIELDS.identifier} required className={CONTROL} />
       </label>
+      <label className={`flex flex-col gap-1 ${typeClasses['body-sm']}`}>
+        {en.testSignIn.accountsStartOn}
+        <input type="date" name={TEST_SIGN_IN_FIELDS.accountsStartOn} className={CONTROL} />
+      </label>
       <button type="submit" className={`self-start ${BUTTON}`}>
         {en.testSignIn.submit}
       </button>

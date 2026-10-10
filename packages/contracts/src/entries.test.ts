@@ -17,11 +17,16 @@ import {
   type EntryId,
   type SubmittedFields,
 } from './entries';
+import { type AccountId } from './accounts';
 import { type Money } from './money';
 import { isErr, isOk } from './result';
 
 const ENTRY_ID = '01920000-0000-7000-8000-000000000001' as EntryId;
 const CREATED_AT = new Date('2026-09-15T09:30:00+09:00');
+const CASH = '01920000-0000-7000-8000-00000000c001' as AccountId;
+const SALES = '01920000-0000-7000-8000-00000000c004' as AccountId;
+const EXPENSES = '01920000-0000-7000-8000-00000000c005' as AccountId;
+const NOWHERE = '01920000-0000-7000-8000-00000000dead' as AccountId;
 
 describe('entryIdSchema', () => {
   it('accepts a uuid v7', () => {
@@ -60,17 +65,17 @@ describe('entryDateSchema', () => {
 
 describe('entryLineSchema', () => {
   it('carries an account, a side and an amount', () => {
-    expect(entryLineSchema.parse({ account: 'cash', side: 'credit', amount: 12500 })).toEqual({
-      account: 'cash',
+    expect(entryLineSchema.parse({ account: CASH, side: 'credit', amount: 12500 })).toEqual({
+      account: CASH,
       side: 'credit',
       amount: 12500,
     });
   });
 
   it('refuses a line with no side, or with an amount that is not whole', () => {
-    expect(entryLineSchema.safeParse({ account: 'cash', amount: 12500 }).success).toBe(false);
+    expect(entryLineSchema.safeParse({ account: CASH, amount: 12500 }).success).toBe(false);
     expect(
-      entryLineSchema.safeParse({ account: 'cash', side: 'credit', amount: 12.5 }).success,
+      entryLineSchema.safeParse({ account: CASH, side: 'credit', amount: 12.5 }).success,
     ).toBe(false);
   });
 });
@@ -90,7 +95,7 @@ describe('postEntryInputSchema', () => {
   const input = {
     entryDate: '2026-09-15',
     memo: 'Office supplies',
-    lines: [{ account: 'cash', side: 'credit', amount: 12500 }],
+    lines: [{ account: CASH, side: 'credit', amount: 12500 }],
   };
 
   it('carries a day, a memo and the lines', () => {
@@ -108,7 +113,7 @@ describe('editEntryInputSchema', () => {
     id: ENTRY_ID,
     entryDate: '2026-09-15',
     memo: 'Office supplies',
-    lines: [{ account: 'cash', side: 'credit', amount: 12500 }],
+    lines: [{ account: CASH, side: 'credit', amount: 12500 }],
   };
 
   it('carries the id of the Entry to edit and the Entry draft that replaces it', () => {
@@ -128,21 +133,27 @@ describe('toPostedEntry', () => {
     entryDate: '2026-09-15',
     memo: 'Office supplies',
     lines: [
-      { account: 'expense', side: 'debit', amount: 12500 as Money, lineNumber: 1 },
-      { account: 'cash', side: 'credit', amount: 12500 as Money, lineNumber: 2 },
+      {
+        account: EXPENSES,
+        accountName: 'Expenses',
+        side: 'debit',
+        amount: 12500 as Money,
+        lineNumber: 1,
+      },
+      { account: CASH, accountName: 'Cash', side: 'credit', amount: 12500 as Money, lineNumber: 2 },
     ],
     total: 12500 as Money,
     createdAt: CREATED_AT,
   } as const;
 
-  it('carries the entry field by field, and its lines in order', () => {
+  it('carries the entry field by field, and its lines in order with their Account names', () => {
     expect(toPostedEntry(entry)).toEqual({
       id: ENTRY_ID,
       entryDate: '2026-09-15',
       memo: 'Office supplies',
       lines: [
-        { account: 'expense', side: 'debit', amount: 12500 },
-        { account: 'cash', side: 'credit', amount: 12500 },
+        { account: EXPENSES, accountName: 'Expenses', side: 'debit', amount: 12500 },
+        { account: CASH, accountName: 'Cash', side: 'credit', amount: 12500 },
       ],
       total: 12500,
       createdAt: '2026-09-15T00:30:00.000Z',
@@ -158,6 +169,19 @@ describe('toPostedEntry', () => {
 
     expect(postedEntrySchema.safeParse({ ...posted, total: undefined }).success).toBe(false);
     expect(postedEntrySchema.safeParse({ ...posted, createdAt: undefined }).success).toBe(false);
+  });
+
+  it('is a contract whose lines name each Account by its id, and carry its name', () => {
+    const [line] = toPostedEntry(entry).lines;
+    const withLine = (changed: object): unknown => ({ ...toPostedEntry(entry), lines: [changed] });
+
+    expect(postedEntrySchema.safeParse(withLine({ ...line })).success).toBe(true);
+    expect(postedEntrySchema.safeParse(withLine({ ...line, account: 'expense' })).success).toBe(
+      false,
+    );
+    expect(
+      postedEntrySchema.safeParse(withLine({ ...line, accountName: undefined })).success,
+    ).toBe(false);
   });
 });
 
@@ -175,7 +199,7 @@ function submitted(fields: Fields): SubmittedFields {
 const BALANCED: Fields = {
   entryDate: '2026-09-15',
   memo: 'Office supplies',
-  account: ['expense', 'cash'],
+  account: [EXPENSES, CASH],
   side: ['debit', 'credit'],
   amount: ['12500', '12500'],
 };
@@ -205,22 +229,22 @@ describe('parseMultiLineEntryForm', () => {
       entryDate: '2026-09-15',
       memo: 'Office supplies',
       lines: [
-        { account: 'expense', side: 'debit', amount: 12500 },
-        { account: 'cash', side: 'credit', amount: 12500 },
+        { account: EXPENSES, side: 'debit', amount: 12500 },
+        { account: CASH, side: 'credit', amount: 12500 },
       ],
     });
   });
 
   it('leaves the rules to the domain: an unbalanced, unknown-account form still parses', () => {
     const result = parseMultiLineEntryForm(
-      submitted({ ...BALANCED, account: ['nowhere', 'cash'], amount: ['12500', '12000'] }),
+      submitted({ ...BALANCED, account: [NOWHERE, CASH], amount: ['12500', '12000'] }),
     );
 
     expect(isOk(result)).toBe(true);
     if (!isOk(result)) return;
     expect(result.value.lines.map((line) => [line.account, line.amount])).toEqual([
-      ['nowhere', 12500],
-      ['cash', 12000],
+      [NOWHERE, 12500],
+      [CASH, 12000],
     ]);
   });
 
@@ -234,7 +258,7 @@ describe('parseMultiLineEntryForm', () => {
 
   it('refuses a line missing one of its fields, rather than dropping it', () => {
     expectRefused({ ...BALANCED, side: ['debit'] });
-    expectRefused({ ...BALANCED, account: ['expense'] });
+    expectRefused({ ...BALANCED, account: [EXPENSES] });
     expectRefused({ ...BALANCED, amount: ['12500'] });
   });
 
@@ -250,6 +274,7 @@ describe('parseMultiLineEntryForm', () => {
   it('refuses a side that is not debit or credit', () => {
     expectRefused({ ...BALANCED, side: ['debit', 'minus'] });
   });
+
 
   it.each([
     ['grouped', '12,500'],
@@ -267,8 +292,8 @@ describe('parseMultiLineEntryForm', () => {
 const TWO_LINE: Fields = {
   entryDate: '2026-09-15',
   memo: 'Office supplies',
-  debitAccount: 'expense',
-  creditAccount: 'cash',
+  debitAccount: EXPENSES,
+  creditAccount: CASH,
   amount: '12500',
 };
 
@@ -289,8 +314,8 @@ describe('parseTwoLineEntryForm', () => {
       entryDate: '2026-09-15',
       memo: 'Office supplies',
       lines: [
-        { account: 'expense', side: 'debit', amount: 12500 },
-        { account: 'cash', side: 'credit', amount: 12500 },
+        { account: EXPENSES, side: 'debit', amount: 12500 },
+        { account: CASH, side: 'credit', amount: 12500 },
       ],
     });
   });
@@ -305,23 +330,23 @@ describe('parseTwoLineEntryForm', () => {
 
   it('allows the same Account on both sides', () => {
     const result = parseTwoLineEntryForm(
-      submitted({ ...TWO_LINE, debitAccount: 'cash', creditAccount: 'cash' }),
+      submitted({ ...TWO_LINE, debitAccount: CASH, creditAccount: CASH }),
     );
 
     expect(isOk(result)).toBe(true);
     if (!isOk(result)) return;
     expect(result.value.lines.map((line) => [line.account, line.side])).toEqual([
-      ['cash', 'debit'],
-      ['cash', 'credit'],
+      [CASH, 'debit'],
+      [CASH, 'credit'],
     ]);
   });
 
   it('leaves the rules to the domain: an unknown Account still parses', () => {
-    const result = parseTwoLineEntryForm(submitted({ ...TWO_LINE, creditAccount: 'nowhere' }));
+    const result = parseTwoLineEntryForm(submitted({ ...TWO_LINE, creditAccount: NOWHERE }));
 
     expect(isOk(result)).toBe(true);
     if (!isOk(result)) return;
-    expect(result.value.lines[1]?.account).toBe('nowhere');
+    expect(result.value.lines[1]?.account).toBe(NOWHERE);
   });
 
   it.each(['entryDate', 'memo', 'debitAccount', 'creditAccount', 'amount'])(
@@ -334,6 +359,7 @@ describe('parseTwoLineEntryForm', () => {
   it('refuses a date that is not a calendar day', () => {
     expectTwoLineRefused({ ...TWO_LINE, entryDate: '15/09/2026' });
   });
+
 
   it.each([
     ['grouped', '12,500'],
@@ -353,8 +379,8 @@ describe('parseEntryForm', () => {
     expect(isOk(result)).toBe(true);
     if (!isOk(result)) return;
     expect(result.value.lines).toEqual([
-      { account: 'expense', side: 'debit', amount: 12500 },
-      { account: 'cash', side: 'credit', amount: 12500 },
+      { account: EXPENSES, side: 'debit', amount: 12500 },
+      { account: CASH, side: 'credit', amount: 12500 },
     ]);
   });
 
@@ -416,23 +442,24 @@ describe('searchCriteriaSchema', () => {
 
   it('accepts an Account beside the range, and without it', () => {
     expect(
-      searchCriteriaSchema.parse({ from: '2026-06-01', to: '2026-06-30', account: 'cash' }),
-    ).toEqual({ from: '2026-06-01', to: '2026-06-30', account: 'cash' });
+      searchCriteriaSchema.parse({ from: '2026-06-01', to: '2026-06-30', account: CASH }),
+    ).toEqual({ from: '2026-06-01', to: '2026-06-30', account: CASH });
+    expect(searchCriteriaSchema.safeParse({ account: CASH }).success).toBe(true);
+  });
+
+  it('leaves which Accounts exist to the domain: an Account of no chart parses', () => {
+    expect(searchCriteriaSchema.safeParse({ account: NOWHERE }).success).toBe(true);
     expect(searchCriteriaSchema.safeParse({ account: 'cash' }).success).toBe(true);
   });
 
-  it('leaves which Accounts exist to the domain: an unknown code parses', () => {
-    expect(searchCriteriaSchema.safeParse({ account: 'petty-cash' }).success).toBe(true);
-  });
-
-  it('refuses an Account that is not one code', () => {
-    expect(searchCriteriaSchema.safeParse({ account: ['cash', 'sales'] }).success).toBe(false);
+  it('refuses an Account that is not one Account id', () => {
+    expect(searchCriteriaSchema.safeParse({ account: [CASH, SALES] }).success).toBe(false);
   });
 
   it('accepts a memo term beside the other criteria, and without them', () => {
     expect(
-      searchCriteriaSchema.parse({ from: '2026-06-01', account: 'cash', memo: 'rent' }),
-    ).toEqual({ from: '2026-06-01', account: 'cash', memo: 'rent' });
+      searchCriteriaSchema.parse({ from: '2026-06-01', account: CASH, memo: 'rent' }),
+    ).toEqual({ from: '2026-06-01', account: CASH, memo: 'rent' });
     expect(searchCriteriaSchema.safeParse({ memo: 'rent' }).success).toBe(true);
   });
 
@@ -474,9 +501,9 @@ describe('parseSearchQuery', () => {
   });
 
   it('reads the Account out of the query, beside the range', () => {
-    const criteria = parseSearchQuery({ from: '2026-06-01', account: 'cash' });
+    const criteria = parseSearchQuery({ from: '2026-06-01', account: CASH });
 
-    expect(isOk(criteria) && criteria.value).toEqual({ from: '2026-06-01', account: 'cash' });
+    expect(isOk(criteria) && criteria.value).toEqual({ from: '2026-06-01', account: CASH });
   });
 
   it('reads an empty Account as the "any Account" choice, not as an Account named ""', () => {
@@ -489,7 +516,7 @@ describe('parseSearchQuery', () => {
   });
 
   it('refuses an Account given twice, which arrives as a list', () => {
-    const criteria = parseSearchQuery({ account: ['cash', 'sales'] });
+    const criteria = parseSearchQuery({ account: [CASH, SALES] });
 
     expect(isErr(criteria) && criteria.error.code).toBe('INVALID_INPUT');
   });
@@ -521,11 +548,11 @@ describe('parseSearchQuery', () => {
   });
 
   it('reads the memo term out of the query, beside the other criteria', () => {
-    const criteria = parseSearchQuery({ from: '2026-06-01', account: 'cash', memo: 'rent' });
+    const criteria = parseSearchQuery({ from: '2026-06-01', account: CASH, memo: 'rent' });
 
     expect(isOk(criteria) && criteria.value).toEqual({
       from: '2026-06-01',
-      account: 'cash',
+      account: CASH,
       memo: 'rent',
     });
   });

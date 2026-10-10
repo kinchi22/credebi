@@ -1,13 +1,15 @@
 import { ok, type DomainError, type EntryId, type Result } from '@repo/contracts';
+import { type AccountRepository } from '../../accounts/ports/account-repository';
 import { requireUser, type AuthContext } from '../../auth/domain/auth-context';
 import { changesEntry } from '../domain/correction';
-import { makeEntry, type Entry, type EntryDraft } from '../domain/entry';
+import { makePostedEntry, type Entry, type EntryDraft } from '../domain/entry';
 import { makeReversal, reversedAlready } from '../domain/reversal';
 import { type EntryRepository } from '../ports/entry-repository';
 import { type UnitOfWork } from '../ports/unit-of-work';
 
 export type EditEntryDependencies = {
   readonly entries: EntryRepository;
+  readonly accounts: AccountRepository;
   readonly unitOfWork: UnitOfWork;
   readonly newEntryId: () => EntryId;
   readonly now: () => Date;
@@ -21,6 +23,7 @@ export type EditEntry = (
 
 export function createEditEntry({
   entries,
+  accounts,
   unitOfWork,
   newEntryId,
   now,
@@ -43,8 +46,17 @@ export function createEditEntry({
       return ok(entry);
     }
 
+    const chart = await accounts.readChart(userId.value);
+    if (!chart.ok) {
+      return chart;
+    }
+
     const createdAt = now();
-    const replacement = makeEntry(draft, { id: newEntryId(), createdAt });
+    const replacement = makePostedEntry(
+      draft,
+      { id: newEntryId(), createdAt },
+      chart.value.accounts,
+    );
     if (!replacement.ok) {
       return replacement;
     }

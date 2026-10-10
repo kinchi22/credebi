@@ -6,15 +6,30 @@ export const SESSION_COOKIE = 'session';
 
 export const freshIdentifier = (): string => `e2e-${randomUUID()}`;
 
-export async function submitTestSignIn(page: Page, identifier: string): Promise<void> {
+export type SignInOptions = {
+  readonly identifier?: string;
+  readonly accountsStartOn?: string;
+};
+
+export async function submitTestSignIn(
+  page: Page,
+  identifier: string,
+  accountsStartOn?: string,
+): Promise<void> {
   const form = page.getByRole('form', { name: 'Test sign-in' });
   await form.getByLabel('Identifier').fill(identifier);
+  if (accountsStartOn !== undefined) {
+    await form.getByLabel('Accounts start on').fill(accountsStartOn);
+  }
   await form.getByRole('button', { name: 'Sign in' }).click();
 }
 
-export async function signIn(page: Page, identifier = freshIdentifier()): Promise<void> {
+export async function signIn(
+  page: Page,
+  { identifier = freshIdentifier(), accountsStartOn }: SignInOptions = {},
+): Promise<void> {
   await page.goto('/sign-in');
-  await submitTestSignIn(page, identifier);
+  await submitTestSignIn(page, identifier, accountsStartOn);
   await expect(page).toHaveURL(ENTRIES_URL);
 }
 

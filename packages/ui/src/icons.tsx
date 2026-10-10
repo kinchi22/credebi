@@ -69,6 +69,27 @@ export function TrashIcon(): ReactNode {
   );
 }
 
+export function FolderIcon({ size }: { readonly size: 14 | 16 }): ReactNode {
+  return (
+    <StrokeIcon size={size}>
+      <path d="M3 7a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" />
+    </StrokeIcon>
+  );
+}
+
+export function GripIcon(): ReactNode {
+  return (
+    <StrokeIcon size={16}>
+      <circle cx="9" cy="6" r="1" />
+      <circle cx="15" cy="6" r="1" />
+      <circle cx="9" cy="12" r="1" />
+      <circle cx="15" cy="12" r="1" />
+      <circle cx="9" cy="18" r="1" />
+      <circle cx="15" cy="18" r="1" />
+    </StrokeIcon>
+  );
+}
+
 export function ChevronIcon(): ReactNode {
   return (
     <StrokeIcon size={16}>

@@ -5,10 +5,13 @@ import {
   isErr,
   isOk,
   ok,
+  type AccountId,
   type EntryId,
   type Money,
   type UserId,
 } from '@repo/contracts';
+import { inMemoryAccounts } from '../../accounts/application/in-memory-accounts';
+import { type Account } from '../../accounts/domain/account';
 import { SIGNED_OUT, type AuthContext } from '../../auth/domain/auth-context';
 import { type Entry, type EntryDraft } from '../domain/entry';
 import { type Reversal } from '../domain/reversal';
@@ -41,15 +44,33 @@ function recordingReversals(): {
 
 const NOW = new Date('2026-10-04T09:00:00.000Z');
 
-const ADA: AuthContext = { userId: '01920000-0000-7000-8000-0000000000a1' as UserId };
-const GRACE: AuthContext = { userId: '01920000-0000-7000-8000-0000000000a2' as UserId };
+const ADA_ID = '01920000-0000-7000-8000-0000000000a1' as UserId;
+const GRACE_ID = '01920000-0000-7000-8000-0000000000a2' as UserId;
+const ADA: AuthContext = { userId: ADA_ID };
+const GRACE: AuthContext = { userId: GRACE_ID };
+
+const CASH = '01920000-0000-7000-8000-00000000c001' as AccountId;
+const EXPENSES = '01920000-0000-7000-8000-00000000c005' as AccountId;
+
+const account = (id: AccountId, accountType: Account['accountType'], name: string): Account => ({
+  id,
+  accountType,
+  groupId: null,
+  name,
+  description: null,
+  position: 0,
+  activeFrom: '2026-01-01',
+  activeUntil: null,
+});
+
+const CHART = [account(CASH, 'asset', 'Cash'), account(EXPENSES, 'expense', 'Expenses')];
 
 const DRAFT: EntryDraft = {
   entryDate: '2026-09-15',
   memo: 'Office supplies',
   lines: [
-    { account: 'expense', side: 'debit', amount: 12500 as Money },
-    { account: 'cash', side: 'credit', amount: 12500 as Money },
+    { account: EXPENSES, side: 'debit', amount: 12500 as Money },
+    { account: CASH, side: 'credit', amount: 12500 as Money },
   ],
 };
 
@@ -64,8 +85,11 @@ function books(entries: EntryRepository = inMemoryRepository()): {
     return `01920000-0000-7000-8000-${sequence.toString().padStart(12, '0')}` as EntryId;
   };
   const now = (): Date => NOW;
-  const postEntry = createPostEntry({ entries, newEntryId, now });
-  const searchEntries = createSearchEntries({ entries });
+  const { accounts, hold } = inMemoryAccounts();
+  hold(ADA_ID, CHART);
+  hold(GRACE_ID, CHART);
+  const postEntry = createPostEntry({ entries, accounts, newEntryId, now });
+  const searchEntries = createSearchEntries({ entries, accounts });
   return {
     post: async (auth, memo) => {
       const posted = await postEntry(auth, { ...DRAFT, memo });
@@ -108,8 +132,8 @@ describe('createDeleteEntry', () => {
         total: doomed.total,
         createdAt: NOW,
         lines: [
-          { account: 'expense', side: 'credit', amount: 12500 },
-          { account: 'cash', side: 'debit', amount: 12500 },
+          { account: EXPENSES, accountName: 'Expenses', side: 'credit', amount: 12500 },
+          { account: CASH, accountName: 'Cash', side: 'debit', amount: 12500 },
         ],
       },
     ]);

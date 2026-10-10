@@ -19,11 +19,8 @@ export {
 } from './money/index';
 
 export {
-  CHART_OF_ACCOUNTS,
   MEMO_MAX_LENGTH,
-  isAccountCode,
   makeEntry,
-  type AccountCode,
   type Entry,
   type EntryDraft,
   type EntryLine,
@@ -47,6 +44,40 @@ export {
   type EntryRepository,
   type UnitOfWork,
 } from './entries/index';
+
+export {
+  ACCOUNT_TYPES,
+  DESCRIPTION_MAX_LENGTH,
+  NAME_MAX_LENGTH,
+  createAddAccount,
+  createAddAccountGroup,
+  createDeleteAccount,
+  createDeleteAccountGroup,
+  createEditAccount,
+  createEditAccountGroup,
+  createGetChart,
+  createMoveChartNode,
+  type Account,
+  type AccountGroup,
+  type AccountRepository,
+  type AddAccount,
+  type AddAccountDependencies,
+  type AddAccountGroup,
+  type AddAccountGroupDependencies,
+  type ChartNode,
+  type DeleteAccount,
+  type DeleteAccountDependencies,
+  type DeleteAccountGroup,
+  type DeleteAccountGroupDependencies,
+  type EditAccount,
+  type EditAccountDependencies,
+  type EditAccountGroup,
+  type EditAccountGroupDependencies,
+  type GetChart,
+  type GetChartDependencies,
+  type MoveChartNode,
+  type MoveChartNodeDependencies,
+} from './accounts/index';
 
 export {
   describeError,

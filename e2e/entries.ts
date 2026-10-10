@@ -14,6 +14,13 @@ export const ACCOUNTS = ['Cash', 'Accounts payable', 'Capital', 'Sales', 'Expens
 
 export type Account = (typeof ACCOUNTS)[number];
 
+export type AddedAccount = { readonly added: string };
+
+export type LineAccount = Account | AddedAccount;
+
+export const nameOf = (account: LineAccount): string =>
+  typeof account === 'string' ? account : account.added;
+
 export const SIDES = ['Debit', 'Credit'] as const;
 
 export type Side = (typeof SIDES)[number];
@@ -31,7 +38,7 @@ export type TwoLineEntry = Heading & {
 
 export type Line = {
   readonly side: Side;
-  readonly account: Account;
+  readonly account: LineAccount;
   readonly amount: string;
 };
 
@@ -49,22 +56,42 @@ export const entrySearchForm = (page: Page): Locator =>
 export const accountChoices = (form: Page | Locator, side: Side): Locator =>
   form.getByRole('radiogroup', { name: `${side} account`, exact: true });
 
-export const accountChoice = (form: Locator, side: Side, account: Account): Locator =>
+export const accountChoice = (form: Locator, side: Side, account: string): Locator =>
   accountChoices(form, side).getByRole('radio', { name: account, exact: true });
 
 export const accountTicks = (form: Page | Locator, side: Side): Locator =>
   form.getByRole('group', { name: `${side} accounts`, exact: true });
 
-export const accountTick = (form: Locator, side: Side, account: Account): Locator =>
-  accountTicks(form, side).getByRole('checkbox', { name: account, exact: true });
+export const accountTick = (form: Locator, side: Side, account: LineAccount): Locator =>
+  accountTicks(form, side).getByRole('checkbox', { name: nameOf(account), exact: true });
 
-export const lineGroup = (form: Locator, side: Side, account: Account): Locator =>
-  form.getByRole('group', { name: `${side} ${account}`, exact: true });
+const lineName = (side: Side, account: LineAccount): string => `${side} ${nameOf(account)}`;
 
-export const lineGroups = (form: Locator): Locator =>
+export const lineGroup = (form: Locator, side: Side, account: LineAccount): Locator =>
+  form.getByRole('group', { name: lineName(side, account), exact: true });
+
+export const lineAmount = (form: Locator, side: Side, account: LineAccount): Locator =>
+  lineGroup(form, side, account).getByLabel('Amount');
+
+const escaped = (name: string): string => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+export const lineGroups = (form: Locator, ...added: readonly AddedAccount[]): Locator =>
   form.getByRole('group', {
-    name: new RegExp(`^(${SIDES.join('|')}) (${ACCOUNTS.join('|')})$`),
+    name: new RegExp(
+      `^(${SIDES.join('|')}) (${[...ACCOUNTS, ...added.map(nameOf)].map(escaped).join('|')})$`,
+    ),
   });
+
+const NOT_ACTIVE_ON_DAY = 'Not active on this day';
+
+export const notActiveMark = (line: Locator): Locator =>
+  line.getByText(NOT_ACTIVE_ON_DAY, { exact: true });
+
+const notActiveRefusal = (side: Side, account: LineAccount): string =>
+  `${lineName(side, account)} is not active on this day. Remove that line, or choose a day on which its account is active.`;
+
+export const notActiveAlert = (form: Locator, side: Side, account: LineAccount): Locator =>
+  form.getByRole('alert').filter({ hasText: notActiveRefusal(side, account) });
 
 export const addAccountButton = (form: Locator, side: Side): Locator =>
   form.getByRole('button', { name: `Add ${side.toLowerCase()} account`, exact: true });
@@ -115,6 +142,19 @@ export async function expectSheetOnSide(sheet: Locator, side: Side): Promise<voi
   }
 }
 
+export const editButton = (entry: Locator): Locator =>
+  entry.getByRole('button', { name: 'Edit', exact: true });
+
+export const editDialog = (page: Page): Locator =>
+  page.getByRole('dialog', { name: 'Edit entry', exact: true });
+
+export async function openEditEntry(entry: Locator): Promise<Locator> {
+  await editButton(entry).click();
+  const dialog = editDialog(entry.page());
+  await expect(dialog).toBeVisible();
+  return dialog;
+}
+
 export const listedEntry = (page: Page, memo: string): Locator =>
   page.getByTestId('entry').filter({ hasText: memo });
 
@@ -123,8 +163,8 @@ async function fillHeading(form: Locator, heading: Heading): Promise<void> {
   await form.getByLabel('Memo').fill(heading.memo);
 }
 
-async function submit(form: Locator): Promise<void> {
-  await form.getByRole('button', { name: 'Add entry' }).click();
+export async function submit(form: Locator, name: 'Add entry' | 'Save' = 'Add entry'): Promise<void> {
+  await form.getByRole('button', { name, exact: true }).click();
 }
 
 export async function submitTwoLineEntry(form: Locator, entry: TwoLineEntry): Promise<void> {
@@ -153,12 +193,12 @@ export async function addLineOnPhone(form: Locator, line: Line): Promise<void> {
   const sheet = await openAccountSheet(form, line.side);
   await accountTick(sheet, line.side, line.account).check();
   await pressDone(sheet);
-  await lineGroup(form, line.side, line.account).getByLabel('Amount').fill(line.amount);
+  await lineAmount(form, line.side, line.account).fill(line.amount);
 }
 
 export async function addLine(form: Locator, line: Line): Promise<void> {
   await accountTick(form, line.side, line.account).check();
-  await lineGroup(form, line.side, line.account).getByLabel('Amount').fill(line.amount);
+  await lineAmount(form, line.side, line.account).fill(line.amount);
 }
 
 async function submitLines(
