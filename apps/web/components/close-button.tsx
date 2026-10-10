@@ -16,7 +16,7 @@ export function CloseButton({ label, onClose, disabled }: CloseButtonProps): Rea
       aria-label={label}
       onClick={onClose}
       disabled={disabled}
-      className="-mr-2 inline-flex size-10 items-center justify-center rounded text-text disabled:opacity-50"
+      className="-mr-2 inline-flex size-10 items-center justify-center rounded-control text-text disabled:opacity-50"
     >
       <CloseIcon />
     </button>

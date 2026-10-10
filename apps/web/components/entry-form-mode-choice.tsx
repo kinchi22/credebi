@@ -92,7 +92,7 @@ export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps
         <legend className={`float-left p-0 ${LEGEND}`}>
           {en.settingsPage.entryFormMode}
         </legend>
-        <div className="grid auto-cols-fr grid-flow-col grid-rows-[auto_auto_auto] gap-y-2 self-stretch rounded border border-border-control bg-surface p-0.5 wide:max-w-2xl wide:flex-1 wide:self-auto">
+        <div className="grid auto-cols-fr grid-flow-col grid-rows-[auto_auto_auto] gap-y-2 self-stretch rounded-panel border border-border-control bg-surface p-0.5 wide:max-w-2xl wide:flex-1 wide:self-auto">
           {entryFormModeSchema.options.map((mode) => (
             <label key={mode} className={`relative row-span-3 grid grid-rows-subgrid ${typeClasses['body-sm']}`}>
               <input
@@ -107,7 +107,7 @@ export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps
                 className="peer absolute inset-0 m-0 appearance-none opacity-0"
               />
               <span
-                className={`row-span-3 grid grid-rows-subgrid rounded px-3 py-2 ${selected === mode ? CHOSEN_SEGMENT : 'text-text-muted'} peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus peer-disabled:opacity-50`}
+                className={`row-span-3 grid grid-rows-subgrid rounded-control px-3 py-2 ${selected === mode ? CHOSEN_SEGMENT : 'text-text-muted'} peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus peer-disabled:opacity-50`}
               >
                 <ModeDrawing mode={mode} />
                 <span

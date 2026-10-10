@@ -13,7 +13,7 @@ export function TreeBranch({ branch }: { readonly branch: Branch }): ReactNode {
           <span className={`${LINE} right-0 bottom-1/2 border-b`} />
         </>
       ) : (
-        <span className={`${LINE} top-0 bottom-1/2 w-2.5 rounded-bl border-b border-l`} />
+        <span className={`${LINE} top-0 bottom-1/2 w-2.5 rounded-bl-control border-b border-l`} />
       )}
     </span>
   );
@@ -23,7 +23,7 @@ export function TreeHook(): ReactNode {
   return (
     <span
       aria-hidden="true"
-      className="absolute -top-1.5 left-1.5 h-5.5 w-2.5 rounded-bl border-b border-l border-border-control"
+      className="absolute -top-1.5 left-1.5 h-5.5 w-2.5 rounded-bl-control border-b border-l border-border-control"
     />
   );
 }

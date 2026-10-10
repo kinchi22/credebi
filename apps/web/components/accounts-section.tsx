@@ -229,7 +229,7 @@ function TypeBand({
   readonly open: Open;
 }): ReactNode {
   return (
-    <div className="flex items-center justify-between gap-3 rounded bg-band px-3 py-2">
+    <div className="flex items-center justify-between gap-3 rounded-control bg-band px-3 py-2">
       <span id={id} className={`${typeClasses.label} text-text`}>
         {en.accountTypes[accountType]}
       </span>
