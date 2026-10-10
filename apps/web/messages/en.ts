@@ -240,6 +240,13 @@ export const en = {
     creditTotal: 'Credit total',
     difference: 'Difference',
     tooLarge: 'These amounts add up to more than an amount can hold.',
+    notActive: {
+      mark: 'Not active on this day',
+      notAdded: 'The entry was not added.',
+      notSaved: 'The entry was not saved.',
+      refusal:
+        'is not active on this day. Remove that line, or choose a day on which its account is active.',
+    },
   },
   accountSheet: {
     title: 'Choose accounts',

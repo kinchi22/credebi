@@ -483,6 +483,17 @@ with `rounded-t`, the Sidebar drawer its right ones with `rounded-r`. The
   widths, about 6:4, the Account's the wider: the left holds the Account name,
   semibold and wrapping; the right holds the amount field and, beside it, the
   Remove button.
+- **Line not active on the day.** In Multi-line mode a line whose Account is
+  not active on the Entry's day stays in the form with its amount, and below
+  its Account name `Not active on this day` in `body-dense` and `warning`. It
+  counts in neither Side's total nor the Difference, and choosing a day on which
+  its Account is active counts it again. While one is shown, the submit posts or
+  saves nothing: the refusal below the Difference row, in place of any earlier
+  one, names the first such line, debits first, as `<Side> <Account>`, and
+  every input is kept.
+  Removing that line or choosing a day on which its Account is active clears
+  the refusal. In Two-line mode such an Account's choice is cleared instead,
+  and the required choice holds the submit.
 - **Multi-line totals.** At every width each Side ends with its own total,
   `Debit total` or `Credit total` in `body-dense` and `text-muted`, its amount
   in `figure` on the line grid, right-aligned with the lines' amounts and

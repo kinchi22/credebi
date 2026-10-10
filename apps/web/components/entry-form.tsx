@@ -17,6 +17,7 @@ import {
   useId,
   useRef,
   useState,
+  type MouseEvent,
   type ReactNode,
   type SubmitEvent,
 } from 'react';
@@ -49,8 +50,12 @@ export type EntryFormParts = {
   readonly entry: PostedEntry | undefined;
   readonly heading: ReactNode;
   readonly refusal: ReactNode;
-  readonly submitButton: ReactNode;
+  readonly submitButton: SubmitButton;
 };
+
+export type SubmitButton = (
+  onClick?: (event: MouseEvent<HTMLButtonElement>) => void,
+) => ReactNode;
 
 type EntryFormShellProps = Omit<EntryFormProps, 'chart'> & {
   readonly mode: EntryFormMode;
@@ -246,8 +251,13 @@ export function EntryFormShell({
       </p>
     ) : null;
 
-  const submitButton = (
-    <button type="submit" disabled={pending} className={`shrink-0 ${PRIMARY_BUTTON}`}>
+  const submitButton: SubmitButton = (onClick) => (
+    <button
+      type="submit"
+      disabled={pending}
+      onClick={onClick}
+      className={`shrink-0 ${PRIMARY_BUTTON}`}
+    >
       {pending ? variant.pending : variant.submit}
     </button>
   );
