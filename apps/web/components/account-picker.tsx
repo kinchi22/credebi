@@ -470,7 +470,7 @@ function AccountColumns({
     >
       <div className="relative flex items-center border-b border-border bg-surface px-4 py-3">
         <span className="pointer-events-none absolute left-7 flex text-text-muted">
-          <SearchIcon />
+          <SearchIcon size={16} />
         </span>
         <FindAnAccount query={query} setQuery={setQuery} className="pl-8" />
       </div>

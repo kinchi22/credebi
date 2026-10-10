@@ -25,7 +25,7 @@ function StrokeIcon({ size, children }: IconProps): ReactNode {
 
 export function SignOutIcon(): ReactNode {
   return (
-    <StrokeIcon size={16}>
+    <StrokeIcon size={18}>
       <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" />
       <path d="M10 17l-5-5 5-5" />
       <path d="M5 12h11" />
@@ -98,11 +98,29 @@ export function ChevronIcon(): ReactNode {
   );
 }
 
-export function SearchIcon(): ReactNode {
+export function SearchIcon({ size }: { readonly size: 16 | 18 }): ReactNode {
   return (
-    <StrokeIcon size={16}>
+    <StrokeIcon size={size}>
       <circle cx="11" cy="11" r="7" />
       <path d="M20 20l-4-4" />
+    </StrokeIcon>
+  );
+}
+
+export function ListIcon(): ReactNode {
+  return (
+    <StrokeIcon size={18}>
+      <path d="M4 5h16M4 12h16M4 19h10" />
+    </StrokeIcon>
+  );
+}
+
+export function SlidersIcon(): ReactNode {
+  return (
+    <StrokeIcon size={18}>
+      <path d="M4 7h10M18 7h2M4 17h4M12 17h8" />
+      <circle cx="16" cy="7" r="2" />
+      <circle cx="10" cy="17" r="2" />
     </StrokeIcon>
   );
 }

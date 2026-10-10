@@ -4,6 +4,7 @@ export const palette = {
   'mint-deeper': '#09644D',
   ink: '#0B2B2A',
   'ink-raised': '#133F3C',
+  'ink-mid': '#103735',
   mist: '#F2F8F5',
   frost: '#EAF7F2',
   white: '#FFFFFF',
@@ -33,6 +34,7 @@ export const semanticColors = {
   'text-muted-on-dark': 'sage',
   'ground-dark': 'ink',
   'ground-dark-raised': 'ink-raised',
+  'ground-dark-hover': 'ink-mid',
   accent: 'mint',
   'accent-text': 'mint-deep',
   'accent-text-hover': 'mint-deeper',
@@ -85,6 +87,8 @@ export const textPairs: readonly ColorPair[] = [
   { foreground: 'sage', background: 'ink' },
   { foreground: 'frost', background: 'ink-raised' },
   { foreground: 'sage', background: 'ink-raised' },
+  { foreground: 'frost', background: 'ink-mid' },
+  { foreground: 'sage', background: 'ink-mid' },
   { foreground: 'ink', background: 'mint' },
   { foreground: 'white', background: 'rust' },
   { foreground: 'ink', background: 'fog' },
@@ -98,6 +102,7 @@ export const controlEdgePairs: readonly ColorPair[] = [
   { foreground: 'mint-deep', background: 'mist' },
   { foreground: 'mint', background: 'ink' },
   { foreground: 'mint', background: 'ink-raised' },
+  { foreground: 'mint', background: 'ink-mid' },
   { foreground: 'pewter', background: 'white' },
 ];
 

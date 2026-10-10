@@ -11,6 +11,7 @@ colors:
   mint-deeper: "#09644D"
   ink: "#0B2B2A"
   ink-raised: "#133F3C"
+  ink-mid: "#103735"
   mist: "#F2F8F5"
   frost: "#EAF7F2"
   white: "#FFFFFF"
@@ -35,6 +36,7 @@ colors:
   text-muted-on-dark: "{colors.sage}"
   ground-dark: "{colors.ink}"
   ground-dark-raised: "{colors.ink-raised}"
+  ground-dark-hover: "{colors.ink-mid}"
   accent: "{colors.mint}"
   accent-text: "{colors.mint-deep}"
   accent-text-hover: "{colors.mint-deeper}"
@@ -133,6 +135,7 @@ components:
   button-quiet-on-dark:
     textColor: "{colors.text-muted-on-dark}"
   button-quiet-on-dark-hover:
+    backgroundColor: "{colors.ground-dark-hover}"
     textColor: "{colors.text-on-dark}"
   link:
     textColor: "{colors.accent-text}"
@@ -143,6 +146,10 @@ components:
     textColor: "{colors.text-on-dark}"
   sidebar-link:
     textColor: "{colors.text-muted-on-dark}"
+    rounded: "{rounded.control}"
+  sidebar-link-hover:
+    backgroundColor: "{colors.ground-dark-hover}"
+    textColor: "{colors.text-on-dark}"
   sidebar-item-active:
     backgroundColor: "{colors.ground-dark-raised}"
     textColor: "{colors.text-on-dark}"
@@ -206,6 +213,7 @@ a palette colour.
 | `mint-deeper` | `#09644D` | link hover                                 |
 | `ink`         | `#0B2B2A` | text, the Sidebar                          |
 | `ink-raised`  | `#133F3C` | a raised dark surface, the active Sidebar item |
+| `ink-mid`     | `#103735` | a Sidebar item under the pointer           |
 | `mist`        | `#F2F8F5` | the page ground                            |
 | `frost`       | `#EAF7F2` | text on ink                                |
 | `white`       | `#FFFFFF` | panels                                     |
@@ -244,6 +252,7 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `text-muted-on-dark` | `sage`      | links in the Sidebar                  |
 | `ground-dark`        | `ink`       | the Sidebar's ground                  |
 | `ground-dark-raised` | `ink-raised` | the active Sidebar item              |
+| `ground-dark-hover`  | `ink-mid`    | an idle Sidebar item under the pointer |
 | `accent`             | `mint`      | the primary button fill, the mark     |
 | `accent-text`        | `mint-deep` | links, accent text on a light ground  |
 | `accent-text-hover`  | `mint-deeper` | a link under the pointer            |
@@ -281,20 +290,26 @@ unit test checks every one:
 
 - **Text, 4.5:1.** `ink`, `slate`, `mint-deep`, `mint-deeper`, `rust`,
   `ochre`, `cobalt` and `gold` on `white` and on `mist`; `frost` and `sage` on
-  `ink` and on `ink-raised`, which is `text-on-dark` and `text-muted-on-dark` on
-  `ground-dark` and `ground-dark-raised`; `ink` on `mint`; `ink` on `fog`,
+  `ink`, on `ink-raised` and on `ink-mid`, which is `text-on-dark` and
+  `text-muted-on-dark` on `ground-dark`, `ground-dark-raised` and
+  `ground-dark-hover` (11.78:1 and 6.85:1 on `ink-mid`); `ink` on `mint`; `ink` on `fog`,
   which is `text` on a `band` (12.46:1); `mint-deeper` on `fog`, which is
   `accent-text-hover` on a `band` (5.90:1).
 - **Control edges, 3:1.** `steel` and `mint-deep` on `white` and on `mist`;
-  `mint`, the `focus-on-dark` ring, on `ink` and on `ink-raised` (7.66:1 on
-  `ink`); `pewter`, the Google sign-in button's edge, on `white` (4.53:1).
+  `mint`, the `focus-on-dark` ring, on `ink`, on `ink-raised` and on `ink-mid`
+  (7.66:1 on `ink`), which is also the active Sidebar link's `accent` icon on
+  `ground-dark-raised` (5.91:1); `pewter`, the Google sign-in button's edge, on `white` (4.53:1).
+
+`ink-mid` is `ink-raised` mixed 60% into `ink`, so a Sidebar item under the
+pointer reads between the idle ground and the active item.
 
 A new text colour or ground is added to these pairs in the same change.
 
 ## Typography
 
 Text is set in **IBM Plex Sans**: SemiBold for headings, panel titles and
-labels, Regular for reading. Only figures and dates are set in a monospaced
+labels, Regular for reading, and Medium, weight 500 (`font-medium`), for the
+active Sidebar link alone. Only figures and dates are set in a monospaced
 face, **IBM Plex Mono** Regular, so every column of amounts lines up; a label,
 a panel title or a Side's name is never monospaced. A figure that must stand
 out, such as an Entry's total or a Difference that is not zero, is IBM Plex
@@ -443,8 +458,10 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   centred, the Google sign-in button, and, where test sign-in is offered, the
   `Test sign-in` form below a dashed `border` rule with 20px above it.
 - **Quiet button on dark.** No fill and no border: `text-muted-on-dark` text,
-  `text-on-dark` under the pointer, and the `focus-on-dark` ring. It is Sign out
-  in the Sidebar, an exit icon in `currentColor` before its text.
+  and under the pointer `text-on-dark` on a `ground-dark-hover` fill, with the
+  `control` radius and the `focus-on-dark` ring. It is Sign out in the Sidebar:
+  an 18px exit icon in `currentColor` 10px before its text, padded 8px by 10px
+  as a Sidebar link is, and as wide as the Sidebar's links.
 - **Icon button on dark.** No fill and no border: a 40px square holding a
   stroke icon in `text-on-dark`, with the `focus-on-dark` ring and an accessible
   name in place of text. It is `Menu`, a hamburger icon, in the bar that opens
@@ -703,14 +720,21 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   the browser's own drawing, so it stands as tall as the text Input beside it:
   the entry form's Date beside Memo, and Entry search's From and To. Focused,
   it shows a 3px `accent` halo at 25% around its edge, beside the focus ring.
-- **Sidebar.** Dark: a `ground-dark` ground, `text-on-dark` text,
-  `text-muted-on-dark` links, and the active item on `ground-dark-raised`. The
-  logo there is the horizontal Lockup in the reverse tone. Sign out sits at the
-  foot, below a `ground-dark-raised` hairline; from `wide` up the Sidebar is as
+- **Sidebar.** Dark: a `ground-dark` ground and `text-on-dark` text, 232px
+  wide from `wide` up, padded 20px above, 16px below and 12px at the sides. The
+  logo there is the horizontal Lockup in the reverse tone, inset 8px, with 28px
+  below it before the links. Each link, 2px from the next, leads with an 18px
+  stroke icon 10px before its text and is padded 8px by 10px with the `control`
+  radius: `Entries` a list, `Entry search` a magnifier, `Settings` sliders. An
+  idle link is `text-muted-on-dark`, and under the pointer `text-on-dark` on a
+  `ground-dark-hover` fill. The active link is `text-on-dark` in the medium
+  weight on `ground-dark-raised`, its icon in `accent`. No link carries a
+  coloured edge. Sign out sits at the foot, below a `ground-dark-raised`
+  hairline with 12px above it; from `wide` up the Sidebar is as
   tall as the viewport and stays in place as the page scrolls. Below `wide` it is
   a drawer: a `ground-dark` bar holds `Menu` at its left and the logo after it,
   and `Menu` opens the Sidebar as a modal dialog on the page's left edge over a
-  `ground-dark` scrim at 60%.
+  `ground-dark` scrim at 60%, with the same logo, links and Sign out.
   The bar's logo hides while it is open, so one logo shows. Escape, a click on
   the scrim or following a link closes it, and focus returns to `Menu`.
 - **Focus.** A 2px ring on every focusable element: `focus` on a light ground,
@@ -728,7 +752,9 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   technology, so a control holding one is named by its text or its accessible
   name. The folder icon marks an Account group in the Accounts section, the
   Account picker and the Account sheet; it is decoration, and the group keeps
-  its name alone.
+  its name alone. Each Sidebar link and Sign out leads with an 18px icon -- a
+  list, a magnifier, sliders and an exit -- so each is named by its text alone;
+  the magnifier is the Account picker's search icon at 18px rather than 16px.
 - **Status.** `positive` for healthy, `warning` for degraded, `danger` for a
   refusal or an error.
 
