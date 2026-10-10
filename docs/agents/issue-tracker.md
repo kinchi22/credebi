@@ -75,7 +75,9 @@ Every Feature gets these Tasks beside its vertical slices:
   generated SQL, in a pull request onto the milestone that touches no
   behaviour, which the owner reviews as code owner of `packages/db/drizzle/`
   (ADR-0024). It is blocked by the specs Task and blocks the Tasks that use the
-  new schema.
+  new schema. SQL that `db:generate` cannot write, such as a seed or a
+  backfill, follows the generated statements under a comment opening
+  `-- Hand-written:` that says why, as in `0002_entries_user_not_null.sql`.
 
 Every other Task stays out of `e2e/` and `packages/db/drizzle/`, except the
 regeneration Task below, which rewrites the Migration Task's SQL.
@@ -89,8 +91,12 @@ integration pull request:
    to `main`'s side.
 2. A new Task of the Feature, **Regenerate the migration for `<change>`**,
    runs `pnpm --filter @repo/db db:generate` and opens a pull request onto the
-   milestone that touches `packages/db/drizzle/` alone. The owner reviews it
-   again as code owner.
+   milestone that touches `packages/db/drizzle/` alone. `db:generate` writes
+   only the schema's statements, and the sync discarded the old file, so the
+   Task copies every `-- Hand-written:` block of the replaced migration, from
+   the milestone's history, to the end of the new one unchanged, and lists them
+   in the pull request body. `db:drift` cannot see a block that went missing;
+   the owner checks the list when reviewing it again as code owner.
 3. It is recorded as blocking every other open Task of the Feature, so it merges
    before any other pull request onto the milestone. Between the sync and that
    merge, `packages/db/src/schema.ts` is ahead of `packages/db/drizzle/`, and
