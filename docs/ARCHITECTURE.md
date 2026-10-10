@@ -62,6 +62,7 @@ status in the ADR itself.
 | [ADR-0024: Promote a Production deployment only after its migration](adr/0024-promote-production-only-after-its-migration.md) | Accepted |
 | [ADR-0025: Ban comments in code](adr/0025-ban-comments-in-code.md) | Accepted |
 | [ADR-0026: Keep a chart of accounts per User](adr/0026-keep-a-chart-of-accounts-per-user.md) | Deferred |
+| [ADR-0027: Total by Account, and name an Entry by its Title](adr/0027-total-by-account-and-name-an-entry-by-its-title.md) | Accepted |
 
 ## Package layout
 
