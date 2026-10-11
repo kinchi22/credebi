@@ -332,7 +332,9 @@ The Git policy was verified before the inventory for
 [#376](https://github.com/kinchi22/credebi/issues/376) was captured at
 2026-10-11 19:07:24.768 UTC. The complete inventory contained 515 deployments
 across 26 pages: 437 Previews and 78 Production deployments. The frozen IDs
-are in `tools/preview-cleanup-snapshot.json` and in the
+were captured in the local operational manifest
+`tools/preview-cleanup-snapshot.json`, which is not committed to the repository,
+and are preserved in the
 [snapshot record](https://github.com/kinchi22/credebi/issues/376#issuecomment-6112659601).
 Its SHA-256 is
 `32068bc2e35362c198ee6611fc0c19ff664b93a9daadd350719125cafb526a9b`.
