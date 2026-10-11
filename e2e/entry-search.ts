@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
-import { entrySearchForm } from './entries';
+import { entrySearchForm, titleField } from './entries';
 
 const EARLIEST = '2000-01-01';
 
@@ -20,6 +20,7 @@ type Criteria = {
   readonly from?: string;
   readonly to?: string;
   readonly account?: string;
+  readonly title?: string;
   readonly memo?: string;
 };
 
@@ -31,6 +32,9 @@ export async function search(page: Page, criteria: Criteria): Promise<void> {
   await toField(page).fill(criteria.to ?? LATEST);
   if (criteria.account !== undefined) {
     await form.getByLabel('Account', { exact: true }).selectOption(criteria.account);
+  }
+  if (criteria.title !== undefined) {
+    await titleField(form).fill(criteria.title);
   }
   if (criteria.memo !== undefined) {
     await form.getByLabel('Memo', { exact: true }).fill(criteria.memo);

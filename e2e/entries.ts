@@ -27,6 +27,7 @@ export type Side = (typeof SIDES)[number];
 
 type Heading = {
   readonly day: string;
+  readonly title?: string;
   readonly memo: string;
 };
 
@@ -45,6 +46,22 @@ export type Line = {
 export type MultiLineEntry = Heading & {
   readonly lines: readonly Line[];
 };
+
+export const TITLE_MAX = 40;
+
+export const titled = (
+  title: string,
+  memo: string,
+  day = DAY,
+  creditAccount: Account = 'Cash',
+): TwoLineEntry => ({
+  day,
+  title,
+  memo,
+  debitAccount: 'Expenses',
+  creditAccount,
+  amount: AMOUNT,
+});
 
 export const entries = (page: Page): Locator => page.getByRole('region', { name: 'Entries' });
 
@@ -155,11 +172,76 @@ export async function openEditEntry(entry: Locator): Promise<Locator> {
   return dialog;
 }
 
+export async function saveEdit(dialog: Locator): Promise<void> {
+  await submit(dialog, 'Save');
+  await expect(dialog).toBeHidden();
+}
+
+export const deleteButton = (entry: Locator): Locator =>
+  entry.getByRole('button', { name: 'Delete', exact: true });
+
+export const deleteDialog = (page: Page): Locator =>
+  page.getByRole('dialog', { name: 'Delete entry', exact: true });
+
+export async function openDelete(entry: Locator): Promise<Locator> {
+  await deleteButton(entry).click();
+  const dialog = deleteDialog(entry.page());
+  await expect(dialog).toBeVisible();
+  return dialog;
+}
+
+export async function deleteListed(entry: Locator): Promise<void> {
+  const dialog = await openDelete(entry);
+  await dialog.getByRole('button', { name: 'Delete', exact: true }).click();
+  await expect(dialog).toBeHidden();
+}
+
 export const listedEntry = (page: Page, memo: string): Locator =>
   page.getByTestId('entry').filter({ hasText: memo });
 
+export const titleField = (form: Locator): Locator =>
+  form.getByRole('combobox', { name: 'Title', exact: true });
+
+export const offeredTitles = (page: Page): Locator =>
+  page.getByRole('listbox').getByRole('option');
+
+export async function expectOffered(page: Page, titles: readonly string[]): Promise<void> {
+  if (titles.length === 0) {
+    await expect(offeredTitles(page)).toHaveCount(0);
+    return;
+  }
+  await expect(offeredTitles(page)).toHaveText([...titles]);
+}
+
+export const offeredTitle = (page: Page, title: string): Locator =>
+  page.getByRole('listbox').getByRole('option', { name: title, exact: true });
+
+type Shown = {
+  readonly day: string;
+  readonly title?: string;
+  readonly memo?: string;
+  readonly total?: string;
+};
+
+const TITLE_TO_MEMO = '\\s*(?:[^\\p{L}\\p{N}\\s]\\s*)?';
+
+const named = (title: string | undefined, memo: string | undefined): string =>
+  [title, memo]
+    .filter((part): part is string => part !== undefined && part !== '')
+    .map(escaped)
+    .join(TITLE_TO_MEMO);
+
+export const headingShowing = ({ day, title, memo, total = '12,500' }: Shown): RegExp =>
+  new RegExp(
+    `^\\s*${escaped(day)}\\s*${named(title, memo)}\\s*(?:Total\\s*)?${escaped(total)}(?![\\d,.])`,
+    'u',
+  );
+
 async function fillHeading(form: Locator, heading: Heading): Promise<void> {
   await form.getByLabel('Date').fill(heading.day);
+  if (heading.title !== undefined) {
+    await titleField(form).fill(heading.title);
+  }
   await form.getByLabel('Memo').fill(heading.memo);
 }
 

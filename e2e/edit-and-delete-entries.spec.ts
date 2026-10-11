@@ -5,6 +5,8 @@ import {
   accountChoices,
   accountTicks,
   amountShown,
+  deleteButton,
+  deleteListed,
   editButton,
   AMOUNT,
   DAY,
@@ -14,8 +16,10 @@ import {
   lineAmount,
   lineGroups,
   listedEntry,
+  openDelete,
   openEditEntry,
   postEntries,
+  saveEdit as save,
   submit,
   submitMultiLineEntry,
   TWELVE_THOUSAND_FIVE_HUNDRED,
@@ -40,12 +44,6 @@ import { PHONE } from './viewport';
 
 const EDITED_DAY = '2026-09-20';
 
-const deleteButton = (entry: Locator): Locator =>
-  entry.getByRole('button', { name: 'Delete', exact: true });
-
-const deleteDialog = (page: Page): Locator =>
-  page.getByRole('dialog', { name: 'Delete entry', exact: true });
-
 const button = (scope: Locator, name: string): Locator =>
   scope.getByRole('button', { name, exact: true });
 
@@ -56,24 +54,6 @@ const twoLine = (day: string, memo: string): TwoLineEntry => ({
   creditAccount: 'Cash',
   amount: AMOUNT,
 });
-
-async function save(dialog: Locator): Promise<void> {
-  await submit(dialog, 'Save');
-  await expect(dialog).toBeHidden();
-}
-
-async function openDelete(entry: Locator): Promise<Locator> {
-  await deleteButton(entry).click();
-  const dialog = deleteDialog(entry.page());
-  await expect(dialog).toBeVisible();
-  return dialog;
-}
-
-async function deleteListed(entry: Locator): Promise<void> {
-  const dialog = await openDelete(entry);
-  await button(dialog, 'Delete').click();
-  await expect(dialog).toBeHidden();
-}
 
 async function rewriteTwoLine(dialog: Locator, memo: string): Promise<void> {
   await dialog.getByLabel('Date').fill(EDITED_DAY);
