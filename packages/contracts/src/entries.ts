@@ -34,6 +34,7 @@ export type PostedLine = z.infer<typeof postedLineSchema>;
 
 export const postEntryInputSchema = z.object({
   entryDate: entryDateSchema,
+  title: z.string().default(''),
   memo: z.string(),
   lines: z.array(entryLineSchema),
 });
@@ -55,6 +56,7 @@ export type EditEntryInput = z.infer<typeof editEntryInputSchema>;
 export const postedEntrySchema = z.object({
   id: entryIdSchema,
   entryDate: entryDateSchema,
+  title: z.string(),
   memo: z.string(),
   lines: z.array(postedLineSchema),
   total: moneySchema,
@@ -66,6 +68,7 @@ export type PostedEntry = z.infer<typeof postedEntrySchema>;
 export function toPostedEntry(entry: {
   readonly id: EntryId;
   readonly entryDate: string;
+  readonly title: string;
   readonly memo: string;
   readonly lines: readonly {
     readonly account: AccountId;
@@ -79,6 +82,7 @@ export function toPostedEntry(entry: {
   return {
     id: entry.id,
     entryDate: entry.entryDate,
+    title: entry.title,
     memo: entry.memo,
     lines: entry.lines.map((line) => ({
       account: line.account,
@@ -130,6 +134,7 @@ export function parseSearchQuery(query: SearchQuery): Result<SearchCriteriaInput
 export const ENTRY_FORM_FIELDS = {
   entryFormMode: 'entryFormMode',
   entryDate: 'entryDate',
+  title: 'title',
   memo: 'memo',
   account: 'account',
   side: 'side',
@@ -149,6 +154,7 @@ const typedAmountSchema = amountTextSchema.transform(Number).pipe(moneySchema);
 
 const multiLineFormSchema = z.object({
   entryDate: entryDateSchema,
+  title: z.string(),
   memo: z.string(),
   lines: z.array(
     z.object({
@@ -172,6 +178,7 @@ export function parseMultiLineEntryForm(
 
   const parsed = multiLineFormSchema.safeParse({
     entryDate: form.get(ENTRY_FORM_FIELDS.entryDate),
+    title: form.get(ENTRY_FORM_FIELDS.title),
     memo: form.get(ENTRY_FORM_FIELDS.memo),
     lines: Array.from({ length: lineCount }, (_, index) => ({
       account: accounts[index],
@@ -185,6 +192,7 @@ export function parseMultiLineEntryForm(
 
 const twoLineFormSchema = z.object({
   entryDate: entryDateSchema,
+  title: z.string(),
   memo: z.string(),
   debitAccount: z.string(),
   creditAccount: z.string(),
@@ -194,6 +202,7 @@ const twoLineFormSchema = z.object({
 export function parseTwoLineEntryForm(form: SubmittedFields): Result<PostEntryInput, DomainError> {
   const parsed = twoLineFormSchema.safeParse({
     entryDate: form.get(ENTRY_FORM_FIELDS.entryDate),
+    title: form.get(ENTRY_FORM_FIELDS.title),
     memo: form.get(ENTRY_FORM_FIELDS.memo),
     debitAccount: form.get(ENTRY_FORM_FIELDS.debitAccount),
     creditAccount: form.get(ENTRY_FORM_FIELDS.creditAccount),
@@ -201,9 +210,10 @@ export function parseTwoLineEntryForm(form: SubmittedFields): Result<PostEntryIn
   });
   if (!parsed.success) return refusedForm();
 
-  const { entryDate, memo, debitAccount, creditAccount, amount } = parsed.data;
+  const { entryDate, title, memo, debitAccount, creditAccount, amount } = parsed.data;
   return ok({
     entryDate,
+    title,
     memo,
     lines: [
       { account: debitAccount, side: 'debit', amount },

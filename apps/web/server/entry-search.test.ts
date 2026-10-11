@@ -10,6 +10,7 @@ const ANOTHER_USERS_CASH = '01920000-0000-7000-8000-00000000d001';
 const ENTRY = {
   id: '01920000-0000-7000-8000-000000000001',
   entryDate: '2026-06-15',
+  title: 'Stationers',
   memo: 'Office supplies',
   lines: [
     { account: EXPENSES, accountName: 'Expenses', side: 'debit', amount: 12500 },

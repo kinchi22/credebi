@@ -6,6 +6,7 @@ const linesKey = (lines: EntryDraft['lines']): string =>
 export function changesEntry(draft: EntryDraft, entry: Entry): boolean {
   return (
     draft.entryDate !== entry.entryDate ||
+    draft.title.trim() !== entry.title ||
     draft.memo.trim() !== entry.memo ||
     linesKey(draft.lines) !== linesKey(entry.lines)
   );

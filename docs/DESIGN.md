@@ -327,7 +327,7 @@ A new text colour or ground is added to these pairs in the same change.
 Text is set in **IBM Plex Sans**: SemiBold for headings, panel titles and
 labels, Regular for reading, and Medium, weight 500 (`font-medium`), for the
 active Sidebar link, an Entry's memo in the Entries list, the entry form's
-Date and Memo labels, an Account group's caption and a chosen chip in the
+Date, Title and Memo labels, an Account group's caption and a chosen chip in the
 Account picker alone. Only figures and dates are set in a monospaced
 face, **IBM Plex Mono** Regular, so every column of amounts lines up; a label,
 a panel title or a Side's name is never monospaced. A figure that must stand
@@ -629,9 +629,10 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   `split` up the entry form in a fixed 400px column with the picker taking the
   rest. Wherever the form names a Side, the name is in `label` and the Side's
   colour.
-- **Date and Memo.** From `wide` up they share one row: Date in a 148px
-  column, Memo filling the rest. Below `wide` they wrap, Date at its own width
-  and Memo growing beside it. Their labels are medium, in `text-muted`.
+- **Date, Title and Memo.** From `wide` up Date and Title share one row: Date
+  in a 148px column, Title filling the rest. Below `wide` they wrap, Date at its
+  own width and Title growing beside it. Memo takes the next row at full width.
+  Their labels are medium, in `text-muted`.
 - **Entry form dividers.** In both Entry form modes a 2px rule in the Side's
   colour sits above each Side: above its row, padded 12px above and below, in
   Two-line mode, above its block
@@ -684,7 +685,8 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   4px below the panel's padding. Each Entry is padded 16px above and below and
   reaches the panel's edges, as `PANEL_BLEED` does, and under the pointer it is
   tinted `surface-hover`. Its first row holds the date in `date` and
-  `text-muted`, the memo medium and filling the space, and the Entry's total
+  `text-muted`, the Title, when it has one, semibold, then the memo medium,
+  the two filling the space and wrapping together, and the Entry's total
   on the right in `figure`, medium. Below it two equal columns, Debit and Credit,
   Credit's behind a `border` hairline, each headed by the Side in `label` and
   the Side's colour over a 1.5px rule in that colour. In `body-dense`, each line
@@ -758,7 +760,7 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   radius, 36px tall. The spec's component properties have no border colour, so
   the edge is stated here only. A select is drawn the same. A date Input drops
   the browser's own drawing, so it stands as tall as the text Input beside it:
-  the entry form's Date beside Memo, and Entry search's From and To. Focused,
+  the entry form's Date beside Title, and Entry search's From and To. Focused,
   it shows a 3px `accent` halo at 25% around its edge, beside the focus ring.
 - **Sidebar.** Dark: a `ground-dark` ground and `text-on-dark` text, 232px
   wide from `wide` up, padded 20px above, 16px below and 12px at the sides. The

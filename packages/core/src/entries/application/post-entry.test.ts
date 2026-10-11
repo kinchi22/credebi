@@ -81,6 +81,7 @@ const CREATED_AT = new Date('2026-09-15T00:30:00.000Z');
 
 const draft = (debit: number, credit: number): EntryDraft => ({
   entryDate: '2026-09-15',
+  title: ' Stationers ',
   memo: 'Office supplies',
   lines: [
     { account: EXPENSES, side: 'debit', amount: debit as Money },
@@ -107,7 +108,7 @@ function useCases(
 }
 
 describe('createPostEntry', () => {
-  it('stores a balanced entry, stamped with the injected id and clock, where it is found', async () => {
+  it('stores a balanced entry, stamped with the injected id and clock, with its Title trimmed, where it is found', async () => {
     const { postEntry, searchEntries } = useCases(inMemoryEntries());
 
     const posted = await postEntry(ADA, draft(12500, 12500));
@@ -117,6 +118,7 @@ describe('createPostEntry', () => {
     expect(posted.value.id).toBe(ENTRY_ID);
     expect(posted.value.createdAt).toEqual(CREATED_AT);
     expect(posted.value.total).toBe(12500);
+    expect(posted.value.title).toBe('Stationers');
     expect(posted.value.lines).toEqual([
       { account: EXPENSES, accountName: 'Expenses', side: 'debit', amount: 12500 },
       { account: CASH, accountName: 'Cash', side: 'credit', amount: 12500 },

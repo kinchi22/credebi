@@ -218,6 +218,7 @@ export const en = {
   entryForm: {
     title: 'New entry',
     date: 'Date',
+    entryTitle: 'Title',
     memo: 'Memo',
     chooseAccount: 'Choose an account',
     submit: 'Add entry',
@@ -230,13 +231,13 @@ export const en = {
     debitAccount: 'Debit account',
     creditAccount: 'Credit account',
     amount: 'Amount',
-    invalid: 'The entry was not added. Check the date, the memo, both accounts and the amount.',
+    invalid: 'The entry was not added. Check the date, the title, the memo, both accounts and the amount.',
   },
   multiLineForm: {
     debitAccounts: 'Debit accounts',
     creditAccounts: 'Credit accounts',
     amount: 'Amount',
-    invalid: 'The entry was not added. Check the date, the memo and each line.',
+    invalid: 'The entry was not added. Check the date, the title, the memo and each line.',
     remove: 'Remove',
     debitTotal: 'Debit total',
     creditTotal: 'Credit total',
@@ -282,14 +283,14 @@ export const en = {
     pending: 'Saving...',
     refusals: {
       INVALID_INPUT:
-        'The entry was not saved. Check the date, the memo, the accounts -- each active on the entry\'s day -- and the amounts.',
+        'The entry was not saved. Check the date, the title, the memo, the accounts -- each active on the entry\'s day -- and the amounts.',
       UNBALANCED: 'Debits and credits must balance. Check the amount on each side.',
       NOT_FOUND: 'This entry is no longer here. Reload the page.',
       CONFLICT: 'This entry was changed elsewhere, perhaps in another tab. Reload the page.',
       DEPENDENCY_UNAVAILABLE: 'The entry could not be saved just now. Try again.',
       UNAUTHENTICATED: 'You are signed out. Sign in again to edit an entry.',
-      NAME_TAKEN: 'The entry was not saved. Check the date, the memo, the accounts and the amounts.',
-      IN_USE: 'The entry was not saved. Check the date, the memo, the accounts and the amounts.',
+      NAME_TAKEN: 'The entry was not saved. Check the date, the title, the memo, the accounts and the amounts.',
+      IN_USE: 'The entry was not saved. Check the date, the title, the memo, the accounts and the amounts.',
     },
   },
   discardChanges: {
