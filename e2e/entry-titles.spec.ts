@@ -26,7 +26,7 @@ import {
   type Heading,
 } from './entries';
 import { BOOKS_OPEN } from './accounts';
-import { closeDialog } from './dialog';
+import { closeDialog, discardDialog } from './dialog';
 import { signIn } from './session';
 import { setEntryFormMode, type EntryFormMode } from './settings';
 import { expectWithinPhone, PHONE } from './viewport';
@@ -416,4 +416,36 @@ test('chooses no offered Title, keeps the list open and posts nothing when Enter
   await expectOffered(page, ['Salary']);
   await expect(form.getByRole('alert')).toHaveCount(0);
   await expect(page.getByTestId('entry')).toHaveCount(2);
+});
+
+test('keeps Edit entry open, asks nothing and saves nothing when Enter or Escape is pressed while a Title is being composed in it', async ({ page }) => {
+  const run = randomUUID();
+  const memo = `Coffee ${run}`;
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
+  await postEntries(page, [titled('Starbucks', memo), titled('Salary', `Pay ${run}`)]);
+
+  await page.goto('/entries');
+  const dialog = await openEditEntry(listedEntry(page, memo));
+  const field = titleField(dialog);
+  await openTitleField(field);
+  await field.fill('Sa');
+  await expectOffered(page, ['Salary']);
+
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Input.imeSetComposition', { text: 'l', selectionStart: 1, selectionEnd: 1 });
+  await expect(field).toHaveValue('Sal');
+
+  for (const key of ['Escape', 'Enter']) {
+    await page.keyboard.press(key);
+    await expect(dialog).toBeVisible();
+    await expect(discardDialog(page)).toHaveCount(0);
+    await expect(titleList(page)).toBeVisible();
+    await expect(field).toHaveValue('Sal');
+  }
+
+  await cdp.send('Input.insertText', { text: 'l' });
+  await expect(field).toHaveValue('Sal');
+  await expect(dialog).toBeVisible();
+  await expect(discardDialog(page)).toHaveCount(0);
+  await expect(listedEntry(page, memo)).toContainText(headingShowing({ day: DAY, title: 'Starbucks', memo }));
 });
