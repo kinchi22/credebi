@@ -13,7 +13,7 @@ import {
 import { inMemoryAccounts } from '../../accounts/application/in-memory-accounts';
 import { accountNames, type Account } from '../../accounts/domain/account';
 import { SIGNED_OUT } from '../../auth/domain/auth-context';
-import { makeEntry, MEMO_MAX_LENGTH, type Entry } from '../domain/entry';
+import { makeEntry, MEMO_MAX_LENGTH, TITLE_MAX_LENGTH, type Entry } from '../domain/entry';
 import { NO_CRITERIA } from '../domain/search-criteria';
 import { type EntryRepository } from '../ports/entry-repository';
 import { createSearchEntries } from './search-entries';
@@ -84,6 +84,8 @@ const holdingMatching = (held: readonly Entry[]): EntryRepository =>
             (criteria.to === undefined || entry.entryDate <= criteria.to) &&
             (criteria.account === undefined ||
               entry.lines.some((line) => line.account === criteria.account)) &&
+            (criteria.title === undefined ||
+              entry.title.toLowerCase() === criteria.title.toLowerCase()) &&
             (criteria.memo === undefined ||
               entry.memo.toLowerCase().includes(criteria.memo.toLowerCase())),
         ),
@@ -323,6 +325,33 @@ describe('createSearchEntries', () => {
     const found = await searchEntries({ userId: ADA }, { memo: 'a'.repeat(MEMO_MAX_LENGTH + 1) });
 
     expect(isErr(found)).toBe(true);
+    expect(isErr(found) && found.error.code).toBe('INVALID_INPUT');
+  });
+
+  it('searches with the Title trimmed, and with a whitespace Title not at all', async () => {
+    expect(isOk(made)).toBe(true);
+    if (!isOk(made)) return;
+    const stationers = made.value;
+    const rent: Entry = { ...stationers, title: 'Rent' };
+    const searchEntries = createSearchEntries({
+      entries: holdingMatching([rent, stationers]),
+      accounts,
+    });
+
+    const trimmed = await searchEntries({ userId: ADA }, { title: '  rent  ' });
+    const blank = await searchEntries({ userId: ADA }, { title: '   ' });
+
+    expect(isOk(trimmed) && trimmed.value).toEqual([rent]);
+    expect(isOk(blank) && blank.value).toEqual([rent, stationers]);
+  });
+
+  it('refuses a Title longer than a Title can be, and searches nothing', async () => {
+    expect(isOk(made)).toBe(true);
+    if (!isOk(made)) return;
+    const searchEntries = createSearchEntries({ entries: holdingMatching([made.value]), accounts });
+
+    const found = await searchEntries({ userId: ADA }, { title: 'a'.repeat(TITLE_MAX_LENGTH + 1) });
+
     expect(isErr(found) && found.error.code).toBe('INVALID_INPUT');
   });
 

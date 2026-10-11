@@ -619,6 +619,70 @@ describe('createPostgresEntryRepository', () => {
     expect(await found(ADA, { memo: 'coffee' })).toEqual([matching]);
   });
 
+  it('narrows to the Entries whose Title is the Title criterion, whatever the case of either', async () => {
+    await repository.save(ADA, entry({ title: 'Starbucks', memo: 'Latte' }));
+    await repository.save(ADA, entry({ title: 'STARBUCKS', memo: 'Beans' }));
+    await repository.save(ADA, entry({ title: 'Starbucks Reserve', memo: 'Reserve roast' }));
+    await repository.save(ADA, entry({ title: 'My Starbucks', memo: 'Mug' }));
+    await repository.save(ADA, entry({ title: '', memo: 'Starbucks' }));
+
+    expect((await memosFound({ title: 'starbucks' })).toSorted()).toEqual(['Beans', 'Latte']);
+    expect((await memosFound({ title: 'sTARBUCKS' })).toSorted()).toEqual(['Beans', 'Latte']);
+  });
+
+  it('matches a percent sign and an underscore in a Title criterion literally', async () => {
+    await repository.save(ADA, entry({ title: '100% juice', memo: 'Percent' }));
+    await repository.save(ADA, entry({ title: '1000 juice', memo: 'Digit' }));
+    await repository.save(ADA, entry({ title: 'a_b', memo: 'Underscore' }));
+    await repository.save(ADA, entry({ title: 'axb', memo: 'Letter' }));
+    await repository.save(ADA, entry({ title: String.raw`a\b`, memo: 'Backslash' }));
+
+    expect(await memosFound({ title: '100% juice' })).toEqual(['Percent']);
+    expect(await memosFound({ title: '%' })).toEqual([]);
+    expect(await memosFound({ title: 'a_b' })).toEqual(['Underscore']);
+    expect(await memosFound({ title: String.raw`a\b` })).toEqual(['Backslash']);
+  });
+
+  it('never matches the memo term against a Title, nor the Title criterion against a memo', async () => {
+    await repository.save(ADA, entry({ title: 'Birthday gift', memo: 'Card' }));
+    await repository.save(ADA, entry({ title: 'Card', memo: 'Birthday gift' }));
+
+    expect(await memosFound({ memo: 'birthday' })).toEqual(['Birthday gift']);
+    expect(await memosFound({ title: 'birthday gift' })).toEqual(['Card']);
+  });
+
+  it('narrows by the Title, the memo, the Account and the day range together, with `and`', async () => {
+    const onCash = [
+      { account: EXPENSES, side: 'debit', amount: 300 as Money },
+      { account: CASH, side: 'credit', amount: 300 as Money },
+    ] as const;
+    const onAccount = [
+      { account: EXPENSES, side: 'debit', amount: 300 as Money },
+      { account: PAYABLE, side: 'credit', amount: 300 as Money },
+    ] as const;
+    const june = { entryDate: '2026-06-15', title: 'Rent' } as const;
+    await repository.save(ADA, entry({ ...june, memo: 'June', lines: onCash }));
+    await repository.save(ADA, entry({ ...june, entryDate: '2026-07-15', memo: 'June late', lines: onCash }));
+    await repository.save(ADA, entry({ ...june, memo: 'June on account', lines: onAccount }));
+    await repository.save(ADA, entry({ ...june, memo: 'Deposit', lines: onCash }));
+    await repository.save(ADA, entry({ ...june, title: 'Fuel', memo: 'June fuel', lines: onCash }));
+
+    expect(
+      await memosFound({ from: '2026-06-01', to: '2026-06-30', account: CASH, title: 'rent', memo: 'june' }),
+    ).toEqual(['June']);
+  });
+
+  it("keeps a Title search inside one User's books, and leaves out a reversed Entry (ADR-0021)", async () => {
+    const reversed = entry({ title: 'Coffee', memo: 'Reversed' });
+    await repository.save(ADA, reversed);
+    await repository.saveReversal(ADA, reversalOf(reversed));
+    await repository.save(ADA, entry({ title: 'Coffee', memo: 'Ada' }));
+    await repository.save(GRACE, entry({ title: 'Coffee', memo: 'Grace' }));
+
+    expect(await memosFound({ title: 'coffee' }, ADA)).toEqual(['Ada']);
+    expect(await memosFound({ title: 'coffee' }, GRACE)).toEqual(['Grace']);
+  });
+
   it('cannot hold an entry with no User (ADR-0021)', async () => {
     const refused = database.execute(
       sql`insert into entries (id, entry_date, memo, created_at) values ('01920000-0000-7000-8000-0000000000ff', '2026-09-15', 'Ownerless', now())`,

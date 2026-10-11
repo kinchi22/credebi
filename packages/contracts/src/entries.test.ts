@@ -532,6 +532,18 @@ describe('searchCriteriaSchema', () => {
   it('refuses a memo term that is not one string', () => {
     expect(searchCriteriaSchema.safeParse({ memo: ['rent', 'fuel'] }).success).toBe(false);
   });
+
+  it('accepts a Title beside the other criteria, leaving its length and spaces to the domain', () => {
+    expect(
+      searchCriteriaSchema.parse({ from: '2026-06-01', account: CASH, title: 'Rent', memo: 'june' }),
+    ).toEqual({ from: '2026-06-01', account: CASH, title: 'Rent', memo: 'june' });
+    expect(searchCriteriaSchema.safeParse({ title: '  ' }).success).toBe(true);
+    expect(searchCriteriaSchema.safeParse({ title: 'T'.repeat(41) }).success).toBe(true);
+  });
+
+  it('refuses a Title that is not one string', () => {
+    expect(searchCriteriaSchema.safeParse({ title: ['Rent', 'Fuel'] }).success).toBe(false);
+  });
 });
 
 describe('parseSearchQuery', () => {
@@ -637,6 +649,28 @@ describe('parseSearchQuery', () => {
     const criteria = parseSearchQuery({ memo: '100%_off' });
 
     expect(isOk(criteria) && criteria.value.memo).toBe('100%_off');
+  });
+
+  it('reads the Title out of the query as title, beside the other criteria and unchanged', () => {
+    const criteria = parseSearchQuery({ from: '2026-06-01', title: ' 100%_juice ', memo: 'june' });
+
+    expect(isOk(criteria) && criteria.value).toEqual({
+      from: '2026-06-01',
+      title: ' 100%_juice ',
+      memo: 'june',
+    });
+  });
+
+  it('reads an empty Title box as an absent criterion, not as a Title of nothing', () => {
+    const criteria = parseSearchQuery({ title: '', to: '2026-06-30' });
+
+    expect(isOk(criteria) && criteria.value).toEqual({ to: '2026-06-30' });
+  });
+
+  it('refuses a Title given twice, which arrives as a list', () => {
+    const criteria = parseSearchQuery({ title: ['Rent', 'Fuel'] });
+
+    expect(isErr(criteria) && criteria.error.code).toBe('INVALID_INPUT');
   });
 
   it('refuses a memo term given twice, which arrives as a list', () => {

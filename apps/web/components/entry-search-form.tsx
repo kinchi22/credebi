@@ -16,10 +16,12 @@ import { ENTRY_SEARCH_PATH } from '../server/return-path';
 import { useBrowserToday } from './browser-today';
 import { CONTROL, DATE_CONTROL, FIELD, PRIMARY_BUTTON } from './control-classes';
 import { DatePresets, DatePresetsSheet } from './date-presets';
+import { TitleCombobox } from './title-combobox';
 
 export type EntrySearchFormProps = {
   readonly criteria: SearchCriteriaInput;
   readonly chart: ChartOutput;
+  readonly titles: readonly string[];
 };
 
 const RANGE_DAY = `${DATE_CONTROL} w-full min-w-0 wide:w-auto`;
@@ -32,7 +34,7 @@ function keepingADay(set: (day: string) => void): (event: ChangeEvent<HTMLInputE
   };
 }
 
-export function EntrySearchForm({ criteria, chart }: EntrySearchFormProps): ReactNode {
+export function EntrySearchForm({ criteria, chart, titles }: EntrySearchFormProps): ReactNode {
   const id = useId();
   const [from, setFrom] = useState(criteria.from ?? '');
   const [to, setTo] = useState(criteria.to ?? '');
@@ -107,6 +109,16 @@ export function EntrySearchForm({ criteria, chart }: EntrySearchFormProps): Reac
           ))}
         </select>
       </div>
+
+      <TitleCombobox
+        id={`${id}-title-criterion`}
+        name={SEARCH_CRITERIA_FIELDS.title}
+        label={en.entrySearch.entryTitle}
+        defaultValue={criteria.title}
+        titles={titles}
+        dense={false}
+        className="grow"
+      />
 
       <div className={`${FIELD} grow`}>
         <label htmlFor={`${id}-memo`}>{en.entrySearch.memo}</label>

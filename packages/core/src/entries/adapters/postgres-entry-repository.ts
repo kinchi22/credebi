@@ -233,7 +233,7 @@ export function postgresEntriesOn(database: PostgresExecutor, logger: Logger): E
     },
 
     titles: async (userId: UserId): Promise<Result<readonly string[], DomainError>> => {
-      const folded = sql`lower(${schema.entries.title})`;
+      const folded = foldedTitle();
       const latest = database
         .selectDistinctOn([folded], {
           title: schema.entries.title,
@@ -284,8 +284,13 @@ function matches(userId: UserId, criteria: SearchCriteria): SQL | undefined {
     ...(criteria.from === undefined ? [] : [gte(schema.entries.entryDate, criteria.from)]),
     ...(criteria.to === undefined ? [] : [lte(schema.entries.entryDate, criteria.to)]),
     ...(criteria.account === undefined ? [] : [touches(criteria.account)]),
+    ...(criteria.title === undefined ? [] : [eq(foldedTitle(), sql`lower(${criteria.title})`)]),
     ...(criteria.memo === undefined ? [] : [ilike(schema.entries.memo, containing(criteria.memo))]),
   );
+}
+
+function foldedTitle(): SQL {
+  return sql`lower(${schema.entries.title})`;
 }
 
 const LIKE_ESCAPE = '\\';

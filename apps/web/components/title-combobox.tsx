@@ -2,7 +2,7 @@
 
 import { useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { duringComposition } from './composition';
-import { CONTROL, DENSE_FIELD, FIELD_LABEL } from './control-classes';
+import { CONTROL, DENSE_FIELD, FIELD, FIELD_LABEL } from './control-classes';
 import { matchesTyped } from './typed-text';
 
 export type TitleComboboxProps = {
@@ -11,6 +11,7 @@ export type TitleComboboxProps = {
   readonly label: string;
   readonly defaultValue: string | undefined;
   readonly titles: readonly string[];
+  readonly dense?: boolean;
   readonly className?: string;
 };
 
@@ -35,6 +36,7 @@ export function TitleCombobox({
   label,
   defaultValue,
   titles,
+  dense = true,
   className = '',
 }: TitleComboboxProps): ReactNode {
   const [value, setValue] = useState(defaultValue ?? '');
@@ -107,8 +109,8 @@ export function TitleCombobox({
   };
 
   return (
-    <div className={`${DENSE_FIELD} relative ${className}`}>
-      <label id={labelId} htmlFor={id} className={FIELD_LABEL}>
+    <div className={`${dense ? DENSE_FIELD : FIELD} relative ${className}`}>
+      <label id={labelId} htmlFor={id} className={dense ? FIELD_LABEL : undefined}>
         {label}
       </label>
       <input
