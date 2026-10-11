@@ -296,6 +296,38 @@ adopts it.
   database is still migrated only from `main`, and Preview remains best effort
   as described below.
 
+### One-time cleanup snapshot
+
+The Git policy was verified before the inventory for
+[#376](https://github.com/kinchi22/credebi/issues/376) was captured at
+2026-10-11 19:07:24.768 UTC. The complete inventory contained 515 deployments
+across 26 pages: 437 Previews and 78 Production deployments. The frozen IDs
+are in `tools/preview-cleanup-snapshot.json` and in the
+[execution record](https://github.com/kinchi22/credebi/issues/376#issuecomment-6112659601).
+Its SHA-256 is
+`32068bc2e35362c198ee6611fc0c19ff664b93a9daadd350719125cafb526a9b`.
+
+Execution is pending authenticated Vercel CLI access. No captured deployment
+has been deleted, and #376 remains incomplete. After signing into the intended
+Vercel account, run the one-time operation from the repository root:
+
+```bash
+npm exec --yes --package=vercel@63.1.2 -- node tools/preview-cleanup.ts tools/preview-cleanup-snapshot.json /private/tmp/credebi-preview-cleanup-report.json
+```
+
+The runner accepts only that exact manifest, checks the Credebi project and
+team, and confirms every baseline Production deployment before deleting any
+Preview. It removes only captured Preview IDs through `vercel remove`, then
+reads the complete paginated inventory again. Its JSON report names individual
+deletion failures, remaining captured Previews and missing baseline Production
+deployments; any of these makes the command fail. Keep the report in #376 and
+record completion here only after every captured Preview is absent and every
+baseline Production deployment is preserved.
+
+Later Previews are outside this list. This operation has no schedule or ongoing
+retention policy, and it makes no measured savings claim. Links to the deleted
+Previews cease to work.
+
 ### Shared database
 
 Preview deployments share the preview project that `DATABASE_URL` names in the
