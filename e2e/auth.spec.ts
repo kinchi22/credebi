@@ -46,6 +46,7 @@ test('refuses the entries procedures without a Session', async ({ request }) => 
   const post = await request.post('/api/trpc/entries.post', {
     data: {
       entryDate: '2026-09-15',
+      title: '',
       memo: `Signed out ${randomUUID()}`,
       lines: [
         { account: 'expense', side: 'debit', amount: 100 },
