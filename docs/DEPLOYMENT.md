@@ -351,14 +351,16 @@ and Production baseline before removing captured Preview IDs. The first run
 removed 431 Previews. Six native CLI removals stalled; those processes were
 terminated and recorded as failures. An exact-ID API fallback subsequently
 removed all six, and the independent inventory verification confirmed their
-removal. No unresolved deletion or Production preservation failure remains.
+removal. No unresolved deletion or Production preservation failure remains. The durable
+[completion record](https://github.com/kinchi22/credebi/issues/376#issuecomment-6113203916)
+records the verified result.
 
-The final JSON report is
+The local final JSON report artifact is
 `/private/tmp/credebi-preview-cleanup-final-report.json`, with SHA-256
 `a066e12f01130ea8cc18edbfca74712164197e2dcd82c144f7f3b20c450fd93a`.
 It lists all 437 removed IDs, empty deletion-failure, missing-Production and
-remaining-Preview lists, and `verificationError: null`. The independent final
-inventory is `/private/tmp/credebi-376-final-inventory.json`.
+remaining-Preview lists, and `verificationError: null`. The local independent
+final inventory artifact is `/private/tmp/credebi-376-final-inventory.json`.
 
 Links to the deleted Previews no longer work. Later Previews remain outside the
 frozen deletion list. This completed operation has no schedule or ongoing
