@@ -129,8 +129,8 @@ test('narrows with the Title, the day range, the Account and the memo together, 
 
 test('matches every Entry, with a Title or without, when the Title criterion is empty', async ({ page }) => {
   const run = randomUUID();
-  const withTitle = `Named ${run}`;
-  const withoutTitle = `Unnamed ${run}`;
+  const withTitle = `With title ${run}`;
+  const withoutTitle = `Without title ${run}`;
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [titled('Salary', withTitle), titled('', withoutTitle)]);
 
