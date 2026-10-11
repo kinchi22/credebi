@@ -1,6 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import { closeDialog } from './dialog';
-import { accountChoices, type Side } from './entries';
+import { accountChoices, nameOf, type AddedAccount, type Side } from './entries';
 
 export const ACCOUNT_TYPES = ['Assets', 'Liabilities', 'Equity', 'Revenue', 'Expenses'] as const;
 
@@ -250,3 +250,24 @@ export const offeredType = (form: Locator, side: Side, type: AccountType): Locat
   accountChoices(form, side).getByRole('group', { name: type, exact: true });
 
 export const BOOKS_OPEN = '2000-01-01';
+
+export const OLD_WALLET: AddedAccount = { added: 'Old wallet' };
+
+export const WALLET_ACTIVE_FROM = '2026-09-01';
+
+export const WALLET_IN_USE = '2026-09-15';
+
+export const WALLET_STILL_IN_USE = '2026-09-20';
+
+export const WALLET_ACTIVE_UNTIL = '2026-09-30';
+
+export const WALLET_ENDED = '2026-10-05';
+
+export async function addOldWallet(page: Page): Promise<void> {
+  await page.goto('/settings');
+  await addAccount(page, 'Assets', {
+    name: nameOf(OLD_WALLET),
+    activeFrom: WALLET_ACTIVE_FROM,
+    activeUntil: WALLET_ACTIVE_UNTIL,
+  });
+}
