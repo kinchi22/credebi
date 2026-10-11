@@ -86,6 +86,9 @@ const PICK_MANY: PickControl = {
 
 const otherSide = (side: Side): Side => (side === 'debit' ? 'credit' : 'debit');
 
+const otherSideMissing = (side: Side, hasAccount: (side: Side) => boolean): Side | undefined =>
+  hasAccount(otherSide(side)) ? undefined : otherSide(side);
+
 export function useAccountSheet(): AccountSheet {
   const id = useId();
   const { show, ...dialog } = useModalDialog();
@@ -458,6 +461,17 @@ function AccountColumns({
   const hasAccount = (side: Side): boolean =>
     accountsIn(chart).some((account) => isChosen(side, account.id));
 
+  const pick = (side: Side, account: AccountOutput, chosen: boolean): void => {
+    onPick(side, account, chosen);
+    if (multiple || !chosen) {
+      return;
+    }
+    const missing = otherSideMissing(side, hasAccount);
+    if (missing !== undefined) {
+      setShown(missing);
+    }
+  };
+
   return (
     <div
       className={`hidden min-w-0 flex-col overflow-hidden rounded-panel border border-border bg-ground shadow-lift wide:flex ${typeClasses['body-dense']}`}
@@ -496,7 +510,7 @@ function AccountColumns({
               look={INLINE_LOOK}
               isChosen={(account) => isChosen(side, account)}
               onPick={(account, chosen) => {
-                onPick(side, account, chosen);
+                pick(side, account, chosen);
               }}
               onInvalid={() => {
                 setShown(SIDES.find((missing) => !hasAccount(missing)) ?? side);
@@ -529,10 +543,11 @@ function AccountSheetDialog({
     if (multiple || !chosen) {
       return;
     }
-    if (hasAccount(otherSide(side))) {
+    const missing = otherSideMissing(side, hasAccount);
+    if (missing === undefined) {
       sheet.close();
     } else {
-      sheet.setSide(otherSide(side));
+      sheet.setSide(missing);
     }
   };
 
