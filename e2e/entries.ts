@@ -25,8 +25,9 @@ export const SIDES = ['Debit', 'Credit'] as const;
 
 export type Side = (typeof SIDES)[number];
 
-type Heading = {
+export type Heading = {
   readonly day: string;
+  readonly title?: string;
   readonly memo: string;
 };
 
@@ -45,6 +46,22 @@ export type Line = {
 export type MultiLineEntry = Heading & {
   readonly lines: readonly Line[];
 };
+
+export const TITLE_MAX = 40;
+
+export const twoLine = (heading: Heading, creditAccount: Account = 'Cash'): TwoLineEntry => ({
+  ...heading,
+  debitAccount: 'Expenses',
+  creditAccount,
+  amount: AMOUNT,
+});
+
+export const titled = (
+  title: string,
+  memo: string,
+  day = DAY,
+  creditAccount: Account = 'Cash',
+): TwoLineEntry => twoLine({ day, title, memo }, creditAccount);
 
 export const entries = (page: Page): Locator => page.getByRole('region', { name: 'Entries' });
 
@@ -155,11 +172,73 @@ export async function openEditEntry(entry: Locator): Promise<Locator> {
   return dialog;
 }
 
-export const listedEntry = (page: Page, memo: string): Locator =>
-  page.getByTestId('entry').filter({ hasText: memo });
+export async function saveEdit(dialog: Locator): Promise<void> {
+  await submit(dialog, 'Save');
+  await expect(dialog).toBeHidden();
+}
+
+export const deleteButton = (entry: Locator): Locator =>
+  entry.getByRole('button', { name: 'Delete', exact: true });
+
+export const deleteDialog = (page: Page): Locator =>
+  page.getByRole('dialog', { name: 'Delete entry', exact: true });
+
+export async function openDelete(entry: Locator): Promise<Locator> {
+  await deleteButton(entry).click();
+  const dialog = deleteDialog(entry.page());
+  await expect(dialog).toBeVisible();
+  return dialog;
+}
+
+export async function deleteListed(entry: Locator): Promise<void> {
+  const dialog = await openDelete(entry);
+  await deleteButton(dialog).click();
+  await expect(dialog).toBeHidden();
+}
+
+export const listedEntry = (page: Page, text: string): Locator =>
+  page.getByTestId('entry').filter({ hasText: text });
+
+export const titleField = (form: Locator): Locator =>
+  form.getByRole('combobox', { name: 'Title', exact: true });
+
+export const titleList = (page: Page): Locator => page.getByRole('listbox');
+
+export const offeredTitles = (page: Page): Locator => titleList(page).getByRole('option');
+
+export async function openTitleField(field: Locator): Promise<void> {
+  await field.click();
+  await field.fill('');
+}
+
+export async function expectOffered(page: Page, titles: readonly string[]): Promise<void> {
+  await expect(offeredTitles(page)).toHaveText([...titles]);
+}
+
+export const offeredTitle = (page: Page, title: string): Locator =>
+  titleList(page).getByRole('option', { name: title, exact: true });
+
+const TITLE_TO_MEMO = '\\s*(?:[^\\p{L}\\p{N}\\s]\\s*)?';
+
+const named = ({ title, memo }: Heading): string =>
+  [title ?? '', memo]
+    .filter((part) => part !== '')
+    .map(escaped)
+    .join(TITLE_TO_MEMO);
+
+const AMOUNT_SHOWN = Number(AMOUNT).toLocaleString('en-US');
+
+export const headingShowing = (heading: Heading, total = AMOUNT_SHOWN): RegExp =>
+  new RegExp(
+    `^\\s*${escaped(heading.day)}\\s*${named(heading)}\\s*(?:Total\\s*)?${escaped(total)}(?![\\d,.])`,
+    'u',
+  );
 
 async function fillHeading(form: Locator, heading: Heading): Promise<void> {
   await form.getByLabel('Date').fill(heading.day);
+  if (heading.title !== undefined) {
+    await titleField(form).fill(heading.title);
+  }
   await form.getByLabel('Memo').fill(heading.memo);
 }
 
