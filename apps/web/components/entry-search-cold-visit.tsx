@@ -98,6 +98,7 @@ export function EntrySearchColdVisit({ search, controls }: EntrySearchColdVisitP
         key={range === undefined ? 'today-unknown' : `${range.from}/${range.to}`}
         criteria={range ?? {}}
         chart={controls.chart}
+        titles={controls.titles}
       />
       <ColdVisitOutcome
         answer={answer}

@@ -62,7 +62,7 @@ export default async function EntrySearchPage({
   return (
     <>
       {heading}
-      <EntrySearchForm criteria={answer.criteria} chart={chart} />
+      <EntrySearchForm criteria={answer.criteria} chart={chart} titles={titles} />
       <EntrySearchOutcome
         answer={answer}
         controls={{ chart, titles, entryFormMode: settings.entryFormMode, editEntry, deleteEntry }}

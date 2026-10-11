@@ -547,6 +547,11 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   move is saved or refused, the section holds still: its rows, bands and
   `Show ended accounts` are at 60% opacity, every button, grip and the toggle
   is disabled, nothing can be dragged, and the section is `aria-busy`.
+- **Entry search form.** After From and To come Account, Title and Memo, in
+  that order, then the submit. Title and Memo grow to share the row's spare
+  width. Title is the search form's field size, `body-sm` with a plain label,
+  as its neighbours are, and offers the same Title suggestions as the entry
+  form.
 - **Date presets.** A row of secondary buttons, `Year`, `Quarter`, `Month`
   and `Relative`, below a `border` hairline at the foot of the Entry search
   form, from `wide` up. Each opens its choices on hover in a `surface` panel
@@ -633,7 +638,8 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   in a 148px column, Title filling the rest. Below `wide` they wrap, Date at its
   own width and Title growing beside it. Memo takes the next row at full width.
   Their labels are medium, in `text-muted`.
-- **Title suggestions.** Title is a combobox: clicked, typed in or opened with
+- **Title suggestions.** Title is a combobox, in the entry form, Edit entry
+  and Entry search's Title criterion alike: clicked, typed in or opened with
   the arrow keys, it lists the User's Titles containing the typed text, in
   `body-dense`, just below the field and exactly as wide. The list is a
   `surface` panel with a `border` edge, the `control` radius and no shadow,

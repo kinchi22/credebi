@@ -99,6 +99,7 @@ export const SEARCH_CRITERIA_FIELDS = {
   from: 'from',
   to: 'to',
   account: 'account',
+  title: 'title',
   memo: 'memo',
 } as const;
 
@@ -106,6 +107,7 @@ export const searchCriteriaSchema = z.object({
   from: entryDateSchema.optional(),
   to: entryDateSchema.optional(),
   account: z.string().optional(),
+  title: z.string().optional(),
   memo: z.string().optional(),
 });
 
@@ -123,6 +125,7 @@ export function parseSearchQuery(query: SearchQuery): Result<SearchCriteriaInput
     from: asked(query[SEARCH_CRITERIA_FIELDS.from]),
     to: asked(query[SEARCH_CRITERIA_FIELDS.to]),
     account: asked(query[SEARCH_CRITERIA_FIELDS.account]),
+    title: asked(query[SEARCH_CRITERIA_FIELDS.title]),
     memo: asked(query[SEARCH_CRITERIA_FIELDS.memo]),
   });
 

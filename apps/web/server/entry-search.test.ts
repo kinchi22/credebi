@@ -92,6 +92,22 @@ describe('answerEntrySearch', () => {
     });
   });
 
+  it('reads the Title out of the query, and fills it back into the form as typed', async () => {
+    const answer = await answerEntrySearch(holding([ENTRY]), { title: '  Stationers  ' });
+
+    expect(answer).toEqual({
+      outcome: 'answered',
+      criteria: { title: '  Stationers  ' },
+      entries: [ENTRY],
+    });
+  });
+
+  it('refuses a Title the procedure refuses, and carries the Title back with it', async () => {
+    const answer = await answerEntrySearch(refusing('INVALID_INPUT'), { title: 'T'.repeat(41) });
+
+    expect(answer).toEqual({ outcome: 'refused', criteria: { title: 'T'.repeat(41) } });
+  });
+
   it('refuses a memo term the procedure refuses, and carries the term back with it', async () => {
     const answer = await answerEntrySearch(refusing('INVALID_INPUT'), { memo: 'supplies' });
 
