@@ -30,6 +30,7 @@ column below.
 | External Skills | `code-review`, `tdd`, `grill-with-docs`, `to-spec` and `to-tickets` are not vendored here. `enabledPlugins` in the committed `.claude/settings.json` enables them for this repository, so a clone needs no install step. | The same five, from the same upstream. There is no committed equivalent of `enabledPlugins`, so they are installed once per machine. |
 | Subagent | A subagent dispatched with the agent tool, handed a brief path and nothing else; later findings go back to that same subagent, so its context survives the round trip. | A delegated agent run given the same brief. Where delegation is unavailable, a separate session on that brief does what the rule asks for: a context separate from the one that reviews it. |
 | Agent worktree | A `git worktree` under `.agents/worktrees/<task>`. The path is deliberately harness-neutral: where a worktree lives says nothing about which harness made it. | The same path, made the same way. |
+| Untracked files in an Agent worktree | `.worktreeinclude` names the ignored files Claude Code copies into a worktree it makes: `.env` and `CLAUDE.local.md`. | No committed equivalent; they are copied by hand. |
 
 ## Vocabulary
 
