@@ -136,7 +136,7 @@ function ListedEntry({
                   <span className="font-semibold">{entry.title}</span>{' '}
                 </>
               )}
-              <span className="min-w-0 font-medium">{entry.memo}</span>
+              <span className="min-w-0 text-text-muted">{entry.memo}</span>
             </span>{' '}
             <span className="shrink-0">
               <span className="sr-only">{en.entryList.total} </span>

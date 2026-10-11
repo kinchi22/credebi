@@ -326,14 +326,13 @@ A new text colour or ground is added to these pairs in the same change.
 
 Text is set in **IBM Plex Sans**: SemiBold for headings, panel titles and
 labels, Regular for reading, and Medium, weight 500 (`font-medium`), for the
-active Sidebar link, an Entry's memo in the Entries list, the entry form's
-Date, Title and Memo labels, an Account group's caption and a chosen chip in the
-Account picker alone. Only figures and dates are set in a monospaced
-face, **IBM Plex Mono** Regular, so every column of amounts lines up; a label,
-a panel title or a Side's name is never monospaced. A figure that must stand
-out, such as an Entry's total or a Difference that is not zero, is IBM Plex
-Mono Medium, weight 500 (`font-medium`), never bold. Nothing is set below
-11.5px.
+active Sidebar link, the entry form's Date, Title and Memo labels, an Account
+group's caption and a chosen chip in the Account picker alone. Only figures and
+dates are set in a monospaced face, **IBM Plex Mono** Regular, so every column
+of amounts lines up; a label, a panel title or a Side's name is never
+monospaced. A figure that must stand out, such as an Entry's total or a
+Difference that is not zero, is IBM Plex Mono Medium, weight 500
+(`font-medium`), never bold. Nothing is set below 11.5px.
 
 | Step         | Face                   | Size / line height | Letter spacing | Also             |
 | ------------ | ---------------------- | ------------------ | -------------- | ---------------- |
@@ -701,9 +700,10 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   4px below the panel's padding. Each Entry is padded 16px above and below and
   reaches the panel's edges, as `PANEL_BLEED` does, and under the pointer it is
   tinted `surface-hover`. Its first row holds the date in `date` and
-  `text-muted`, the Title, when it has one, semibold, then the memo medium,
-  the two filling the space and wrapping together, and the Entry's total
-  on the right in `figure`, medium. Below it two equal columns, Debit and Credit,
+  `text-muted`, the Title, when it has one, semibold in `text`, then the memo
+  Regular in `text-muted`, with or without a Title, the two filling the space
+  and wrapping together, and the Entry's total on the right in `figure`,
+  medium. Below it two equal columns, Debit and Credit,
   Credit's behind a `border` hairline, each headed by the Side in `label` and
   the Side's colour over a 1.5px rule in that colour. In `body-dense`, each line
   is one row, the Account name on the left and its amount on the right in
@@ -732,8 +732,8 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   focus returns to the button that opened it; while the action runs both
   buttons are disabled and the dialog does not close. It is `Delete entry`,
   opened by an Entry's `Delete`, whose thing is the Entry's date in `date` and
-  `text-muted`, its Title, when it has one, and memo, semibold, and total in
-  `figure`, as its row shows them.
+  `text-muted`, its Title, when it has one, semibold in `text`, its memo
+  Regular in `text-muted`, and total in `figure`, as its row shows them.
   It is also `Delete account` and `Delete group`, opened by a row's `Delete`
   in the Accounts section, with the Account type in `text-muted` below the
   title and the Account's or group's name, semibold, as the thing.
