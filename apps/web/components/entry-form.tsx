@@ -237,6 +237,18 @@ export function EntryFormShell({
           />
         </div>
         <div className={`${DENSE_FIELD} grow`}>
+          <label htmlFor={`${id}-entry-title`} className={FIELD_LABEL}>{en.entryForm.entryTitle}</label>
+          <input
+            id={`${id}-entry-title`}
+            name={ENTRY_FORM_FIELDS.title}
+            type="text"
+            role="combobox"
+            aria-expanded={false}
+            defaultValue={variant.entry?.title}
+            className={CONTROL}
+          />
+        </div>
+        <div className={`${DENSE_FIELD} basis-full wide:col-span-full`}>
           <label htmlFor={`${id}-memo`} className={FIELD_LABEL}>{en.entryForm.memo}</label>
           <input
             id={`${id}-memo`}

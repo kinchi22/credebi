@@ -1,4 +1,4 @@
-export { MEMO_MAX_LENGTH, makeEntry } from './domain/entry';
+export { MEMO_MAX_LENGTH, TITLE_MAX_LENGTH, makeEntry } from './domain/entry';
 export type { Entry, EntryDraft, EntryLine, EntryStamp } from './domain/entry';
 
 export { draftTotals } from './domain/draft-totals';

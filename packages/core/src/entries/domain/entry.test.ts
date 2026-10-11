@@ -10,7 +10,13 @@ import {
 } from '@repo/contracts';
 import { type Account, type AccountNames } from '../../accounts/domain/account';
 import { MONEY_ZERO, money } from '../../money/domain/money';
-import { makeEntry, makePostedEntry, MEMO_MAX_LENGTH, type EntryDraft } from './entry';
+import {
+  makeEntry,
+  makePostedEntry,
+  MEMO_MAX_LENGTH,
+  TITLE_MAX_LENGTH,
+  type EntryDraft,
+} from './entry';
 
 const CASH = '01920000-0000-7000-8000-00000000c001' as AccountId;
 const PAYABLE = '01920000-0000-7000-8000-00000000c002' as AccountId;
@@ -42,6 +48,7 @@ const STAMP = {
 
 const OFFICE_SUPPLIES: EntryDraft = {
   entryDate: '2026-09-15',
+  title: 'Stationers',
   memo: 'Office supplies',
   lines: [line(EXPENSES, 'debit', 12500), line(CASH, 'credit', 12500)],
 };
@@ -70,6 +77,7 @@ describe('makeEntry', () => {
     expect(result.value).toEqual({
       id: STAMP.id,
       entryDate: '2026-09-15',
+      title: 'Stationers',
       memo: 'Office supplies',
       lines: [
         { account: EXPENSES, accountName: 'Expenses', side: 'debit', amount: 12500 },
@@ -272,6 +280,45 @@ describe('makeEntry', () => {
     const result = makeEntry({ ...OFFICE_SUPPLIES, memo: ` ${'m'.repeat(200)} ` }, STAMP, NAMES);
 
     expect(isOk(result)).toBe(true);
+  });
+
+  it('stores the Title trimmed, as typed', () => {
+    const result = makeEntry({ ...OFFICE_SUPPLIES, title: '  sTarBucks \t' }, STAMP, NAMES);
+
+    expect(isOk(result)).toBe(true);
+    if (!isOk(result)) return;
+    expect(result.value.title).toBe('sTarBucks');
+  });
+
+  it.each([
+    ['empty', ''],
+    ['only whitespace', ' \t\n '],
+  ])('builds an Entry with no Title from a Title that is %s, stored as the empty string', (_case, title) => {
+    const result = makeEntry({ ...OFFICE_SUPPLIES, title }, STAMP, NAMES);
+
+    expect(isOk(result)).toBe(true);
+    if (!isOk(result)) return;
+    expect(result.value.title).toBe('');
+  });
+
+  it('accepts a Title of 40 characters once trimmed, and refuses 41 as invalid input naming the Title', () => {
+    expect(
+      isOk(makeEntry({ ...OFFICE_SUPPLIES, title: ` ${'t'.repeat(TITLE_MAX_LENGTH)} ` }, STAMP, NAMES)),
+    ).toBe(true);
+    expectRefused(
+      { ...OFFICE_SUPPLIES, title: 't'.repeat(TITLE_MAX_LENGTH + 1) },
+      'INVALID_INPUT',
+      'A Title can be at most 40',
+    );
+  });
+
+  it('counts a Title in code points, so 40 emoji fit though they are 80 UTF-16 units', () => {
+    const grinning = String.fromCodePoint(0x1f600);
+
+    expect(isOk(makeEntry({ ...OFFICE_SUPPLIES, title: grinning.repeat(40) }, STAMP, NAMES))).toBe(
+      true,
+    );
+    expectRefused({ ...OFFICE_SUPPLIES, title: grinning.repeat(41) }, 'INVALID_INPUT', 'at most 40');
   });
 
   it('accepts a day in the future, which is still a day', () => {

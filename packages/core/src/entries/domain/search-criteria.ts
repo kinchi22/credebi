@@ -7,7 +7,7 @@ import {
   type Result,
 } from '@repo/contracts';
 import { type AccountNames } from '../../accounts/domain/account';
-import { memoLength, MEMO_MAX_LENGTH } from './entry';
+import { MEMO_MAX_LENGTH, textLength } from './entry';
 
 export type SearchCriteriaDraft = {
   readonly from?: string | undefined;
@@ -46,7 +46,7 @@ export function makeSearchCriteria(
     );
   }
 
-  if (memoLength(memo) > MEMO_MAX_LENGTH) {
+  if (textLength(memo) > MEMO_MAX_LENGTH) {
     return err(
       domainError(
         'INVALID_INPUT',

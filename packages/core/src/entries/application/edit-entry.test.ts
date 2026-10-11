@@ -47,6 +47,7 @@ const account = (id: AccountId, accountType: Account['accountType'], name: strin
 
 const DRAFT: EntryDraft = {
   entryDate: '2026-09-15',
+  title: 'Stationers',
   memo: 'Office supplies',
   lines: [
     { account: EXPENSES, side: 'debit', amount: 12500 as Money },
@@ -64,6 +65,7 @@ const GRACES_DRAFT: EntryDraft = {
 
 const REWRITTEN: EntryDraft = {
   entryDate: '2026-09-20',
+  title: 'Paper mill',
   memo: 'Office supplies on account',
   lines: [
     { account: EXPENSES, side: 'debit', amount: 8000 as Money },
@@ -131,6 +133,7 @@ describe('createEditEntry', () => {
     expect(edited.value).toEqual({
       id: expect.not.stringMatching(original.id) as unknown,
       entryDate: '2026-09-20',
+      title: 'Paper mill',
       memo: 'Office supplies on account',
       lines: [
         { account: EXPENSES, accountName: 'Expenses', side: 'debit', amount: 8000 },
@@ -159,6 +162,7 @@ describe('createEditEntry', () => {
           id: expect.not.stringMatching(original.id) as unknown,
           reverses: original.id,
           entryDate: original.entryDate,
+          title: original.title,
           memo: original.memo,
           total: original.total,
           createdAt: NOW,
@@ -176,7 +180,11 @@ describe('createEditEntry', () => {
     const { rows, post, editEntry, visible } = useCases();
     const original = await post(ADA, 'Office supplies');
 
-    const edited = await editEntry(ADA, original.id, { ...DRAFT, memo: '  Office supplies ' });
+    const edited = await editEntry(ADA, original.id, {
+      ...DRAFT,
+      title: ' Stationers\t',
+      memo: '  Office supplies ',
+    });
 
     expect(edited).toEqual(ok(original));
     expect(rows).toHaveLength(1);
@@ -192,6 +200,21 @@ describe('createEditEntry', () => {
     expect(isOk(edited) && edited.value.memo).toBe('');
     expect(rows).toHaveLength(3);
     expect(memos(await visible(ADA))).toEqual(['']);
+  });
+
+  it.each([
+    ['renaming it', 'Paper mill', 'Paper mill'],
+    ['changing only its case', 'STATIONERS', 'STATIONERS'],
+    ['clearing it', '  ', ''],
+  ])('saves %s as a Correction, leaving a replacement with that Title', async (_case, typed, stored) => {
+    const { rows, post, editEntry, visible } = useCases();
+    const original = await post(ADA, 'Office supplies');
+
+    const edited = await editEntry(ADA, original.id, { ...DRAFT, title: typed });
+
+    expect(isOk(edited) && edited.value.title).toBe(stored);
+    expect(rows).toHaveLength(3);
+    expect((await visible(ADA)).map((entry) => entry.title)).toEqual([stored]);
   });
 
   it('saves an edit to an Entry with no memo, keeping its memo empty', async () => {

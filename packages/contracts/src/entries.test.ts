@@ -94,20 +94,30 @@ describe('deleteEntryInputSchema', () => {
 describe('postEntryInputSchema', () => {
   const input = {
     entryDate: '2026-09-15',
+    title: 'Stationers',
     memo: 'Office supplies',
     lines: [{ account: CASH, side: 'credit', amount: 12500 }],
   };
 
-  it('carries a day, a memo and the lines', () => {
+  it('carries a day, a Title, a memo and the lines', () => {
     expect(postEntryInputSchema.parse(input)).toEqual(input);
+  });
+
+  it('carries an empty Title', () => {
+    expect(postEntryInputSchema.parse({ ...input, title: '' })).toEqual({ ...input, title: '' });
   });
 
   it('carries an empty memo', () => {
     expect(postEntryInputSchema.parse({ ...input, memo: '' })).toEqual({ ...input, memo: '' });
   });
 
-  it('refuses an input missing its lines or its day', () => {
+  it('refuses a Title that is not one string', () => {
+    expect(postEntryInputSchema.safeParse({ ...input, title: ['Salary'] }).success).toBe(false);
+  });
+
+  it('refuses an input missing its lines, its day or its Title', () => {
     expect(postEntryInputSchema.safeParse({ ...input, lines: undefined }).success).toBe(false);
+    expect(postEntryInputSchema.safeParse({ ...input, title: undefined }).success).toBe(false);
     expect(postEntryInputSchema.safeParse({ ...input, entryDate: undefined }).success).toBe(false);
   });
 });
@@ -116,6 +126,7 @@ describe('editEntryInputSchema', () => {
   const input = {
     id: ENTRY_ID,
     entryDate: '2026-09-15',
+    title: 'Stationers',
     memo: 'Office supplies',
     lines: [{ account: CASH, side: 'credit', amount: 12500 }],
   };
@@ -126,6 +137,11 @@ describe('editEntryInputSchema', () => {
 
   it('carries an empty memo', () => {
     expect(editEntryInputSchema.parse({ ...input, memo: '' })).toEqual({ ...input, memo: '' });
+  });
+
+  it('carries an empty Title, and refuses an input with no Title', () => {
+    expect(editEntryInputSchema.parse({ ...input, title: '' })).toEqual({ ...input, title: '' });
+    expect(editEntryInputSchema.safeParse({ ...input, title: undefined }).success).toBe(false);
   });
 
   it('refuses an input whose id is missing or not an Entry id, or whose draft is incomplete', () => {
@@ -139,6 +155,7 @@ describe('toPostedEntry', () => {
   const entry = {
     id: ENTRY_ID,
     entryDate: '2026-09-15',
+    title: 'Stationers',
     memo: 'Office supplies',
     lines: [
       {
@@ -158,6 +175,7 @@ describe('toPostedEntry', () => {
     expect(toPostedEntry(entry)).toEqual({
       id: ENTRY_ID,
       entryDate: '2026-09-15',
+      title: 'Stationers',
       memo: 'Office supplies',
       lines: [
         { account: EXPENSES, accountName: 'Expenses', side: 'debit', amount: 12500 },
@@ -172,9 +190,11 @@ describe('toPostedEntry', () => {
     expect(postedEntrySchema.safeParse(toPostedEntry(entry)).success).toBe(true);
   });
 
-  it('is a contract that refuses an entry missing its total or its instant', () => {
+  it('is a contract that refuses an entry missing its total, its instant or its Title', () => {
     const posted = toPostedEntry(entry);
 
+    expect(postedEntrySchema.safeParse({ ...posted, title: undefined }).success).toBe(false);
+    expect(postedEntrySchema.safeParse({ ...posted, title: '' }).success).toBe(true);
     expect(postedEntrySchema.safeParse({ ...posted, total: undefined }).success).toBe(false);
     expect(postedEntrySchema.safeParse({ ...posted, createdAt: undefined }).success).toBe(false);
   });
@@ -206,6 +226,7 @@ function submitted(fields: Fields): SubmittedFields {
 
 const BALANCED: Fields = {
   entryDate: '2026-09-15',
+  title: 'Stationers',
   memo: 'Office supplies',
   account: [EXPENSES, CASH],
   side: ['debit', 'credit'],
@@ -228,13 +249,14 @@ const expectRefused = (fields: Fields): void => {
 };
 
 describe('parseMultiLineEntryForm', () => {
-  it('reads the day, the memo, and one line per position', () => {
+  it('reads the day, the Title, the memo, and one line per position', () => {
     const result = parseMultiLineEntryForm(submitted(BALANCED));
 
     expect(isOk(result)).toBe(true);
     if (!isOk(result)) return;
     expect(result.value).toEqual({
       entryDate: '2026-09-15',
+      title: 'Stationers',
       memo: 'Office supplies',
       lines: [
         { account: EXPENSES, side: 'debit', amount: 12500 },
@@ -276,8 +298,17 @@ describe('parseMultiLineEntryForm', () => {
     expect(isOk(result) && result.value.memo).toBe('');
   });
 
-  it('refuses a form with no date or no memo field', () => {
+  it('reads an empty Title box as an empty Title, and a Title as typed', () => {
+    const empty = parseMultiLineEntryForm(submitted({ ...BALANCED, title: '' }));
+    const typed = parseMultiLineEntryForm(submitted({ ...BALANCED, title: ' sTarBucks ' }));
+
+    expect(isOk(empty) && empty.value.title).toBe('');
+    expect(isOk(typed) && typed.value.title).toBe(' sTarBucks ');
+  });
+
+  it('refuses a form with no date, no Title or no memo field', () => {
     expectRefused({ ...BALANCED, entryDate: [] });
+    expectRefused({ ...BALANCED, title: [] });
     expectRefused({ ...BALANCED, memo: [] });
   });
 
@@ -305,6 +336,7 @@ describe('parseMultiLineEntryForm', () => {
 
 const TWO_LINE: Fields = {
   entryDate: '2026-09-15',
+  title: 'Stationers',
   memo: 'Office supplies',
   debitAccount: EXPENSES,
   creditAccount: CASH,
@@ -326,6 +358,7 @@ describe('parseTwoLineEntryForm', () => {
     if (!isOk(result)) return;
     expect(result.value).toEqual({
       entryDate: '2026-09-15',
+      title: 'Stationers',
       memo: 'Office supplies',
       lines: [
         { account: EXPENSES, side: 'debit', amount: 12500 },
@@ -369,7 +402,15 @@ describe('parseTwoLineEntryForm', () => {
     expect(isOk(result) && result.value.memo).toBe('');
   });
 
-  it.each(['entryDate', 'memo', 'debitAccount', 'creditAccount', 'amount'])(
+  it('reads an empty Title box as an empty Title, and a Title as typed', () => {
+    const empty = parseTwoLineEntryForm(submitted({ ...TWO_LINE, title: '' }));
+    const typed = parseTwoLineEntryForm(submitted({ ...TWO_LINE, title: ' sTarBucks ' }));
+
+    expect(isOk(empty) && empty.value.title).toBe('');
+    expect(isOk(typed) && typed.value.title).toBe(' sTarBucks ');
+  });
+
+  it.each(['entryDate', 'title', 'memo', 'debitAccount', 'creditAccount', 'amount'])(
     'refuses a form missing its %s',
     (name) => {
       expectTwoLineRefused(withoutField(TWO_LINE, name));

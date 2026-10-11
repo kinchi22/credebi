@@ -52,6 +52,7 @@ hold(GRACE, [account(GRACES_CASH, 'asset', 'Cash')]);
 const made = makeEntry(
   {
     entryDate: '2026-09-15',
+    title: 'Stationers',
     memo: 'Office supplies',
     lines: [
       { account: EXPENSES, side: 'debit', amount: 12500 as Money },

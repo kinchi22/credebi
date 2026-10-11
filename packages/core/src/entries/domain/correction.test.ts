@@ -15,6 +15,7 @@ const NAMES = new Map([
 
 const AS_POSTED: EntryDraft = {
   entryDate: '2026-09-15',
+  title: 'Landlord',
   memo: 'Rent',
   lines: [
     { account: EXPENSES, side: 'debit', amount: 70000 as Money },
@@ -39,7 +40,7 @@ const withLine = (
   AS_POSTED.lines.map((current, at) => (at === index ? { ...current, ...line } : current));
 
 describe('changesEntry', () => {
-  it('finds no change in a draft of the same day, memo and lines in the same order', () => {
+  it('finds no change in a draft of the same day, Title, memo and lines in the same order', () => {
     expect(changesEntry({ ...AS_POSTED, lines: [...AS_POSTED.lines] }, posted())).toBe(false);
   });
 
@@ -67,6 +68,28 @@ describe('changesEntry', () => {
     expect(changesEntry({ ...AS_POSTED, memo: '' }, memoLess)).toBe(false);
     expect(changesEntry({ ...AS_POSTED, memo: ' \t ' }, memoLess)).toBe(false);
     expect(changesEntry({ ...AS_POSTED, memo: 'Rent' }, memoLess)).toBe(true);
+  });
+
+  it('finds no change in a Title that differs only by surrounding whitespace', () => {
+    expect(changesEntry({ ...AS_POSTED, title: ' Landlord \t' }, posted())).toBe(false);
+  });
+
+  it('finds a change in the Title, its case included', () => {
+    expect(changesEntry({ ...AS_POSTED, title: 'Agent' }, posted())).toBe(true);
+    expect(changesEntry({ ...AS_POSTED, title: 'landlord' }, posted())).toBe(true);
+  });
+
+  it('finds a change in clearing the Title', () => {
+    expect(changesEntry({ ...AS_POSTED, title: '' }, posted())).toBe(true);
+    expect(changesEntry({ ...AS_POSTED, title: '  ' }, posted())).toBe(true);
+  });
+
+  it('finds no change in an empty or blank Title for an Entry with no Title, and a change in giving it one', () => {
+    const untitled = posted({ ...AS_POSTED, title: '' });
+
+    expect(changesEntry({ ...AS_POSTED, title: '' }, untitled)).toBe(false);
+    expect(changesEntry({ ...AS_POSTED, title: ' \t ' }, untitled)).toBe(false);
+    expect(changesEntry({ ...AS_POSTED, title: 'Landlord' }, untitled)).toBe(true);
   });
 
   it("finds a change in a line's Account, Side or amount", () => {

@@ -74,6 +74,7 @@ export function postgresEntriesOn(database: PostgresExecutor, logger: Logger): E
         id: entry.id,
         userId,
         entryDate: entry.entryDate,
+        title: entry.title,
         memo: entry.memo,
         createdAt: entry.createdAt,
         reversesEntryId: reverses,
@@ -299,7 +300,7 @@ function restore(row: EntryRow, lineRows: readonly LineRow[]): Result<Entry, Dom
   }
 
   const entry = makeEntry(
-    { entryDate: row.entryDate, memo: row.memo, lines },
+    { entryDate: row.entryDate, title: row.title, memo: row.memo, lines },
     { id: row.id as EntryId, createdAt: row.createdAt },
     names,
   );

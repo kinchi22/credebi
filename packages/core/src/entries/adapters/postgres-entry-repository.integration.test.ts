@@ -98,6 +98,7 @@ function entry(overrides: Partial<EntryDraft> & { readonly createdAt?: Date } = 
   const made = makeEntry(
     {
       entryDate: '2026-09-15',
+      title: 'Stationers',
       memo: 'Office supplies',
       lines: [
         { account: EXPENSES, side: 'debit', amount: 12500 as Money },
@@ -144,7 +145,7 @@ async function countEntries(): Promise<number> {
 }
 
 describe('createPostgresEntryRepository', () => {
-  it('answers with an entry as it was saved: day, memo, instant, lines in order, total', async () => {
+  it('answers with an entry as it was saved: day, Title, memo, instant, lines in order, total', async () => {
     const saved = entry({
       lines: [
         { account: CASH, side: 'credit', amount: 5000 as Money },
@@ -547,6 +548,19 @@ describe('createPostgresEntryRepository', () => {
     expect(await found()).toEqual([memoLess]);
   });
 
+  it('stores a Title as typed, its case kept, and an Entry with no Title as the empty string', async () => {
+    const titled = entry({ title: 'sTarBucks', createdAt: new Date('2026-09-15T01:00:00.000Z') });
+    const untitled = entry({ title: '' });
+    await repository.save(ADA, titled);
+    await repository.save(ADA, untitled);
+
+    expect(await found()).toEqual([titled, untitled]);
+    const rows = await database.execute<{ title: string }>(
+      sql`select title from entries order by created_at desc`,
+    );
+    expect(rows.rows).toEqual([{ title: 'sTarBucks' }, { title: '' }]);
+  });
+
   it('matches no memo term against an Entry with no memo', async () => {
     await repository.save(ADA, entry({ memo: '' }));
     await repository.save(ADA, entry({ memo: 'Rail fare' }));
@@ -654,17 +668,17 @@ describe('createPostgresEntryRepository', () => {
     });
   });
 
-  it('stores a Reversal linked to the Entry it reverses, with its lines', async () => {
+  it('stores a Reversal linked to the Entry it reverses, with its Title and lines', async () => {
     const saved = entry();
     await repository.save(ADA, saved);
     const reversal = reversalOf(saved);
 
     expect(isOk(await repository.saveReversal(ADA, reversal))).toBe(true);
 
-    const rows = await database.execute<{ reverses: string; lines: number }>(
-      sql`select reverses_entry_id as reverses, (select count(*)::int from entry_lines where entry_id = entries.id) as lines from entries where id = ${reversal.id}`,
+    const rows = await database.execute<{ reverses: string; title: string; lines: number }>(
+      sql`select reverses_entry_id as reverses, title, (select count(*)::int from entry_lines where entry_id = entries.id) as lines from entries where id = ${reversal.id}`,
     );
-    expect(rows.rows).toEqual([{ reverses: saved.id, lines: 2 }]);
+    expect(rows.rows).toEqual([{ reverses: saved.id, title: 'Stationers', lines: 2 }]);
   });
 
   it('refuses a second Reversal of one Entry as a conflict, and keeps the first alone', async () => {

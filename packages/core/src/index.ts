@@ -20,6 +20,7 @@ export {
 
 export {
   MEMO_MAX_LENGTH,
+  TITLE_MAX_LENGTH,
   makeEntry,
   type Entry,
   type EntryDraft,

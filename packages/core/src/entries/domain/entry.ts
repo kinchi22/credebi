@@ -16,9 +16,11 @@ import { moneyToMinorUnits, sumMoney } from '../../money/domain/money';
 
 export const MEMO_MAX_LENGTH = 200;
 
-export function memoLength(memo: string): number {
-  // eslint-disable-next-line @typescript-eslint/no-misused-spread -- ADR-0010 counts a memo in code points, which is what spreading yields
-  return [...memo].length;
+export const TITLE_MAX_LENGTH = 40;
+
+export function textLength(text: string): number {
+  // eslint-disable-next-line @typescript-eslint/no-misused-spread -- ADR-0010 and ADR-0027 count a memo and a Title in code points, which is what spreading yields
+  return [...text].length;
 }
 
 export type EntryLine = {
@@ -31,6 +33,7 @@ export type EntryLine = {
 export type Entry = {
   readonly id: EntryId;
   readonly entryDate: string;
+  readonly title: string;
   readonly memo: string;
   readonly lines: readonly EntryLine[];
   readonly total: Money;
@@ -39,6 +42,7 @@ export type Entry = {
 
 export type EntryDraft = {
   readonly entryDate: string;
+  readonly title: string;
   readonly memo: string;
   readonly lines: readonly {
     readonly account: string;
@@ -60,8 +64,13 @@ export function makeEntry(
   stamp: EntryStamp,
   names: AccountNames,
 ): Result<Entry, DomainError> {
+  const title = draft.title.trim();
+  if (textLength(title) > TITLE_MAX_LENGTH) {
+    return invalid(`A Title can be at most ${String(TITLE_MAX_LENGTH)} characters once trimmed.`);
+  }
+
   const memo = draft.memo.trim();
-  if (memoLength(memo) > MEMO_MAX_LENGTH) {
+  if (textLength(memo) > MEMO_MAX_LENGTH) {
     return invalid(`A memo can be at most ${String(MEMO_MAX_LENGTH)} characters once trimmed.`);
   }
 
@@ -78,6 +87,7 @@ export function makeEntry(
   return ok({
     id: stamp.id,
     entryDate: draft.entryDate,
+    title,
     memo,
     lines: lines.value,
     total: total.value,
