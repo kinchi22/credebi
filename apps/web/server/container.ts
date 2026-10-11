@@ -24,6 +24,7 @@ import {
   createGetChart,
   createGetHealth,
   createGetSettings,
+  createGetTitles,
   createPostEntry,
   createResolveSession,
   createSearchEntries,
@@ -44,6 +45,7 @@ import {
   type GetChart,
   type GetHealth,
   type GetSettings,
+  type GetTitles,
   type PostEntry,
   type ResolveSession,
   type SearchEntries,
@@ -70,6 +72,7 @@ export type Container = {
   readonly getHealth: GetHealth;
   readonly postEntry: PostEntry;
   readonly searchEntries: SearchEntries;
+  readonly getTitles: GetTitles;
   readonly editEntry: EditEntry;
   readonly deleteEntry: DeleteEntry;
   readonly getChart: GetChart;
@@ -124,6 +127,7 @@ export function createContainer({ databaseUrl, google, testSignIn }: Env): Conta
       now: () => new Date(),
     }),
     searchEntries: createSearchEntries({ entries, accounts }),
+    getTitles: createGetTitles({ entries }),
     editEntry: createEditEntry({
       entries,
       accounts,

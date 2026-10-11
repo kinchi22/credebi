@@ -17,6 +17,7 @@ import { MUTED_TEXT } from './text-classes';
 
 export type EntryControls = {
   readonly chart: ChartOutput;
+  readonly titles: readonly string[];
   readonly entryFormMode: EntryFormMode;
   readonly editEntry: EditEntryAction;
   readonly deleteEntry: DeleteEntryAction;
@@ -147,6 +148,7 @@ function ListedEntry({
           <EditEntry
             entry={entry}
             chart={controls.chart}
+            titles={controls.titles}
             entryFormMode={controls.entryFormMode}
             action={controls.editEntry}
           />

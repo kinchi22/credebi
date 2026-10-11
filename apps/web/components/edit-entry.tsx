@@ -24,6 +24,7 @@ export type EditEntryAction = (
 export type EditEntryProps = {
   readonly entry: PostedEntry;
   readonly chart: ChartOutput;
+  readonly titles: readonly string[];
   readonly entryFormMode: EntryFormMode;
   readonly action: EditEntryAction;
 };
@@ -36,7 +37,7 @@ const FORM_BY_MODE: Readonly<Record<EntryFormMode, (props: EntryFormProps) => Re
 const modeFor = (entry: PostedEntry, chosen: EntryFormMode): EntryFormMode =>
   chosen === 'two-line' && hasOneLinePerSide(entry) ? 'two-line' : 'multi-line';
 
-export function EditEntry({ entry, chart, entryFormMode, action }: EditEntryProps): ReactNode {
+export function EditEntry({ entry, chart, titles, entryFormMode, action }: EditEntryProps): ReactNode {
   const titleId = useId();
   const dialog = useModalDialog({ closesWhenWide: false });
   const guard = useChangeGuard(dialog);
@@ -69,6 +70,7 @@ export function EditEntry({ entry, chart, entryFormMode, action }: EditEntryProp
               <EntryForm
                 action={action.bind(null, entry.id)}
                 chart={chart}
+                titles={titles}
                 editing={{ entry, titleId, onSaved: dialog.close }}
               />
             </div>

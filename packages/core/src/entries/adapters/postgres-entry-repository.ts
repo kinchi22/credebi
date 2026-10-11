@@ -8,7 +8,9 @@ import {
   ilike,
   isNull,
   lte,
+  ne,
   getTableColumns,
+  sql,
   type SQL,
 } from 'drizzle-orm';
 import { type NodePgQueryResultHKT } from 'drizzle-orm/node-postgres';
@@ -228,6 +230,33 @@ export function postgresEntriesOn(database: PostgresExecutor, logger: Logger): E
         entries.push(entry.value);
       }
       return ok(entries);
+    },
+
+    titles: async (userId: UserId): Promise<Result<readonly string[], DomainError>> => {
+      const folded = sql`lower(${schema.entries.title})`;
+      const latest = database
+        .selectDistinctOn([folded], {
+          title: schema.entries.title,
+          createdAt: schema.entries.createdAt,
+          id: schema.entries.id,
+        })
+        .from(schema.entries)
+        .where(and(eq(schema.entries.userId, userId), shownEntry(), ne(schema.entries.title, '')))
+        .orderBy(folded, desc(schema.entries.createdAt), desc(schema.entries.id))
+        .as('latest');
+      try {
+        const rows = await database
+          .select({ title: latest.title })
+          .from(latest)
+          .orderBy(desc(latest.createdAt), desc(latest.id));
+        return ok(rows.map((row) => row.title));
+      } catch (error) {
+        logger.error(
+          { event: 'entries.titles_failed', error: describeError(error) },
+          'The Titles could not be read.',
+        );
+        return unavailable('The Titles could not be read.');
+      }
     },
   };
 }

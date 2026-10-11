@@ -19,4 +19,5 @@ export type EntryRepository = {
     userId: UserId,
     criteria: SearchCriteria,
   ) => Promise<Result<readonly Entry[], DomainError>>;
+  readonly titles: (userId: UserId) => Promise<Result<readonly string[], DomainError>>;
 };

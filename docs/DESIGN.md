@@ -259,8 +259,8 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `ground-dark`        | `ink`       | the Sidebar's ground                  |
 | `ground-dark-raised` | `ink-raised` | the active Sidebar item              |
 | `ground-dark-hover`  | `ink-mid`    | an idle Sidebar item under the pointer |
-| `surface-hover`      | `mist-pale`  | an Entry in the Entries list under the pointer |
-| `surface-chosen`     | `mint-pale`  | a chosen chip in the Account picker  |
+| `surface-hover`      | `mist-pale`  | an Entry in the Entries list, and a Title suggestion, under the pointer |
+| `surface-chosen`     | `mint-pale`  | a chosen chip in the Account picker, and the Title suggestion the arrow keys reach |
 | `accent`             | `mint`      | the primary button fill, the mark     |
 | `accent-text`        | `mint-deep` | links, accent text on a light ground  |
 | `accent-text-hover`  | `mint-deeper` | a link under the pointer            |
@@ -633,6 +633,14 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   in a 148px column, Title filling the rest. Below `wide` they wrap, Date at its
   own width and Title growing beside it. Memo takes the next row at full width.
   Their labels are medium, in `text-muted`.
+- **Title suggestions.** Title is a combobox: clicked, typed in or opened with
+  the arrow keys, it lists the User's Titles containing the typed text, in
+  `body-dense`, just below the field and exactly as wide. The list is a
+  `surface` panel with a `border` edge, the `control` radius and no shadow,
+  scrolling past 240px. A Title wraps rather than being cut. Under the pointer
+  an option is tinted `surface-hover`; the one the arrow keys reach is
+  `surface-chosen`. Choosing one, by click or Enter, fills the field and closes
+  the list; Escape closes it alone. Nothing is listed when no Title matches.
 - **Entry form dividers.** In both Entry form modes a 2px rule in the Side's
   colour sits above each Side: above its row, padded 12px above and below, in
   Two-line mode, above its block
@@ -786,7 +794,8 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   the ring. The halo is decoration beside the ring, which alone carries the focus,
   so it has no contrast pair.
 - **Pointer.** Every enabled control a click acts on shows the pointer cursor:
-  a button, a tab, a radio or checkbox and the label that wraps one. One base
+  a button, a tab, an option of a listbox, a radio or checkbox and the label
+  that wraps one. One base
   rule in `apps/web/app/globals.css` gives it, so no component sets a cursor of
   its own. A disabled control keeps the default cursor. Links have the pointer
   already.

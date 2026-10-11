@@ -35,6 +35,7 @@ function inMemoryEntries(): EntryRepository {
       Promise.resolve(
         ok(stored.filter((row) => row.userId === userId).map((row) => row.entry)),
       ),
+    titles: () => Promise.resolve(err(domainError('NOT_FOUND', 'Not read here.'))),
   };
 }
 
@@ -74,6 +75,7 @@ const unavailableEntries: EntryRepository = {
   saveReversal: () => Promise.resolve(err(domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.'))),
   find: () => Promise.resolve(err(domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.'))),
   search: () => Promise.resolve(ok([])),
+  titles: () => Promise.resolve(ok([])),
 };
 
 const ENTRY_ID = '01920000-0000-7000-8000-000000000001' as EntryId;
