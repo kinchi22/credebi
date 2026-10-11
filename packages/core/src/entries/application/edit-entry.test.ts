@@ -13,7 +13,7 @@ import {
 import { inMemoryAccounts } from '../../accounts/application/in-memory-accounts';
 import { type Account } from '../../accounts/domain/account';
 import { SIGNED_OUT, type AuthContext } from '../../auth/domain/auth-context';
-import { type Entry, type EntryDraft } from '../domain/entry';
+import { MEMO_MAX_LENGTH, type Entry, type EntryDraft } from '../domain/entry';
 import { NO_CRITERIA } from '../domain/search-criteria';
 import { createDeleteEntry } from './delete-entry';
 import { createEditEntry } from './edit-entry';
@@ -70,6 +70,8 @@ const REWRITTEN: EntryDraft = {
     { account: PAYABLE, side: 'credit', amount: 8000 as Money },
   ],
 };
+
+const MEMO_TOO_LONG: EntryDraft = { ...REWRITTEN, memo: 'm'.repeat(MEMO_MAX_LENGTH + 1) };
 
 const UNKNOWN_ID = '01920000-0000-7000-8000-0000000000ff' as EntryId;
 
@@ -227,7 +229,7 @@ describe('createEditEntry', () => {
   it('refuses a draft that breaks an Entry rule as posting does, and leaves the Entry', async () => {
     const { rows, post, editEntry, visible } = useCases();
     const original = await post(ADA, 'Office supplies');
-    const tooLong = await editEntry(ADA, original.id, { ...REWRITTEN, memo: 'm'.repeat(201) });
+    const tooLong = await editEntry(ADA, original.id, MEMO_TOO_LONG);
     const unbalanced = await editEntry(ADA, original.id, {
       ...REWRITTEN,
       lines: [
@@ -273,7 +275,7 @@ describe('createEditEntry', () => {
   it('answers not found for an id no Entry has, though the draft breaks a rule too', async () => {
     const { editEntry } = useCases();
 
-    for (const draft of [REWRITTEN, { ...REWRITTEN, memo: 'm'.repeat(201) }]) {
+    for (const draft of [REWRITTEN, MEMO_TOO_LONG]) {
       const edited = await editEntry(ADA, UNKNOWN_ID, draft);
       expect(isErr(edited) && edited.error.code).toBe('NOT_FOUND');
     }
@@ -307,7 +309,7 @@ describe('createEditEntry', () => {
     const original = await post(ADA, 'Office supplies');
     await deleteEntry(ADA, original.id);
 
-    for (const draft of [REWRITTEN, DRAFT, { ...REWRITTEN, memo: 'm'.repeat(201) }]) {
+    for (const draft of [REWRITTEN, DRAFT, MEMO_TOO_LONG]) {
       const edited = await editEntry(ADA, original.id, draft);
       expect(isErr(edited) && edited.error).toEqual({
         code: 'CONFLICT',

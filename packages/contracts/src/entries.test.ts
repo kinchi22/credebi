@@ -102,9 +102,8 @@ describe('postEntryInputSchema', () => {
     expect(postEntryInputSchema.parse(input)).toEqual(input);
   });
 
-  it('carries an empty memo, which the domain stores as no memo', () => {
+  it('carries an empty memo', () => {
     expect(postEntryInputSchema.parse({ ...input, memo: '' })).toEqual({ ...input, memo: '' });
-    expect(editEntryInputSchema.parse({ ...input, id: ENTRY_ID, memo: '' }).memo).toBe('');
   });
 
   it('refuses an input missing its lines or its day', () => {
@@ -123,6 +122,10 @@ describe('editEntryInputSchema', () => {
 
   it('carries the id of the Entry to edit and the Entry draft that replaces it', () => {
     expect(editEntryInputSchema.parse(input)).toEqual(input);
+  });
+
+  it('carries an empty memo', () => {
+    expect(editEntryInputSchema.parse({ ...input, memo: '' })).toEqual({ ...input, memo: '' });
   });
 
   it('refuses an input whose id is missing or not an Entry id, or whose draft is incomplete', () => {

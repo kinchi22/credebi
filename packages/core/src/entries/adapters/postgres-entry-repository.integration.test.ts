@@ -545,7 +545,6 @@ describe('createPostgresEntryRepository', () => {
     expect(await repository.save(ADA, memoLess)).toEqual(ok(undefined));
 
     expect(await found()).toEqual([memoLess]);
-    expect(memoLess.memo).toBe('');
   });
 
   it('matches no memo term against an Entry with no memo', async () => {
