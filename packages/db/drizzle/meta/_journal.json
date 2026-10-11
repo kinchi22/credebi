@@ -50,6 +50,13 @@
       "when": 1791610905911,
       "tag": "0006_entry_lines_drop_account",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791687035604,
+      "tag": "0007_entries_title",
+      "breakpoints": true
     }
   ]
 }
