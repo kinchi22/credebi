@@ -51,11 +51,13 @@ const LETTER = /\p{L}/u;
 const isBlank = (text) => text.trim() === '';
 
 const MARKUP_ATTRIBUTES = new Set([
+  'aria-autocomplete',
   'aria-controls',
   'aria-current',
   'aria-describedby',
   'aria-hidden',
   'aria-labelledby',
+  'autoComplete',
   'className',
   'dateTime',
   'href',

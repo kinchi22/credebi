@@ -320,10 +320,11 @@ function MultiLineFields({
   );
 }
 
-export function MultiLineEntryForm({ action, chart, editing }: EntryFormProps): ReactNode {
+export function MultiLineEntryForm({ action, chart, titles, editing }: EntryFormProps): ReactNode {
   return (
     <EntryFormShell
       action={action}
+      titles={titles}
       editing={editing}
       mode={entryFormModeSchema.enum['multi-line']}
     >

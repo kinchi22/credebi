@@ -7,6 +7,7 @@ import {
   type ChartOutput,
 } from '@repo/contracts';
 import { hasEndedBy } from '@repo/core/accounts';
+import { matchesTyped } from './typed-text';
 
 export type Branch = 'tee' | 'elbow';
 
@@ -82,4 +83,4 @@ export const shownInSection =
 export const nameContains =
   (query: string): Shown =>
   (account) =>
-    account.name.toLowerCase().includes(query.trim().toLowerCase());
+    matchesTyped(account.name, query);

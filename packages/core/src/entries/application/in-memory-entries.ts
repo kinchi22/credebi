@@ -23,8 +23,30 @@ export type InMemoryEntries = {
   readonly unitOfWork: UnitOfWork;
 };
 
+const latestFirst = (first: Entry, second: Entry): number =>
+  second.createdAt.getTime() - first.createdAt.getTime() || second.id.localeCompare(first.id);
+
+function titlesOf(entries: readonly Entry[]): readonly string[] {
+  const seen = new Set<string>();
+  const titles: string[] = [];
+  for (const { title } of [...entries].sort(latestFirst)) {
+    const folded = title.toLowerCase();
+    if (title !== '' && !seen.has(folded)) {
+      seen.add(folded);
+      titles.push(title);
+    }
+  }
+  return titles;
+}
+
 function repositoryOver(rows: StoredEntry[]): EntryRepository {
   const reversed = (id: EntryId): boolean => rows.some((row) => row.reverses === id);
+  const shownOf = (userId: UserId): readonly Entry[] =>
+    rows
+      .filter(
+        (row) => row.userId === userId && row.reverses === undefined && !reversed(row.entry.id),
+      )
+      .map((row) => row.entry);
   return {
     save: (userId, entry) => {
       rows.push({ userId, entry });
@@ -50,17 +72,8 @@ function repositoryOver(rows: StoredEntry[]): EntryRepository {
           : ok({ entry: row.entry, reversed: reversed(id) }),
       );
     },
-    search: (userId) =>
-      Promise.resolve(
-        ok(
-          rows
-            .filter(
-              (row) =>
-                row.userId === userId && row.reverses === undefined && !reversed(row.entry.id),
-            )
-            .map((row) => row.entry),
-        ),
-      ),
+    search: (userId) => Promise.resolve(ok(shownOf(userId))),
+    titles: (userId) => Promise.resolve(ok(titlesOf(shownOf(userId)))),
   };
 }
 

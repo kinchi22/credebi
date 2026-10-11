@@ -42,6 +42,9 @@ export {
   createSearchEntries,
   type SearchEntries,
   type SearchEntriesDependencies,
+  createGetTitles,
+  type GetTitles,
+  type GetTitlesDependencies,
   type EntryRepository,
   type UnitOfWork,
 } from './entries/index';

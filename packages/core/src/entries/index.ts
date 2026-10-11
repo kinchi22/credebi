@@ -40,5 +40,8 @@ export type { EditEntry, EditEntryDependencies } from './application/edit-entry'
 export { createSearchEntries } from './application/search-entries';
 export type { SearchEntries, SearchEntriesDependencies } from './application/search-entries';
 
+export { createGetTitles } from './application/get-titles';
+export type { GetTitles, GetTitlesDependencies } from './application/get-titles';
+
 export type { EntryRepository, FoundEntry } from './ports/entry-repository';
 export type { TransactionalWork, UnitOfWork } from './ports/unit-of-work';

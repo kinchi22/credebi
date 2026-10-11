@@ -108,9 +108,14 @@ function TwoLineFields({
   );
 }
 
-export function TwoLineEntryForm({ action, chart, editing }: EntryFormProps): ReactNode {
+export function TwoLineEntryForm({ action, chart, titles, editing }: EntryFormProps): ReactNode {
   return (
-    <EntryFormShell action={action} editing={editing} mode={entryFormModeSchema.enum['two-line']}>
+    <EntryFormShell
+      action={action}
+      titles={titles}
+      editing={editing}
+      mode={entryFormModeSchema.enum['two-line']}
+    >
       {(parts) => <TwoLineFields {...parts} chart={chart} />}
     </EntryFormShell>
   );

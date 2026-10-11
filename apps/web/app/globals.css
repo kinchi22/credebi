@@ -89,6 +89,7 @@
 
   button:enabled,
   [role="tab"]:not(:disabled, [aria-disabled="true"]),
+  [role="option"]:not([aria-disabled="true"]),
   input:is([type="radio"], [type="checkbox"]):enabled,
   label:has(input:is([type="radio"], [type="checkbox"]):enabled) {
     cursor: pointer;

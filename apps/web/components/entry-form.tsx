@@ -31,6 +31,7 @@ import {
   PRIMARY_BUTTON,
 } from './control-classes';
 import { FORM_REFUSAL } from './text-classes';
+import { TitleCombobox } from './title-combobox';
 
 export type EntryFormState =
   | { readonly outcome: 'idle' }
@@ -48,6 +49,7 @@ export type EditedEntry = {
 export type EntryFormProps = {
   readonly action: EntryFormAction;
   readonly chart: ChartOutput;
+  readonly titles: readonly string[];
   readonly editing?: EditedEntry | undefined;
 };
 
@@ -179,6 +181,7 @@ export function AmountInput({
 
 export function EntryFormShell({
   action,
+  titles,
   editing,
   mode,
   children,
@@ -236,18 +239,14 @@ export function EntryFormShell({
             className={DATE_CONTROL}
           />
         </div>
-        <div className={`${DENSE_FIELD} grow`}>
-          <label htmlFor={`${id}-entry-title`} className={FIELD_LABEL}>{en.entryForm.entryTitle}</label>
-          <input
-            id={`${id}-entry-title`}
-            name={ENTRY_FORM_FIELDS.title}
-            type="text"
-            role="combobox"
-            aria-expanded={false}
-            defaultValue={variant.entry?.title}
-            className={CONTROL}
-          />
-        </div>
+        <TitleCombobox
+          id={`${id}-entry-title`}
+          name={ENTRY_FORM_FIELDS.title}
+          label={en.entryForm.entryTitle}
+          defaultValue={variant.entry?.title}
+          titles={titles}
+          className="grow"
+        />
         <div className={`${DENSE_FIELD} basis-full wide:col-span-full`}>
           <label htmlFor={`${id}-memo`} className={FIELD_LABEL}>{en.entryForm.memo}</label>
           <input

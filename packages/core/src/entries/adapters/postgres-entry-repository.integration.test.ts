@@ -736,6 +736,51 @@ describe('createPostgresEntryRepository', () => {
     expect(await memosFound({ memo: 'rent' })).toEqual(['Kept rent']);
   });
 
+  it("answers the User's Titles once each ignoring case, spelled as on the latest Entry carrying it, the most recently created first whatever its day", async () => {
+    const at = (minute: number): Date => new Date(Date.UTC(2026, 9, 4, 9, minute));
+    await repository.save(ADA, entry({ title: 'Starbucks', entryDate: '2026-09-15', createdAt: at(1) }));
+    await repository.save(ADA, entry({ title: 'Salary', entryDate: '2026-09-10', createdAt: at(2) }));
+    await repository.save(ADA, entry({ title: '', entryDate: '2026-09-30', createdAt: at(3) }));
+    await repository.save(ADA, entry({ title: 'Rent', entryDate: '2026-09-20', createdAt: at(4) }));
+    await repository.save(ADA, entry({ title: 'starbucks', entryDate: '2026-09-01', createdAt: at(5) }));
+    await repository.save(ADA, entry({ title: 'SALARY', entryDate: '2026-09-02', createdAt: at(0) }));
+
+    expect(await repository.titles(ADA)).toEqual(ok(['starbucks', 'Rent', 'Salary']));
+  });
+
+  it('orders Titles created at the same instant by the later id first', async () => {
+    const first = entry({ title: 'First' });
+    const second = entry({ title: 'Second' });
+    await repository.save(ADA, first);
+    await repository.save(ADA, second);
+
+    expect(await repository.titles(ADA)).toEqual(ok(['Second', 'First']));
+  });
+
+  it('answers no Title carried only by a reversed Entry, nor by its Reversal', async () => {
+    const doomed = entry({ title: 'Gone' });
+    await repository.save(ADA, doomed);
+    await repository.save(ADA, entry({ title: 'Kept' }));
+    await repository.saveReversal(ADA, reversalOf(doomed));
+
+    expect(await repository.titles(ADA)).toEqual(ok(['Kept']));
+  });
+
+  it("keeps the Titles inside one User's books (ADR-0021)", async () => {
+    await repository.save(ADA, entry({ title: 'Secret' }));
+    await repository.save(GRACE, entry({ title: 'Mine' }));
+
+    expect(await repository.titles(GRACE)).toEqual(ok(['Mine']));
+    expect(await repository.titles(ADA)).toEqual(ok(['Secret']));
+  });
+
+  it('reports an unreachable database when reading the Titles', async () => {
+    const result = await dead.titles(ADA);
+
+    expect(isErr(result) && result.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+    expect(logged.map((fields) => fields.event)).toEqual(['entries.titles_failed']);
+  });
+
   it('reports an unreachable database when reading one Entry or saving a Reversal', async () => {
     const saved = entry();
     const read = await dead.find(ADA, saved.id);
