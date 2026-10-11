@@ -34,7 +34,7 @@ import {
 import { addAccount, BOOKS_OPEN } from './accounts';
 import { signIn } from './session';
 import { setEntryFormMode } from './settings';
-import { PHONE } from './viewport';
+import { PHONE, WIDE_BELOW_SPLIT } from './viewport';
 
 async function openMultiLineForm(
   page: Page,
@@ -245,6 +245,28 @@ test('lists a Multi-line mode Entry added at 390px through Choose accounts', asy
   await expect(entry).toHaveCount(1);
   await expect(entry.getByTestId('entry-line')).toHaveCount(3);
   await expect(entry.getByTestId('entry-total')).toContainText(TWELVE_THOUSAND_FIVE_HUNDRED);
+});
+
+test('keeps the tab on the ticked Side at 1024px, whether or not the other Side has an Account', async ({ page }) => {
+  const form = await openMultiLineForm(page);
+  await page.setViewportSize(WIDE_BELOW_SPLIT);
+  await expectSheetOnSide(form, 'Debit');
+
+  await accountTick(form, 'Debit', 'Expenses').check();
+  await expect(accountTick(form, 'Debit', 'Expenses')).toBeChecked();
+  await expectSheetOnSide(form, 'Debit');
+  await expect(accountTicks(form, 'Debit')).toBeVisible();
+  await expect(accountTicks(form, 'Credit')).toBeHidden();
+
+  await sheetTab(form, 'Credit').click();
+  await accountTick(form, 'Credit', 'Cash').check();
+  await expect(accountTick(form, 'Credit', 'Cash')).toBeChecked();
+  await expectSheetOnSide(form, 'Credit');
+  await accountTick(form, 'Credit', 'Accounts payable').check();
+  await expect(accountTick(form, 'Credit', 'Accounts payable')).toBeChecked();
+  await expectSheetOnSide(form, 'Credit');
+
+  await expect(lineGroups(form)).toHaveCount(3);
 });
 
 const OLD_WALLET: AddedAccount = { added: 'Old wallet' };

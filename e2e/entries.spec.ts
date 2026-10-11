@@ -29,7 +29,7 @@ import {
 import { BOOKS_OPEN } from './accounts';
 import { signIn, signInForSmoke } from './session';
 import { setEntryFormMode } from './settings';
-import { PHONE } from './viewport';
+import { PHONE, WIDE_BELOW_SPLIT } from './viewport';
 
 async function expectListedAsSubmitted(entry: Locator): Promise<void> {
   await expect(entry).toHaveCount(1);
@@ -255,6 +255,60 @@ test('lists a Two-line mode Entry added at 390px through Choose accounts', async
   await submitTwoLineEntryOnPhone(form, { day: DAY, memo, debitAccount: 'Expenses', creditAccount: 'Cash', amount: AMOUNT });
 
   await expectListedAsSubmitted(listedEntry(page, memo));
+});
+
+async function openTabbedTwoLineForm(page: Page): Promise<Locator> {
+  const form = await openTwoLineForm(page);
+  await page.setViewportSize(WIDE_BELOW_SPLIT);
+  await expectSheetOnSide(form, 'Debit');
+  return form;
+}
+
+test('shows the Credit tab at 1024px once a Debit Account is chosen while Credit has none', async ({ page }) => {
+  const form = await openTabbedTwoLineForm(page);
+
+  await accountChoice(form, 'Debit', 'Cash').check();
+  await expectSheetOnSide(form, 'Credit');
+  await expect(accountChoices(form, 'Credit')).toBeVisible();
+  await expect(accountChoices(form, 'Debit')).toBeHidden();
+
+  await accountChoice(form, 'Credit', 'Expenses').check();
+  await expectSheetOnSide(form, 'Credit');
+  await sheetTab(form, 'Debit').click();
+  await expect(accountChoice(form, 'Debit', 'Cash')).toBeChecked();
+});
+
+test('shows the Debit tab at 1024px once a Credit Account is chosen while Debit has none', async ({ page }) => {
+  const form = await openTabbedTwoLineForm(page);
+
+  await sheetTab(form, 'Credit').click();
+  await expectSheetOnSide(form, 'Credit');
+  await accountChoice(form, 'Credit', 'Sales').check();
+  await expectSheetOnSide(form, 'Debit');
+  await expect(accountChoices(form, 'Debit')).toBeVisible();
+  await expect(accountChoices(form, 'Credit')).toBeHidden();
+
+  await accountChoice(form, 'Debit', 'Cash').check();
+  await expectSheetOnSide(form, 'Debit');
+  await sheetTab(form, 'Credit').click();
+  await expect(accountChoice(form, 'Credit', 'Sales')).toBeChecked();
+});
+
+test('keeps the tab at 1024px when an Account is chosen on one Side while both Sides already have one', async ({ page }) => {
+  const form = await openTabbedTwoLineForm(page);
+  await accountChoice(form, 'Debit', 'Cash').check();
+  await sheetTab(form, 'Credit').click();
+  await accountChoice(form, 'Credit', 'Expenses').check();
+
+  await sheetTab(form, 'Debit').click();
+  await accountChoice(form, 'Debit', 'Sales').check();
+  await expectSheetOnSide(form, 'Debit');
+  await expect(accountChoice(form, 'Debit', 'Sales')).toBeChecked();
+
+  await sheetTab(form, 'Credit').click();
+  await accountChoice(form, 'Credit', 'Capital').check();
+  await expectSheetOnSide(form, 'Credit');
+  await expect(accountChoice(form, 'Credit', 'Capital')).toBeChecked();
 });
 
 test('renders the entry form and the list of entries', { tag: '@smoke' }, async ({ page, context, baseURL }) => {

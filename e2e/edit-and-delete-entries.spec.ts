@@ -13,6 +13,7 @@ import {
   entries,
   entryForm,
   entrySearchForm,
+  expectSheetOnSide,
   lineAmount,
   lineGroups,
   listedEntry,
@@ -28,7 +29,7 @@ import {
 } from './entries';
 import { resultFor, results, search } from './entry-search';
 import { ENTRY_SEARCH_PATH as SEARCH, ENTRY_SEARCH_WITH_QUERY } from './routes';
-import { BOOKS_OPEN } from './accounts';
+import { addAccount, BOOKS_OPEN } from './accounts';
 import {
   clickScrim,
   closeDialog,
@@ -40,7 +41,7 @@ import {
 } from './dialog';
 import { signIn } from './session';
 import { setEntryFormMode } from './settings';
-import { PHONE } from './viewport';
+import { PHONE, WIDE_BELOW_SPLIT } from './viewport';
 
 const EDITED_DAY = '2026-09-20';
 
@@ -408,6 +409,45 @@ test('keeps Edit entry open with its input when a press inside it is released on
 
   await closeDiscarding(dialog);
   await expectAsPosted(listedEntry(page, memo));
+});
+
+const OLD_WALLET = 'Old wallet';
+
+const WALLET_IN_USE = '2026-09-15';
+
+const WALLET_ENDED = '2026-10-05';
+
+test('shows the Credit tab of Edit entry at 1024px once a Debit Account is chosen while Credit has none, and keeps it once both Sides have one', async ({ page }) => {
+  const memo = `Wallet ${randomUUID()}`;
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
+  await page.goto('/settings');
+  await addAccount(page, 'Assets', { name: OLD_WALLET, activeFrom: '2026-09-01', activeUntil: '2026-09-30' });
+  await setEntryFormMode(page, 'Two-line mode');
+  await page.goto('/entries');
+  const form = entryForm(page);
+  await form.getByLabel('Date').fill(WALLET_IN_USE);
+  await form.getByLabel('Memo').fill(memo);
+  await accountChoice(form, 'Debit', 'Expenses').check();
+  await accountChoice(form, 'Credit', OLD_WALLET).check();
+  await form.getByLabel('Amount').fill(AMOUNT);
+  await submit(form);
+  await expect(listedEntry(page, memo)).toHaveCount(1);
+
+  await page.setViewportSize(WIDE_BELOW_SPLIT);
+  const dialog = await openEditEntry(listedEntry(page, memo));
+  await dialog.getByLabel('Date').fill(WALLET_ENDED);
+  await expect(accountChoice(dialog, 'Credit', OLD_WALLET)).toHaveCount(0);
+  await expectSheetOnSide(dialog, 'Debit');
+  await expect(accountChoice(dialog, 'Debit', 'Expenses')).toBeChecked();
+
+  await accountChoice(dialog, 'Debit', 'Cash').check();
+  await expectSheetOnSide(dialog, 'Credit');
+  await expect(accountChoices(dialog, 'Credit')).toBeVisible();
+  await expect(accountChoices(dialog, 'Debit')).toBeHidden();
+
+  await accountChoice(dialog, 'Credit', 'Capital').check();
+  await expectSheetOnSide(dialog, 'Credit');
+  await expect(accountChoice(dialog, 'Credit', 'Capital')).toBeChecked();
 });
 
 test('edits and deletes an Entry at 390px', async ({ page }) => {
