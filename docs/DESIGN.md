@@ -576,7 +576,10 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   Input's, narrowing both Sides as the Account sheet's does, with the
   same `No account matches` line. From `wide` to below `split` one Side is
   shown at a time under `Debit` and `Credit` tabs, drawn as the Account sheet's
-  but with the shown tab underlined and set in its Side's colour; when a submit
+  but with the shown tab underlined and set in its Side's colour. In Two-line
+  mode, choosing an Account on one Side while the other has none shows the
+  other Side's tab, as the Account sheet does; a choice while both Sides have
+  one, or a tick in Multi-line mode, keeps the tab. When a submit
   finds a Side missing its required Account, the first such Side's tab is
   shown, so the browser's message is visible. From `split`
   up there are no tabs and the two Sides sit side by side, Credit's column

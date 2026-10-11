@@ -458,6 +458,13 @@ function AccountColumns({
   const hasAccount = (side: Side): boolean =>
     accountsIn(chart).some((account) => isChosen(side, account.id));
 
+  const pick = (side: Side, account: AccountOutput, chosen: boolean): void => {
+    onPick(side, account, chosen);
+    if (!multiple && chosen && !hasAccount(otherSide(side))) {
+      setShown(otherSide(side));
+    }
+  };
+
   return (
     <div
       className={`hidden min-w-0 flex-col overflow-hidden rounded-panel border border-border bg-ground shadow-lift wide:flex ${typeClasses['body-dense']}`}
@@ -496,7 +503,7 @@ function AccountColumns({
               look={INLINE_LOOK}
               isChosen={(account) => isChosen(side, account)}
               onPick={(account, chosen) => {
-                onPick(side, account, chosen);
+                pick(side, account, chosen);
               }}
               onInvalid={() => {
                 setShown(SIDES.find((missing) => !hasAccount(missing)) ?? side);
