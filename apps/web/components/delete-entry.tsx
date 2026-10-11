@@ -72,13 +72,13 @@ export function DeleteEntry({ entry, action }: DeleteEntryProps): ReactNode {
             <time dateTime={entry.entryDate} className={`${typeClasses.date} shrink-0 text-text-muted`}>
               {entry.entryDate}
             </time>{' '}
-            <span className="flex min-w-0 grow flex-wrap items-baseline gap-x-2 font-semibold">
+            <span className="flex min-w-0 grow flex-wrap items-baseline gap-x-2">
               {entry.title === '' ? null : (
                 <>
-                  <span>{entry.title}</span>{' '}
+                  <span className="font-semibold">{entry.title}</span>{' '}
                 </>
               )}
-              <span className="min-w-0">{entry.memo}</span>
+              <span className="min-w-0 text-text-muted">{entry.memo}</span>
             </span>{' '}
             <span className={`shrink-0 ${typeClasses.figure} font-medium`}>
               {formatAmount(entry.total)}
