@@ -130,7 +130,14 @@ anything.
   slashes, with `git.deploymentEnabled` set to `**: false` and `main: true`.
   The policy applies to commits carrying that configuration; existing branches
   without it need no synchronization or project-wide block.
-  Nothing deploys from a CLI and no Vercel token is held.
+  Explicit Preview requests use the Vercel CLI through the manually dispatched
+  Actions workflow. Repository branches and full commit SHAs resolve once before
+  owner approval in `preview-deployment`; checkout and deployment use that frozen
+  SHA. Only that environment holds `VERCEL_TOKEN`. Every request deploys Preview,
+  including `main`, with Vercel's default build cache. The CLI workflow provides
+  no Production deployment, Promotion or rollback path. Production remains on
+  the Git integration and its Deployment Checks. Actual environment protection
+  and an owner-approved Preview are verified before operational adoption.
 - *Migrations.* Applied from CI, never from a Vercel build, and only after the
   owner approves in `production-database`.
 - *Smoke.* Every smoke run uses the `@smoke`-tagged read-only specs, passes the
