@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { duringComposition } from './composition';
 import { CONTROL, DENSE_FIELD, FIELD_LABEL } from './control-classes';
 import { matchesTyped } from './typed-text';
 
@@ -16,9 +17,7 @@ export type TitleComboboxProps = {
 const LIST =
   'absolute inset-x-0 top-full z-10 mt-1 max-h-60 overflow-y-auto rounded-control border border-border bg-surface py-1';
 const OPTION =
-  'break-words px-2 py-1.5 text-text hover:bg-surface-hover aria-selected:bg-surface-chosen';
-
-const IME_PROCESSING = 229;
+  'break-words px-2 py-1.5 text-text hover:bg-surface-hover aria-selected:bg-surface-hover';
 
 const step = (
   offered: readonly string[],
@@ -72,18 +71,12 @@ export function TitleCombobox({
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
-    const imeBusy =
-      composing.current ||
-      event.nativeEvent.isComposing ||
-      /* eslint-disable-next-line @typescript-eslint/no-deprecated -- Safari reports the Enter that ends a composition only as keyCode 229 */
-      event.keyCode === IME_PROCESSING;
-    if (imeBusy) {
-      if (event.key === 'Enter' || event.key === 'Escape') {
-        event.stopPropagation();
-      }
-      if (event.key === 'Enter') {
-        event.preventDefault();
-      }
+    const composition = duringComposition(event.nativeEvent, composing.current);
+    if (composition === 'hold') {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    if (composition !== 'none') {
       return;
     }
     switch (event.key) {

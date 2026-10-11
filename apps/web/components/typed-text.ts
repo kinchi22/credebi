@@ -1,2 +1,2 @@
-export const matchesTyped = (name: string, typed: string): boolean =>
-  name.toLowerCase().includes(typed.trim().toLowerCase());
+export const matchesTyped = (text: string, typed: string): boolean =>
+  text.toLowerCase().includes(typed.trim().toLowerCase());
