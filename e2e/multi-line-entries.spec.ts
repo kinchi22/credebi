@@ -10,6 +10,7 @@ import {
   DAY,
   entries,
   entryForm,
+  expectPickerOnSide,
   expectSheetOnSide,
   findAnAccount,
   lineAmount,
@@ -21,7 +22,6 @@ import {
   notActiveMark,
   openEditEntry,
   submit,
-  type AddedAccount,
   type LineAccount,
   openAccountSheet,
   pressDone,
@@ -31,7 +31,14 @@ import {
   submitMultiLineEntryOnPhone,
   TWELVE_THOUSAND_FIVE_HUNDRED,
 } from './entries';
-import { addAccount, BOOKS_OPEN } from './accounts';
+import {
+  addOldWallet,
+  BOOKS_OPEN,
+  OLD_WALLET,
+  WALLET_ENDED,
+  WALLET_IN_USE,
+  WALLET_STILL_IN_USE,
+} from './accounts';
 import { signIn } from './session';
 import { setEntryFormMode } from './settings';
 import { PHONE, WIDE_BELOW_SPLIT } from './viewport';
@@ -250,50 +257,29 @@ test('lists a Multi-line mode Entry added at 390px through Choose accounts', asy
 test('keeps the tab on the ticked Side at 1024px, whether or not the other Side has an Account', async ({ page }) => {
   const form = await openMultiLineForm(page);
   await page.setViewportSize(WIDE_BELOW_SPLIT);
-  await expectSheetOnSide(form, 'Debit');
+  await expectPickerOnSide(form, 'Debit', accountTicks);
 
   await accountTick(form, 'Debit', 'Expenses').check();
   await expect(accountTick(form, 'Debit', 'Expenses')).toBeChecked();
-  await expectSheetOnSide(form, 'Debit');
-  await expect(accountTicks(form, 'Debit')).toBeVisible();
-  await expect(accountTicks(form, 'Credit')).toBeHidden();
+  await expectPickerOnSide(form, 'Debit', accountTicks);
 
   await sheetTab(form, 'Credit').click();
   await accountTick(form, 'Credit', 'Cash').check();
   await expect(accountTick(form, 'Credit', 'Cash')).toBeChecked();
-  await expectSheetOnSide(form, 'Credit');
+  await expectPickerOnSide(form, 'Credit', accountTicks);
   await accountTick(form, 'Credit', 'Accounts payable').check();
   await expect(accountTick(form, 'Credit', 'Accounts payable')).toBeChecked();
-  await expectSheetOnSide(form, 'Credit');
+  await expectPickerOnSide(form, 'Credit', accountTicks);
 
   await expect(lineGroups(form)).toHaveCount(3);
 });
-
-const OLD_WALLET: AddedAccount = { added: 'Old wallet' };
-
-const WALLET_ACTIVE_FROM = '2026-09-01';
-
-const WALLET_IN_USE = '2026-09-15';
-
-const WALLET_STILL_IN_USE = '2026-09-20';
-
-const WALLET_ACTIVE_UNTIL = '2026-09-30';
-
-const WALLET_ENDED = '2026-10-05';
 
 const ALL_LINES: readonly LineAccount[] = ['Expenses', OLD_WALLET, 'Cash'];
 
 const WITHOUT_WALLET: readonly LineAccount[] = ['Expenses', 'Cash'];
 
 async function openMultiLineFormWithOldWallet(page: Page): Promise<Locator> {
-  return openMultiLineForm(page, async (settings) => {
-    await settings.goto('/settings');
-    await addAccount(settings, 'Assets', {
-      name: nameOf(OLD_WALLET),
-      activeFrom: WALLET_ACTIVE_FROM,
-      activeUntil: WALLET_ACTIVE_UNTIL,
-    });
-  });
+  return openMultiLineForm(page, addOldWallet);
 }
 
 async function fillWalletLines(form: Locator, memo: string, expenses: string): Promise<void> {

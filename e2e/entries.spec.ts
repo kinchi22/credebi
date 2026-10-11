@@ -13,6 +13,7 @@ import {
   entries,
   entryForm,
   expectDebitAndCreditColumns,
+  expectPickerOnSide,
   expectSheetOnSide,
   findAnAccount,
   listedEntry,
@@ -260,7 +261,7 @@ test('lists a Two-line mode Entry added at 390px through Choose accounts', async
 async function openTabbedTwoLineForm(page: Page): Promise<Locator> {
   const form = await openTwoLineForm(page);
   await page.setViewportSize(WIDE_BELOW_SPLIT);
-  await expectSheetOnSide(form, 'Debit');
+  await expectPickerOnSide(form, 'Debit');
   return form;
 }
 
@@ -268,12 +269,10 @@ test('shows the Credit tab at 1024px once a Debit Account is chosen while Credit
   const form = await openTabbedTwoLineForm(page);
 
   await accountChoice(form, 'Debit', 'Cash').check();
-  await expectSheetOnSide(form, 'Credit');
-  await expect(accountChoices(form, 'Credit')).toBeVisible();
-  await expect(accountChoices(form, 'Debit')).toBeHidden();
+  await expectPickerOnSide(form, 'Credit');
 
   await accountChoice(form, 'Credit', 'Expenses').check();
-  await expectSheetOnSide(form, 'Credit');
+  await expectPickerOnSide(form, 'Credit');
   await sheetTab(form, 'Debit').click();
   await expect(accountChoice(form, 'Debit', 'Cash')).toBeChecked();
 });
@@ -282,14 +281,12 @@ test('shows the Debit tab at 1024px once a Credit Account is chosen while Debit 
   const form = await openTabbedTwoLineForm(page);
 
   await sheetTab(form, 'Credit').click();
-  await expectSheetOnSide(form, 'Credit');
+  await expectPickerOnSide(form, 'Credit');
   await accountChoice(form, 'Credit', 'Sales').check();
-  await expectSheetOnSide(form, 'Debit');
-  await expect(accountChoices(form, 'Debit')).toBeVisible();
-  await expect(accountChoices(form, 'Credit')).toBeHidden();
+  await expectPickerOnSide(form, 'Debit');
 
   await accountChoice(form, 'Debit', 'Cash').check();
-  await expectSheetOnSide(form, 'Debit');
+  await expectPickerOnSide(form, 'Debit');
   await sheetTab(form, 'Credit').click();
   await expect(accountChoice(form, 'Credit', 'Sales')).toBeChecked();
 });
@@ -302,12 +299,12 @@ test('keeps the tab at 1024px when an Account is chosen on one Side while both S
 
   await sheetTab(form, 'Debit').click();
   await accountChoice(form, 'Debit', 'Sales').check();
-  await expectSheetOnSide(form, 'Debit');
+  await expectPickerOnSide(form, 'Debit');
   await expect(accountChoice(form, 'Debit', 'Sales')).toBeChecked();
 
   await sheetTab(form, 'Credit').click();
   await accountChoice(form, 'Credit', 'Capital').check();
-  await expectSheetOnSide(form, 'Credit');
+  await expectPickerOnSide(form, 'Credit');
   await expect(accountChoice(form, 'Credit', 'Capital')).toBeChecked();
 });
 
