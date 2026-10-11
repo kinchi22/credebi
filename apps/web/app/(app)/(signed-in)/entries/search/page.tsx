@@ -36,34 +36,36 @@ export default async function EntrySearchPage({
     if (!(await caller.auth.signedIn())) {
       redirect(signInPath(ENTRY_SEARCH_PATH));
     }
-    const [{ entryFormMode }, chart] = await Promise.all([
+    const [{ entryFormMode }, chart, titles] = await Promise.all([
       orSignIn(caller.settings.read(), path),
       orSignIn(caller.accounts.chart(), path),
+      orSignIn(caller.entries.titles(), path),
     ]);
     return (
       <>
         {heading}
         <EntrySearchColdVisit
           search={searchDefaultRange}
-          controls={{ chart, entryFormMode, editEntry, deleteEntry }}
+          controls={{ chart, titles, entryFormMode, editEntry, deleteEntry }}
         />
       </>
     );
   }
 
-  const [settings, chart, answer] = await Promise.all([
+  const [settings, chart, titles, answer] = await Promise.all([
     orSignIn(caller.settings.read(), path),
     orSignIn(caller.accounts.chart(), path),
+    orSignIn(caller.entries.titles(), path),
     answerEntrySearch((criteria) => orSignIn(caller.entries.search(criteria), path), query),
   ]);
 
   return (
     <>
       {heading}
-      <EntrySearchForm criteria={answer.criteria} chart={chart} />
+      <EntrySearchForm criteria={answer.criteria} chart={chart} titles={titles} />
       <EntrySearchOutcome
         answer={answer}
-        controls={{ chart, entryFormMode: settings.entryFormMode, editEntry, deleteEntry }}
+        controls={{ chart, titles, entryFormMode: settings.entryFormMode, editEntry, deleteEntry }}
       />
     </>
   );

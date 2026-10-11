@@ -20,6 +20,7 @@ export {
 
 export {
   MEMO_MAX_LENGTH,
+  TITLE_MAX_LENGTH,
   makeEntry,
   type Entry,
   type EntryDraft,
@@ -41,6 +42,9 @@ export {
   createSearchEntries,
   type SearchEntries,
   type SearchEntriesDependencies,
+  createGetTitles,
+  type GetTitles,
+  type GetTitlesDependencies,
   type EntryRepository,
   type UnitOfWork,
 } from './entries/index';

@@ -259,7 +259,7 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `ground-dark`        | `ink`       | the Sidebar's ground                  |
 | `ground-dark-raised` | `ink-raised` | the active Sidebar item              |
 | `ground-dark-hover`  | `ink-mid`    | an idle Sidebar item under the pointer |
-| `surface-hover`      | `mist-pale`  | an Entry in the Entries list under the pointer |
+| `surface-hover`      | `mist-pale`  | an Entry in the Entries list, and a Title suggestion, under the pointer or reached by the arrow keys |
 | `surface-chosen`     | `mint-pale`  | a chosen chip in the Account picker  |
 | `accent`             | `mint`      | the primary button fill, the mark     |
 | `accent-text`        | `mint-deep` | links, accent text on a light ground  |
@@ -326,14 +326,13 @@ A new text colour or ground is added to these pairs in the same change.
 
 Text is set in **IBM Plex Sans**: SemiBold for headings, panel titles and
 labels, Regular for reading, and Medium, weight 500 (`font-medium`), for the
-active Sidebar link, an Entry's memo in the Entries list, the entry form's
-Date and Memo labels, an Account group's caption and a chosen chip in the
-Account picker alone. Only figures and dates are set in a monospaced
-face, **IBM Plex Mono** Regular, so every column of amounts lines up; a label,
-a panel title or a Side's name is never monospaced. A figure that must stand
-out, such as an Entry's total or a Difference that is not zero, is IBM Plex
-Mono Medium, weight 500 (`font-medium`), never bold. Nothing is set below
-11.5px.
+active Sidebar link, the entry form's Date, Title and Memo labels, an Account
+group's caption and a chosen chip in the Account picker alone. Only figures and
+dates are set in a monospaced face, **IBM Plex Mono** Regular, so every column
+of amounts lines up; a label, a panel title or a Side's name is never
+monospaced. A figure that must stand out, such as an Entry's total or a
+Difference that is not zero, is IBM Plex Mono Medium, weight 500
+(`font-medium`), never bold. Nothing is set below 11.5px.
 
 | Step         | Face                   | Size / line height | Letter spacing | Also             |
 | ------------ | ---------------------- | ------------------ | -------------- | ---------------- |
@@ -547,6 +546,11 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   move is saved or refused, the section holds still: its rows, bands and
   `Show ended accounts` are at 60% opacity, every button, grip and the toggle
   is disabled, nothing can be dragged, and the section is `aria-busy`.
+- **Entry search form.** After From and To come Account, Title and Memo, in
+  that order, then the submit. Title and Memo grow to share the row's spare
+  width. Title is the search form's field size, `body-sm` with a plain label,
+  as its neighbours are, and offers the same Title suggestions as the entry
+  form.
 - **Date presets.** A row of secondary buttons, `Year`, `Quarter`, `Month`
   and `Relative`, below a `border` hairline at the foot of the Entry search
   form, from `wide` up. Each opens its choices on hover in a `surface` panel
@@ -629,9 +633,21 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   `split` up the entry form in a fixed 400px column with the picker taking the
   rest. Wherever the form names a Side, the name is in `label` and the Side's
   colour.
-- **Date and Memo.** From `wide` up they share one row: Date in a 148px
-  column, Memo filling the rest. Below `wide` they wrap, Date at its own width
-  and Memo growing beside it. Their labels are medium, in `text-muted`.
+- **Date, Title and Memo.** From `wide` up Date and Title share one row: Date
+  in a 148px column, Title filling the rest. Below `wide` they wrap, Date at its
+  own width and Title growing beside it. Memo takes the next row at full width.
+  Their labels are medium, in `text-muted`.
+- **Title suggestions.** Title is a combobox, in the entry form, Edit entry
+  and Entry search's Title criterion alike: clicked, typed in or opened with
+  the arrow keys, it lists the User's Titles containing the typed text, in
+  `body-dense`, just below the field and exactly as wide. The list is a
+  `surface` panel with a `border` edge, the `control` radius and no shadow,
+  scrolling past 240px. A Title wraps rather than being cut. An option under the
+  pointer, and the one the arrow keys reach, is tinted `surface-hover`. Choosing
+  one, by click or Enter, fills the field and closes the list; Escape closes it
+  alone. Nothing is listed when no Title matches. Enter and Escape pressed while
+  an input method is composing finish the text and nothing else, in Edit entry
+  too, whose dialog they never close.
 - **Entry form dividers.** In both Entry form modes a 2px rule in the Side's
   colour sits above each Side: above its row, padded 12px above and below, in
   Two-line mode, above its block
@@ -684,8 +700,10 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   4px below the panel's padding. Each Entry is padded 16px above and below and
   reaches the panel's edges, as `PANEL_BLEED` does, and under the pointer it is
   tinted `surface-hover`. Its first row holds the date in `date` and
-  `text-muted`, the memo medium and filling the space, and the Entry's total
-  on the right in `figure`, medium. Below it two equal columns, Debit and Credit,
+  `text-muted`, the Title, when it has one, semibold in `text`, then the memo
+  Regular in `text-muted`, with or without a Title, the two filling the space
+  and wrapping together, and the Entry's total on the right in `figure`,
+  medium. Below it two equal columns, Debit and Credit,
   Credit's behind a `border` hairline, each headed by the Side in `label` and
   the Side's colour over a 1.5px rule in that colour. In `body-dense`, each line
   is one row, the Account name on the left and its amount on the right in
@@ -714,7 +732,8 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   focus returns to the button that opened it; while the action runs both
   buttons are disabled and the dialog does not close. It is `Delete entry`,
   opened by an Entry's `Delete`, whose thing is the Entry's date in `date` and
-  `text-muted`, memo, semibold, and total in `figure`, as its row shows them.
+  `text-muted`, its Title, when it has one, semibold in `text`, its memo
+  Regular in `text-muted`, and total in `figure`, as its row shows them.
   It is also `Delete account` and `Delete group`, opened by a row's `Delete`
   in the Accounts section, with the Account type in `text-muted` below the
   title and the Account's or group's name, semibold, as the thing.
@@ -758,7 +777,7 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   radius, 36px tall. The spec's component properties have no border colour, so
   the edge is stated here only. A select is drawn the same. A date Input drops
   the browser's own drawing, so it stands as tall as the text Input beside it:
-  the entry form's Date beside Memo, and Entry search's From and To. Focused,
+  the entry form's Date beside Title, and Entry search's From and To. Focused,
   it shows a 3px `accent` halo at 25% around its edge, beside the focus ring.
 - **Sidebar.** Dark: a `ground-dark` ground and `text-on-dark` text, 232px
   wide from `wide` up, padded 20px above, 16px below and 12px at the sides. The
@@ -783,7 +802,8 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   the ring. The halo is decoration beside the ring, which alone carries the focus,
   so it has no contrast pair.
 - **Pointer.** Every enabled control a click acts on shows the pointer cursor:
-  a button, a tab, a radio or checkbox and the label that wraps one. One base
+  a button, a tab, an option of a listbox, a radio or checkbox and the label
+  that wraps one. One base
   rule in `apps/web/app/globals.css` gives it, so no component sets a cursor of
   its own. A disabled control keeps the default cursor. Links have the pointer
   already.

@@ -98,6 +98,7 @@ function entry(overrides: Partial<EntryDraft> & { readonly createdAt?: Date } = 
   const made = makeEntry(
     {
       entryDate: '2026-09-15',
+      title: 'Stationers',
       memo: 'Office supplies',
       lines: [
         { account: EXPENSES, side: 'debit', amount: 12500 as Money },
@@ -144,7 +145,7 @@ async function countEntries(): Promise<number> {
 }
 
 describe('createPostgresEntryRepository', () => {
-  it('answers with an entry as it was saved: day, memo, instant, lines in order, total', async () => {
+  it('answers with an entry as it was saved: day, Title, memo, instant, lines in order, total', async () => {
     const saved = entry({
       lines: [
         { account: CASH, side: 'credit', amount: 5000 as Money },
@@ -539,6 +540,35 @@ describe('createPostgresEntryRepository', () => {
     expect(await memosFound({ memo: '\\' })).toEqual([String.raw`Path C:\temp`]);
   });
 
+  it('stores an Entry with no memo as the empty string, and reads it back so', async () => {
+    const memoLess = entry({ memo: '' });
+
+    expect(await repository.save(ADA, memoLess)).toEqual(ok(undefined));
+
+    expect(await found()).toEqual([memoLess]);
+  });
+
+  it('stores a Title as typed, its case kept, and an Entry with no Title as the empty string', async () => {
+    const titled = entry({ title: 'sTarBucks', createdAt: new Date('2026-09-15T01:00:00.000Z') });
+    const untitled = entry({ title: '' });
+    await repository.save(ADA, titled);
+    await repository.save(ADA, untitled);
+
+    expect(await found()).toEqual([titled, untitled]);
+    const rows = await database.execute<{ title: string }>(
+      sql`select title from entries order by created_at desc`,
+    );
+    expect(rows.rows).toEqual([{ title: 'sTarBucks' }, { title: '' }]);
+  });
+
+  it('matches no memo term against an Entry with no memo', async () => {
+    await repository.save(ADA, entry({ memo: '' }));
+    await repository.save(ADA, entry({ memo: 'Rail fare' }));
+
+    expect(await memosFound({ memo: 'a' })).toEqual(['Rail fare']);
+    expect(await memosFound({ memo: '%' })).toEqual([]);
+  });
+
   it('answers with nothing for a term no memo of the User contains', async () => {
     await repository.save(ADA, entry({ memo: 'Rail fare' }));
 
@@ -587,6 +617,70 @@ describe('createPostgresEntryRepository', () => {
     await repository.save(ADA, entry({ memo: 'Rail fare' }));
 
     expect(await found(ADA, { memo: 'coffee' })).toEqual([matching]);
+  });
+
+  it('narrows to the Entries whose Title is the Title criterion, whatever the case of either', async () => {
+    await repository.save(ADA, entry({ title: 'Starbucks', memo: 'Latte' }));
+    await repository.save(ADA, entry({ title: 'STARBUCKS', memo: 'Beans' }));
+    await repository.save(ADA, entry({ title: 'Starbucks Reserve', memo: 'Reserve roast' }));
+    await repository.save(ADA, entry({ title: 'My Starbucks', memo: 'Mug' }));
+    await repository.save(ADA, entry({ title: '', memo: 'Starbucks' }));
+
+    expect((await memosFound({ title: 'starbucks' })).toSorted()).toEqual(['Beans', 'Latte']);
+    expect((await memosFound({ title: 'sTARBUCKS' })).toSorted()).toEqual(['Beans', 'Latte']);
+  });
+
+  it('matches a percent sign and an underscore in a Title criterion literally', async () => {
+    await repository.save(ADA, entry({ title: '100% juice', memo: 'Percent' }));
+    await repository.save(ADA, entry({ title: '1000 juice', memo: 'Digit' }));
+    await repository.save(ADA, entry({ title: 'a_b', memo: 'Underscore' }));
+    await repository.save(ADA, entry({ title: 'axb', memo: 'Letter' }));
+    await repository.save(ADA, entry({ title: String.raw`a\b`, memo: 'Backslash' }));
+
+    expect(await memosFound({ title: '100% juice' })).toEqual(['Percent']);
+    expect(await memosFound({ title: '%' })).toEqual([]);
+    expect(await memosFound({ title: 'a_b' })).toEqual(['Underscore']);
+    expect(await memosFound({ title: String.raw`a\b` })).toEqual(['Backslash']);
+  });
+
+  it('never matches the memo term against a Title, nor the Title criterion against a memo', async () => {
+    await repository.save(ADA, entry({ title: 'Birthday gift', memo: 'Card' }));
+    await repository.save(ADA, entry({ title: 'Card', memo: 'Birthday gift' }));
+
+    expect(await memosFound({ memo: 'birthday' })).toEqual(['Birthday gift']);
+    expect(await memosFound({ title: 'birthday gift' })).toEqual(['Card']);
+  });
+
+  it('narrows by the Title, the memo, the Account and the day range together, with `and`', async () => {
+    const onCash = [
+      { account: EXPENSES, side: 'debit', amount: 300 as Money },
+      { account: CASH, side: 'credit', amount: 300 as Money },
+    ] as const;
+    const onAccount = [
+      { account: EXPENSES, side: 'debit', amount: 300 as Money },
+      { account: PAYABLE, side: 'credit', amount: 300 as Money },
+    ] as const;
+    const june = { entryDate: '2026-06-15', title: 'Rent' } as const;
+    await repository.save(ADA, entry({ ...june, memo: 'June', lines: onCash }));
+    await repository.save(ADA, entry({ ...june, entryDate: '2026-07-15', memo: 'June late', lines: onCash }));
+    await repository.save(ADA, entry({ ...june, memo: 'June on account', lines: onAccount }));
+    await repository.save(ADA, entry({ ...june, memo: 'Deposit', lines: onCash }));
+    await repository.save(ADA, entry({ ...june, title: 'Fuel', memo: 'June fuel', lines: onCash }));
+
+    expect(
+      await memosFound({ from: '2026-06-01', to: '2026-06-30', account: CASH, title: 'rent', memo: 'june' }),
+    ).toEqual(['June']);
+  });
+
+  it("keeps a Title search inside one User's books, and leaves out a reversed Entry (ADR-0021)", async () => {
+    const reversed = entry({ title: 'Coffee', memo: 'Reversed' });
+    await repository.save(ADA, reversed);
+    await repository.saveReversal(ADA, reversalOf(reversed));
+    await repository.save(ADA, entry({ title: 'Coffee', memo: 'Ada' }));
+    await repository.save(GRACE, entry({ title: 'Coffee', memo: 'Grace' }));
+
+    expect(await memosFound({ title: 'coffee' }, ADA)).toEqual(['Ada']);
+    expect(await memosFound({ title: 'coffee' }, GRACE)).toEqual(['Grace']);
   });
 
   it('cannot hold an entry with no User (ADR-0021)', async () => {
@@ -638,17 +732,17 @@ describe('createPostgresEntryRepository', () => {
     });
   });
 
-  it('stores a Reversal linked to the Entry it reverses, with its lines', async () => {
+  it('stores a Reversal linked to the Entry it reverses, with its Title and lines', async () => {
     const saved = entry();
     await repository.save(ADA, saved);
     const reversal = reversalOf(saved);
 
     expect(isOk(await repository.saveReversal(ADA, reversal))).toBe(true);
 
-    const rows = await database.execute<{ reverses: string; lines: number }>(
-      sql`select reverses_entry_id as reverses, (select count(*)::int from entry_lines where entry_id = entries.id) as lines from entries where id = ${reversal.id}`,
+    const rows = await database.execute<{ reverses: string; title: string; lines: number }>(
+      sql`select reverses_entry_id as reverses, title, (select count(*)::int from entry_lines where entry_id = entries.id) as lines from entries where id = ${reversal.id}`,
     );
-    expect(rows.rows).toEqual([{ reverses: saved.id, lines: 2 }]);
+    expect(rows.rows).toEqual([{ reverses: saved.id, title: 'Stationers', lines: 2 }]);
   });
 
   it('refuses a second Reversal of one Entry as a conflict, and keeps the first alone', async () => {
@@ -704,6 +798,51 @@ describe('createPostgresEntryRepository', () => {
     expect(await memosFound({ from: '2026-06-01', to: '2026-06-30' })).toEqual(['Kept rent']);
     expect(await memosFound({ account: CASH })).toEqual(['Kept rent']);
     expect(await memosFound({ memo: 'rent' })).toEqual(['Kept rent']);
+  });
+
+  it("answers the User's Titles once each ignoring case, spelled as on the latest Entry carrying it, the most recently created first whatever its day", async () => {
+    const at = (minute: number): Date => new Date(Date.UTC(2026, 9, 4, 9, minute));
+    await repository.save(ADA, entry({ title: 'Starbucks', entryDate: '2026-09-15', createdAt: at(1) }));
+    await repository.save(ADA, entry({ title: 'Salary', entryDate: '2026-09-10', createdAt: at(2) }));
+    await repository.save(ADA, entry({ title: '', entryDate: '2026-09-30', createdAt: at(3) }));
+    await repository.save(ADA, entry({ title: 'Rent', entryDate: '2026-09-20', createdAt: at(4) }));
+    await repository.save(ADA, entry({ title: 'starbucks', entryDate: '2026-09-01', createdAt: at(5) }));
+    await repository.save(ADA, entry({ title: 'SALARY', entryDate: '2026-09-02', createdAt: at(0) }));
+
+    expect(await repository.titles(ADA)).toEqual(ok(['starbucks', 'Rent', 'Salary']));
+  });
+
+  it('orders Titles created at the same instant by the later id first', async () => {
+    const first = entry({ title: 'First' });
+    const second = entry({ title: 'Second' });
+    await repository.save(ADA, first);
+    await repository.save(ADA, second);
+
+    expect(await repository.titles(ADA)).toEqual(ok(['Second', 'First']));
+  });
+
+  it('answers no Title carried only by a reversed Entry, nor by its Reversal', async () => {
+    const doomed = entry({ title: 'Gone' });
+    await repository.save(ADA, doomed);
+    await repository.save(ADA, entry({ title: 'Kept' }));
+    await repository.saveReversal(ADA, reversalOf(doomed));
+
+    expect(await repository.titles(ADA)).toEqual(ok(['Kept']));
+  });
+
+  it("keeps the Titles inside one User's books (ADR-0021)", async () => {
+    await repository.save(ADA, entry({ title: 'Secret' }));
+    await repository.save(GRACE, entry({ title: 'Mine' }));
+
+    expect(await repository.titles(GRACE)).toEqual(ok(['Mine']));
+    expect(await repository.titles(ADA)).toEqual(ok(['Secret']));
+  });
+
+  it('reports an unreachable database when reading the Titles', async () => {
+    const result = await dead.titles(ADA);
+
+    expect(isErr(result) && result.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+    expect(logged.map((fields) => fields.event)).toEqual(['entries.titles_failed']);
   });
 
   it('reports an unreachable database when reading one Entry or saving a Reversal', async () => {

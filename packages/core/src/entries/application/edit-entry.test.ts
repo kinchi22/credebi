@@ -13,7 +13,7 @@ import {
 import { inMemoryAccounts } from '../../accounts/application/in-memory-accounts';
 import { type Account } from '../../accounts/domain/account';
 import { SIGNED_OUT, type AuthContext } from '../../auth/domain/auth-context';
-import { type Entry, type EntryDraft } from '../domain/entry';
+import { MEMO_MAX_LENGTH, type Entry, type EntryDraft } from '../domain/entry';
 import { NO_CRITERIA } from '../domain/search-criteria';
 import { createDeleteEntry } from './delete-entry';
 import { createEditEntry } from './edit-entry';
@@ -47,6 +47,7 @@ const account = (id: AccountId, accountType: Account['accountType'], name: strin
 
 const DRAFT: EntryDraft = {
   entryDate: '2026-09-15',
+  title: 'Stationers',
   memo: 'Office supplies',
   lines: [
     { account: EXPENSES, side: 'debit', amount: 12500 as Money },
@@ -64,12 +65,15 @@ const GRACES_DRAFT: EntryDraft = {
 
 const REWRITTEN: EntryDraft = {
   entryDate: '2026-09-20',
+  title: 'Paper mill',
   memo: 'Office supplies on account',
   lines: [
     { account: EXPENSES, side: 'debit', amount: 8000 as Money },
     { account: PAYABLE, side: 'credit', amount: 8000 as Money },
   ],
 };
+
+const MEMO_TOO_LONG: EntryDraft = { ...REWRITTEN, memo: 'm'.repeat(MEMO_MAX_LENGTH + 1) };
 
 const UNKNOWN_ID = '01920000-0000-7000-8000-0000000000ff' as EntryId;
 
@@ -129,6 +133,7 @@ describe('createEditEntry', () => {
     expect(edited.value).toEqual({
       id: expect.not.stringMatching(original.id) as unknown,
       entryDate: '2026-09-20',
+      title: 'Paper mill',
       memo: 'Office supplies on account',
       lines: [
         { account: EXPENSES, accountName: 'Expenses', side: 'debit', amount: 8000 },
@@ -157,6 +162,7 @@ describe('createEditEntry', () => {
           id: expect.not.stringMatching(original.id) as unknown,
           reverses: original.id,
           entryDate: original.entryDate,
+          title: original.title,
           memo: original.memo,
           total: original.total,
           createdAt: NOW,
@@ -174,11 +180,51 @@ describe('createEditEntry', () => {
     const { rows, post, editEntry, visible } = useCases();
     const original = await post(ADA, 'Office supplies');
 
-    const edited = await editEntry(ADA, original.id, { ...DRAFT, memo: '  Office supplies ' });
+    const edited = await editEntry(ADA, original.id, {
+      ...DRAFT,
+      title: ' Stationers\t',
+      memo: '  Office supplies ',
+    });
 
     expect(edited).toEqual(ok(original));
     expect(rows).toHaveLength(1);
     expect(await visible(ADA)).toEqual([original]);
+  });
+
+  it('saves clearing the memo as a Correction, leaving a replacement with no memo', async () => {
+    const { rows, post, editEntry, visible } = useCases();
+    const original = await post(ADA, 'Office supplies');
+
+    const edited = await editEntry(ADA, original.id, { ...DRAFT, memo: '  ' });
+
+    expect(isOk(edited) && edited.value.memo).toBe('');
+    expect(rows).toHaveLength(3);
+    expect(memos(await visible(ADA))).toEqual(['']);
+  });
+
+  it.each([
+    ['renaming it', 'Paper mill', 'Paper mill'],
+    ['changing only its case', 'STATIONERS', 'STATIONERS'],
+    ['clearing it', '  ', ''],
+  ])('saves %s as a Correction, leaving a replacement with that Title', async (_case, typed, stored) => {
+    const { rows, post, editEntry, visible } = useCases();
+    const original = await post(ADA, 'Office supplies');
+
+    const edited = await editEntry(ADA, original.id, { ...DRAFT, title: typed });
+
+    expect(isOk(edited) && edited.value.title).toBe(stored);
+    expect(rows).toHaveLength(3);
+    expect((await visible(ADA)).map((entry) => entry.title)).toEqual([stored]);
+  });
+
+  it('saves an edit to an Entry with no memo, keeping its memo empty', async () => {
+    const { post, editEntry, visible } = useCases();
+    const original = await post(ADA, '');
+
+    const edited = await editEntry(ADA, original.id, { ...REWRITTEN, memo: '' });
+
+    expect(isOk(edited) && edited.value).toEqual(expect.objectContaining({ memo: '', total: 8000 }));
+    expect(memos(await visible(ADA))).toEqual(['']);
   });
 
   it('edits a replacement in turn', async () => {
@@ -206,7 +252,7 @@ describe('createEditEntry', () => {
   it('refuses a draft that breaks an Entry rule as posting does, and leaves the Entry', async () => {
     const { rows, post, editEntry, visible } = useCases();
     const original = await post(ADA, 'Office supplies');
-    const blank = await editEntry(ADA, original.id, { ...REWRITTEN, memo: '   ' });
+    const tooLong = await editEntry(ADA, original.id, MEMO_TOO_LONG);
     const unbalanced = await editEntry(ADA, original.id, {
       ...REWRITTEN,
       lines: [
@@ -215,7 +261,7 @@ describe('createEditEntry', () => {
       ],
     });
 
-    expect(isErr(blank) && blank.error.code).toBe('INVALID_INPUT');
+    expect(isErr(tooLong) && tooLong.error.code).toBe('INVALID_INPUT');
     expect(isErr(unbalanced) && unbalanced.error.code).toBe('UNBALANCED');
     expect(rows).toHaveLength(1);
     expect(await visible(ADA)).toEqual([original]);
@@ -252,7 +298,7 @@ describe('createEditEntry', () => {
   it('answers not found for an id no Entry has, though the draft breaks a rule too', async () => {
     const { editEntry } = useCases();
 
-    for (const draft of [REWRITTEN, { ...REWRITTEN, memo: '' }]) {
+    for (const draft of [REWRITTEN, MEMO_TOO_LONG]) {
       const edited = await editEntry(ADA, UNKNOWN_ID, draft);
       expect(isErr(edited) && edited.error.code).toBe('NOT_FOUND');
     }
@@ -286,7 +332,7 @@ describe('createEditEntry', () => {
     const original = await post(ADA, 'Office supplies');
     await deleteEntry(ADA, original.id);
 
-    for (const draft of [REWRITTEN, DRAFT, { ...REWRITTEN, memo: '' }]) {
+    for (const draft of [REWRITTEN, DRAFT, MEMO_TOO_LONG]) {
       const edited = await editEntry(ADA, original.id, draft);
       expect(isErr(edited) && edited.error).toEqual({
         code: 'CONFLICT',

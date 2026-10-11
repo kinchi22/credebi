@@ -22,6 +22,14 @@ export const entriesRouter = router({
       return result.value.map((entry) => toPostedEntry(entry));
     }),
 
+  titles: sessionProcedure.output(z.array(z.string())).query(async ({ ctx }) => {
+    const result = await ctx.container.getTitles(ctx.auth);
+    if (!result.ok) {
+      throw toTrpcError(result.error);
+    }
+    return [...result.value];
+  }),
+
   post: sessionProcedure
     .input(postEntryInputSchema)
     .output(postedEntrySchema)

@@ -22,6 +22,7 @@ export function makeReversal(entry: Entry, stamp: EntryStamp): Reversal {
   return {
     id: stamp.id,
     entryDate: entry.entryDate,
+    title: entry.title,
     memo: entry.memo,
     lines: entry.lines.map((line) => ({ ...line, side: OPPOSITE[line.side] })),
     total: entry.total,

@@ -17,6 +17,7 @@ import { MUTED_TEXT } from './text-classes';
 
 export type EntryControls = {
   readonly chart: ChartOutput;
+  readonly titles: readonly string[];
   readonly entryFormMode: EntryFormMode;
   readonly editEntry: EditEntryAction;
   readonly deleteEntry: DeleteEntryAction;
@@ -129,7 +130,14 @@ function ListedEntry({
             <time dateTime={entry.entryDate} className={`${typeClasses.date} shrink-0 text-text-muted`}>
               {entry.entryDate}
             </time>{' '}
-            <span className="min-w-0 grow font-medium">{entry.memo}</span>{' '}
+            <span className="flex min-w-0 grow flex-wrap items-baseline gap-x-2">
+              {entry.title === '' ? null : (
+                <>
+                  <span className="font-semibold">{entry.title}</span>{' '}
+                </>
+              )}
+              <span className="min-w-0 text-text-muted">{entry.memo}</span>
+            </span>{' '}
             <span className="shrink-0">
               <span className="sr-only">{en.entryList.total} </span>
               <span data-testid="entry-total" className={`${typeClasses.figure} font-medium`}>
@@ -140,6 +148,7 @@ function ListedEntry({
           <EditEntry
             entry={entry}
             chart={controls.chart}
+            titles={controls.titles}
             entryFormMode={controls.entryFormMode}
             action={controls.editEntry}
           />

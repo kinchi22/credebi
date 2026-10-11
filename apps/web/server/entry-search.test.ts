@@ -10,6 +10,7 @@ const ANOTHER_USERS_CASH = '01920000-0000-7000-8000-00000000d001';
 const ENTRY = {
   id: '01920000-0000-7000-8000-000000000001',
   entryDate: '2026-06-15',
+  title: 'Stationers',
   memo: 'Office supplies',
   lines: [
     { account: EXPENSES, accountName: 'Expenses', side: 'debit', amount: 12500 },
@@ -89,6 +90,22 @@ describe('answerEntrySearch', () => {
       criteria: { memo: '  Supplies  ' },
       entries: [ENTRY],
     });
+  });
+
+  it('reads the Title out of the query, and fills it back into the form as typed', async () => {
+    const answer = await answerEntrySearch(holding([ENTRY]), { title: '  Stationers  ' });
+
+    expect(answer).toEqual({
+      outcome: 'answered',
+      criteria: { title: '  Stationers  ' },
+      entries: [ENTRY],
+    });
+  });
+
+  it('refuses a Title the procedure refuses, and carries the Title back with it', async () => {
+    const answer = await answerEntrySearch(refusing('INVALID_INPUT'), { title: 'T'.repeat(41) });
+
+    expect(answer).toEqual({ outcome: 'refused', criteria: { title: 'T'.repeat(41) } });
   });
 
   it('refuses a memo term the procedure refuses, and carries the term back with it', async () => {

@@ -67,6 +67,7 @@ const CHART = [account(CASH, 'asset', 'Cash'), account(EXPENSES, 'expense', 'Exp
 
 const DRAFT: EntryDraft = {
   entryDate: '2026-09-15',
+  title: 'Stationers',
   memo: 'Office supplies',
   lines: [
     { account: EXPENSES, side: 'debit', amount: 12500 as Money },
@@ -128,6 +129,7 @@ describe('createDeleteEntry', () => {
         id: expect.not.stringMatching(doomed.id) as unknown,
         reverses: doomed.id,
         entryDate: doomed.entryDate,
+        title: 'Stationers',
         memo: doomed.memo,
         total: doomed.total,
         createdAt: NOW,

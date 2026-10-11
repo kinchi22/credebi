@@ -1,14 +1,14 @@
 import { expect, type Locator, type Page } from '@playwright/test';
-import { entrySearchForm } from './entries';
+import { entrySearchForm, titleField } from './entries';
 
-const EARLIEST = '2000-01-01';
+export const EARLIEST = '2000-01-01';
 
-const LATEST = '2099-12-31';
+export const LATEST = '2099-12-31';
 
 export const results = (page: Page): Locator => page.getByRole('region', { name: 'Results' });
 
-export const resultFor = (page: Page, memo: string): Locator =>
-  results(page).getByTestId('entry').filter({ hasText: memo });
+export const resultFor = (page: Page, text: string): Locator =>
+  results(page).getByTestId('entry').filter({ hasText: text });
 
 export const fromField = (page: Page): Locator =>
   entrySearchForm(page).getByLabel('From', { exact: true });
@@ -20,6 +20,7 @@ type Criteria = {
   readonly from?: string;
   readonly to?: string;
   readonly account?: string;
+  readonly title?: string;
   readonly memo?: string;
 };
 
@@ -31,6 +32,9 @@ export async function search(page: Page, criteria: Criteria): Promise<void> {
   await toField(page).fill(criteria.to ?? LATEST);
   if (criteria.account !== undefined) {
     await form.getByLabel('Account', { exact: true }).selectOption(criteria.account);
+  }
+  if (criteria.title !== undefined) {
+    await titleField(form).fill(criteria.title);
   }
   if (criteria.memo !== undefined) {
     await form.getByLabel('Memo', { exact: true }).fill(criteria.memo);

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { isErr, isOk, type AccountId } from '@repo/contracts';
 import { type AccountNames } from '../../accounts/domain/account';
-import { MEMO_MAX_LENGTH } from './entry';
+import { MEMO_MAX_LENGTH, TITLE_MAX_LENGTH } from './entry';
 import { makeSearchCriteria, NO_CRITERIA, type SearchCriteriaDraft } from './search-criteria';
 
 const CASH = '01920000-0000-7000-8000-00000000c001' as AccountId;
@@ -221,5 +221,62 @@ describe('makeSearchCriteria', () => {
     const criteria = criteriaOf({ memo: '100% off_hours' });
 
     expect(isOk(criteria) && criteria.value).toEqual({ memo: '100% off_hours' });
+  });
+
+  it('keeps a Title to look for, trimmed, with the space inside it', () => {
+    const criteria = criteriaOf({ title: '  Starbucks Reserve  ' });
+
+    expect(isOk(criteria) && criteria.value).toEqual({ title: 'Starbucks Reserve' });
+  });
+
+  it('keeps the Title beside the range, the Account and the memo term, so all four narrow together', () => {
+    const criteria = criteriaOf({
+      from: '2026-06-01',
+      to: '2026-06-30',
+      account: CASH,
+      title: 'Rent',
+      memo: 'june',
+    });
+
+    expect(isOk(criteria) && criteria.value).toEqual({
+      from: '2026-06-01',
+      to: '2026-06-30',
+      account: CASH,
+      title: 'Rent',
+      memo: 'june',
+    });
+  });
+
+  it.each([
+    ['absent', undefined],
+    ['nothing at all', ''],
+    ['only whitespace', ' \t '],
+  ])('reads a Title that is %s as no criterion', (_case, title) => {
+    const criteria = criteriaOf({ account: CASH, title });
+
+    expect(isOk(criteria) && criteria.value).toEqual({ account: CASH });
+  });
+
+  it('keeps a Title as long as a Title can be, measured in code points once trimmed', () => {
+    const grinning = String.fromCodePoint(0x1f600);
+    const longest = grinning.repeat(TITLE_MAX_LENGTH);
+
+    const criteria = criteriaOf({ title: ` ${longest} ` });
+
+    expect(isOk(criteria) && criteria.value).toEqual({ title: longest });
+  });
+
+  it('refuses a Title longer than a Title can be, naming the Title and its length', () => {
+    const criteria = criteriaOf({ title: 'a'.repeat(TITLE_MAX_LENGTH + 1) });
+
+    expect(isErr(criteria) && criteria.error.code).toBe('INVALID_INPUT');
+    expect(isErr(criteria) && criteria.error.message).toContain('Title');
+    expect(isErr(criteria) && criteria.error.message).toContain(String(TITLE_MAX_LENGTH));
+  });
+
+  it('keeps a wildcard in a Title, which is a character to look for like any other', () => {
+    const criteria = criteriaOf({ title: '100% a_b' });
+
+    expect(isOk(criteria) && criteria.value).toEqual({ title: '100% a_b' });
   });
 });

@@ -1,0 +1,1 @@
+ALTER TABLE "entries" ADD COLUMN "title" text DEFAULT '' NOT NULL;

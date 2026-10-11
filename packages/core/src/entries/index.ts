@@ -1,4 +1,4 @@
-export { MEMO_MAX_LENGTH, makeEntry } from './domain/entry';
+export { MEMO_MAX_LENGTH, TITLE_MAX_LENGTH, makeEntry } from './domain/entry';
 export type { Entry, EntryDraft, EntryLine, EntryStamp } from './domain/entry';
 
 export { draftTotals } from './domain/draft-totals';
@@ -39,6 +39,9 @@ export type { EditEntry, EditEntryDependencies } from './application/edit-entry'
 
 export { createSearchEntries } from './application/search-entries';
 export type { SearchEntries, SearchEntriesDependencies } from './application/search-entries';
+
+export { createGetTitles } from './application/get-titles';
+export type { GetTitles, GetTitlesDependencies } from './application/get-titles';
 
 export type { EntryRepository, FoundEntry } from './ports/entry-repository';
 export type { TransactionalWork, UnitOfWork } from './ports/unit-of-work';

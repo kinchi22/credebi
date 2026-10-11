@@ -23,6 +23,7 @@ function original(): Entry {
   const made = makeEntry(
     {
       entryDate: '2026-09-15',
+      title: 'Landlord',
       memo: 'Rent',
       lines: [
         { account: EXPENSES, side: 'debit', amount: 70000 as Money },
@@ -38,10 +39,11 @@ function original(): Entry {
 }
 
 describe('makeReversal', () => {
-  it('builds an Entry of the same Accounts, named, and amounts with each Side swapped, on the same day with the same memo, linked to the original', () => {
+  it('builds an Entry of the same Accounts, named, and amounts with each Side swapped, on the same day with the same Title and memo, linked to the original', () => {
     expect(makeReversal(original(), REVERSAL_STAMP)).toEqual({
       id: REVERSAL_STAMP.id,
       entryDate: '2026-09-15',
+      title: 'Landlord',
       memo: 'Rent',
       lines: [
         { account: EXPENSES, accountName: 'Expenses', side: 'credit', amount: 70000 },
