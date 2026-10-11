@@ -227,6 +227,43 @@ has its migration regenerated first: `docs/agents/issue-tracker.md`,
 
 ## Preview
 
+### Planned opt-in deployment
+
+Issue [#371](https://github.com/kinchi22/credebi/issues/371) changes Preview
+creation and includes a one-time cleanup. The following choices were resolved
+during refinement; the workflow, Git configuration and cleanup are not yet
+implemented. The current Git setup above and ADR-0024's retained Git/CLI
+provisions must be updated when this change is implemented.
+
+- Git continues to build Production deployments automatically for pushes to
+  `main`, with the existing release and Promotion checks. Pushes to every other
+  branch, including names containing `/`, create no automatic Preview.
+- A manually dispatched GitHub Actions workflow requests a Preview. It accepts
+  this repository's branch names or full commit SHAs, including commits on
+  `main`. Tags, PR numbers and external forks are not supported. An unresolved
+  target fails rather than falling back to `main`.
+- A branch is resolved once to a full SHA. The resolved SHA is displayed before
+  the owner approves the deployment through the GitHub environment
+  `preview-deployment`. Its secret holds the Vercel deployment token. The
+  deployment uses exactly the approved SHA and always targets Preview.
+- Each invocation requests a deployment, even when the SHA has been requested
+  before. No custom lookup reuses an existing deployment; Vercel's default build
+  cache behavior applies.
+- The Actions run summary displays the requested target, resolved full SHA,
+  Preview URL and success or failure status. A failed build fails the workflow.
+  There are no additional PR comments or notifications.
+- After automatic Preview creation is disabled, the existing Preview deployment
+  IDs in the Credebi project are captured as a fixed cleanup list. Every Preview
+  on that list, including the latest one, is deleted once. All Production
+  deployments and later manually requested Previews are preserved. There is no
+  scheduled cleanup or usage measurement. Links to deleted Previews stop
+  working.
+- CI and local tests remain independent of Preview creation. The shared Preview
+  database is still migrated only from `main`, and Preview remains best effort
+  as described below.
+
+### Shared database
+
 Preview deployments share the preview project that `DATABASE_URL` names in the
 Vercel Preview environment. The release sequence migrates it on every push to
 `main`, in the environment `preview-database`, which accepts only `main` and
