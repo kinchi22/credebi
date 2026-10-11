@@ -159,6 +159,18 @@ export async function expectSheetOnSide(sheet: Locator, side: Side): Promise<voi
   }
 }
 
+export async function expectPickerOnSide(
+  picker: Locator,
+  side: Side,
+  groups: (scope: Locator, side: Side) => Locator = accountChoices,
+): Promise<void> {
+  await expectSheetOnSide(picker, side);
+  await expect(groups(picker, side)).toBeVisible();
+  for (const hidden of SIDES.filter((other) => other !== side)) {
+    await expect(groups(picker, hidden)).toBeHidden();
+  }
+}
+
 export const editButton = (entry: Locator): Locator =>
   entry.getByRole('button', { name: 'Edit', exact: true });
 
