@@ -1,9 +1,9 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import { entrySearchForm, titleField } from './entries';
 
-const EARLIEST = '2000-01-01';
+export const EARLIEST = '2000-01-01';
 
-const LATEST = '2099-12-31';
+export const LATEST = '2099-12-31';
 
 export const results = (page: Page): Locator => page.getByRole('region', { name: 'Results' });
 

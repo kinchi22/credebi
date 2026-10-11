@@ -18,7 +18,7 @@ import {
   TITLE_MAX,
   titled,
 } from './entries';
-import { resultFor, results, search } from './entry-search';
+import { EARLIEST, fromField, LATEST, resultFor, results, search, toField } from './entry-search';
 import { ENTRY_SEARCH_PATH as SEARCH, ENTRY_SEARCH_WITH_QUERY } from './routes';
 import { BOOKS_OPEN } from './accounts';
 import { signIn } from './session';
@@ -165,8 +165,8 @@ test("offers the User's Titles in the Title criterion, keeps the one searched wi
   await page.goto(SEARCH);
   const form = entrySearchForm(page);
   await expect(form).toBeVisible();
-  await form.getByLabel('From', { exact: true }).fill('2000-01-01');
-  await form.getByLabel('To', { exact: true }).fill('2099-12-31');
+  await fromField(page).fill(EARLIEST);
+  await toField(page).fill(LATEST);
 
   const field = titleField(form);
   await openTitleField(field);

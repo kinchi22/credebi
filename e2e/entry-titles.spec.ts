@@ -11,6 +11,7 @@ import {
   offeredTitle,
   offeredTitles,
   openEditEntry,
+  titleList,
   openTitleField,
   postEntries,
   saveEdit,
@@ -383,29 +384,36 @@ test('offers the Titles at 390px within the screen, and posts the Title chosen f
   await expect(listedEntry(page, memo)).toContainText(headingShowing({ day: DAY, title: 'Starbucks', memo }));
 });
 
-test('chooses no offered Title and keeps the list open when Enter or Escape is pressed while a Title is being composed', async ({ page, browserName }) => {
-  test.skip(browserName !== 'chromium', 'composition is reproduced through the Chrome DevTools Protocol');
+test('chooses no offered Title, keeps the list open and posts nothing when Enter or Escape is pressed while a Title is being composed', async ({ page }) => {
   const run = randomUUID();
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [titled('Starbucks', `Coffee ${run}`), titled('Salary', `Pay ${run}`)]);
 
   const form = await openForm(page, 'Two-line mode');
   const field = titleField(form);
+  const salary = offeredTitle(page, 'Salary');
   await openTitleField(field);
-  await field.fill('S');
-  await expectOffered(page, ['Salary', 'Starbucks']);
+  await field.fill('Sa');
+  await expectOffered(page, ['Salary']);
   await field.press('ArrowDown');
+  await expect(salary).toHaveAttribute('aria-selected', 'true');
 
   const cdp = await page.context().newCDPSession(page);
-  await cdp.send('Input.imeSetComposition', { text: 'a', selectionStart: 1, selectionEnd: 1 });
+  await cdp.send('Input.imeSetComposition', { text: 'l', selectionStart: 1, selectionEnd: 1 });
+  await expect(field).toHaveValue('Sal');
+  await expectOffered(page, ['Salary']);
+  await expect(salary).toHaveAttribute('aria-selected', 'true');
+
   for (const key of ['Enter', 'Escape']) {
     await page.keyboard.press(key);
-    await expect(page.getByRole('listbox')).toBeVisible();
-    await expect(field).not.toHaveValue(/^(?:Salary|Starbucks)$/);
+    await expect(titleList(page)).toBeVisible();
+    await expect(field).toHaveValue('Sal');
+    await expect(form.getByRole('alert')).toHaveCount(0);
   }
 
-  await cdp.send('Input.insertText', { text: 'a' });
-  await expect(field).toHaveValue('Sa');
+  await cdp.send('Input.insertText', { text: 'l' });
+  await expect(field).toHaveValue('Sal');
   await expectOffered(page, ['Salary']);
-  await expect(listedEntry(page, run)).toHaveCount(2);
+  await expect(form.getByRole('alert')).toHaveCount(0);
+  await expect(page.getByTestId('entry')).toHaveCount(2);
 });

@@ -192,7 +192,7 @@ export async function openDelete(entry: Locator): Promise<Locator> {
 
 export async function deleteListed(entry: Locator): Promise<void> {
   const dialog = await openDelete(entry);
-  await dialog.getByRole('button', { name: 'Delete', exact: true }).click();
+  await deleteButton(dialog).click();
   await expect(dialog).toBeHidden();
 }
 
@@ -202,8 +202,9 @@ export const listedEntry = (page: Page, text: string): Locator =>
 export const titleField = (form: Locator): Locator =>
   form.getByRole('combobox', { name: 'Title', exact: true });
 
-export const offeredTitles = (page: Page): Locator =>
-  page.getByRole('listbox').getByRole('option');
+export const titleList = (page: Page): Locator => page.getByRole('listbox');
+
+export const offeredTitles = (page: Page): Locator => titleList(page).getByRole('option');
 
 export async function openTitleField(field: Locator): Promise<void> {
   await field.click();
@@ -215,7 +216,7 @@ export async function expectOffered(page: Page, titles: readonly string[]): Prom
 }
 
 export const offeredTitle = (page: Page, title: string): Locator =>
-  page.getByRole('listbox').getByRole('option', { name: title, exact: true });
+  titleList(page).getByRole('option', { name: title, exact: true });
 
 const TITLE_TO_MEMO = '\\s*(?:[^\\p{L}\\p{N}\\s]\\s*)?';
 

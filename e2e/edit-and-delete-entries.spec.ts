@@ -23,8 +23,8 @@ import {
   submit,
   submitMultiLineEntry,
   TWELVE_THOUSAND_FIVE_HUNDRED,
+  twoLine,
   type MultiLineEntry,
-  type TwoLineEntry,
 } from './entries';
 import { resultFor, results, search } from './entry-search';
 import { ENTRY_SEARCH_PATH as SEARCH, ENTRY_SEARCH_WITH_QUERY } from './routes';
@@ -46,14 +46,6 @@ const EDITED_DAY = '2026-09-20';
 
 const button = (scope: Locator, name: string): Locator =>
   scope.getByRole('button', { name, exact: true });
-
-const twoLine = (day: string, memo: string): TwoLineEntry => ({
-  day,
-  memo,
-  debitAccount: 'Expenses',
-  creditAccount: 'Cash',
-  amount: AMOUNT,
-});
 
 async function rewriteTwoLine(dialog: Locator, memo: string): Promise<void> {
   await dialog.getByLabel('Date').fill(EDITED_DAY);
@@ -117,7 +109,7 @@ test('holds an Edit and a Delete button in each Entry of the Entry list and of E
   const run = randomUUID();
   const memo = `Stationery ${run}`;
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await postEntries(page, [twoLine(DAY, memo)]);
+  await postEntries(page, [twoLine({ day: DAY, memo: memo })]);
 
   await page.goto('/entries');
   const listed = listedEntry(page, memo);
@@ -138,7 +130,7 @@ test('leaves an Entry listed when Delete entry is cancelled, and removes it from
   const doomed = `Posted by mistake ${run}`;
   const kept = `Kept ${run}`;
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await postEntries(page, [twoLine(DAY, kept), twoLine(DAY, doomed)]);
+  await postEntries(page, [twoLine({ day: DAY, memo: kept }), twoLine({ day: DAY, memo: doomed })]);
 
   await page.goto('/entries');
   const entry = listedEntry(page, doomed);
@@ -163,7 +155,7 @@ test('leaves an Entry listed when Delete entry is cancelled, and removes it from
 test('opens Edit entry in Two-line mode, filled with the Entry, for a Two-line mode User and an Entry of one debit and one credit line', async ({ page }) => {
   const memo = `Office supplies ${randomUUID()}`;
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await postEntries(page, [twoLine(DAY, memo)]);
+  await postEntries(page, [twoLine({ day: DAY, memo: memo })]);
 
   await page.goto('/entries');
   const dialog = await openEditEntry(listedEntry(page, memo));
@@ -204,7 +196,7 @@ test('opens Edit entry in Multi-line mode, filled with every line, for a Two-lin
 test('opens Edit entry in Multi-line mode, filled with the Entry, for a Multi-line mode User and an Entry of one debit and one credit line', async ({ page }) => {
   const memo = `Office supplies ${randomUUID()}`;
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await postEntries(page, [twoLine(DAY, memo)]);
+  await postEntries(page, [twoLine({ day: DAY, memo: memo })]);
   await setEntryFormMode(page, 'Multi-line mode');
 
   await page.goto('/entries');
@@ -222,7 +214,7 @@ test('shows only the new version of an edited Entry in the Entry list, after a r
   const before = `Before ${run}`;
   const after = `After ${run}`;
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await postEntries(page, [twoLine(DAY, before)]);
+  await postEntries(page, [twoLine({ day: DAY, memo: before })]);
 
   await page.goto('/entries');
   const dialog = await openEditEntry(listedEntry(page, before));
@@ -252,7 +244,7 @@ test('edits an edited Entry again, and deletes it', async ({ page }) => {
   const third = `Third ${run}`;
   const kept = `Kept ${run}`;
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await postEntries(page, [twoLine(DAY, kept), twoLine(DAY, first)]);
+  await postEntries(page, [twoLine({ day: DAY, memo: kept }), twoLine({ day: DAY, memo: first })]);
 
   await page.goto('/entries');
   const once = await openEditEntry(listedEntry(page, first));
@@ -283,7 +275,7 @@ test('closes Edit entry on Save with no change, and lists the Entry once, unchan
   const run = randomUUID();
   const memo = `Unchanged ${run}`;
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await postEntries(page, [twoLine(DAY, memo)]);
+  await postEntries(page, [twoLine({ day: DAY, memo: memo })]);
 
   await page.goto('/entries');
   await saveEdit(await openEditEntry(listedEntry(page, memo)));
@@ -332,7 +324,7 @@ test('keeps the Search criteria in the URL when an Entry is edited or deleted fr
   const renamed = `Tea ${run}`;
   const deleted = `Coffee too ${run}`;
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await postEntries(page, [twoLine(DAY, edited), twoLine(DAY, deleted)]);
+  await postEntries(page, [twoLine({ day: DAY, memo: edited }), twoLine({ day: DAY, memo: deleted })]);
 
   await searchFor(page, 'coffee');
   await expect(resultFor(page, edited)).toHaveCount(1);
@@ -365,7 +357,7 @@ test('asks Discard changes when Edit entry is closed with changes, by Close, by 
   const memo = `Original ${run}`;
   const draft = `Draft ${run}`;
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await postEntries(page, [twoLine(DAY, memo)]);
+  await postEntries(page, [twoLine({ day: DAY, memo: memo })]);
 
   await page.goto('/entries');
   const dialog = await openEditEntry(listedEntry(page, memo));
@@ -398,7 +390,7 @@ test('keeps Edit entry open with its input when a press inside it is released on
   const memo = `Original ${run}`;
   const draft = `Draft ${run}`;
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await postEntries(page, [twoLine(DAY, memo)]);
+  await postEntries(page, [twoLine({ day: DAY, memo: memo })]);
 
   await page.goto('/entries');
   const dialog = await openEditEntry(listedEntry(page, memo));
@@ -425,7 +417,7 @@ test('edits and deletes an Entry at 390px', async ({ page }) => {
   const after = `After ${run}`;
   const kept = `Kept ${run}`;
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await postEntries(page, [twoLine(DAY, kept), twoLine(DAY, before)]);
+  await postEntries(page, [twoLine({ day: DAY, memo: kept }), twoLine({ day: DAY, memo: before })]);
 
   await page.setViewportSize(PHONE);
   await page.goto('/entries');
