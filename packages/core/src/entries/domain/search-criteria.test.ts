@@ -222,6 +222,7 @@ describe('makeSearchCriteria', () => {
 
     expect(isOk(criteria) && criteria.value).toEqual({ memo: '100% off_hours' });
   });
+
   it('keeps a Title to look for, trimmed, with the space inside it', () => {
     const criteria = criteriaOf({ title: '  Starbucks Reserve  ' });
 
