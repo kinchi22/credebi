@@ -25,7 +25,7 @@ export const SIDES = ['Debit', 'Credit'] as const;
 
 export type Side = (typeof SIDES)[number];
 
-type Heading = {
+export type Heading = {
   readonly day: string;
   readonly title?: string;
   readonly memo: string;
@@ -49,19 +49,19 @@ export type MultiLineEntry = Heading & {
 
 export const TITLE_MAX = 40;
 
+export const twoLine = (heading: Heading, creditAccount: Account = 'Cash'): TwoLineEntry => ({
+  ...heading,
+  debitAccount: 'Expenses',
+  creditAccount,
+  amount: AMOUNT,
+});
+
 export const titled = (
   title: string,
   memo: string,
   day = DAY,
   creditAccount: Account = 'Cash',
-): TwoLineEntry => ({
-  day,
-  title,
-  memo,
-  debitAccount: 'Expenses',
-  creditAccount,
-  amount: AMOUNT,
-});
+): TwoLineEntry => twoLine({ day, title, memo }, creditAccount);
 
 export const entries = (page: Page): Locator => page.getByRole('region', { name: 'Entries' });
 
@@ -196,8 +196,8 @@ export async function deleteListed(entry: Locator): Promise<void> {
   await expect(dialog).toBeHidden();
 }
 
-export const listedEntry = (page: Page, memo: string): Locator =>
-  page.getByTestId('entry').filter({ hasText: memo });
+export const listedEntry = (page: Page, text: string): Locator =>
+  page.getByTestId('entry').filter({ hasText: text });
 
 export const titleField = (form: Locator): Locator =>
   form.getByRole('combobox', { name: 'Title', exact: true });
@@ -205,35 +205,31 @@ export const titleField = (form: Locator): Locator =>
 export const offeredTitles = (page: Page): Locator =>
   page.getByRole('listbox').getByRole('option');
 
+export async function openTitleField(field: Locator): Promise<void> {
+  await field.click();
+  await field.fill('');
+}
+
 export async function expectOffered(page: Page, titles: readonly string[]): Promise<void> {
-  if (titles.length === 0) {
-    await expect(offeredTitles(page)).toHaveCount(0);
-    return;
-  }
   await expect(offeredTitles(page)).toHaveText([...titles]);
 }
 
 export const offeredTitle = (page: Page, title: string): Locator =>
   page.getByRole('listbox').getByRole('option', { name: title, exact: true });
 
-type Shown = {
-  readonly day: string;
-  readonly title?: string;
-  readonly memo?: string;
-  readonly total?: string;
-};
-
 const TITLE_TO_MEMO = '\\s*(?:[^\\p{L}\\p{N}\\s]\\s*)?';
 
-const named = (title: string | undefined, memo: string | undefined): string =>
-  [title, memo]
-    .filter((part): part is string => part !== undefined && part !== '')
+const named = ({ title, memo }: Heading): string =>
+  [title ?? '', memo]
+    .filter((part) => part !== '')
     .map(escaped)
     .join(TITLE_TO_MEMO);
 
-export const headingShowing = ({ day, title, memo, total = '12,500' }: Shown): RegExp =>
+const AMOUNT_SHOWN = Number(AMOUNT).toLocaleString('en-US');
+
+export const headingShowing = (heading: Heading, total = AMOUNT_SHOWN): RegExp =>
   new RegExp(
-    `^\\s*${escaped(day)}\\s*${named(title, memo)}\\s*(?:Total\\s*)?${escaped(total)}(?![\\d,.])`,
+    `^\\s*${escaped(heading.day)}\\s*${named(heading)}\\s*(?:Total\\s*)?${escaped(total)}(?![\\d,.])`,
     'u',
   );
 

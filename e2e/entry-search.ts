@@ -7,8 +7,8 @@ const LATEST = '2099-12-31';
 
 export const results = (page: Page): Locator => page.getByRole('region', { name: 'Results' });
 
-export const resultFor = (page: Page, memo: string): Locator =>
-  results(page).getByTestId('entry').filter({ hasText: memo });
+export const resultFor = (page: Page, text: string): Locator =>
+  results(page).getByTestId('entry').filter({ hasText: text });
 
 export const fromField = (page: Page): Locator =>
   entrySearchForm(page).getByLabel('From', { exact: true });

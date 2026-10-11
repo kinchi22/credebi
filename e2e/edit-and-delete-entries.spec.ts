@@ -19,7 +19,7 @@ import {
   openDelete,
   openEditEntry,
   postEntries,
-  saveEdit as save,
+  saveEdit,
   submit,
   submitMultiLineEntry,
   TWELVE_THOUSAND_FIVE_HUNDRED,
@@ -227,7 +227,7 @@ test('shows only the new version of an edited Entry in the Entry list, after a r
   await page.goto('/entries');
   const dialog = await openEditEntry(listedEntry(page, before));
   await rewriteTwoLine(dialog, after);
-  await save(dialog);
+  await saveEdit(dialog);
 
   await expectRewritten(listedEntry(page, after));
   await expect(listedEntry(page, run)).toHaveCount(1);
@@ -257,13 +257,13 @@ test('edits an edited Entry again, and deletes it', async ({ page }) => {
   await page.goto('/entries');
   const once = await openEditEntry(listedEntry(page, first));
   await once.getByLabel('Memo').fill(second);
-  await save(once);
+  await saveEdit(once);
   await expect(listedEntry(page, second)).toHaveCount(1);
 
   const twice = await openEditEntry(listedEntry(page, second));
   await expect(twice.getByLabel('Memo')).toHaveValue(second);
   await rewriteTwoLine(twice, third);
-  await save(twice);
+  await saveEdit(twice);
 
   await expectRewritten(listedEntry(page, third));
   await expect(listedEntry(page, run)).toHaveCount(2);
@@ -286,7 +286,7 @@ test('closes Edit entry on Save with no change, and lists the Entry once, unchan
   await postEntries(page, [twoLine(DAY, memo)]);
 
   await page.goto('/entries');
-  await save(await openEditEntry(listedEntry(page, memo)));
+  await saveEdit(await openEditEntry(listedEntry(page, memo)));
 
   await expectAsPosted(listedEntry(page, memo));
   await expect(listedEntry(page, run)).toHaveCount(1);
@@ -341,7 +341,7 @@ test('keeps the Search criteria in the URL when an Entry is edited or deleted fr
 
   const dialog = await openEditEntry(resultFor(page, edited));
   await dialog.getByLabel('Memo').fill(renamed);
-  await save(dialog);
+  await saveEdit(dialog);
 
   await expect(page).toHaveURL(criteria);
   await expect(entrySearchForm(page).getByLabel('Memo', { exact: true })).toHaveValue('coffee');
@@ -433,7 +433,7 @@ test('edits and deletes an Entry at 390px', async ({ page }) => {
   await expect(dialog.getByLabel('Memo')).toHaveValue(before);
   await dialog.getByLabel('Memo').fill(after);
   await dialog.getByLabel('Amount').fill('8000');
-  await save(dialog);
+  await saveEdit(dialog);
 
   const edited = listedEntry(page, after);
   await expect(edited).toHaveCount(1);

@@ -48,7 +48,7 @@ import {
   entryForm, entrySearchForm, listedEntry, postEntries } from './entries';
 import { ENTRY_SEARCH_PATH } from './routes';
 import { signIn } from './session';
-import { PHONE } from './viewport';
+import { expectWithinPhone, PHONE } from './viewport';
 
 async function openSettings(page: Page): Promise<void> {
   await signIn(page);
@@ -81,14 +81,6 @@ async function deleteEntry(page: Page, memo: string): Promise<void> {
   await dialog.getByRole('button', { name: 'Delete', exact: true }).click();
   await expect(dialog).toBeHidden();
   await expect(entry).toHaveCount(0);
-}
-
-async function expectWithinPhone(page: Page, locator: Locator): Promise<void> {
-  const box = await locator.boundingBox();
-  expect(box?.x ?? Number.NaN).toBeGreaterThanOrEqual(0);
-  expect((box?.x ?? Number.NaN) + (box?.width ?? Number.NaN)).toBeLessThanOrEqual(PHONE.width);
-  const scrollWidth = Number(await page.evaluate('document.documentElement.scrollWidth'));
-  expect(scrollWidth).toBeLessThanOrEqual(PHONE.width);
 }
 
 test('gives a new User Cash, Accounts payable, Capital, Sales and Expenses, one under each Account type, in the Accounts section of Settings', async ({ page }) => {

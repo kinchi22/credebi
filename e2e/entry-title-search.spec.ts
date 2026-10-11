@@ -10,6 +10,7 @@ import {
   listedEntry,
   offeredTitle,
   openEditEntry,
+  openTitleField,
   postEntries,
   saveEdit,
   submitTwoLineEntry,
@@ -69,10 +70,10 @@ test('shows an Entry in the results with its Title before its memo, and nothing 
   await search(page, { from: '2026-06-01', to: '2026-06-30' });
 
   await expect(resultFor(page, both)).toContainText(headingShowing({ day: '2026-06-10', title: 'Rent', memo: both }));
-  await expect(resultFor(page, memoOnly)).toContainText(headingShowing({ day: '2026-06-11', memo: memoOnly }));
+  await expect(resultFor(page, memoOnly)).toContainText(headingShowing({ day: '2026-06-11', title: '', memo: memoOnly }));
   const salary = resultFor(page, titleOnlyDay);
   await expect(salary).toHaveCount(1);
-  await expect(salary).toContainText(headingShowing({ day: titleOnlyDay, title: 'Salary' }));
+  await expect(salary).toContainText(headingShowing({ day: titleOnlyDay, title: 'Salary', memo: '' }));
 });
 
 test('matches the Title criterion literally, so a % or _ in it is a character to find', async ({ page }) => {
@@ -100,11 +101,11 @@ test('matches the Title criterion literally, so a % or _ in it is a character to
   await expect(resultFor(page, letter)).toHaveCount(0);
 });
 
-test('narrows with the Title, the day range, the Account and the memo together', async ({ page }) => {
+test('narrows with the Title, the day range, the Account and the memo together, each excluding an Entry the others match', async ({ page }) => {
   test.slow();
   const run = randomUUID();
   const matching = `June ${run}`;
-  const wrongDay = `July ${run}`;
+  const wrongDay = `June paid late ${run}`;
   const wrongAccount = `June on account ${run}`;
   const wrongMemo = `Deposit ${run}`;
   const wrongTitle = `June fuel ${run}`;
@@ -168,8 +169,7 @@ test("offers the User's Titles in the Title criterion, keeps the one searched wi
   await form.getByLabel('To', { exact: true }).fill('2099-12-31');
 
   const field = titleField(form);
-  await field.click();
-  await field.fill('');
+  await openTitleField(field);
   await expectOffered(page, ['Rent', 'Salary']);
   await field.fill('SAL');
   await expectOffered(page, ['Salary']);
@@ -197,6 +197,10 @@ test('refuses a Title criterion longer than a Title can be, naming the Title, an
 
   await expect(page.getByRole('main').getByRole('alert')).toContainText(/title/i);
   await expect(results(page)).toHaveCount(0);
+
+  await search(page, { title: '\u{1F600}'.repeat(TITLE_MAX) });
+  await expect(results(page)).toContainText(/match/i);
+  await expect(page.getByRole('main').getByRole('alert')).toHaveCount(0);
 });
 
 test('never finds a deleted Entry or an Entry edited to another Title by its Title', async ({ page }) => {
