@@ -111,16 +111,13 @@ describe('postEntryInputSchema', () => {
     expect(postEntryInputSchema.parse({ ...input, memo: '' })).toEqual({ ...input, memo: '' });
   });
 
-  it('reads an input with no Title as one with an empty Title', () => {
-    expect(postEntryInputSchema.parse({ ...input, title: undefined })).toEqual({ ...input, title: '' });
-  });
-
   it('refuses a Title that is not one string', () => {
     expect(postEntryInputSchema.safeParse({ ...input, title: ['Salary'] }).success).toBe(false);
   });
 
-  it('refuses an input missing its lines or its day', () => {
+  it('refuses an input missing its lines, its day or its Title', () => {
     expect(postEntryInputSchema.safeParse({ ...input, lines: undefined }).success).toBe(false);
+    expect(postEntryInputSchema.safeParse({ ...input, title: undefined }).success).toBe(false);
     expect(postEntryInputSchema.safeParse({ ...input, entryDate: undefined }).success).toBe(false);
   });
 });
@@ -142,9 +139,9 @@ describe('editEntryInputSchema', () => {
     expect(editEntryInputSchema.parse({ ...input, memo: '' })).toEqual({ ...input, memo: '' });
   });
 
-  it('carries an empty Title, and reads an input with no Title as one with an empty Title', () => {
+  it('carries an empty Title, and refuses an input with no Title', () => {
     expect(editEntryInputSchema.parse({ ...input, title: '' })).toEqual({ ...input, title: '' });
-    expect(editEntryInputSchema.parse({ ...input, title: undefined })).toEqual({ ...input, title: '' });
+    expect(editEntryInputSchema.safeParse({ ...input, title: undefined }).success).toBe(false);
   });
 
   it('refuses an input whose id is missing or not an Entry id, or whose draft is incomplete', () => {

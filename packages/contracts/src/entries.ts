@@ -34,7 +34,7 @@ export type PostedLine = z.infer<typeof postedLineSchema>;
 
 export const postEntryInputSchema = z.object({
   entryDate: entryDateSchema,
-  title: z.string().default(''),
+  title: z.string(),
   memo: z.string(),
   lines: z.array(entryLineSchema),
 });

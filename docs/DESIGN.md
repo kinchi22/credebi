@@ -716,7 +716,8 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   focus returns to the button that opened it; while the action runs both
   buttons are disabled and the dialog does not close. It is `Delete entry`,
   opened by an Entry's `Delete`, whose thing is the Entry's date in `date` and
-  `text-muted`, memo, semibold, and total in `figure`, as its row shows them.
+  `text-muted`, its Title, when it has one, and memo, semibold, and total in
+  `figure`, as its row shows them.
   It is also `Delete account` and `Delete group`, opened by a row's `Delete`
   in the Accounts section, with the Account type in `text-muted` below the
   title and the Account's or group's name, semibold, as the thing.
