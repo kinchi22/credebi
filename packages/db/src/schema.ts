@@ -56,6 +56,7 @@ export const entries = pgTable(
     id: uuid('id').primaryKey(),
     entryDate: date('entry_date').notNull(),
     memo: text('memo').notNull(),
+    title: text('title').notNull().default(''),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
     userId: uuid('user_id')
       .notNull()
