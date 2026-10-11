@@ -61,9 +61,8 @@ export function makeEntry(
   names: AccountNames,
 ): Result<Entry, DomainError> {
   const memo = draft.memo.trim();
-  const length = memoLength(memo);
-  if (length === 0 || length > MEMO_MAX_LENGTH) {
-    return invalid(`A memo must be 1 to ${String(MEMO_MAX_LENGTH)} characters once trimmed.`);
+  if (memoLength(memo) > MEMO_MAX_LENGTH) {
+    return invalid(`A memo can be at most ${String(MEMO_MAX_LENGTH)} characters once trimmed.`);
   }
 
   const lines = checkLines(draft.lines, names);

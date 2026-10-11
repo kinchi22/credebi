@@ -241,14 +241,20 @@ describe('makeEntry', () => {
     expect(result.value.memo).toBe('Office supplies');
   });
 
-  it('refuses a memo that is empty once trimmed', () => {
-    expectRefused({ ...OFFICE_SUPPLIES, memo: '' }, 'INVALID_INPUT', 'memo');
-    expectRefused({ ...OFFICE_SUPPLIES, memo: ' \t\n ' }, 'INVALID_INPUT', 'memo');
+  it.each([
+    ['empty', ''],
+    ['only whitespace', ' \t\n '],
+  ])('builds an Entry with no memo from a memo that is %s, stored as the empty string', (_case, memo) => {
+    const result = makeEntry({ ...OFFICE_SUPPLIES, memo }, STAMP, NAMES);
+
+    expect(isOk(result)).toBe(true);
+    if (!isOk(result)) return;
+    expect(result.value.memo).toBe('');
   });
 
   it('accepts a memo of 200 characters, and refuses 201', () => {
     expect(isOk(makeEntry({ ...OFFICE_SUPPLIES, memo: 'm'.repeat(200) }, STAMP, NAMES))).toBe(true);
-    expectRefused({ ...OFFICE_SUPPLIES, memo: 'm'.repeat(201) }, 'INVALID_INPUT', '1 to 200');
+    expectRefused({ ...OFFICE_SUPPLIES, memo: 'm'.repeat(201) }, 'INVALID_INPUT', 'at most 200');
   });
 
   it('counts a memo in code points, so 200 emoji fit though they are 400 UTF-16 units', () => {
@@ -258,7 +264,7 @@ describe('makeEntry', () => {
     expectRefused(
       { ...OFFICE_SUPPLIES, memo: grinning.repeat(201) },
       'INVALID_INPUT',
-      '1 to 200',
+      'at most 200',
     );
   });
 
@@ -321,7 +327,7 @@ describe('makePostedEntry', () => {
 
   it('refuses first what makes the entry no entry at all, before the Active period', () => {
     const result = makePostedEntry(
-      { ...OFFICE_SUPPLIES, entryDate: '2026-10-01', memo: ' ' },
+      { ...OFFICE_SUPPLIES, entryDate: '2026-10-01', memo: 'm'.repeat(201) },
       STAMP,
       CHART,
     );

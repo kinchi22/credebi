@@ -102,6 +102,11 @@ describe('postEntryInputSchema', () => {
     expect(postEntryInputSchema.parse(input)).toEqual(input);
   });
 
+  it('carries an empty memo, which the domain stores as no memo', () => {
+    expect(postEntryInputSchema.parse({ ...input, memo: '' })).toEqual({ ...input, memo: '' });
+    expect(editEntryInputSchema.parse({ ...input, id: ENTRY_ID, memo: '' }).memo).toBe('');
+  });
+
   it('refuses an input missing its lines or its day', () => {
     expect(postEntryInputSchema.safeParse({ ...input, lines: undefined }).success).toBe(false);
     expect(postEntryInputSchema.safeParse({ ...input, entryDate: undefined }).success).toBe(false);
@@ -262,7 +267,13 @@ describe('parseMultiLineEntryForm', () => {
     expectRefused({ ...BALANCED, amount: ['12500'] });
   });
 
-  it('refuses a form with no date or no memo', () => {
+  it('reads an empty memo box as an empty memo', () => {
+    const result = parseMultiLineEntryForm(submitted({ ...BALANCED, memo: '' }));
+
+    expect(isOk(result) && result.value.memo).toBe('');
+  });
+
+  it('refuses a form with no date or no memo field', () => {
     expectRefused({ ...BALANCED, entryDate: [] });
     expectRefused({ ...BALANCED, memo: [] });
   });
@@ -347,6 +358,12 @@ describe('parseTwoLineEntryForm', () => {
     expect(isOk(result)).toBe(true);
     if (!isOk(result)) return;
     expect(result.value.lines[1]?.account).toBe(NOWHERE);
+  });
+
+  it('reads an empty memo box as an empty memo', () => {
+    const result = parseTwoLineEntryForm(submitted({ ...TWO_LINE, memo: '' }));
+
+    expect(isOk(result) && result.value.memo).toBe('');
   });
 
   it.each(['entryDate', 'memo', 'debitAccount', 'creditAccount', 'amount'])(

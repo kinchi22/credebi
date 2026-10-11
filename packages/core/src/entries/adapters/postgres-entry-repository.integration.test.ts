@@ -539,6 +539,23 @@ describe('createPostgresEntryRepository', () => {
     expect(await memosFound({ memo: '\\' })).toEqual([String.raw`Path C:\temp`]);
   });
 
+  it('stores an Entry with no memo as the empty string, and reads it back so', async () => {
+    const memoLess = entry({ memo: '' });
+
+    expect(await repository.save(ADA, memoLess)).toEqual(ok(undefined));
+
+    expect(await found()).toEqual([memoLess]);
+    expect(memoLess.memo).toBe('');
+  });
+
+  it('matches no memo term against an Entry with no memo', async () => {
+    await repository.save(ADA, entry({ memo: '' }));
+    await repository.save(ADA, entry({ memo: 'Rail fare' }));
+
+    expect(await memosFound({ memo: 'a' })).toEqual(['Rail fare']);
+    expect(await memosFound({ memo: '%' })).toEqual([]);
+  });
+
   it('answers with nothing for a term no memo of the User contains', async () => {
     await repository.save(ADA, entry({ memo: 'Rail fare' }));
 

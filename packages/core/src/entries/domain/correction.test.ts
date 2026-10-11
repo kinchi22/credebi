@@ -23,8 +23,8 @@ const AS_POSTED: EntryDraft = {
   ],
 };
 
-function posted(): Entry {
-  const made = makeEntry(AS_POSTED, {
+function posted(draft: EntryDraft = AS_POSTED): Entry {
+  const made = makeEntry(draft, {
     id: '01920000-0000-7000-8000-000000000001' as EntryId,
     createdAt: new Date('2026-09-15T00:30:00.000Z'),
   }, NAMES);
@@ -54,6 +54,19 @@ describe('changesEntry', () => {
   it('finds a change in the memo, its case included', () => {
     expect(changesEntry({ ...AS_POSTED, memo: 'Rent, June' }, posted())).toBe(true);
     expect(changesEntry({ ...AS_POSTED, memo: 'rent' }, posted())).toBe(true);
+  });
+
+  it('finds a change in clearing the memo', () => {
+    expect(changesEntry({ ...AS_POSTED, memo: '' }, posted())).toBe(true);
+    expect(changesEntry({ ...AS_POSTED, memo: '  ' }, posted())).toBe(true);
+  });
+
+  it('finds no change in an empty or blank memo for an Entry with no memo, and a change in writing one', () => {
+    const memoLess = posted({ ...AS_POSTED, memo: '' });
+
+    expect(changesEntry({ ...AS_POSTED, memo: '' }, memoLess)).toBe(false);
+    expect(changesEntry({ ...AS_POSTED, memo: ' \t ' }, memoLess)).toBe(false);
+    expect(changesEntry({ ...AS_POSTED, memo: 'Rent' }, memoLess)).toBe(true);
   });
 
   it("finds a change in a line's Account, Side or amount", () => {
