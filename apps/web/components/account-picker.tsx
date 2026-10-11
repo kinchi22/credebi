@@ -86,6 +86,9 @@ const PICK_MANY: PickControl = {
 
 const otherSide = (side: Side): Side => (side === 'debit' ? 'credit' : 'debit');
 
+const otherSideMissing = (side: Side, hasAccount: (side: Side) => boolean): Side | undefined =>
+  hasAccount(otherSide(side)) ? undefined : otherSide(side);
+
 export function useAccountSheet(): AccountSheet {
   const id = useId();
   const { show, ...dialog } = useModalDialog();
@@ -460,8 +463,12 @@ function AccountColumns({
 
   const pick = (side: Side, account: AccountOutput, chosen: boolean): void => {
     onPick(side, account, chosen);
-    if (!multiple && chosen && !hasAccount(otherSide(side))) {
-      setShown(otherSide(side));
+    if (multiple || !chosen) {
+      return;
+    }
+    const missing = otherSideMissing(side, hasAccount);
+    if (missing !== undefined) {
+      setShown(missing);
     }
   };
 
@@ -536,10 +543,11 @@ function AccountSheetDialog({
     if (multiple || !chosen) {
       return;
     }
-    if (hasAccount(otherSide(side))) {
+    const missing = otherSideMissing(side, hasAccount);
+    if (missing === undefined) {
       sheet.close();
     } else {
-      sheet.setSide(otherSide(side));
+      sheet.setSide(missing);
     }
   };
 
