@@ -2,6 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-09-24
+**Amended:** 2026-10-12, PR #377
 
 ## Problem
 
@@ -124,7 +125,11 @@ anything.
 - *Names.* There is no staging. Production's data is disposable until the MVP
   ships.
 - *Git integration.* One Vercel project is connected to the repository, and it
-  builds a Preview for a pull request and a Production deployment for `main`.
+  builds a Production deployment for `main`. `apps/web/vercel.json` disables
+  automatic deployment for every other branch, including names containing
+  slashes, with `git.deploymentEnabled` set to `**: false` and `main: true`.
+  The policy applies to commits carrying that configuration; existing branches
+  without it need no synchronization or project-wide block.
   Nothing deploys from a CLI and no Vercel token is held.
 - *Migrations.* Applied from CI, never from a Vercel build, and only after the
   owner approves in `production-database`.
@@ -204,8 +209,11 @@ branches.** New per-milestone infrastructure for a database no gate reads, or
 unreviewed branches holding a credential and two milestones fighting over one
 schema.
 
-**Skip every Preview build that is not `main`.** Loses the Previews that do
-work, which is most of them, to fix the few that cannot.
+**Skip every Preview build that is not `main` to address schema mismatches.**
+Loses the Previews that do work to fix the few that cannot. Automatic Preview
+creation is now disabled for the separate operating choice in
+[#371](https://github.com/kinchi22/credebi/issues/371): deployed verification is
+opt-in. The shared database and its schema limitation remain.
 
 **A third-party Action to publish the Deployment Check status.** Executable code
 holding the repository's token; `gh api` with `statuses: write` does the same.

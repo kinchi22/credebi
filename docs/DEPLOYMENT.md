@@ -37,8 +37,12 @@ a Neon branch starts with its parent's data and its roles' passwords.
 4. Deployment Protection stays at Vercel's Standard Protection. Generate a
    Protection Bypass for Automation secret and store it as the GitHub
    repository secret `VERCEL_AUTOMATION_BYPASS_SECRET`.
-5. Git integration: a pull request creates a Preview deployment, a push to
-   `main` creates a Production deployment. This must be the only Vercel project
+5. Git integration: a push to `main` creates a Production deployment. The
+   project's `apps/web/vercel.json` disables automatic deployments for every
+   other branch, including names containing slashes, when the pushed commit
+   contains that configuration. Existing branches without it are out of scope
+   and need no synchronization or project-wide block. Keep the Production branch
+   set to `main`. This must be the only Vercel project
    connected to the repository. A second one posts its builds to the same GitHub
    deployment and under the same `Vercel` status, so its result replaces this
    project's on the commit.
@@ -227,17 +231,47 @@ has its migration regenerated first: `docs/agents/issue-tracker.md`,
 
 ## Preview
 
-### Planned opt-in deployment
+### Git deployment policy
+
+`apps/web/vercel.json`, in the Vercel project's root directory, sets
+`git.deploymentEnabled` to `**: false` with `main: true` as its only enabled
+exception. The globstar covers nested branch names. Vercel permits deployment
+when any matching rule is enabled, so `main` still deploys automatically.
+An unspecified branch would deploy by default; the catch-all rule prevents it.
+See [Vercel's Git configuration reference](https://vercel.com/docs/project-configuration/git-configuration).
+
+This policy applies to pushed commits carrying the configuration. Existing
+branches without it need no synchronization or project-wide block; #371 records
+that adoption scope. Do not set `previewDeploymentsDisabled` for this change.
+
+The Gates seam checks this policy for `main`, a simple branch name and nested
+names. CI and local tests build and run independently of Vercel Preview; the
+shared Preview database continues to migrate from `main` alone.
+
+After adopting the configuration on `main`, verify the real Git integration:
+
+1. Observe the adoption commit's automatic Production deployment in the
+   Credebi project. Record its SHA, deployment ID and release runs in #374.
+   Confirm `Production ready`, migration or its intentional skip, compatibility
+   smoke, `E2E build`, candidate smoke, Promotion and post-Promotion smoke follow
+   the existing release path.
+2. Push a non-`main` branch containing this configuration, with a nested name
+   such as `chore/preview-policy/verify`. Record its SHA and push time. Check the
+   Credebi project's deployment inventory and Git integration activity after
+   the event has been processed; confirm no automatic Preview was created for
+   that SHA.
+3. Record the observed result and inspection time in #374. A repository gate
+   cannot prove Vercel's actual Git behavior; complete this verification before
+   the one-time cleanup starts.
+
+### Planned manual deployment and cleanup
 
 Issue [#371](https://github.com/kinchi22/credebi/issues/371) changes Preview
-creation and includes a one-time cleanup. The following choices were resolved
-during refinement; the workflow, Git configuration and cleanup are not yet
-implemented. The current Git setup above and ADR-0024's retained Git/CLI
-provisions must be updated when this change is implemented.
+creation and includes a one-time cleanup. The Git policy above is implemented;
+the following workflow and cleanup choices remain planned. ADR-0024's retained
+no-CLI/no-token provision remains in force until the manual deployment Task
+adopts it.
 
-- Git continues to build Production deployments automatically for pushes to
-  `main`, with the existing release and Promotion checks. Pushes to every other
-  branch, including names containing `/`, create no automatic Preview.
 - A manually dispatched GitHub Actions workflow requests a Preview. It accepts
   this repository's branch names or full commit SHAs, including commits on
   `main`. Tags, PR numbers and external forks are not supported. An unresolved
