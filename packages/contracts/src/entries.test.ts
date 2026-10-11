@@ -102,6 +102,10 @@ describe('postEntryInputSchema', () => {
     expect(postEntryInputSchema.parse(input)).toEqual(input);
   });
 
+  it('carries an empty memo', () => {
+    expect(postEntryInputSchema.parse({ ...input, memo: '' })).toEqual({ ...input, memo: '' });
+  });
+
   it('refuses an input missing its lines or its day', () => {
     expect(postEntryInputSchema.safeParse({ ...input, lines: undefined }).success).toBe(false);
     expect(postEntryInputSchema.safeParse({ ...input, entryDate: undefined }).success).toBe(false);
@@ -118,6 +122,10 @@ describe('editEntryInputSchema', () => {
 
   it('carries the id of the Entry to edit and the Entry draft that replaces it', () => {
     expect(editEntryInputSchema.parse(input)).toEqual(input);
+  });
+
+  it('carries an empty memo', () => {
+    expect(editEntryInputSchema.parse({ ...input, memo: '' })).toEqual({ ...input, memo: '' });
   });
 
   it('refuses an input whose id is missing or not an Entry id, or whose draft is incomplete', () => {
@@ -262,7 +270,13 @@ describe('parseMultiLineEntryForm', () => {
     expectRefused({ ...BALANCED, amount: ['12500'] });
   });
 
-  it('refuses a form with no date or no memo', () => {
+  it('reads an empty memo box as an empty memo', () => {
+    const result = parseMultiLineEntryForm(submitted({ ...BALANCED, memo: '' }));
+
+    expect(isOk(result) && result.value.memo).toBe('');
+  });
+
+  it('refuses a form with no date or no memo field', () => {
     expectRefused({ ...BALANCED, entryDate: [] });
     expectRefused({ ...BALANCED, memo: [] });
   });
@@ -347,6 +361,12 @@ describe('parseTwoLineEntryForm', () => {
     expect(isOk(result)).toBe(true);
     if (!isOk(result)) return;
     expect(result.value.lines[1]?.account).toBe(NOWHERE);
+  });
+
+  it('reads an empty memo box as an empty memo', () => {
+    const result = parseTwoLineEntryForm(submitted({ ...TWO_LINE, memo: '' }));
+
+    expect(isOk(result) && result.value.memo).toBe('');
   });
 
   it.each(['entryDate', 'memo', 'debitAccount', 'creditAccount', 'amount'])(

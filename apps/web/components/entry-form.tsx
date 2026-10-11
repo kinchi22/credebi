@@ -243,7 +243,6 @@ export function EntryFormShell({
             name={ENTRY_FORM_FIELDS.memo}
             type="text"
             defaultValue={variant.entry?.memo}
-            required
             className={CONTROL}
           />
         </div>
