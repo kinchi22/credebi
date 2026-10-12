@@ -46,6 +46,9 @@ export function runsOf(chart: ChartOutput, type: AccountType): readonly Run[] {
   return runs;
 }
 
+export const offersAGroup = (runs: readonly Run[]): boolean =>
+  runs.some((run) => run.kind === 'group' && run.accounts.length > 0);
+
 export type GroupRules = { readonly above: boolean; readonly below: boolean };
 
 export type RuledRun = { readonly run: Run; readonly rules: GroupRules };

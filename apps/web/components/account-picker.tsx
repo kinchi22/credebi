@@ -22,6 +22,7 @@ import { useModalDialog, type ModalDialog } from './modal-dialog';
 import {
   branchesOf,
   nameContains,
+  offersAGroup,
   ruledRunsOf,
   runsOf,
   type Branch,
@@ -377,6 +378,19 @@ function SideChoices({
     </div>
   );
 
+  const chipsOf = (runs: readonly Run[]): ReactNode => (
+    <div className="py-1.5">
+      {choices(
+        runs.flatMap((run) => run.accounts),
+        look.accounts,
+        NO_BRANCHES,
+      )}
+    </div>
+  );
+
+  const inlineOf = (runs: readonly Run[]): ReactNode =>
+    offersAGroup(runs) ? captionsOf(runs) : chipsOf(runs);
+
   return (
     <div
       role={control.groupRole}
@@ -398,7 +412,7 @@ function SideChoices({
             className={runs.some(isShown) ? 'flex flex-col gap-1' : 'hidden'}
           >
             <Band accountType={type} id={`${typeId}-${type}`} className="px-2 py-1.5" />
-            {look.groups === 'tree' ? treeOf(runs) : captionsOf(runs)}
+            {look.groups === 'tree' ? treeOf(runs) : inlineOf(runs)}
           </div>
         );
       })}

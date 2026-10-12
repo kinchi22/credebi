@@ -602,8 +602,12 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   after it in the type. A search that hides Accounts moves those edges with it. The rules are
   decoration and carry no contrast pair. Ungrouped Accounts, wherever they fall
   in the User's order, are padded 6px above and below, carry no rule and leave
-  the caption column empty. The picker draws no folder icon and no tree
-  connector.
+  the caption column empty. An Account type with no Account group the picker
+  offers, none still holding an Account once the Entry's day has narrowed the
+  Chart of accounts, has no caption column at all: its chips start at the
+  Band's edge, padded 6px above and below. A search does not count, so the
+  layout holds still while the User types. The picker draws no folder icon and
+  no tree connector.
 - **Account sheet.** Below `wide` the Accounts leave the form
   and open `Choose accounts` as a modal dialog rising from the foot of the page
   to 64px below its top, on the `ground` over a `ground-dark` scrim at 60%. In
