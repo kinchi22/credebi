@@ -363,9 +363,10 @@ Plex Mono 400 and 500 as Latin woff2 files through `next/font/local`, and the
 share image reads IBM Plex Sans Regular as TTF, as "Metadata files" in
 `docs/ARCHITECTURE.md` states.
 
-Text a User typed, such as a Title, a memo or an Account name, wraps: it breaks
-inside a word only when the word cannot fit on a line of its own, as
-`wrap-anywhere` does, and it never overflows its box or is cut.
+Text a User typed, such as a Title, a memo, an Account name, an Account group
+name or a description, wraps: it breaks inside a word only when the word cannot
+fit on a line of its own, as `wrap-anywhere` does, and it never overflows its
+box or is cut.
 
 ## Layout
 
@@ -653,12 +654,12 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   the arrow keys, it lists the User's Titles containing the typed text, in
   `body-dense`, just below the field and exactly as wide. The list is a
   `surface` panel with a `border` edge, the `control` radius and no shadow,
-  scrolling past 240px. An option under the
-  pointer, and the one the arrow keys reach, is tinted `surface-hover`. Choosing
-  one, by click or Enter, fills the field and closes the list; Escape closes it
-  alone. Nothing is listed when no Title matches. Enter and Escape pressed while
-  an input method is composing finish the text and nothing else, in Edit entry
-  too, whose dialog they never close.
+  scrolling past 240px. An option under the pointer, and the one the arrow keys
+  reach, is tinted `surface-hover`. Choosing one, by click or Enter, fills the
+  field and closes the list; Escape closes it alone. Nothing is listed when no
+  Title matches. Enter and Escape pressed while an input method is composing
+  finish the text and nothing else, in Edit entry too, whose dialog they never
+  close.
 - **Entry form dividers.** In both Entry form modes a 2px rule in the Side's
   colour sits above each Side: above its row, padded 12px above and below, in
   Two-line mode, above its block
@@ -672,8 +673,7 @@ light ground is 36px tall, `controlHeight` in the tokens module and
 - **Multi-line line.** Each Side's block is headed once by the Side, in
   `label` and the Side's colour, and its lines name no Side. Two columns at all
   widths, about 6:4, the Account's the wider: the left holds the Account name,
-  semibold and wrapping; the right holds the amount field and, beside it, the
-  Remove button.
+  semibold; the right holds the amount field and, beside it, the Remove button.
 - **Line not active on the day.** In Multi-line mode a line whose Account is
   not active on the Entry's day stays in the form with its amount, and below
   its Account name `Not active on this day` in `body-dense` and `warning`. It
@@ -713,15 +713,16 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   tinted `surface-hover`. Its first row holds the date in `date` and
   `text-muted`, the Title, when it has one, semibold in `text`, then the memo
   Regular in `text-muted`, with or without a Title, the two filling the space
-  and wrapping together as "Typography" says, and the Entry's total on the right
-  in `figure`, medium; the date, the total and the row actions keep their place
-  on the first line while the text grows downward between them. Below it two equal columns, Debit and Credit,
-  Credit's behind a `border` hairline, each headed by the Side in `label` and
-  the Side's colour over a 1.5px rule in that colour. In `body-dense`, each line
-  is one row, the Account name on the left, wrapping within its line, and its
-  amount on the right in `figure` and the Side's colour. An Entry with one Account on each Side puts
-  the Account name beside its Side's name and shows no line amount: the total
-  states it, and the line's amount stays for assistive technology. There is no
+  and wrapping together, and the Entry's total on the right in `figure`,
+  medium; the date, the total and the row actions keep their place on the first
+  line while the text grows downward between them. Below it two equal columns,
+  Debit and Credit, Credit's behind a `border` hairline, each headed by the Side
+  in `label` and the Side's colour over a 1.5px rule in that colour. In
+  `body-dense`, each line is one row, the Account name on the left and its
+  amount on the right in `figure` and the Side's colour. An Entry with one
+  Account on each Side puts the Account name beside its Side's name and shows no
+  line amount: the total states it, and the line's amount stays for assistive
+  technology. There is no
   shared header row: the first Entry's Side names are the table's `Debit` and
   `Credit` column headers, and every later Entry's are hidden from assistive
   technology.
