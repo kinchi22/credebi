@@ -266,65 +266,36 @@ After adopting the configuration on `main`, verify the real Git integration:
 
 ### Manual deployment
 
-`.github/workflows/manual-preview.yml` provides the explicit Preview request.
-Run it from `main`; other workflow refs fail. The requested source may be any
-branch of this repository or a full 40-character commit SHA reachable from one
-of its branches, including `main`. Tags, PR numbers, pull request refs and fork
-commits are unsupported. An unresolved target fails without a fallback.
+1. Create GitHub environment `preview-deployment`: required reviewer
+   `kinchi22`, deployment branch `main` only, administrator bypass disabled,
+   self-review allowed.
+2. Create a Vercel token scoped to the existing Credebi team
+   `team_07kD2sI9Uk9JGYqpTxvJH1hz`. Register it directly in the environment as
+   secret `VERCEL_TOKEN`; rotate it before expiry. Verify the saved reviewer,
+   branch policy and secret name before the first request.
 
-Before enabling the workflow, the owner configures these settings directly:
-
-1. In GitHub **Settings → Environments**, create `preview-deployment`. Require
-   reviewer `kinchi22`. Restrict deployment branches to `main`, so only the
-   reviewed workflow on `main` can request credentials. Prevent administrator
-   bypass of the required reviewer. Self-review may remain allowed so the owner
-   can approve a request they dispatched.
-2. In Vercel **Account Settings → Tokens**, create a deployment token scoped to
-   the existing Credebi team `team_07kD2sI9Uk9JGYqpTxvJH1hz`. Store it directly
-   as the environment secret `VERCEL_TOKEN` in `preview-deployment`. Do not put
-   it in repository secrets or commit it. Rotate the environment secret before
-   the token expires. Do not copy a locally stored CLI authentication token.
-3. Verify the environment's actual required reviewer and branch restriction,
-   and confirm the secret name exists, before dispatching the first request.
-   The token is available only to the approved deployment step. The workflow
-   pins Vercel CLI `63.1.2` and the existing project
-   `prj_wkKYEhdp7eQ0LWJ9RJfGsRSGp8s5`; no project linking prompt is required.
-
-To request a Preview, open **Actions → Manual Preview deployment → Run
-workflow**, select workflow branch `main`, and enter the source branch or full
-SHA. Equivalently:
+Run **Actions → Manual Preview deployment** from workflow branch `main`.
+The source accepts this repository's branches or full 40-character SHAs
+reachable from them, including `main`. Tags, PR numbers, pull request refs and
+fork commits are unsupported; invalid targets fail without a fallback.
 
 ```bash
 gh workflow run manual-preview.yml --ref main -f target=feature/example
 ```
 
-The resolution job fetches repository branches once and publishes the full SHA
-in its summary. The waiting deployment job's name contains that same SHA. Read
-it before approving `preview-deployment`. The source checkout and deployment
-use that frozen SHA even if the requested branch moves afterwards. Trusted
-orchestration comes from the workflow commit, separately from the source
-checkout; deployment rejects a different HEAD or modified tracked files.
+Check the resolved full SHA in the resolution summary and waiting job name,
+then approve `preview-deployment`. Checkout and deployment use that frozen SHA
+even if the source branch moves.
 
-Every invocation runs `vercel deploy --yes --target preview`, including requests
-for `main` and repeat requests for the same SHA. No existing deployment lookup,
-force build or custom cache policy is added; Vercel builds the source with its
-normal cache behavior. It provides no Production, Promotion or rollback command.
-See [Vercel deploy](https://vercel.com/docs/cli/deploy).
+Each approved run requests a Preview deployment, including repeats and `main`,
+using Vercel's default build cache. This workflow provides no Production,
+Promotion or rollback path.
 
-The final run summary shows the requested target, resolved SHA, status and,
-on success, the Preview URL. Resolution, approval, CLI installation or build
-failure produces a failed outcome. Inspect failed builds in the Vercel project.
-There are no added PR comments or notifications. CI and local tests remain
-independent of Preview creation, and the shared database remains migrated from
-`main` alone.
-
-Adoption is complete only after an owner approves a real request. Record the
-Actions run, reviewer settings, requested target, approved SHA, Vercel deployment
-ID, its Preview target and its visible URL in #375. Inspect Vercel's deployment
-metadata and compare `githubCommitSha` with the approval SHA. Opening the URL
-still requires Standard Protection access. At implementation time the
-`preview-deployment` environment was absent, so this live verification remains
-pending; source gates do not establish platform adoption.
+The run summary shows the requested target, resolved SHA, status and successful
+Preview URL. Build/deployment failures fail the workflow; inspect them in Vercel.
+For adoption, record the run, reviewer settings, target, approved SHA, deployment
+ID, Preview target and URL in #375. Confirm Vercel's `githubCommitSha` matches
+the approved SHA after an owner-approved live request.
 
 ### Shared database
 
