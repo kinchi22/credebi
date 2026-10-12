@@ -13,6 +13,8 @@ const EXPECTED_STATUS: Record<DomainErrorCode, TRPCError['code']> = {
   UNAUTHENTICATED: 'UNAUTHORIZED',
   NAME_TAKEN: 'CONFLICT',
   IN_USE: 'CONFLICT',
+  TITLE_TOO_LONG: 'BAD_REQUEST',
+  MEMO_TOO_LONG: 'BAD_REQUEST',
 };
 
 describe('toTrpcError', () => {

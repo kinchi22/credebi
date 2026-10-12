@@ -10,6 +10,8 @@ const STATUS_BY_CODE: Record<DomainErrorCode, TRPCError['code']> = {
   UNAUTHENTICATED: 'UNAUTHORIZED',
   NAME_TAKEN: 'CONFLICT',
   IN_USE: 'CONFLICT',
+  TITLE_TOO_LONG: 'BAD_REQUEST',
+  MEMO_TOO_LONG: 'BAD_REQUEST',
 };
 
 class DomainFailure extends Error {
