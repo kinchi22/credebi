@@ -184,9 +184,9 @@ function Overlay({ moving, rows }: { readonly moving: NodeData | undefined; read
             <GripIcon />
           </span>
           <span className="flex min-w-0 flex-1 flex-col">
-            <span className={moving.node.kind === 'group' ? 'font-semibold' : undefined}>{row.name}</span>
+            <span className={moving.node.kind === 'group' ? 'font-semibold wrap-anywhere' : 'wrap-anywhere'}>{row.name}</span>
             {row.description === null ? null : (
-              <span className={`${typeClasses['body-dense']} text-text-muted`}>{row.description}</span>
+              <span className={`${typeClasses['body-dense']} wrap-anywhere text-text-muted`}>{row.description}</span>
             )}
           </span>
         </div>

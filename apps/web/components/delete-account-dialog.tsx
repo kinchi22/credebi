@@ -87,7 +87,7 @@ function DeletePanel({
         </h2>
         <p className={MUTED_TEXT}>{en.accountTypes[target.accountType]}</p>
       </div>
-      <p className={`border-y border-border py-2 font-semibold ${typeClasses['body-sm']}`}>
+      <p className={`border-y border-border py-2 font-semibold wrap-anywhere ${typeClasses['body-sm']}`}>
         {target.name}
       </p>
       {refusal === undefined ? null : (

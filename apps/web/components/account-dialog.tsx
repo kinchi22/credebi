@@ -113,7 +113,7 @@ function AccountFields({
           id={groupId}
           name={ACCOUNT_FORM_FIELDS.group}
           defaultValue={account?.groupId ?? ''}
-          className={CONTROL}
+          className={`${CONTROL} max-w-full`}
         >
           <option value="">{en.accountDialog.noGroup}</option>
           {groups

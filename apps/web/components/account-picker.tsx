@@ -199,7 +199,7 @@ function AccountRowContent({
       <span className={`w-16 shrink-0 ${typeClasses.label} leading-5 ${SIDE_TONE[side].text}`}>
         {en.sides[side]}
       </span>
-      <span className={`min-w-0 grow ${account === undefined ? placeholderClass : 'font-semibold'}`}>
+      <span className={`min-w-0 grow wrap-anywhere ${account === undefined ? placeholderClass : 'font-semibold'}`}>
         {account === undefined ? en.entryForm.chooseAccount : account.name}
       </span>
     </>
@@ -220,9 +220,9 @@ type SideChoicesProps = {
 const FOCUSED_CHOICE =
   'peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus';
 
-const SHEET_CHOICE = `grow rounded-control px-2 py-1.5 text-text peer-checked:bg-accent/15 peer-checked:font-semibold ${FOCUSED_CHOICE}`;
+const SHEET_CHOICE = `grow rounded-control px-2 py-1.5 wrap-anywhere text-text peer-checked:bg-accent/15 peer-checked:font-semibold ${FOCUSED_CHOICE}`;
 
-const CHIP = `rounded-control border border-border px-1.5 py-1 text-text peer-not-checked:peer-hover:border-border-control peer-checked:border-accent-text peer-checked:bg-surface-chosen peer-checked:font-medium ${FOCUSED_CHOICE}`;
+const CHIP = `rounded-control border border-border px-1.5 py-1 wrap-anywhere text-text peer-not-checked:peer-hover:border-border-control peer-checked:border-accent-text peer-checked:bg-surface-chosen peer-checked:font-medium ${FOCUSED_CHOICE}`;
 
 type ChoicesLook = {
   readonly sideNameShown: boolean;
@@ -248,7 +248,7 @@ const INLINE_LOOK: ChoicesLook = {
   choice: CHIP,
 };
 
-const SHEET_GROUP_NAME = 'flex items-center gap-1.5 px-2 pt-1 font-semibold';
+const SHEET_GROUP_NAME = 'flex items-center gap-1.5 px-2 pt-1 font-semibold wrap-anywhere';
 
 const CAPTION_ROW = 'grid grid-cols-[84px_minmax(0,1fr)] gap-x-2.5';
 

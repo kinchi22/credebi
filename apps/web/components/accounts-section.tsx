@@ -94,7 +94,7 @@ function RowButtons({ held, onEdit, onDelete }: RowActions): ReactNode {
 
 function Description({ text }: { readonly text: string | null }): ReactNode {
   return text === null ? null : (
-    <span className={`${typeClasses['body-dense']} text-text-muted`}>{text}</span>
+    <span className={`${typeClasses['body-dense']} wrap-anywhere text-text-muted`}>{text}</span>
   );
 }
 
@@ -120,7 +120,7 @@ function AccountRow({
           <span className="flex min-w-0 flex-1 items-center gap-2 py-1.5">
             {grip}
             <span className="flex min-w-0 flex-1 flex-col">
-              <span>
+              <span className="wrap-anywhere">
                 {account.name}
                 {startsLater(account, today) ? (
                   <span className={`ml-2 ${typeClasses.date} text-text-muted`}>
@@ -200,7 +200,7 @@ function GroupRow({
             {grip}
             <GroupFolder size={16} />
             <span className="flex min-w-0 flex-1 flex-col">
-              <span className="font-semibold">{group.name}</span>
+              <span className="font-semibold wrap-anywhere">{group.name}</span>
               <Description text={group.description} />
             </span>
             <RowButtons {...actions} />

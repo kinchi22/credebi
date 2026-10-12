@@ -93,13 +93,13 @@ export function EntrySearchForm({ criteria, chart, titles }: EntrySearchFormProp
         <DatePresetsSheet today={today} onChoose={searchPreset} />
       </div>
 
-      <div className={FIELD}>
+      <div className={`${FIELD} max-w-full min-w-0`}>
         <label htmlFor={`${id}-account`}>{en.entrySearch.account}</label>
         <select
           id={`${id}-account`}
           name={SEARCH_CRITERIA_FIELDS.account}
           defaultValue={criteria.account ?? ''}
-          className={CONTROL}
+          className={`${CONTROL} max-w-full`}
         >
           <option value="">{en.entrySearch.anyAccount}</option>
           {accounts.map((account) => (
