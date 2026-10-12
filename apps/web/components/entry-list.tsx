@@ -97,7 +97,7 @@ function SideLines({
       <ul>
         {linesOn(entry, side).map((line, index) => (
           <li key={index} data-testid="entry-line" className="flex items-baseline gap-x-3 py-1">
-            <span className="min-w-0">{line.accountName}</span>{' '}
+            <span className="min-w-0 wrap-anywhere">{line.accountName}</span>{' '}
             <span className={`${layout.lineAmount} ${SIDE_TONE[side].text}`}>
               {formatAmount(line.amount)}
             </span>
@@ -133,10 +133,10 @@ function ListedEntry({
             <span className="flex min-w-0 grow flex-wrap items-baseline gap-x-2">
               {entry.title === '' ? null : (
                 <>
-                  <span className="font-semibold">{entry.title}</span>{' '}
+                  <span className="font-semibold wrap-anywhere">{entry.title}</span>{' '}
                 </>
               )}
-              <span className="min-w-0 text-text-muted">{entry.memo}</span>
+              <span className="min-w-0 wrap-anywhere text-text-muted">{entry.memo}</span>
             </span>{' '}
             <span className="shrink-0">
               <span className="sr-only">{en.entryList.total} </span>

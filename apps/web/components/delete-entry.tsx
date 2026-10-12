@@ -75,10 +75,10 @@ export function DeleteEntry({ entry, action }: DeleteEntryProps): ReactNode {
             <span className="flex min-w-0 grow flex-wrap items-baseline gap-x-2">
               {entry.title === '' ? null : (
                 <>
-                  <span className="font-semibold">{entry.title}</span>{' '}
+                  <span className="font-semibold wrap-anywhere">{entry.title}</span>{' '}
                 </>
               )}
-              <span className="min-w-0 text-text-muted">{entry.memo}</span>
+              <span className="min-w-0 wrap-anywhere text-text-muted">{entry.memo}</span>
             </span>{' '}
             <span className={`shrink-0 ${typeClasses.figure} font-medium`}>
               {formatAmount(entry.total)}

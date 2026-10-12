@@ -18,7 +18,7 @@ export type TitleComboboxProps = {
 const LIST =
   'absolute inset-x-0 top-full z-10 mt-1 max-h-60 overflow-y-auto rounded-control border border-border bg-surface py-1';
 const OPTION =
-  'break-words px-2 py-1.5 text-text hover:bg-surface-hover aria-selected:bg-surface-hover';
+  'px-2 py-1.5 wrap-anywhere text-text hover:bg-surface-hover aria-selected:bg-surface-hover';
 
 const step = (
   offered: readonly string[],

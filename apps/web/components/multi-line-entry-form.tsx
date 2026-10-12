@@ -140,7 +140,7 @@ function LineFields({ id, line, active, onAmountChange, onRemove }: LineFieldsPr
       <input type="hidden" name={ENTRY_FORM_FIELDS.account} value={line.account} />
       <input type="hidden" name={ENTRY_FORM_FIELDS.side} value={line.side} />
       <div className="flex min-w-0 flex-col">
-        <p aria-hidden className="font-semibold break-words">
+        <p aria-hidden className="font-semibold wrap-anywhere">
           {line.accountName}
         </p>
         {active ? null : <p className="text-warning">{en.multiLineForm.notActive.mark}</p>}
