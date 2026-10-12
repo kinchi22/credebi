@@ -261,7 +261,7 @@ describe('createEditEntry', () => {
       ],
     });
 
-    expect(isErr(tooLong) && tooLong.error.code).toBe('INVALID_INPUT');
+    expect(isErr(tooLong) && tooLong.error.code).toBe('MEMO_TOO_LONG');
     expect(isErr(unbalanced) && unbalanced.error.code).toBe('UNBALANCED');
     expect(rows).toHaveLength(1);
     expect(await visible(ADA)).toEqual([original]);

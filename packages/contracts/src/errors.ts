@@ -7,6 +7,8 @@ export const DOMAIN_ERROR_CODES = [
   'UNAUTHENTICATED',
   'NAME_TAKEN',
   'IN_USE',
+  'TITLE_TOO_LONG',
+  'MEMO_TOO_LONG',
 ] as const;
 
 export type DomainErrorCode = (typeof DOMAIN_ERROR_CODES)[number];

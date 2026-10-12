@@ -49,6 +49,8 @@ export type MultiLineEntry = Heading & {
 
 export const TITLE_MAX = 40;
 
+export const MEMO_MAX = 200;
+
 export const twoLine = (heading: Heading, creditAccount: Account = 'Cash'): TwoLineEntry => ({
   ...heading,
   debitAccount: 'Expenses',

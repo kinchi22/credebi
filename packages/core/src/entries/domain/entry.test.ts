@@ -262,7 +262,7 @@ describe('makeEntry', () => {
 
   it('accepts a memo of 200 characters, and refuses 201', () => {
     expect(isOk(makeEntry({ ...OFFICE_SUPPLIES, memo: 'm'.repeat(200) }, STAMP, NAMES))).toBe(true);
-    expectRefused({ ...OFFICE_SUPPLIES, memo: 'm'.repeat(201) }, 'INVALID_INPUT', 'at most 200');
+    expectRefused({ ...OFFICE_SUPPLIES, memo: 'm'.repeat(201) }, 'MEMO_TOO_LONG', 'at most 200');
   });
 
   it('counts a memo in code points, so 200 emoji fit though they are 400 UTF-16 units', () => {
@@ -271,7 +271,7 @@ describe('makeEntry', () => {
     expect(isOk(makeEntry({ ...OFFICE_SUPPLIES, memo: grinning.repeat(200) }, STAMP, NAMES))).toBe(true);
     expectRefused(
       { ...OFFICE_SUPPLIES, memo: grinning.repeat(201) },
-      'INVALID_INPUT',
+      'MEMO_TOO_LONG',
       'at most 200',
     );
   });
@@ -301,13 +301,13 @@ describe('makeEntry', () => {
     expect(result.value.title).toBe('');
   });
 
-  it('accepts a Title of 40 characters once trimmed, and refuses 41 as invalid input naming the Title', () => {
+  it('accepts a Title of 40 characters once trimmed, and refuses 41 as a Title too long', () => {
     expect(
       isOk(makeEntry({ ...OFFICE_SUPPLIES, title: ` ${'t'.repeat(TITLE_MAX_LENGTH)} ` }, STAMP, NAMES)),
     ).toBe(true);
     expectRefused(
       { ...OFFICE_SUPPLIES, title: 't'.repeat(TITLE_MAX_LENGTH + 1) },
-      'INVALID_INPUT',
+      'TITLE_TOO_LONG',
       'A Title can be at most 40',
     );
   });
@@ -318,7 +318,27 @@ describe('makeEntry', () => {
     expect(isOk(makeEntry({ ...OFFICE_SUPPLIES, title: grinning.repeat(40) }, STAMP, NAMES))).toBe(
       true,
     );
-    expectRefused({ ...OFFICE_SUPPLIES, title: grinning.repeat(41) }, 'INVALID_INPUT', 'at most 40');
+    expectRefused({ ...OFFICE_SUPPLIES, title: grinning.repeat(41) }, 'TITLE_TOO_LONG', 'at most 40');
+  });
+
+  it('refuses a Title and a memo both too long as a Title too long, checking the Title first', () => {
+    expectRefused(
+      {
+        ...OFFICE_SUPPLIES,
+        title: 't'.repeat(TITLE_MAX_LENGTH + 1),
+        memo: 'm'.repeat(MEMO_MAX_LENGTH + 1),
+      },
+      'TITLE_TOO_LONG',
+      'A Title can be at most 40',
+    );
+  });
+
+  it('refuses a memo too long before a line that breaks a rule', () => {
+    expectRefused(
+      { ...OFFICE_SUPPLIES, memo: 'm'.repeat(MEMO_MAX_LENGTH + 1), lines: [] },
+      'MEMO_TOO_LONG',
+      'at most 200',
+    );
   });
 
   it('accepts a day in the future, which is still a day', () => {
