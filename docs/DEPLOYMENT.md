@@ -264,37 +264,38 @@ After adopting the configuration on `main`, verify the real Git integration:
    cannot prove Vercel's actual Git behavior; complete this verification before
    the one-time cleanup starts.
 
-### Planned manual deployment and cleanup
+### Manual deployment
 
-Issue [#371](https://github.com/kinchi22/credebi/issues/371) changes Preview
-creation and includes a one-time cleanup. The Git policy above is implemented;
-the following workflow and cleanup choices remain planned. ADR-0024's retained
-no-CLI/no-token provision remains in force until the manual deployment Task
-adopts it.
+1. Create GitHub environment `preview-deployment`: required reviewer
+   `kinchi22`, deployment branch `main` only, administrator bypass disabled,
+   self-review allowed.
+2. Create a Vercel token scoped to the existing Credebi team
+   `team_07kD2sI9Uk9JGYqpTxvJH1hz`. Register it directly in the environment as
+   secret `VERCEL_TOKEN`; rotate it before expiry. Verify the saved reviewer,
+   branch policy and secret name before the first request.
 
-- A manually dispatched GitHub Actions workflow requests a Preview. It accepts
-  this repository's branch names or full commit SHAs, including commits on
-  `main`. Tags, PR numbers and external forks are not supported. An unresolved
-  target fails rather than falling back to `main`.
-- A branch is resolved once to a full SHA. The resolved SHA is displayed before
-  the owner approves the deployment through the GitHub environment
-  `preview-deployment`. Its secret holds the Vercel deployment token. The
-  deployment uses exactly the approved SHA and always targets Preview.
-- Each invocation requests a deployment, even when the SHA has been requested
-  before. No custom lookup reuses an existing deployment; Vercel's default build
-  cache behavior applies.
-- The Actions run summary displays the requested target, resolved full SHA,
-  Preview URL and success or failure status. A failed build fails the workflow.
-  There are no additional PR comments or notifications.
-- After automatic Preview creation is disabled, the existing Preview deployment
-  IDs in the Credebi project are captured as a fixed cleanup list. Every Preview
-  on that list, including the latest one, is deleted once. All Production
-  deployments and later manually requested Previews are preserved. There is no
-  scheduled cleanup or usage measurement. Links to deleted Previews stop
-  working.
-- CI and local tests remain independent of Preview creation. The shared Preview
-  database is still migrated only from `main`, and Preview remains best effort
-  as described below.
+Run **Actions → Manual Preview deployment** from workflow branch `main`.
+The source accepts this repository's branches or full 40-character SHAs
+reachable from them, including `main`. Tags, PR numbers, pull request refs and
+fork commits are unsupported; invalid targets fail without a fallback.
+
+```bash
+gh workflow run manual-preview.yml --ref main -f target=feature/example
+```
+
+Check the resolved full SHA in the resolution summary and waiting job name,
+then approve `preview-deployment`. Checkout and deployment use that frozen SHA
+even if the source branch moves.
+
+Each approved run requests a Preview deployment, including repeats and `main`,
+using Vercel's default build cache. This workflow provides no Production,
+Promotion or rollback path.
+
+The run summary shows the requested target, resolved SHA, status and successful
+Preview URL. Build/deployment failures fail the workflow; inspect them in Vercel.
+For adoption, record the run, reviewer settings, target, approved SHA, deployment
+ID, Preview target and URL in #375. Confirm Vercel's `githubCommitSha` matches
+the approved SHA after an owner-approved live request.
 
 ### Shared database
 
@@ -422,6 +423,7 @@ portability rule below: the same migrations run here, on Neon, or on RDS.
 | `PRODUCTION_URL` | GitHub repository variable, read by the compatibility and post-Promotion smoke runs | The production domain, which routes to Current Production |
 | `PRODUCTION_DATABASE_URL` | Secret of the GitHub environment `production-database` | Direct connection string the `Apply migrations` job applies migrations through |
 | `PREVIEW_DATABASE_URL` | Secret of the GitHub environment `preview-database` | Direct connection string the `Migrate preview` job applies migrations through |
+| `VERCEL_TOKEN` | Secret of `preview-deployment`, read only by the approved manual Preview deployment step | Team-scoped Vercel token; never used by Production release |
 | `VERCEL_AUTOMATION_BYPASS_SECRET` | GitHub repository secret, read by the three smoke runs | Sent as `x-vercel-protection-bypass`, so Playwright gets past Deployment Protection |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Vercel Preview + Production (the secret marked Sensitive), and local `.env`; placeholders in the `test:e2e` step of `E2E build` | The Google OAuth client. Required everywhere, like `DATABASE_URL`; only Production and a local server can finish a Google sign-in. ADR-0021 |
 | `AUTH_TEST_LOGIN` | Vercel Preview only, local `.env`, and the `test:e2e` step of `E2E build` | Set to anything non-empty, `/sign-in` also offers the test sign-in. `parseEnv` refuses it when `VERCEL_ENV` is `production` |

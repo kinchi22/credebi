@@ -1,0 +1,93 @@
+name: Manual Preview deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Repository branch name or full commit SHA
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  resolve:
+    if: github.ref == 'refs/heads/main'
+    name: Resolve requested Preview commit
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.resolve.outputs.sha }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - id: resolve
+        env:
+          REQUESTED_TARGET: ${{ inputs.target }}
+        run: node tools/manual-preview.ts resolve
+
+  deploy:
+    name: Deploy approved ${{ needs.resolve.outputs.sha }} to Preview
+    needs: resolve
+    environment:
+      name: preview-deployment
+      deployment: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          ref: ${{ github.sha }}
+          path: tooling
+          persist-credentials: false
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Install reviewed Vercel CLI
+        env:
+          VERCEL_CLI_VERSION: 63.1.2
+        run: |
+          node -e 'if (!/^\d+\.\d+\.\d+$/.test(process.env.VERCEL_CLI_VERSION ?? "")) process.exit(1)'
+          npm install --global "vercel@$VERCEL_CLI_VERSION"
+      - name: Deploy approved checkout
+        id: deploy
+        env:
+          APPROVED_SHA: ${{ needs.resolve.outputs.sha }}
+          SOURCE_DIRECTORY: source
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: node tooling/tools/manual-preview.ts deploy
+
+  summary:
+    if: always()
+    needs: [resolve, deploy]
+    name: Report Preview result
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - env:
+          REQUESTED_TARGET: ${{ inputs.target }}
+          APPROVED_SHA: ${{ needs.resolve.outputs.sha }}
+          RESOLUTION_RESULT: ${{ needs.resolve.result }}
+          DEPLOYMENT_RESULT: ${{ needs.deploy.result }}
+          PREVIEW_URL: ${{ needs.deploy.outputs.url }}
+        run: node tools/manual-preview.ts summary
