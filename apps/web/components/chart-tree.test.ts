@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   branchesOf,
   nameContains,
+  offersAGroup,
   ruledRunsOf,
   runsOf,
   shownInSection,
@@ -221,5 +222,22 @@ describe('runsOf', () => {
       { kind: 'group', group: bank, accounts: IN_BANK },
       { kind: 'accounts', accounts: [receivable] },
     ]);
+  });
+});
+
+describe('offersAGroup', () => {
+  it('offers a group when one holds an Account, wherever ungrouped Accounts fall around it', () => {
+    expect(offersAGroup([BANK_RUN])).toBe(true);
+    expect(offersAGroup([CASH, CARDS, RECEIVABLE])).toBe(true);
+  });
+
+  it('offers no group for a type whose Accounts are all ungrouped', () => {
+    expect(offersAGroup([CASH])).toBe(false);
+    expect(offersAGroup([])).toBe(false);
+  });
+
+  it('offers no group for a type whose groups hold no Account', () => {
+    expect(offersAGroup([CASH, group('b004', 'Empty', [])])).toBe(false);
+    expect(offersAGroup([group('b004', 'Empty', [])])).toBe(false);
   });
 });

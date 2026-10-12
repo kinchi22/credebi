@@ -22,6 +22,7 @@ import { useModalDialog, type ModalDialog } from './modal-dialog';
 import {
   branchesOf,
   nameContains,
+  offersAGroup,
   ruledRunsOf,
   runsOf,
   type Branch,
@@ -251,6 +252,8 @@ const SHEET_GROUP_NAME = 'flex items-center gap-1.5 px-2 pt-1 font-semibold';
 
 const CAPTION_ROW = 'grid grid-cols-[84px_minmax(0,1fr)] gap-x-2.5';
 
+const UNGROUPED = 'py-1.5';
+
 const GROUP_CAPTION = 'leading-7.5 font-medium wrap-anywhere text-text-muted';
 
 const groupBounds = ({ above, below }: GroupRules): string =>
@@ -356,26 +359,38 @@ function SideChoices({
       ),
     );
 
-  const captionsOf = (runs: readonly Run[]): ReactNode => (
-    <div className="flex flex-col">
-      {ruledRunsOf(runs, matches).map(({ run, rules }, index) =>
-        run.kind === 'accounts' ? (
-          <div key={`accounts-${String(index)}`} className={`${CAPTION_ROW} py-1.5 ${shownIn(run)}`}>
-            <span />
-            {choices(run.accounts, look.accounts, NO_BRANCHES)}
-          </div>
-        ) : (
-          <div
-            key={run.group.id}
-            className={`${CAPTION_ROW} py-2 ${groupBounds(rules)} ${shownIn(run)}`}
-          >
-            <p className={GROUP_CAPTION}>{run.group.name}</p>
-            {choices(run.accounts, look.accounts, NO_BRANCHES)}
-          </div>
-        ),
-      )}
-    </div>
-  );
+  const captionsOf = (runs: readonly Run[]): ReactNode =>
+    offersAGroup(runs) ? (
+      <div className="flex flex-col">
+        {ruledRunsOf(runs, matches).map(({ run, rules }, index) =>
+          run.kind === 'accounts' ? (
+            <div
+              key={`accounts-${String(index)}`}
+              className={`${CAPTION_ROW} ${UNGROUPED} ${shownIn(run)}`}
+            >
+              <span />
+              {choices(run.accounts, look.accounts, NO_BRANCHES)}
+            </div>
+          ) : (
+            <div
+              key={run.group.id}
+              className={`${CAPTION_ROW} py-2 ${groupBounds(rules)} ${shownIn(run)}`}
+            >
+              <p className={GROUP_CAPTION}>{run.group.name}</p>
+              {choices(run.accounts, look.accounts, NO_BRANCHES)}
+            </div>
+          ),
+        )}
+      </div>
+    ) : (
+      <div className={UNGROUPED}>
+        {choices(
+          runs.flatMap((run) => run.accounts),
+          look.accounts,
+          NO_BRANCHES,
+        )}
+      </div>
+    );
 
   return (
     <div
