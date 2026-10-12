@@ -4,10 +4,12 @@ import {
   AMOUNT,
   DAY,
   deleteListed,
+  entries,
   entryForm,
   expectOffered,
   headingShowing,
   listedEntry,
+  MEMO_MAX,
   offeredTitle,
   offeredTitles,
   openEditEntry,
@@ -64,6 +66,26 @@ async function expectTitleBeforeMemo(form: Locator): Promise<void> {
   await expect(inDocumentOrder.nth(1)).toHaveAccessibleName('Memo');
 }
 
+const TOO_LONG_TITLE = 'T'.repeat(TITLE_MAX + 1);
+
+const tooLongMemo = (): string => `Too long a memo ${randomUUID()} `.padEnd(MEMO_MAX + 1, 'M');
+
+const naming = (limit: number): RegExp => new RegExp(`(?<!\\d)${String(limit)}(?!\\d)`);
+
+async function expectTitleRefused(scope: Locator): Promise<void> {
+  const refusal = scope.getByRole('alert');
+  await expect(refusal).toContainText(/title/i);
+  await expect(refusal).toContainText(naming(TITLE_MAX));
+  await expect(refusal).not.toContainText(/memo/i);
+}
+
+async function expectMemoRefused(scope: Locator): Promise<void> {
+  const refusal = scope.getByRole('alert');
+  await expect(refusal).toContainText(/memo/i);
+  await expect(refusal).toContainText(naming(MEMO_MAX));
+  await expect(refusal).not.toContainText(/title/i);
+}
+
 const HEADINGS = [
   { day: '2026-09-11', title: 'Starbucks', memo: 'Dinner with John; I paid first' },
   { day: '2026-09-12', title: 'Salary', memo: '' },
@@ -97,13 +119,13 @@ for (const mode of ['Two-line mode', 'Multi-line mode'] as const) {
     await expectEachListed(page);
   });
 
-  test(`refuses a Title longer than ${String(TITLE_MAX)} characters in ${mode} with a message naming the Title, and posts one of ${String(TITLE_MAX)} characters outside the Basic Multilingual Plane`, async ({ page }) => {
+  test(`refuses a Title longer than ${String(TITLE_MAX)} characters in ${mode} with a message naming the Title and its limit, and posts one of ${String(TITLE_MAX)} characters outside the Basic Multilingual Plane`, async ({ page }) => {
     const memo = `Too long a name ${randomUUID()}`;
     await signIn(page, { accountsStartOn: BOOKS_OPEN });
     const form = await openForm(page, mode);
 
-    await postInMode(form, mode, { day: DAY, title: 'T'.repeat(TITLE_MAX + 1), memo });
-    await expect(form.getByRole('alert')).toContainText(/title/i);
+    await postInMode(form, mode, { day: DAY, title: TOO_LONG_TITLE, memo });
+    await expectTitleRefused(form);
     await page.reload();
     await expect(listedEntry(page, memo)).toHaveCount(0);
 
@@ -112,6 +134,36 @@ for (const mode of ['Two-line mode', 'Multi-line mode'] as const) {
     const entry = listedEntry(page, memo);
     await expect(entry).toHaveCount(1);
     await expect(entry).toContainText(headingShowing({ day: DAY, title: longest, memo }));
+  });
+
+  test(`refuses a memo longer than ${String(MEMO_MAX)} characters in ${mode} with a message naming the memo and its limit`, async ({ page }) => {
+    const memo = tooLongMemo();
+    await signIn(page, { accountsStartOn: BOOKS_OPEN });
+    const form = await openForm(page, mode);
+
+    await postInMode(form, mode, { day: DAY, title: 'Salary', memo });
+    await expectMemoRefused(form);
+
+    await page.reload();
+    await expect(entries(page)).toBeVisible();
+    await expect(listedEntry(page, memo)).toHaveCount(0);
+  });
+
+  test(`refuses a Title and a memo both too long in ${mode} with the Title's refusal, and with the memo's once the Title is shortened`, async ({ page }) => {
+    const memo = tooLongMemo();
+    await signIn(page, { accountsStartOn: BOOKS_OPEN });
+    const form = await openForm(page, mode);
+
+    await postInMode(form, mode, { day: DAY, title: TOO_LONG_TITLE, memo });
+    await expectTitleRefused(form);
+
+    await titleField(form).fill('Salary');
+    await submit(form);
+    await expectMemoRefused(form);
+
+    await page.reload();
+    await expect(entries(page)).toBeVisible();
+    await expect(listedEntry(page, memo)).toHaveCount(0);
   });
 }
 
@@ -343,20 +395,60 @@ test('edits an Entry with an empty memo, and keeps its memo empty', async ({ pag
   await expect(entry).toContainText(headingShowing({ day: DAY, title: 'Groceries', memo: '' }, '8,000'));
 });
 
-test('says the Title is what to check when Edit entry is saved with a Title too long', async ({ page }) => {
+test(`refuses a Title longer than ${String(TITLE_MAX)} characters in Edit entry with a message naming the Title and its limit, keeping the dialog open and the Entry unchanged`, async ({ page }) => {
   const memo = `Latte ${randomUUID()}`;
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [titled('Starbucks', memo)]);
 
   await page.goto('/entries');
   const dialog = await openEditEntry(listedEntry(page, memo));
-  await titleField(dialog).fill('T'.repeat(TITLE_MAX + 1));
+  await titleField(dialog).fill(TOO_LONG_TITLE);
   await submit(dialog, 'Save');
 
-  await expect(dialog.getByRole('alert')).toContainText(/title/i);
+  await expectTitleRefused(dialog);
   await expect(dialog).toBeVisible();
 
   await page.reload();
+  await expect(listedEntry(page, memo)).toContainText(headingShowing({ day: DAY, title: 'Starbucks', memo }));
+});
+
+test(`refuses a memo longer than ${String(MEMO_MAX)} characters in Edit entry with a message naming the memo and its limit, keeping the dialog open and the Entry unchanged`, async ({ page }) => {
+  const memo = `Latte ${randomUUID()}`;
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
+  await postEntries(page, [titled('Starbucks', memo)]);
+
+  await page.goto('/entries');
+  const dialog = await openEditEntry(listedEntry(page, memo));
+  await dialog.getByLabel('Memo').fill(tooLongMemo());
+  await submit(dialog, 'Save');
+
+  await expectMemoRefused(dialog);
+  await expect(dialog).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByTestId('entry')).toHaveCount(1);
+  await expect(listedEntry(page, memo)).toContainText(headingShowing({ day: DAY, title: 'Starbucks', memo }));
+});
+
+test("refuses a Title and a memo both too long in Edit entry with the Title's refusal, and with the memo's once the Title is shortened, keeping the Entry unchanged", async ({ page }) => {
+  const memo = `Latte ${randomUUID()}`;
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
+  await postEntries(page, [titled('Starbucks', memo)]);
+
+  await page.goto('/entries');
+  const dialog = await openEditEntry(listedEntry(page, memo));
+  await titleField(dialog).fill(TOO_LONG_TITLE);
+  await dialog.getByLabel('Memo').fill(tooLongMemo());
+  await submit(dialog, 'Save');
+  await expectTitleRefused(dialog);
+
+  await titleField(dialog).fill('Blue Bottle');
+  await submit(dialog, 'Save');
+  await expectMemoRefused(dialog);
+  await expect(dialog).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByTestId('entry')).toHaveCount(1);
   await expect(listedEntry(page, memo)).toContainText(headingShowing({ day: DAY, title: 'Starbucks', memo }));
 });
 
