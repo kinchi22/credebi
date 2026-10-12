@@ -87,6 +87,8 @@ const refusalsWith = (invalid: string): Readonly<Record<DomainErrorCode, string>
   UNAUTHENTICATED: en.entryForm.signedOut,
   NAME_TAKEN: invalid,
   IN_USE: invalid,
+  TITLE_TOO_LONG: en.entryForm.titleTooLong,
+  MEMO_TOO_LONG: en.entryForm.memoTooLong,
 });
 
 const REFUSAL: Readonly<Record<EntryFormMode, Readonly<Record<DomainErrorCode, string>>>> = {

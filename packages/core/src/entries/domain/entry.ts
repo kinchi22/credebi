@@ -66,12 +66,22 @@ export function makeEntry(
 ): Result<Entry, DomainError> {
   const title = draft.title.trim();
   if (textLength(title) > TITLE_MAX_LENGTH) {
-    return invalid(`A Title can be at most ${String(TITLE_MAX_LENGTH)} characters once trimmed.`);
+    return err(
+      domainError(
+        'TITLE_TOO_LONG',
+        `A Title can be at most ${String(TITLE_MAX_LENGTH)} characters once trimmed.`,
+      ),
+    );
   }
 
   const memo = draft.memo.trim();
   if (textLength(memo) > MEMO_MAX_LENGTH) {
-    return invalid(`A memo can be at most ${String(MEMO_MAX_LENGTH)} characters once trimmed.`);
+    return err(
+      domainError(
+        'MEMO_TOO_LONG',
+        `A memo can be at most ${String(MEMO_MAX_LENGTH)} characters once trimmed.`,
+      ),
+    );
   }
 
   const lines = checkLines(draft.lines, names);
