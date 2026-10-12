@@ -366,7 +366,9 @@ share image reads IBM Plex Sans Regular as TTF, as "Metadata files" in
 Text a User typed, such as a Title, a memo, an Account name, an Account group
 name or a description, wraps: it breaks inside a word only when the word cannot
 fit on a line of its own, as `wrap-anywhere` does, and it never overflows its
-box or is cut.
+box or is cut. A closed select is the one exception: it is no wider than its
+field and shows one line, cutting a long name at its edge, while its open list
+is the browser's own.
 
 ## Layout
 
@@ -722,10 +724,9 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   amount on the right in `figure` and the Side's colour. An Entry with one
   Account on each Side puts the Account name beside its Side's name and shows no
   line amount: the total states it, and the line's amount stays for assistive
-  technology. There is no
-  shared header row: the first Entry's Side names are the table's `Debit` and
-  `Credit` column headers, and every later Entry's are hidden from assistive
-  technology.
+  technology. There is no shared header row: the first Entry's Side names are
+  the table's `Debit` and `Credit` column headers, and every later Entry's are
+  hidden from assistive technology.
 - **Entry row actions.** At the end of each Entry's first row, after its
   total, `Edit` and then `Delete` are bare icon buttons, drawn as the Remove
   button: a stroke icon in `text-muted`, `text` under the pointer, no fill and
