@@ -27,9 +27,9 @@ the base branch for your Task and the `gh` commands.
 5. **Gate.** `pnpm gates` passes. A specs Task passes
    `pnpm verify:gates:e2e` too: every spec fails against an empty page.
 6. **Open.** Push and open the pull request into the base branch. The title is
-   the change in the imperative, as the log reads. The body says what changed
-   and why, names every owned path in the diff and why the owner is needed, and
-   ends with `Closes #<n>`. When the pull request also closes the Feature --
+   the change in the imperative, as the log reads. Write the body with the `pr`
+   Skill. Its Merge Danger names every owned path in the diff and why the owner
+   is needed, and the body ends with `Closes #<n>`. When the pull request also closes the Feature --
    the specs Task of a Feature whose every criterion the app already meets, or
    the last Task of a Feature with no specs -- it carries `Closes #<feature>` as
    well. Set the Task In Review.
