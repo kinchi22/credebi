@@ -16,7 +16,10 @@ export const NOT_ACTIVE_ON_THIS_DAY = 'Not active on this day';
 export const needsMultiLineExplanation = (title: string): string =>
   `The last Entry titled ${title} has more than one line on a Side. Two-line mode posts one debit and one credit line. Change the Entry form mode in Settings.`;
 
-export const notActiveExplanation = (account: string): string =>
+export const twoLineNotActiveExplanation = (account: string): string =>
+  `${account} can be used only within its active period. Change the day, choose another account, or change the period in Settings.`;
+
+export const multiLineNotActiveExplanation = (account: string): string =>
   `${account} can be used only within its active period. Change the day, remove the line, or change the period in Settings.`;
 
 export async function openHelpTip(button: Locator, text: string): Promise<Locator> {
