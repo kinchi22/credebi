@@ -6,6 +6,7 @@ import {
   type DomainErrorCode,
   type EntryFormMode,
   type PostedEntry,
+  type OfferedTitle,
 } from '@repo/contracts';
 import { PANEL, PANEL_TITLE } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
@@ -49,7 +50,7 @@ export type EditedEntry = {
 export type EntryFormProps = {
   readonly action: EntryFormAction;
   readonly chart: ChartOutput;
-  readonly titles: readonly string[];
+  readonly titles: readonly OfferedTitle[];
   readonly editing?: EditedEntry | undefined;
 };
 
@@ -246,7 +247,7 @@ export function EntryFormShell({
           name={ENTRY_FORM_FIELDS.title}
           label={en.entryForm.entryTitle}
           defaultValue={variant.entry?.title}
-          titles={titles}
+          titles={titles.map(({ title }) => title)}
           className="grow"
         />
         <div className={`${DENSE_FIELD} basis-full wide:col-span-full`}>

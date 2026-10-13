@@ -137,6 +137,14 @@ async function memosFound(criteria: SearchCriteria, userId: UserId = ADA): Promi
   return (await found(userId, criteria)).map((entry) => entry.memo);
 }
 
+const SINCE = new Date('2024-10-04T10:00:00.000Z');
+
+async function titledFound(userId: UserId): Promise<readonly string[]> {
+  const result = await repository.titledEntries(userId, SINCE);
+  expect(isOk(result)).toBe(true);
+  return isOk(result) ? result.value.map(({ title }) => title).toSorted() : [];
+}
+
 async function countEntries(): Promise<number> {
   const result = await database.execute<{ count: number }>(
     sql`select count(*)::int as count from entries`,
@@ -800,49 +808,86 @@ describe('createPostgresEntryRepository', () => {
     expect(await memosFound({ memo: 'rent' })).toEqual(['Kept rent']);
   });
 
-  it("answers the User's Titles once each ignoring case, spelled as on the latest Entry carrying it, the most recently created first whatever its day", async () => {
-    const at = (minute: number): Date => new Date(Date.UTC(2026, 9, 4, 9, minute));
-    await repository.save(ADA, entry({ title: 'Starbucks', entryDate: '2026-09-15', createdAt: at(1) }));
-    await repository.save(ADA, entry({ title: 'Salary', entryDate: '2026-09-10', createdAt: at(2) }));
-    await repository.save(ADA, entry({ title: '', entryDate: '2026-09-30', createdAt: at(3) }));
-    await repository.save(ADA, entry({ title: 'Rent', entryDate: '2026-09-20', createdAt: at(4) }));
-    await repository.save(ADA, entry({ title: 'starbucks', entryDate: '2026-09-01', createdAt: at(5) }));
-    await repository.save(ADA, entry({ title: 'SALARY', entryDate: '2026-09-02', createdAt: at(0) }));
+  it('reads each titled Entry created since the instant given, with its Title as typed, its creation time and its lines in order', async () => {
+    const salary = entry({
+      title: 'Salary',
+      createdAt: SINCE,
+      lines: [
+        { account: CASH, side: 'debit', amount: 300000 as Money },
+        { account: EXPENSES, side: 'debit', amount: 20000 as Money },
+        { account: SALES, side: 'credit', amount: 320000 as Money },
+      ],
+    });
+    await repository.save(ADA, salary);
 
-    expect(await repository.titles(ADA)).toEqual(ok(['starbucks', 'Rent', 'Salary']));
+    expect(await repository.titledEntries(ADA, SINCE)).toEqual(
+      ok([
+        {
+          id: salary.id,
+          title: 'Salary',
+          createdAt: SINCE,
+          lines: [
+            { account: CASH, side: 'debit', amount: 300000 },
+            { account: EXPENSES, side: 'debit', amount: 20000 },
+            { account: SALES, side: 'credit', amount: 320000 },
+          ],
+        },
+      ]),
+    );
   });
 
-  it('orders Titles created at the same instant by the later id first', async () => {
-    const first = entry({ title: 'First' });
-    const second = entry({ title: 'Second' });
-    await repository.save(ADA, first);
-    await repository.save(ADA, second);
+  it('leaves out an Entry created before the instant given, whatever its day', async () => {
+    await repository.save(
+      ADA,
+      entry({ title: 'Stale', entryDate: '2026-09-30', createdAt: new Date(SINCE.getTime() - 1) }),
+    );
+    await repository.save(ADA, entry({ title: 'Backdated', entryDate: '2026-01-01', createdAt: SINCE }));
 
-    expect(await repository.titles(ADA)).toEqual(ok(['Second', 'First']));
+    expect(await titledFound(ADA)).toEqual(['Backdated']);
   });
 
-  it('answers no Title carried only by a reversed Entry, nor by its Reversal', async () => {
+  it('leaves out an Entry with no Title', async () => {
+    await repository.save(ADA, entry({ title: '' }));
+    await repository.save(ADA, entry({ title: 'Rent' }));
+
+    expect(await titledFound(ADA)).toEqual(['Rent']);
+  });
+
+  it('leaves out a reversed Entry and its Reversal', async () => {
     const doomed = entry({ title: 'Gone' });
     await repository.save(ADA, doomed);
     await repository.save(ADA, entry({ title: 'Kept' }));
     await repository.saveReversal(ADA, reversalOf(doomed));
 
-    expect(await repository.titles(ADA)).toEqual(ok(['Kept']));
+    expect(await titledFound(ADA)).toEqual(['Kept']);
   });
 
-  it("keeps the Titles inside one User's books (ADR-0021)", async () => {
+  it("keeps the titled Entries inside one User's books (ADR-0021)", async () => {
     await repository.save(ADA, entry({ title: 'Secret' }));
     await repository.save(GRACE, entry({ title: 'Mine' }));
 
-    expect(await repository.titles(GRACE)).toEqual(ok(['Mine']));
-    expect(await repository.titles(ADA)).toEqual(ok(['Secret']));
+    expect(await titledFound(GRACE)).toEqual(['Mine']);
+    expect(await titledFound(ADA)).toEqual(['Secret']);
   });
 
-  it('reports an unreachable database when reading the Titles', async () => {
-    const result = await dead.titles(ADA);
+  it('reports an unreachable database when reading the titled Entries', async () => {
+    const result = await dead.titledEntries(ADA, SINCE);
 
     expect(isErr(result) && result.error.code).toBe('DEPENDENCY_UNAVAILABLE');
     expect(logged.map((fields) => fields.event)).toEqual(['entries.titles_failed']);
+  });
+
+  it('reports a stored titled line with a side that is not debit or credit', async () => {
+    const saved = entry({ title: 'Broken' });
+    await repository.save(ADA, saved);
+    await database.execute(
+      sql`update entry_lines set side = 'minus' where entry_id = ${saved.id} and line_number = 1`,
+    );
+
+    const result = await repository.titledEntries(ADA, SINCE);
+
+    expect(isErr(result) && result.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+    expect(isErr(result) && result.error.message).toContain(saved.id);
   });
 
   it('reports an unreachable database when reading one Entry or saving a Reversal', async () => {

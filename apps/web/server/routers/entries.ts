@@ -1,6 +1,7 @@
 import {
   deleteEntryInputSchema,
   editEntryInputSchema,
+  offeredTitleSchema,
   postEntryInputSchema,
   postedEntrySchema,
   searchCriteriaSchema,
@@ -22,12 +23,12 @@ export const entriesRouter = router({
       return result.value.map((entry) => toPostedEntry(entry));
     }),
 
-  titles: sessionProcedure.output(z.array(z.string())).query(async ({ ctx }) => {
+  titles: sessionProcedure.output(z.array(offeredTitleSchema)).query(async ({ ctx }) => {
     const result = await ctx.container.getTitles(ctx.auth);
     if (!result.ok) {
       throw toTrpcError(result.error);
     }
-    return [...result.value];
+    return result.value.map(({ title }) => ({ title }));
   }),
 
   post: sessionProcedure

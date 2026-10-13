@@ -127,7 +127,7 @@ export function createContainer({ databaseUrl, google, testSignIn }: Env): Conta
       now: () => new Date(),
     }),
     searchEntries: createSearchEntries({ entries, accounts }),
-    getTitles: createGetTitles({ entries }),
+    getTitles: createGetTitles({ entries, now: () => new Date() }),
     editEntry: createEditEntry({
       entries,
       accounts,

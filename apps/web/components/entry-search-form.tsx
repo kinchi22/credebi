@@ -5,6 +5,7 @@ import {
   accountsIn,
   type ChartOutput,
   type SearchCriteriaInput,
+  type OfferedTitle,
 } from '@repo/contracts';
 import { endedLast } from '@repo/core/accounts';
 import { type DayRange } from '@repo/core/entries';
@@ -21,7 +22,7 @@ import { TitleCombobox } from './title-combobox';
 export type EntrySearchFormProps = {
   readonly criteria: SearchCriteriaInput;
   readonly chart: ChartOutput;
-  readonly titles: readonly string[];
+  readonly titles: readonly OfferedTitle[];
 };
 
 const RANGE_DAY = `${DATE_CONTROL} w-full min-w-0 wide:w-auto`;
@@ -115,7 +116,7 @@ export function EntrySearchForm({ criteria, chart, titles }: EntrySearchFormProp
         name={SEARCH_CRITERIA_FIELDS.title}
         label={en.entrySearch.entryTitle}
         defaultValue={criteria.title}
-        titles={titles}
+        titles={titles.map(({ title }) => title)}
         dense={false}
         className="grow"
       />

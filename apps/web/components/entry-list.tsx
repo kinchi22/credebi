@@ -3,6 +3,7 @@ import {
   type EntryFormMode,
   type PostedEntry,
   type Side,
+  type OfferedTitle,
 } from '@repo/contracts';
 import { Panel, PANEL_BLEED } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
@@ -17,7 +18,7 @@ import { MUTED_TEXT } from './text-classes';
 
 export type EntryControls = {
   readonly chart: ChartOutput;
-  readonly titles: readonly string[];
+  readonly titles: readonly OfferedTitle[];
   readonly entryFormMode: EntryFormMode;
   readonly editEntry: EditEntryAction;
   readonly deleteEntry: DeleteEntryAction;
