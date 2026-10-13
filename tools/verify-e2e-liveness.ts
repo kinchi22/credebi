@@ -4,6 +4,7 @@ import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { stripVTControlCharacters } from 'node:util';
+import { bin } from './gates/run-gate.ts';
 
 export type ReportError = {
   readonly message: string;
@@ -90,6 +91,56 @@ export function findLivenessProblems(report: LivenessReport, requests: number): 
   return problems;
 }
 
+export type PlaywrightRun = {
+  readonly exitStatus: number | null;
+  readonly signal: NodeJS.Signals | null;
+  readonly report: LivenessReport | undefined;
+};
+
+export type PlaywrightInvocation = {
+  readonly cwd: string;
+  readonly args: readonly string[];
+  readonly env: NodeJS.ProcessEnv;
+  readonly reportFile: string;
+};
+
+export const noReport = ({ exitStatus, signal }: PlaywrightRun): string =>
+  signal === null
+    ? `Playwright wrote no report (exit status ${String(exitStatus)}).`
+    : `Playwright was stopped by ${signal} before it wrote a report.`;
+
+export async function runPlaywright({
+  cwd,
+  args,
+  env,
+  reportFile,
+}: PlaywrightInvocation): Promise<PlaywrightRun> {
+  rmSync(reportFile, { force: true });
+  const { exitStatus, signal } = await new Promise<Omit<PlaywrightRun, 'report'>>(
+    (resolve, reject) => {
+      const child = spawn(bin('playwright'), ['test', ...args], {
+        cwd,
+        stdio: 'inherit',
+        env: { ...process.env, ...env, PLAYWRIGHT_JSON_OUTPUT_NAME: reportFile },
+      });
+      const forward = (received: NodeJS.Signals): void => {
+        child.kill(received);
+      };
+      process.on('SIGINT', forward).on('SIGTERM', forward);
+      child.on('error', reject);
+      child.on('close', (code, stopped) => {
+        process.off('SIGINT', forward).off('SIGTERM', forward);
+        resolve({ exitStatus: code, signal: stopped });
+      });
+    },
+  );
+
+  const report = existsSync(reportFile)
+    ? (JSON.parse(readFileSync(reportFile, 'utf8')) as LivenessReport)
+    : undefined;
+  return { exitStatus, signal, report };
+}
+
 export async function runAgainstEmptyPage(
   repoRoot: string,
   configFile?: string,
@@ -104,43 +155,26 @@ export async function runAgainstEmptyPage(
   const port = typeof address === 'object' && address !== null ? address.port : 0;
 
   const directory = mkdtempSync(path.join(tmpdir(), 'e2e-liveness-'));
-  const reportFile = path.join(directory, 'report.json');
 
   try {
-    const exitStatus = await new Promise<number | null>((resolve, reject) => {
-      const child = spawn(
-        path.join(repoRoot, 'node_modules', '.bin', 'playwright'),
-        [
-          'test',
-          `--workers=${String(LIVENESS_WORKERS)}`,
-          '--retries=0',
-          '--forbid-only',
-          '--reporter=json',
-          ...(configFile === undefined ? [] : ['--config', configFile]),
-        ],
-        {
-          cwd: repoRoot,
-          stdio: 'inherit',
-          env: {
-            ...process.env,
-            E2E_LIVENESS: '1',
-            E2E_BASE_URL: `http://127.0.0.1:${String(port)}`,
-            PLAYWRIGHT_JSON_OUTPUT_NAME: reportFile,
-          },
-        },
-      );
-      child.on('error', reject);
-      child.on('close', resolve);
+    const run = await runPlaywright({
+      cwd: repoRoot,
+      args: [
+        `--workers=${String(LIVENESS_WORKERS)}`,
+        '--retries=0',
+        '--forbid-only',
+        '--reporter=json',
+        ...(configFile === undefined ? [] : ['--config', configFile]),
+      ],
+      env: { E2E_LIVENESS: '1', E2E_BASE_URL: `http://127.0.0.1:${String(port)}` },
+      reportFile: path.join(directory, 'report.json'),
     });
+    const { report } = run;
 
-    if (!existsSync(reportFile)) {
-      return {
-        problems: [`Playwright wrote no report (exit status ${String(exitStatus)}).`],
-        report: undefined,
-      };
+    if (report === undefined) {
+      return { problems: [noReport(run)], report: undefined };
     }
 
-    const report = JSON.parse(readFileSync(reportFile, 'utf8')) as LivenessReport;
     const problems = findLivenessProblems(report, requests);
     if (problems.length === 0) {
       console.log(

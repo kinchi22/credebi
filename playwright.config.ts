@@ -4,6 +4,7 @@ const externalUrl = process.env['E2E_BASE_URL'];
 const baseURL = externalUrl ?? 'http://127.0.0.1:3000';
 const isCI = process.env['CI'] === 'true' || process.env['CI'] === '1';
 const isLiveness = process.env['E2E_LIVENESS'] === '1';
+const isAdvisory = process.env['E2E_ADVISORY'] === '1';
 
 const bypassSecret = process.env['VERCEL_AUTOMATION_BYPASS_SECRET'] ?? '';
 const protectionBypass: Pick<NonNullable<PlaywrightTestConfig['use']>, 'extraHTTPHeaders'> =
@@ -27,12 +28,16 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
   forbidOnly: isCI,
-  retries: isCI ? 2 : 0,
-  reporter: isCI ? [['github'], ['html', { open: 'never' }]] : [['list']],
+  retries: isCI && !isAdvisory ? 2 : 0,
+  reporter: [
+    ...(isCI ? [['github']] as const : [['list']] as const),
+    ...(isCI || isAdvisory ? [['html', { open: 'never' }]] as const : []),
+    ...(isAdvisory ? [['json']] as const : []),
+  ],
   use: {
     baseURL,
     ...(isLiveness ? { actionTimeout: 1000 } : {}),
-    trace: 'on-first-retry',
+    trace: isAdvisory ? 'retain-on-first-failure' : 'on-first-retry',
     ...protectionBypass,
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
