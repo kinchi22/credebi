@@ -8,6 +8,7 @@ import {
   type PostedEntry,
   type OfferedTitle,
 } from '@repo/contracts';
+import { titleMatching } from '@repo/core/entries';
 import { PANEL, PANEL_TITLE } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import {
@@ -31,7 +32,6 @@ import {
   FIELD_LABEL,
   PRIMARY_BUTTON,
 } from './control-classes';
-import { titleMatching } from './suggested-accounts';
 import { FORM_REFUSAL } from './text-classes';
 import { TitleCombobox } from './title-combobox';
 
@@ -193,6 +193,19 @@ export function AmountInput({
   );
 }
 
+function useUntilReset<Value>(
+  resetKey: number,
+  initial: Value,
+): readonly [Value, (value: Value) => void] {
+  const [changed, setChanged] = useState<{ readonly resetKey: number; readonly value: Value }>();
+  return [
+    changed?.resetKey === resetKey ? changed.value : initial,
+    (value) => {
+      setChanged({ resetKey, value });
+    },
+  ];
+}
+
 export function EntryFormShell({
   action,
   titles,
@@ -212,13 +225,9 @@ export function EntryFormShell({
   const today = useBrowserToday();
 
   const variant = variantFor(mode, editing, today);
-  const [typedDay, setTypedDay] = useState<{ readonly resetKey: number; readonly day: string }>();
-  const day = typedDay?.resetKey === resetKey ? typedDay.day : variant.entryDate;
-  const [typed, setTyped] = useState<{ readonly resetKey: number; readonly title: string }>();
-  const matchedTitle = titleMatching(
-    titles,
-    typed?.resetKey === resetKey ? typed.title : (variant.entry?.title ?? ''),
-  );
+  const [day, setDay] = useUntilReset(resetKey, variant.entryDate);
+  const [typedTitle, setTypedTitle] = useUntilReset(resetKey, variant.entry?.title ?? '');
+  const matchedTitle = titleMatching(titles, typedTitle);
   const { onSaved } = variant;
   useEffect(() => {
     if (state.outcome === 'saved') {
@@ -237,8 +246,8 @@ export function EntryFormShell({
   const chosenTitle =
     (choice: TitleChoice) =>
     (chosen: string): void => {
-      setTyped({ resetKey, title: chosen });
-      const offered = titles.find(({ title }) => title === chosen);
+      setTypedTitle(chosen);
+      const offered = titleMatching(titles, chosen);
       if (offered !== undefined) {
         choice.onChoose(offered);
       }
@@ -261,7 +270,7 @@ export function EntryFormShell({
             type="date"
             defaultValue={variant.entryDate}
             onChange={(event) => {
-              setTypedDay({ resetKey, day: event.target.value });
+              setDay(event.target.value);
             }}
             autoFocus={variant.autoFocus}
             required
@@ -277,7 +286,7 @@ export function EntryFormShell({
             titles={titles.map(({ title }) => title)}
             onChoose={chosenTitle(choice)}
             onType={(title) => {
-              setTyped({ resetKey, title });
+              setTypedTitle(title);
               choice.onType?.();
             }}
           />

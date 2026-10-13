@@ -12,16 +12,6 @@ export type Suggested = Readonly<Record<Side, readonly AccountOutput[]>>;
 
 export const NOTHING_SUGGESTED: Suggested = { debit: [], credit: [] };
 
-export function titleMatching(
-  titles: readonly OfferedTitle[],
-  typed: string,
-): OfferedTitle | undefined {
-  const folded = typed.trim().toLowerCase();
-  return folded === ''
-    ? undefined
-    : titles.find(({ title }) => title.toLowerCase() === folded);
-}
-
 export function suggestedOn(title: OfferedTitle | undefined, offered: Offered): Suggested {
   if (title === undefined) {
     return NOTHING_SUGGESTED;

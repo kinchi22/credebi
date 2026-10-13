@@ -1,4 +1,5 @@
 import { type AccountId, type EntryId, type Money, type Side } from '@repo/contracts';
+import { titleKey } from './title-match';
 
 export const TITLE_WINDOW_YEARS = 2;
 
@@ -32,58 +33,48 @@ export function offeredSince(now: Date): Date {
 const latestFirst = (first: TitledEntry, second: TitledEntry): number =>
   second.createdAt.getTime() - first.createdAt.getTime() || second.id.localeCompare(first.id);
 
-type Named = {
+type Tally = {
   readonly account: AccountId;
-  readonly firstSeen: number;
   count: number;
 };
 
 function rankedOn(side: Side, latestFirstEntries: readonly TitledEntry[]): readonly AccountId[] {
-  const named = new Map<AccountId, Named>();
-  latestFirstEntries.forEach(({ lines }, index) => {
+  const tallies = new Map<AccountId, Tally>();
+  for (const { lines } of latestFirstEntries) {
     const onSide = new Set(lines.filter((line) => line.side === side).map(({ account }) => account));
-    for (const account of onSide) {
-      const known = named.get(account);
-      if (known === undefined) {
-        named.set(account, { account, firstSeen: index, count: 1 });
+    for (const account of [...onSide].sort()) {
+      const tally = tallies.get(account);
+      if (tally === undefined) {
+        tallies.set(account, { account, count: 1 });
       } else {
-        known.count += 1;
-      }
-    }
-  });
-  return [...named.values()]
-    .sort(
-      (first, second) =>
-        second.count - first.count ||
-        first.firstSeen - second.firstSeen ||
-        first.account.localeCompare(second.account),
-    )
-    .map(({ account }) => account);
-}
-
-export function offeredTitles(entries: readonly TitledEntry[]): readonly OfferedTitle[] {
-  const byTitle = new Map<string, TitledEntry[]>();
-  for (const entry of [...entries].sort(latestFirst)) {
-    if (entry.title !== '') {
-      const folded = entry.title.toLowerCase();
-      const titled = byTitle.get(folded);
-      if (titled === undefined) {
-        byTitle.set(folded, [entry]);
-      } else {
-        titled.push(entry);
+        tally.count += 1;
       }
     }
   }
-  return [...byTitle.values()].flatMap((titled) => {
-    const [latest] = titled;
-    return latest === undefined
-      ? []
-      : [
-          {
-            title: latest.title,
-            lines: latest.lines,
-            suggested: { debit: rankedOn('debit', titled), credit: rankedOn('credit', titled) },
-          },
-        ];
-  });
+  return [...tallies.values()]
+    .sort((first, second) => second.count - first.count)
+    .map(({ account }) => account);
+}
+
+type Titled = {
+  readonly latest: TitledEntry;
+  readonly entries: TitledEntry[];
+};
+
+export function offeredTitles(entries: readonly TitledEntry[]): readonly OfferedTitle[] {
+  const byTitle = new Map<string, Titled>();
+  for (const entry of [...entries].sort(latestFirst)) {
+    const key = titleKey(entry.title);
+    const titled = byTitle.get(key);
+    if (titled !== undefined) {
+      titled.entries.push(entry);
+    } else if (key !== '') {
+      byTitle.set(key, { latest: entry, entries: [entry] });
+    }
+  }
+  return [...byTitle.values()].map(({ latest, entries: titled }) => ({
+    title: latest.title,
+    lines: latest.lines,
+    suggested: { debit: rankedOn('debit', titled), credit: rankedOn('credit', titled) },
+  }));
 }

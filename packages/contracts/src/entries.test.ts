@@ -5,6 +5,7 @@ import {
   entryDateSchema,
   entryIdSchema,
   entryLineSchema,
+  offeredTitleSchema,
   parseEntryForm,
   parseMultiLineEntryForm,
   parseTwoLineEntryForm,
@@ -677,5 +678,33 @@ describe('parseSearchQuery', () => {
     const criteria = parseSearchQuery({ memo: ['rent', 'fuel'] });
 
     expect(isErr(criteria) && criteria.error.code).toBe('INVALID_INPUT');
+  });
+});
+
+describe('offeredTitleSchema', () => {
+  const offered = {
+    title: 'Rent',
+    lines: [
+      { account: EXPENSES, side: 'debit', amount: 12500 },
+      { account: CASH, side: 'credit', amount: 12500 },
+    ],
+    suggested: { debit: [EXPENSES], credit: [CASH, SALES] },
+  };
+
+  it('carries a Title, its lines and the Accounts it suggests per Side', () => {
+    expect(offeredTitleSchema.parse(offered)).toEqual(offered);
+  });
+
+  it('rejects a Title without its Suggested accounts', () => {
+    expect(offeredTitleSchema.safeParse({ title: 'Rent', lines: offered.lines }).success).toBe(false);
+  });
+
+  it('rejects a Suggested account that is not an Account id, on either Side', () => {
+    expect(
+      offeredTitleSchema.safeParse({ ...offered, suggested: { debit: ['cash'], credit: [] } }).success,
+    ).toBe(false);
+    expect(
+      offeredTitleSchema.safeParse({ ...offered, suggested: { debit: [], credit: ['cash'] } }).success,
+    ).toBe(false);
   });
 });

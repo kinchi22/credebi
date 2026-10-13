@@ -1,7 +1,7 @@
 import type { AccountId, ChartOutput, OfferedTitle } from '@repo/contracts';
 import { describe, expect, it } from 'vitest';
 import { offeredOn } from './lines-on-day';
-import { suggestedOn, titleMatching } from './suggested-accounts';
+import { suggestedOn } from './suggested-accounts';
 
 const id = (tail: string): AccountId => `01920000-0000-7000-8000-${tail.padStart(12, '0')}` as AccountId;
 
@@ -35,32 +35,9 @@ const offered = (title: string, debit: readonly AccountId[], credit: readonly Ac
   suggested: { debit: [...debit], credit: [...credit] },
 });
 
-const TITLES: readonly OfferedTitle[] = [
-  offered('Groceries', [EXPENSES.id], [CASH.id]),
-  offered('Salary', [BANK.id], [SALES.id]),
-];
-
 const namesOf = (suggested: ReturnType<typeof suggestedOn>) => ({
   debit: suggested.debit.map(({ name }) => name),
   credit: suggested.credit.map(({ name }) => name),
-});
-
-describe('titleMatching', () => {
-  it('finds the offered Title the typed one matches, ignoring case', () => {
-    expect(titleMatching(TITLES, 'gROCERIES')?.title).toBe('Groceries');
-  });
-
-  it('ignores space around the typed Title', () => {
-    expect(titleMatching(TITLES, '  Salary ')?.title).toBe('Salary');
-  });
-
-  it('finds nothing for a Title only part of an offered one', () => {
-    expect(titleMatching(TITLES, 'Grocer')).toBeUndefined();
-  });
-
-  it('finds nothing for an empty Title, even when an offered Title is empty', () => {
-    expect(titleMatching([...TITLES, offered('', [CASH.id], [])], '  ')).toBeUndefined();
-  });
 });
 
 describe('suggestedOn', () => {

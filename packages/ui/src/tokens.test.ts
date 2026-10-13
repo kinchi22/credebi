@@ -62,6 +62,7 @@ describe('the declared pairs', () => {
     expect(foregroundsOn('ink-mid')).toEqual(['frost', 'sage']);
     expect(foregroundsOn('mint')).toEqual(['ink']);
     expect(foregroundsOn('fog')).toEqual(['ink', 'mint-deeper']);
+    expect(foregroundsOn('mint-fog')).toEqual(['ink']);
     expect(foregroundsOn('mist-pale')).toEqual(['ink', 'slate', 'cobalt', 'gold']);
     expect(foregroundsOn('mint-pale')).toEqual(['ink']);
   });
@@ -101,6 +102,7 @@ describe('the semantic tokens', () => {
       'accent-text-hover': 'mint-deeper',
       border: 'fog',
       band: 'fog',
+      'band-suggested': 'mint-fog',
       'border-control': 'steel',
       danger: 'rust',
       warning: 'ochre',

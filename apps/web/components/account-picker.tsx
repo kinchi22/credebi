@@ -34,7 +34,7 @@ import { SIDE_TONE, SIDES } from './side-classes';
 import { NOTHING_SUGGESTED, type Suggested } from './suggested-accounts';
 import { LINK } from './text-classes';
 import { GroupFolder, TreeBranch } from './tree-branch';
-import { Band } from './type-band';
+import { Band, SuggestedBand } from './type-band';
 import { useWide } from './wide';
 
 export type AccountChoice = Readonly<Record<Side, AccountOutput | undefined>>;
@@ -84,6 +84,8 @@ const PICK_MANY: PickControl = {
   },
   fieldName: undefined,
 };
+
+const asSuggestion = (control: PickControl): PickControl => ({ ...control, fieldName: undefined });
 
 const suggestedFor = (query: string, suggested: Suggested): Suggested =>
   query.trim() === '' ? suggested : NOTHING_SUGGESTED;
@@ -280,7 +282,7 @@ const GROUP_CAPTION = 'leading-7.5 font-medium wrap-anywhere text-text-muted';
 const groupBounds = ({ above, below }: GroupRules): string =>
   `border-dashed border-border-control/55 ${above ? 'border-t' : ''} ${below ? 'border-b' : ''}`;
 
-const SUGGESTED_HEADING = `px-2 py-1.5 ${typeClasses['body-sm']} font-semibold text-text-muted`;
+const BAND_PADDING = 'px-2 py-1.5';
 
 const NO_BRANCHES: ReadonlyMap<AccountId, Branch> = new Map();
 
@@ -430,11 +432,9 @@ function SideChoices({
       ) : null}
       {suggested.length === 0 ? null : (
         <div role="group" aria-labelledby={`${typeId}-suggested`} className="flex flex-col gap-1">
-          <p id={`${typeId}-suggested`} className={SUGGESTED_HEADING}>
-            {en.accountSheet.suggested}
-          </p>
+          <SuggestedBand id={`${typeId}-suggested`} className={BAND_PADDING} />
           <div className={look.groups === 'tree' ? '' : UNGROUPED}>
-            {choices(suggested, look.accounts, NO_BRANCHES, { ...control, fieldName: undefined })}
+            {choices(suggested, look.accounts, NO_BRANCHES, asSuggestion(control))}
           </div>
         </div>
       )}
@@ -447,7 +447,7 @@ function SideChoices({
             aria-labelledby={`${typeId}-${type}`}
             className={runs.some(isShown) ? 'flex flex-col gap-1' : 'hidden'}
           >
-            <Band accountType={type} id={`${typeId}-${type}`} className="px-2 py-1.5" />
+            <Band accountType={type} id={`${typeId}-${type}`} className={BAND_PADDING} />
             {look.groups === 'tree' ? treeOf(runs) : captionsOf(runs)}
           </div>
         );
