@@ -13,16 +13,27 @@ const configFor = (env: NodeJS.ProcessEnv): PlaywrightTestConfig =>
         `import config from './playwright.config.ts';
 console.log(JSON.stringify({
   workers: config.workers,
+  retries: config.retries,
+  reporter: config.reporter,
   timeout: config.timeout,
   expect: config.expect,
+  webServer: config.webServer,
   use: {
     actionTimeout: config.use?.actionTimeout,
+    trace: config.use?.trace,
   },
 }));`,
       ],
       {
         cwd: REPO_ROOT,
-        env: { ...process.env, E2E_LIVENESS: undefined, E2E_BASE_URL: undefined, ...env },
+        env: {
+          ...process.env,
+          CI: undefined,
+          E2E_LIVENESS: undefined,
+          E2E_ADVISORY: undefined,
+          E2E_BASE_URL: undefined,
+          ...env,
+        },
         encoding: 'utf8',
       },
     ),
@@ -45,5 +56,48 @@ describe('the E2E liveness configuration', () => {
 
     expect(config.workers).toBeUndefined();
     expect(config.use?.actionTimeout).toBeUndefined();
+  });
+});
+
+describe('the strict and advisory E2E configuration', () => {
+  it('retries a failing test twice in CI and records a trace on the first retry', () => {
+    const config = configFor({ CI: 'true' });
+
+    expect(config.retries).toBe(2);
+    expect(config.use?.trace).toBe('on-first-retry');
+    expect(config.reporter).toEqual([['github'], ['html', { open: 'never' }]]);
+  });
+
+  it('runs each test once outside CI and lists the results', () => {
+    const config = configFor({});
+
+    expect(config.retries).toBe(0);
+    expect(config.use?.trace).toBe('on-first-retry');
+    expect(config.reporter).toEqual([['list']]);
+  });
+
+  it.each([
+    { mode: 'CI', env: { CI: 'true' }, reporter: [['github'], ['html', { open: 'never' }], ['json']] },
+    { mode: 'local', env: {}, reporter: [['list'], ['json']] },
+  ])(
+    'runs each advisory test once in $mode, keeps its first failed trace and adds a JSON report',
+    ({ env, reporter }) => {
+      const config = configFor({ ...env, E2E_ADVISORY: '1' });
+
+      expect(config.retries).toBe(0);
+      expect(config.use?.trace).toBe('retain-on-first-failure');
+      expect(config.reporter).toEqual(reporter);
+    },
+  );
+
+  it('keeps the ordinary waits, workers and server start for advisory app tests', () => {
+    const strict = configFor({ CI: 'true' });
+    const advisory = configFor({ CI: 'true', E2E_ADVISORY: '1' });
+
+    expect(advisory.workers).toBe(strict.workers);
+    expect(advisory.timeout).toBe(strict.timeout);
+    expect(advisory.expect).toEqual(strict.expect);
+    expect(advisory.use?.actionTimeout).toBeUndefined();
+    expect(advisory.webServer).toEqual(strict.webServer);
   });
 });

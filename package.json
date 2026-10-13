@@ -23,6 +23,7 @@
     "test:mutation": "stryker run stryker.config.ts",
     "build": "turbo run build",
     "test:e2e": "playwright test",
+    "test:e2e:advisory": "node tools/run-advisory-specs.ts",
     "jscpd": "jscpd",
     "verify:gates": "vitest run --config vitest.gates.config.ts",
     "verify:gates:build": "node tools/verify-server-only-gate.mjs",
