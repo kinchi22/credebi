@@ -20,7 +20,8 @@ not used. A Feature's progress is its sub-issues' completion.
 ## Kind
 
 Every Feature carries exactly one `kind:*` label, which says what kind of change
-it is, so the project board shows the mix of open Features without opening any.
+it is, and a Task and a Bug carry none. The label shows on the project board, so
+the mix of open Features reads without opening any.
 
 | Label              | Test | Examples |
 | ------------------ | ---- | -------- |
@@ -30,15 +31,15 @@ it is, so the project board shows the mix of open Features without opening any.
 | `kind:infra`       | Build, CI/CD, deployment, hosting, observability. | #371, #345, #51 |
 | `kind:agent`       | How agents work on this repository: rules, Skills, Harnesses, evals. | #81, #108, #118, #390 |
 
-A Feature carries one kind; a Task and a Bug carry none. The kind is applied
-when a Feature is opened, and when its spec is published if it has none yet; an
-existing kind is left alone. A Feature that fits more than one kind gets the
-closest, without asking, and the owner corrects it if they disagree.
+The kind is applied when a Feature is opened, and when its spec is published if
+it has none yet; an existing kind is left alone. A Feature that fits more than
+one kind gets the closest without asking, an exception to "If unsure, ask" in
+`AGENTS.md`, and the owner corrects it if they disagree.
 
-A kind is a reference for reading the board, and nothing depends on it. It never
-changes how an issue is worked: milestone, specs, base branch and review follow
-from the rules below alone, so a `kind:infra` or `kind:agent` Feature that states
-a criterion a spec can state has a milestone like any other.
+A kind is a reference for reading the board, and nothing is routed by it. It
+never changes how an issue is worked: milestone, specs, base branch and review
+follow from the rules below alone, so a `kind:infra` or `kind:agent` Feature that
+states a criterion a spec can state has a milestone like any other.
 
 ## Status
 
@@ -144,7 +145,7 @@ approves, and the last of them carries `Closes #<feature>` as well.
 A Feature whose every criterion the app already meets, stated as specs so
 nothing breaks it silently, has no milestone branch: there is no behaviour to
 build against a failing spec. A Feature that also states a criterion the app
-does not yet meet has a milestone, and its specs Task carries both kinds. It gets its specs Task alone, whose pull request touches `e2e/`
+does not yet meet has a milestone, and its specs Task carries both sorts. It gets its specs Task alone, whose pull request touches `e2e/`
 only, goes to `main`, is approved by the owner as code owner, and carries
 `Closes #<feature>` as well.
 
