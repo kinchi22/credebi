@@ -1,4 +1,4 @@
-import { spawnSync } from 'node:child_process';
+import { type ChildProcess, spawn, spawnSync } from 'node:child_process';
 import {
   appendFileSync,
   existsSync,
@@ -411,5 +411,140 @@ describe('run-advisory-specs.ts, run as CI runs it', () => {
 
     expect(result.status).toBe(2);
     expect(result.stderr).toContain('Usage: run-advisory-specs.ts <existing|feature>');
+  });
+});
+
+type Pending = { readonly finished: Promise<Run>; readonly alive: () => boolean; readonly stop: () => void; readonly output: () => string };
+
+describe('the two groups, run side by side as the CI legs run them', () => {
+  const repository = newRepository();
+  const config = path.join(repository, 'playwright.advisory-fixture.config.ts');
+  const environment: NodeJS.ProcessEnv = {
+    ...process.env,
+    CI: 'true',
+    E2E_LIVENESS: undefined,
+    E2E_BASE_URL: undefined,
+    E2E_ADVISORY: undefined,
+    PLAYWRIGHT_JSON_OUTPUT_NAME: undefined,
+    PLAYWRIGHT_HTML_OUTPUT_DIR: undefined,
+    GITHUB_ACTIONS: undefined,
+  };
+  const started: ChildProcess[] = [];
+
+  const start = (group: string): Pending => {
+    const child = spawn(process.execPath, [COMMAND, group, '--base', 'main', '--config', config], {
+      cwd: repository,
+      env: environment,
+    });
+    started.push(child);
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString(); });
+    child.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
+    const finished = new Promise<Run>((resolve) => {
+      child.on('close', (code) => { resolve({ status: code ?? -1, stdout, stderr }); });
+    });
+    return {
+      finished,
+      alive: () => child.exitCode === null && child.signalCode === null,
+      stop: () => { child.kill('SIGTERM'); },
+      output: () => stdout,
+    };
+  };
+
+  const until = async (condition: () => boolean): Promise<void> => {
+    const deadline = Date.now() + 60_000;
+    while (!condition()) {
+      if (Date.now() > deadline) throw new Error('the condition never held');
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  };
+
+  const executed = (group: string): readonly string[] => {
+    const report = JSON.parse(
+      readFileSync(path.join(repository, 'test-results', `advisory-${group}`, 'report.json'), 'utf8'),
+    ) as LivenessReport;
+    return specsIn(report.suites)
+      .map((spec) => `${spec.title} ${spec.tests.map((test) => `${test.status}x${String(test.results.length)}`).join()}`)
+      .sort();
+  };
+
+  beforeAll(() => {
+    symlinkSync(path.join(REPO_ROOT, 'node_modules'), path.join(repository, 'node_modules'));
+    write(repository, '.gitignore', 'node_modules\ntest-results/\nplaywright-report/\n');
+    write(
+      repository,
+      'playwright.advisory-fixture.config.ts',
+      [
+        `import { defineConfig } from '@playwright/test';`,
+        `import base from ${JSON.stringify(path.join(REPO_ROOT, 'playwright.config.ts'))};`,
+        '',
+        `export default defineConfig({ ...base, testDir: './e2e', webServer: [] });`,
+        '',
+      ].join('\n'),
+    );
+    write(
+      repository,
+      'e2e/inherited.spec.ts',
+      `import { expect, test } from '@playwright/test';\n\ntest('inherited holds', () => { expect(1).toBe(1); });\n`,
+    );
+    commit(repository, 'inherited');
+    git(repository, 'switch', '--quiet', '--create', 'milestone/x');
+    write(
+      repository,
+      'e2e/added.spec.ts',
+      [
+        `import { expect, test } from '@playwright/test';`,
+        '',
+        `test('added is not built yet', () => { expect('built').toBe('missing'); });`,
+        `test('added waits for what never comes', async () => {`,
+        `  test.setTimeout(8000);`,
+        `  await new Promise(() => {});`,
+        `});`,
+        '',
+      ].join('\n'),
+    );
+    commit(repository, 'milestone work');
+  });
+
+  afterAll(() => {
+    for (const child of started) child.kill('SIGKILL');
+  });
+
+  it('reports the existing group while a failing, slow Feature group is still running', async () => {
+    const feature = start('feature');
+    await until(() => feature.output().includes('Advisory group: feature.'));
+
+    const existing = await start('existing').finished;
+
+    expect(feature.alive()).toBe(true);
+    expect(existing.status, existing.stdout + existing.stderr).toBe(0);
+    expect(existing.stdout).toContain('Existing specs: 1 passed, 0 failed, 0 flaky, 0 skipped, from 1 of 1 selected spec files.');
+    expect(executed('existing')).toEqual(['inherited holds expectedx1']);
+
+    const failed = await feature.finished;
+
+    expect(failed.status).toBe(1);
+    expect(failed.stderr).toContain('Feature specs: 0 passed, 2 failed, 0 flaky, 0 skipped, from 1 of 1 selected spec files.');
+    expect(executed('feature')).toEqual(['added is not built yet unexpectedx1', 'added waits for what never comes unexpectedx1']);
+    expect(executed('existing')).toEqual(['inherited holds expectedx1']);
+    expect(existsSync(path.join(repository, 'playwright-report', 'advisory-existing', 'index.html'))).toBe(true);
+    expect(existsSync(path.join(repository, 'playwright-report', 'advisory-feature', 'index.html'))).toBe(true);
+  });
+
+  it('reports a Feature group stopped mid-run as incomplete, and the existing group still passes', async () => {
+    const feature = start('feature');
+    await until(() => feature.output().includes('Advisory group: feature.'));
+    const existing = start('existing');
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    feature.stop();
+
+    const [stopped, passed] = await Promise.all([feature.finished, existing.finished]);
+
+    expect(stopped.status).toBe(1);
+    expect(stopped.stderr).toContain('Feature specs are incomplete: Playwright was stopped by SIGTERM before it wrote a report.');
+    expect(stopped.stderr).not.toContain('Feature specs: ');
+    expect(passed.status, passed.stdout + passed.stderr).toBe(0);
+    expect(passed.stdout).toContain('Existing specs: 1 passed, 0 failed');
   });
 });
