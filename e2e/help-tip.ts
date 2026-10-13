@@ -4,7 +4,7 @@ import { SETTINGS_URL } from './routes';
 export const helpTipButton = (scope: Locator, message: string): Locator =>
   scope.getByRole('button', { name: `About ${message}`, exact: true });
 
-export const explanation = (page: Page, text: string): Locator => page.getByText(text);
+export const helpTipExplanation = (page: Page, text: string): Locator => page.getByText(text);
 
 export const settingsLink = (shown: Locator): Locator =>
   shown.getByRole('link', { name: /\bSettings\b/ });
@@ -22,7 +22,7 @@ export const notActiveExplanation = (account: string): string =>
 export async function openHelpTip(button: Locator, text: string): Promise<Locator> {
   await button.click();
   await expect(button).toHaveAttribute('aria-expanded', 'true');
-  const shown = explanation(button.page(), text);
+  const shown = helpTipExplanation(button.page(), text);
   await expect(shown).toBeVisible();
   return shown;
 }

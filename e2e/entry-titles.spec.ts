@@ -11,6 +11,7 @@ import {
   listedEntry,
   MEMO_MAX,
   offeredTitle,
+  openEntryForm,
   offeredTitles,
   openEditEntry,
   titleList,
@@ -29,16 +30,8 @@ import {
 import { BOOKS_OPEN } from './accounts';
 import { closeDialog, discardDialog } from './dialog';
 import { signIn } from './session';
-import { setEntryFormMode, type EntryFormMode } from './settings';
+import { type EntryFormMode } from './settings';
 import { expectWithinPhone, PHONE } from './viewport';
-
-async function openForm(page: Page, mode: EntryFormMode): Promise<Locator> {
-  await setEntryFormMode(page, mode);
-  await page.goto('/entries');
-  const form = entryForm(page);
-  await expect(form).toBeVisible();
-  return form;
-}
 
 async function postInMode(
   form: Locator,
@@ -104,7 +97,7 @@ for (const mode of ['Two-line mode', 'Multi-line mode'] as const) {
   test(`posts an Entry in ${mode} with a Title and a memo, a Title alone, a memo alone or neither, and lists each with its Title before its memo, after a reload too`, async ({ page }) => {
     test.slow();
     await signIn(page, { accountsStartOn: BOOKS_OPEN });
-    const form = await openForm(page, mode);
+    const form = await openEntryForm(page, mode);
 
     await expect(titleField(form)).toBeVisible();
     await expectTitleBeforeMemo(form);
@@ -121,7 +114,7 @@ for (const mode of ['Two-line mode', 'Multi-line mode'] as const) {
   test(`refuses a Title longer than ${String(TITLE_MAX)} characters in ${mode} with a message naming the Title and its limit, and posts one of ${String(TITLE_MAX)} characters outside the Basic Multilingual Plane`, async ({ page }) => {
     const memo = `Too long a name ${randomUUID()}`;
     await signIn(page, { accountsStartOn: BOOKS_OPEN });
-    const form = await openForm(page, mode);
+    const form = await openEntryForm(page, mode);
 
     await postInMode(form, mode, { day: DAY, title: TOO_LONG_TITLE, memo });
     await expectTitleRefused(form);
@@ -138,7 +131,7 @@ for (const mode of ['Two-line mode', 'Multi-line mode'] as const) {
   test(`refuses a memo longer than ${String(MEMO_MAX)} characters in ${mode} with a message naming the memo and its limit`, async ({ page }) => {
     const memo = tooLongMemo();
     await signIn(page, { accountsStartOn: BOOKS_OPEN });
-    const form = await openForm(page, mode);
+    const form = await openEntryForm(page, mode);
 
     await postInMode(form, mode, { day: DAY, title: 'Salary', memo });
     await expectMemoRefused(form);
@@ -151,7 +144,7 @@ for (const mode of ['Two-line mode', 'Multi-line mode'] as const) {
   test(`refuses a Title and a memo both too long in ${mode} with the Title's refusal, and with the memo's once the Title is shortened`, async ({ page }) => {
     const memo = tooLongMemo();
     await signIn(page, { accountsStartOn: BOOKS_OPEN });
-    const form = await openForm(page, mode);
+    const form = await openEntryForm(page, mode);
 
     await postInMode(form, mode, { day: DAY, title: TOO_LONG_TITLE, memo });
     await expectTitleRefused(form);
@@ -198,7 +191,7 @@ test("offers every Title of the User's Entries when the empty Title field is ope
   ]);
 
   for (const mode of ['Two-line mode', 'Multi-line mode'] as const) {
-    const form = await openForm(page, mode);
+    const form = await openEntryForm(page, mode);
     await openTitleField(titleField(form));
     await expectOffered(page, ['starbucks', 'Rent', 'Salary']);
   }
@@ -216,7 +209,7 @@ test('narrows the offered Titles to those containing the typed text, ignoring ca
     titled('Rent', `Flat ${run}`),
   ]);
 
-  const form = await openForm(page, 'Two-line mode');
+  const form = await openEntryForm(page, 'Two-line mode');
   const field = titleField(form);
   await field.click();
   await field.fill('AR');
@@ -378,7 +371,7 @@ test('closes Edit entry on Save with the Title and memo unchanged, and lists the
 
 test('edits an Entry with an empty memo, and keeps its memo empty', async ({ page }) => {
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  const form = await openForm(page, 'Two-line mode');
+  const form = await openEntryForm(page, 'Two-line mode');
   await submitTwoLineEntry(form, titled('Groceries', ''));
   const entry = listedEntry(page, DAY);
   await expect(entry).toContainText(headingShowing({ day: DAY, title: 'Groceries', memo: '' }));
@@ -482,7 +475,7 @@ test('chooses no offered Title, keeps the list open and posts nothing when Enter
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [titled('Starbucks', `Coffee ${run}`), titled('Salary', `Pay ${run}`)]);
 
-  const form = await openForm(page, 'Two-line mode');
+  const form = await openEntryForm(page, 'Two-line mode');
   const field = titleField(form);
   const salary = offeredTitle(page, 'Salary');
   await openTitleField(field);

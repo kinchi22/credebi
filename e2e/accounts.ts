@@ -1,8 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import { closeDialog } from './dialog';
-import { ACCOUNT_TYPES, accountChoices, nameOf, type AddedAccount, type Side } from './entries';
-
-export { ACCOUNT_TYPES };
+import { type ACCOUNT_TYPES, accountChoices, nameOf, type AddedAccount, type Side } from './entries';
 
 export type AccountType = (typeof ACCOUNT_TYPES)[number];
 

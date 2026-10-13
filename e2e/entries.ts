@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
-import { setEntryFormMode } from './settings';
+import { setEntryFormMode, type EntryFormMode } from './settings';
 
 export const AMOUNT = '12500';
 
@@ -273,7 +273,15 @@ export const headingShowing = (heading: Heading, total = AMOUNT_SHOWN): RegExp =
     'u',
   );
 
-async function fillHeading(form: Locator, heading: Heading): Promise<void> {
+export async function openEntryForm(page: Page, mode: EntryFormMode): Promise<Locator> {
+  await setEntryFormMode(page, mode);
+  await page.goto('/entries');
+  const form = entryForm(page);
+  await expect(form).toBeVisible();
+  return form;
+}
+
+export async function fillHeading(form: Locator, heading: Heading): Promise<void> {
   await form.getByLabel('Date').fill(heading.day);
   if (heading.title !== undefined) {
     await titleField(form).fill(heading.title);

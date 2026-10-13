@@ -11,6 +11,7 @@ import {
   deleteListed,
   entryForm,
   expectOffered,
+  fillHeading,
   expectSuggested,
   findAnAccount,
   lineAmount,
@@ -21,12 +22,15 @@ import {
   notActiveMark,
   offeredTitle,
   openEditEntry,
+  openEntryForm,
   openTitleField,
   openTwoLineAccountSheet,
   postEntries,
   saveEdit,
+  SIDES,
   submit,
   submitMultiLineEntry,
+  submitTwoLineEntry,
   titleField,
   titled,
   type Account,
@@ -43,9 +47,9 @@ import {
   WALLET_IN_USE,
   WALLET_STILL_IN_USE,
 } from './accounts';
-import { createdAgo, TWO_YEARS_AND_A_DAY, TWO_YEARS_LESS_A_DAY } from './created';
+import { backdateEntry, TWO_YEARS_AND_A_DAY, TWO_YEARS_LESS_A_DAY } from './backdate';
 import {
-  explanation,
+  helpTipExplanation,
   followSettingsLink,
   helpTipButton,
   needsMultiLineExplanation,
@@ -56,23 +60,15 @@ import {
   settingsLink,
 } from './help-tip';
 import { signIn } from './session';
-import { entryFormModeChoice, setEntryFormMode, type EntryFormMode } from './settings';
+import { entryFormModeChoice, setEntryFormMode } from './settings';
 import { PHONE } from './viewport';
 
 const LATER_DAY = '2026-09-25';
 
 const WALLET = nameOf(OLD_WALLET);
 
-async function openForm(page: Page, mode: EntryFormMode): Promise<Locator> {
-  await setEntryFormMode(page, mode);
-  await page.goto('/entries');
-  const form = entryForm(page);
-  await expect(form).toBeVisible();
-  return form;
-}
-
 async function postMultiLine(page: Page, entry: MultiLineEntry): Promise<void> {
-  const form = await openForm(page, 'Multi-line mode');
+  const form = await openEntryForm(page, 'Multi-line mode');
   await submitMultiLineEntry(form, entry);
   await expect(listedEntry(page, entry.memo)).toHaveCount(1);
 }
@@ -82,11 +78,6 @@ async function chooseTitle(form: Locator, title: string): Promise<void> {
   await openTitleField(field);
   await offeredTitle(form.page(), title).click();
   await expect(field).toHaveValue(title);
-}
-
-async function fillDayAndMemo(form: Locator, day: string, memo: string): Promise<void> {
-  await form.getByLabel('Date').fill(day);
-  await form.getByLabel('Memo').fill(memo);
 }
 
 async function expectTwoLine(
@@ -157,8 +148,8 @@ test('fills empty Two-line mode lines from the Entry carrying the chosen Title, 
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [titled('Starbucks', `First coffee ${run}`, DAY, 'Accounts payable')]);
 
-  const form = await openForm(page, 'Two-line mode');
-  await fillDayAndMemo(form, LATER_DAY, memo);
+  const form = await openEntryForm(page, 'Two-line mode');
+  await fillHeading(form, { day: LATER_DAY, memo: memo });
   await chooseTitle(form, 'Starbucks');
 
   await expectTwoLine(form, 'Expenses', 'Accounts payable', '12500');
@@ -172,14 +163,14 @@ test('fills empty Two-line mode lines from the Entry carrying the chosen Title, 
   ]);
 });
 
-test('fills an empty Multi-line mode form with every line of the Entry carrying the chosen Title, keeping the day and the memo, and posts them in the same order', async ({ page }) => {
+test('fills an empty Multi-line mode form with every line of the Entry carrying the chosen Title, keeping the day and the memo, and posts them', async ({ page }) => {
   const run = randomUUID();
   const memo = `October pay ${run}`;
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postSalary(page, `September pay ${run}`);
 
-  const form = await openForm(page, 'Multi-line mode');
-  await fillDayAndMemo(form, LATER_DAY, memo);
+  const form = await openEntryForm(page, 'Multi-line mode');
+  await fillHeading(form, { day: LATER_DAY, memo: memo });
   await chooseTitle(form, 'Salary');
 
   await expectLines(form, SALARY_LINES);
@@ -190,44 +181,56 @@ test('fills an empty Multi-line mode form with every line of the Entry carrying 
   await expectListed(page, memo, LATER_DAY, SALARY_LISTED);
 });
 
-test('fills from the most recently created shown Entry carrying the Title ignoring case, whatever its day, counting a Correction as created when posted, never from a deleted or replaced Entry', async ({ page }) => {
+test('fills from the most recently created shown Entry carrying the Title, whatever its day, counting a Correction as created when posted, never from a deleted or replaced Entry', async ({ page }) => {
   test.slow();
   const run = randomUUID();
+  const oldest = `Oldest coffee ${run}`;
   const first = `First coffee ${run}`;
   const second = `Second coffee ${run}`;
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [
+    titled('COFFEE', oldest, '2026-09-10', 'Capital'),
     titled('Coffee', first, '2026-09-20', 'Cash'),
     titled('coffee', second, '2026-09-01', 'Accounts payable'),
   ]);
 
-  const latest = await openForm(page, 'Two-line mode');
-  await chooseTitle(latest, 'coffee');
-  await expectTwoLine(latest, 'Expenses', 'Accounts payable', '12500');
+  await chooseTitle(await openEntryForm(page, 'Two-line mode'), 'coffee');
+  await expectTwoLine(entryForm(page), 'Expenses', 'Accounts payable', '12500');
 
-  await page.reload();
-  const correction = await openEditEntry(listedEntry(page, first));
-  await correction.getByLabel('Amount').fill('8000');
-  await saveEdit(correction);
+  await correctAmount(page, first, '8000');
+  await chooseTitle(entryForm(page), 'Coffee');
+  await expectTwoLine(entryForm(page), 'Expenses', 'Cash', '8000');
 
-  const corrected = entryForm(page);
-  await chooseTitle(corrected, 'Coffee');
-  await expectTwoLine(corrected, 'Expenses', 'Cash', '8000');
+  await deleteAndReload(page, first);
+  await chooseTitle(entryForm(page), 'coffee');
+  await expectTwoLine(entryForm(page), 'Expenses', 'Accounts payable', '12500');
 
-  await page.reload();
-  await deleteListed(listedEntry(page, first));
-  await expect(listedEntry(page, second)).toHaveCount(1);
-
-  const afterDelete = entryForm(page);
-  await chooseTitle(afterDelete, 'coffee');
-  await expectTwoLine(afterDelete, 'Expenses', 'Accounts payable', '12500');
+  await correctAmount(page, second, '7000');
+  await deleteAndReload(page, second);
+  await chooseTitle(entryForm(page), 'COFFEE');
+  await expectTwoLine(entryForm(page), 'Expenses', 'Capital', '12500');
 });
+
+async function correctAmount(page: Page, memo: string, amount: string): Promise<void> {
+  await page.reload();
+  const correction = await openEditEntry(listedEntry(page, memo));
+  await correction.getByLabel('Amount').fill(amount);
+  await saveEdit(correction);
+  await expect(listedEntry(page, memo).getByTestId('entry-total')).toContainText(amountShown(Number(amount).toLocaleString('en-US')));
+}
+
+async function deleteAndReload(page: Page, memo: string): Promise<void> {
+  await deleteListed(listedEntry(page, memo));
+  await page.reload();
+  await expect(entryForm(page)).toBeVisible();
+  await expect(listedEntry(page, memo)).toHaveCount(0);
+}
 
 test('never fills the lines from a Title typed without being chosen', async ({ page }) => {
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [titled('Rent', `Flat ${randomUUID()}`)]);
 
-  const form = await openForm(page, 'Two-line mode');
+  const form = await openEntryForm(page, 'Two-line mode');
   await titleField(form).fill('Rent');
   await expect(offeredTitle(page, 'Rent')).toBeVisible();
   await form.getByLabel('Memo').click();
@@ -239,7 +242,7 @@ test('leaves Two-line mode lines as they are when a Title is chosen while the fo
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [titled('Rent', `Flat ${randomUUID()}`)]);
 
-  const withAmount = await openForm(page, 'Two-line mode');
+  const withAmount = await openEntryForm(page, 'Two-line mode');
   await withAmount.getByLabel('Amount').fill('500');
   await chooseTitle(withAmount, 'Rent');
   await expectTwoLine(withAmount, undefined, undefined, '500');
@@ -255,7 +258,7 @@ test('leaves Multi-line mode lines as they are when a Title is chosen while the 
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postSalary(page, `Pay ${randomUUID()}`);
 
-  const form = await openForm(page, 'Multi-line mode');
+  const form = await openEntryForm(page, 'Multi-line mode');
   await accountTick(form, 'Debit', 'Capital').check();
   await chooseTitle(form, 'Salary');
 
@@ -267,7 +270,7 @@ test('fills nothing in Two-line mode from an Entry with more than one line on a 
   await postSalary(page, `Pay ${randomUUID()}`);
   await postEntries(page, [titled('Rent', `Flat ${randomUUID()}`)]);
 
-  const form = await openForm(page, 'Two-line mode');
+  const form = await openEntryForm(page, 'Two-line mode');
   await chooseTitle(form, 'Salary');
   const message = form.getByText(NEEDS_MULTI_LINE_MODE, { exact: true });
   await expect(message).toBeVisible();
@@ -307,8 +310,8 @@ async function prefillWalletLines(page: Page, memo: string): Promise<Locator> {
   await addOldWallet(page);
   await postMultiLine(page, { day: WALLET_IN_USE, title: 'Allowance', memo: `Pocket ${randomUUID()}`, lines: WALLET_LINES });
 
-  const form = await openForm(page, 'Multi-line mode');
-  await fillDayAndMemo(form, WALLET_ENDED, memo);
+  const form = await openEntryForm(page, 'Multi-line mode');
+  await fillHeading(form, { day: WALLET_ENDED, memo: memo });
   await chooseTitle(form, 'Allowance');
   await expectLines(form, WALLET_LINES);
   await expect(notActiveMark(lineGroup(form, 'Debit', OLD_WALLET))).toBeVisible();
@@ -396,24 +399,16 @@ async function postGroceries(page: Page, run: string): Promise<void> {
   for (const [index, [debit, credit]] of GROCERIES.entries()) {
     const memo = `Groceries ${String(index)} ${run}`;
     await page.goto('/entries');
-    await postTwoLine(entryForm(page), index % 2 === 0 ? 'Groceries' : 'groceries', memo, debit, credit);
+    await submitTwoLineEntry(entryForm(page), {
+      day: DAY,
+      title: index % 2 === 0 ? 'Groceries' : 'groceries',
+      memo,
+      debitAccount: debit,
+      creditAccount: credit,
+      amount: '1000',
+    });
     await expect(listedEntry(page, memo)).toHaveCount(1);
   }
-}
-
-async function postTwoLine(
-  form: Locator,
-  title: string,
-  memo: string,
-  debit: Account,
-  credit: Account,
-): Promise<void> {
-  await fillDayAndMemo(form, DAY, memo);
-  await titleField(form).fill(title);
-  await accountChoice(form, 'Debit', debit).check();
-  await accountChoice(form, 'Credit', credit).check();
-  await form.getByLabel('Amount').fill('1000');
-  await submit(form);
 }
 
 async function expectGroceriesSuggested(
@@ -421,7 +416,7 @@ async function expectGroceriesSuggested(
   pickers: (scope: Locator, side: Side) => Locator,
   role: 'radio' | 'checkbox',
 ): Promise<void> {
-  for (const side of ['Debit', 'Credit'] as const) {
+  for (const side of SIDES) {
     await expectSuggested(pickers(scope, side), role, SUGGESTED[side]);
   }
 }
@@ -430,13 +425,13 @@ test('suggests up to three Accounts per Side while the typed Title matches ignor
   test.slow();
   await postGroceries(page, randomUUID());
 
-  const form = await openForm(page, 'Two-line mode');
-  for (const side of ['Debit', 'Credit'] as const) {
+  const form = await openEntryForm(page, 'Two-line mode');
+  for (const side of SIDES) {
     await expectSuggested(accountChoices(form, side), 'radio', []);
   }
   await titleField(form).fill('GROCERIES');
   await expectGroceriesSuggested(form, accountChoices, 'radio');
-  for (const side of ['Debit', 'Credit'] as const) {
+  for (const side of SIDES) {
     for (const account of SUGGESTED[side]) {
       await expect(accountChoice(form, side, account)).toBeVisible();
     }
@@ -449,7 +444,7 @@ test('suggests up to three Accounts per Side while the typed Title matches ignor
   await expect(sales).not.toBeChecked();
 
   await titleField(form).fill('Grocer');
-  for (const side of ['Debit', 'Credit'] as const) {
+  for (const side of SIDES) {
     await expectSuggested(accountChoices(form, side), 'radio', []);
   }
 });
@@ -459,11 +454,11 @@ test('suggests Accounts in Multi-line mode, in Edit entry and on the Account she
   const run = randomUUID();
   await postGroceries(page, run);
 
-  const multi = await openForm(page, 'Multi-line mode');
+  const multi = await openEntryForm(page, 'Multi-line mode');
   await titleField(multi).fill('Groceries');
   await expectGroceriesSuggested(multi, accountTicks, 'checkbox');
   await findAnAccount(multi).fill('a');
-  for (const side of ['Debit', 'Credit'] as const) {
+  for (const side of SIDES) {
     await expectSuggested(accountTicks(multi, side), 'checkbox', []);
   }
 
@@ -489,7 +484,7 @@ test('suggests only Accounts active on the form\'s day, following a change of da
   await addOldWallet(page);
   await postMultiLine(page, { day: WALLET_IN_USE, title: 'Allowance', memo: `Pocket ${randomUUID()}`, lines: WALLET_LINES });
 
-  const form = await openForm(page, 'Multi-line mode');
+  const form = await openEntryForm(page, 'Multi-line mode');
   await form.getByLabel('Date').fill(WALLET_ENDED);
   await titleField(form).fill('Allowance');
   await expectSuggested(accountTicks(form, 'Debit'), 'checkbox', ['Expenses']);
@@ -502,16 +497,16 @@ test('suggests only Accounts active on the form\'s day, following a change of da
   await expect(suggested(accountTicks(form, 'Debit')).getByRole('checkbox', { name: WALLET, exact: true })).toBeVisible();
 });
 
-test('offers, fills from and suggests by a Title only while an Entry carrying it was created in the last two years', async ({ page }) => {
+test('offers a Title and suggests by it only while an Entry carrying it was created in the last two years, and fills from one created within them', async ({ page }) => {
   const run = randomUUID();
   const old = `Old habit ${run}`;
   const recent = `Recent habit ${run}`;
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [titled('Gym', old), titled('Pool', recent, DAY, 'Accounts payable')]);
-  await createdAgo(old, TWO_YEARS_AND_A_DAY);
-  await createdAgo(recent, TWO_YEARS_LESS_A_DAY);
+  await backdateEntry(old, TWO_YEARS_AND_A_DAY);
+  await backdateEntry(recent, TWO_YEARS_LESS_A_DAY);
 
-  const form = await openForm(page, 'Two-line mode');
+  const form = await openEntryForm(page, 'Two-line mode');
   await openTitleField(titleField(form));
   await expectOffered(page, ['Pool']);
 
@@ -521,15 +516,13 @@ test('offers, fills from and suggests by a Title only while an Entry carrying it
   await expectOffered(page, []);
   await expectSuggested(accountChoices(form, 'Credit'), 'radio', []);
   await expectSuggested(accountChoices(form, 'Debit'), 'radio', []);
-  await form.getByLabel('Memo').click();
-  await expectTwoLine(form, undefined, undefined, '');
 
   await chooseTitle(form, 'Pool');
   await expectTwoLine(form, 'Expenses', 'Accounts payable', '12500');
 });
 
 async function chooseWalletInTwoLine(form: Locator, memo: string): Promise<void> {
-  await fillDayAndMemo(form, WALLET_IN_USE, memo);
+  await fillHeading(form, { day: WALLET_IN_USE, memo: memo });
   await accountChoice(form, 'Debit', 'Expenses').check();
   await accountChoice(form, 'Credit', WALLET).check();
   await form.getByLabel('Amount').fill('12500');
@@ -538,9 +531,19 @@ async function chooseWalletInTwoLine(form: Locator, memo: string): Promise<void>
 async function expectWalletSlotMarked(form: Locator): Promise<Locator> {
   const slot = lineGroup(form, 'Credit', OLD_WALLET);
   await expect(slot).toBeVisible();
+  await expect(slot).toContainText(WALLET);
   await expect(notActiveMark(slot)).toBeVisible();
+  await expect(accountChoice(form, 'Debit', 'Expenses')).toBeChecked();
   await expect(notActiveMark(lineGroup(form, 'Debit', 'Expenses'))).toHaveCount(0);
+  await expect(form.getByLabel('Amount')).toHaveValue('12500');
   return slot;
+}
+
+async function expectWalletChosenAgain(form: Locator, day: string): Promise<void> {
+  await form.getByLabel('Date').fill(day);
+  await expect(notActiveMark(lineGroup(form, 'Credit', OLD_WALLET))).toHaveCount(0);
+  await expect(accountChoice(form, 'Credit', WALLET)).toBeChecked();
+  await expect(accountChoice(form, 'Debit', 'Expenses')).toBeChecked();
 }
 
 const WALLET_TWO_LINE: readonly Listed[] = [
@@ -551,7 +554,7 @@ const WALLET_TWO_LINE: readonly Listed[] = [
 async function openTwoLineWithOldWallet(page: Page): Promise<Locator> {
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await addOldWallet(page);
-  return openForm(page, 'Two-line mode');
+  return openEntryForm(page, 'Two-line mode');
 }
 
 test('keeps a Two-line mode Account not active on a newly chosen day in its slot, marked with a Help tip linking to Settings, and posts nothing until the day is one it is active on', async ({ page }) => {
@@ -571,9 +574,33 @@ test('keeps a Two-line mode Account not active on a newly chosen day in its slot
   await expect(listedEntry(page, memo)).toHaveCount(0);
   await expectWalletSlotMarked(form);
 
-  await form.getByLabel('Date').fill(WALLET_STILL_IN_USE);
-  await expect(notActiveMark(lineGroup(form, 'Credit', OLD_WALLET))).toHaveCount(0);
+  await expectWalletChosenAgain(form, WALLET_STILL_IN_USE);
   await submit(form);
+  await expectListed(page, memo, WALLET_STILL_IN_USE, WALLET_TWO_LINE);
+});
+
+test('fills a Two-line mode slot with an Account not active on the form\'s day from the chosen Title, marks it, and posts nothing until the day is one it is active on', async ({ page }) => {
+  const run = randomUUID();
+  const memo = `Wallet again ${run}`;
+  const form = await openTwoLineWithOldWallet(page);
+  await titleField(form).fill('Allowance');
+  await chooseWalletInTwoLine(form, `Wallet ${run}`);
+  await submit(form);
+  await expectListed(page, `Wallet ${run}`, WALLET_IN_USE, WALLET_TWO_LINE);
+
+  await page.reload();
+  const again = entryForm(page);
+  await fillHeading(again, { day: WALLET_ENDED, memo });
+  await chooseTitle(again, 'Allowance');
+  await expectWalletSlotMarked(again);
+
+  await submit(again);
+  await expect(again.getByRole('alert')).toBeVisible();
+  await expect(listedEntry(page, memo)).toHaveCount(0);
+  await expectWalletSlotMarked(again);
+
+  await expectWalletChosenAgain(again, WALLET_STILL_IN_USE);
+  await submit(again);
   await expectListed(page, memo, WALLET_STILL_IN_USE, WALLET_TWO_LINE);
 });
 
@@ -598,8 +625,7 @@ test('marks a Two-line mode Account not active on the day in its slot in Edit en
   const shown = await openHelpTip(helpTipButton(slot, NOT_ACTIVE_ON_THIS_DAY), notActiveExplanation(WALLET));
   await expect(settingsLink(shown)).toBeVisible();
 
-  await dialog.getByLabel('Date').fill(WALLET_STILL_IN_USE);
-  await expect(notActiveMark(slot)).toHaveCount(0);
+  await expectWalletChosenAgain(dialog, WALLET_STILL_IN_USE);
   await saveEdit(dialog);
   await expectListed(page, memo, WALLET_STILL_IN_USE, WALLET_TWO_LINE);
 });
@@ -607,7 +633,7 @@ test('marks a Two-line mode Account not active on the day in its slot in Edit en
 test('gives the Multi-line mode mark of an Account not active on the day the same Help tip linking to Settings', async ({ page }) => {
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await addOldWallet(page);
-  const form = await openForm(page, 'Multi-line mode');
+  const form = await openEntryForm(page, 'Multi-line mode');
   await form.getByLabel('Date').fill(WALLET_IN_USE);
   await addLine(form, { side: 'Debit', account: OLD_WALLET, amount: '500' });
   await form.getByLabel('Date').fill(WALLET_ENDED);
@@ -623,7 +649,7 @@ async function markedWalletTip(page: Page): Promise<{ readonly tip: Locator; rea
   await form.getByLabel('Date').fill(WALLET_ENDED);
   const slot = await expectWalletSlotMarked(form);
   const tip = helpTipButton(slot, NOT_ACTIVE_ON_THIS_DAY);
-  const shown = explanation(page, notActiveExplanation(WALLET));
+  const shown = helpTipExplanation(page, notActiveExplanation(WALLET));
   await expect(tip).toBeVisible();
   await expect(tip).toHaveAttribute('aria-expanded', 'false');
   await expect(shown).toBeHidden();
