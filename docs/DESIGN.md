@@ -20,6 +20,7 @@ colors:
   slate: "#4A6461"
   sage: "#9FC4BC"
   fog: "#E1ECE8"
+  mint-fog: "#DCF0E9"
   steel: "#78948F"
   rust: "#B4400F"
   ochre: "#A15C00"
@@ -46,6 +47,7 @@ colors:
   accent-text-hover: "{colors.mint-deeper}"
   border: "{colors.fog}"
   band: "{colors.fog}"
+  band-suggested: "{colors.mint-fog}"
   border-control: "{colors.steel}"
   danger: "{colors.rust}"
   warning: "{colors.ochre}"
@@ -226,6 +228,7 @@ a palette colour.
 | `slate`       | `#4A6461` | muted text                                 |
 | `sage`        | `#9FC4BC` | muted text on ink                          |
 | `fog`         | `#E1ECE8` | dividers, panel edges, Account-type bands  |
+| `mint-fog`    | `#DCF0E9` | the Suggested Band, a touch mintier than `fog` |
 | `steel`       | `#78948F` | control edges                              |
 | `rust`        | `#B4400F` | danger                                     |
 | `ochre`       | `#A15C00` | warning                                    |
@@ -266,6 +269,7 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `accent-text-hover`  | `mint-deeper` | a link under the pointer            |
 | `border`             | `fog`       | dividers, panel edges                 |
 | `band`               | `fog`       | an Account type's Band                |
+| `band-suggested`     | `mint-fog`  | the Suggested Band in the Account picker and the Account sheet |
 | `border-control`     | `steel`     | inputs, secondary buttons, tree connectors, and at 55% the Account picker's group rules |
 | `danger`             | `rust`      | refusals, errors                      |
 | `warning`            | `ochre`     | a degraded health status, a Difference not 0, a line not active on the day, a Title needing Multi-line mode |
@@ -302,7 +306,8 @@ unit test checks every one:
   `text-muted-on-dark` on `ground-dark`, `ground-dark-raised` and
   `ground-dark-hover` (11.78:1 and 6.85:1 on `ink-mid`); `ink` on `mint`; `ink` on `fog`,
   which is `text` on a `band` (12.46:1); `mint-deeper` on `fog`, which is
-  `accent-text-hover` on a `band` (5.90:1); `ink`, `slate`, `cobalt` and `gold`
+  `accent-text-hover` on a `band` (5.90:1); `ink` on `mint-fog`, which is
+  `text` on a `band-suggested` (12.69:1); `ink`, `slate`, `cobalt` and `gold`
   on `mist-pale`, which is `text`, `text-muted`, `debit` and `credit` on
   `surface-hover` (14.32:1, 6.07:1, 5.57:1 and 5.30:1); `ink` on `mint-pale`,
   which is `text` on `surface-chosen` (12.94:1).
@@ -615,6 +620,17 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   Band's edge, padded 6px above and below. A search does not count, so the
   layout holds still while the User types. The picker draws no folder icon and
   no tree connector.
+- **Suggested accounts.** While the form's Title matches one of the User's,
+  each Side of the Account picker, and each tab of the Account sheet, opens
+  with up to three Suggested accounts under a Band of their own above the
+  Account types' Bands: the Suggested Band, drawn as an Account type's is,
+  with the same padding and radius, `Suggested` in `body-sm`, semibold, in
+  `text`, led by a 16px sparkle icon, and tinted `band-suggested`, a touch
+  mintier than `band`. The Accounts under it are drawn as those below -- chips
+  that wrap in the picker, padded 6px above and below, rows in the sheet --
+  with the same radio or checkbox, and a chosen one is shown chosen in both
+  places. The section is gone while `Find an account` holds text, and absent
+  when the Title is empty or matches none.
 - **Account sheet.** Below `wide` the Accounts leave the form
   and open `Choose accounts` as a modal dialog rising from the foot of the page
   to 64px below its top, on the `ground` over a `ground-dark` scrim at 60%. In
@@ -854,7 +870,9 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   Account sheet; it is decoration, and the group keeps its name alone. Each
   Account type's Band leads with a 16px icon in `text` -- Assets a wallet,
   Liabilities a receipt, Equity a pie, Revenue a rising line and Expenses a
-  falling line -- decoration too, so the Band is named by its type alone. Each
+  falling line -- decoration too, so the Band is named by its type alone; the
+  Suggested Band leads with a sparkle, a four-point star beside a small plus,
+  and is named `Suggested` alone. Each
   Sidebar link and Sign out leads with an 18px icon -- a list, a magnifier,
   sliders and an exit -- so each is named by its text alone; the magnifier is
   the Account picker's search icon at 18px rather than 16px.
@@ -930,7 +948,7 @@ hidden.
 | Wordmark       | The name "Credebi" drawn as outlined glyphs, as the Wordmark paragraph under `Logo` states, with C and d in the accent colour of its tone. |
 | Lockup         | A fixed arrangement of the Mark and the Wordmark: horizontal or stacked. The Mark alone is also a variant of the logo. |
 | Semantic token | A colour named by its role, such as `text-muted` or `danger`, mapped onto a brand palette colour. Components use only these. |
-| Band           | A strip tinted `band` with the `control` radius behind an Account type's name, set in `body-sm`, semibold, in `text`, and led by the type's icon, so the Account types read apart from the groups and Accounts under them. It is drawn in the Accounts section, the Account picker and the Account sheet. |
+| Band           | A strip tinted `band` with the `control` radius behind an Account type's name, set in `body-sm`, semibold, in `text`, and led by the type's icon, so the Account types read apart from the groups and Accounts under them. It is drawn in the Accounts section, the Account picker and the Account sheet. The Suggested Band is one more, tinted `band-suggested` and led by a sparkle, over the Suggested accounts in the Account picker and the Account sheet. |
 | Tree connector | A 1px `border-control` line from an Account group's folder icon to the Accounts in it, in the Accounts section and the Account sheet: `├` before each Account shown but the last, `└`, its corner rounded by the `control` radius, before the last shown. It is decoration, hidden from assistive technology. |
 | Chip           | A choice drawn as a small inline box that sits beside others and wraps, rather than one per row; a chosen chip takes a fill and an edge. |
 | Scrim          | The `ground-dark` tint at 60% behind a modal dialog. A click on the scrim is a press that began on it as well as ended there: a press that began inside the dialog, as when selecting a field's text by dragging, and was released on the scrim closes nothing. |

@@ -99,9 +99,17 @@ export const titleLineSchema = postedLineSchema.omit({ accountName: true });
 
 export type TitleLine = z.infer<typeof titleLineSchema>;
 
+export const suggestedAccountsSchema = z.object({
+  debit: z.array(accountIdSchema),
+  credit: z.array(accountIdSchema),
+});
+
+export type SuggestedAccounts = z.infer<typeof suggestedAccountsSchema>;
+
 export const offeredTitleSchema = z.object({
   title: z.string(),
   lines: z.array(titleLineSchema),
+  suggested: suggestedAccountsSchema,
 });
 
 export type OfferedTitle = z.infer<typeof offeredTitleSchema>;

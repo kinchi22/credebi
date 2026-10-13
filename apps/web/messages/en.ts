@@ -287,6 +287,7 @@ export const en = {
     close: 'Close',
     find: 'Find an account',
     noMatch: 'No account matches',
+    suggested: 'Suggested',
     noActiveAccount: 'No account is active on this day.',
     settingsLink: 'Change when your accounts are active in Settings',
     add: {

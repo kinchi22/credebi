@@ -28,9 +28,10 @@ export const entriesRouter = router({
     if (!result.ok) {
       throw toTrpcError(result.error);
     }
-    return result.value.map(({ title, lines }) => ({
+    return result.value.map(({ title, lines, suggested }) => ({
       title,
       lines: lines.map(({ account, side, amount }) => ({ account, side, amount })),
+      suggested: { debit: [...suggested.debit], credit: [...suggested.credit] },
     }));
   }),
 

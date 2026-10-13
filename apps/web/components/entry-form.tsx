@@ -8,6 +8,7 @@ import {
   type PostedEntry,
   type OfferedTitle,
 } from '@repo/contracts';
+import { titleMatching } from '@repo/core/entries';
 import { PANEL, PANEL_TITLE } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import {
@@ -64,6 +65,7 @@ export type EntryFormParts = {
   readonly id: string;
   readonly day: string | undefined;
   readonly entry: PostedEntry | undefined;
+  readonly matchedTitle: OfferedTitle | undefined;
   readonly heading: (title: TitleChoice) => ReactNode;
   readonly refusal: ReactNode;
   readonly submitButton: SubmitButton;
@@ -191,6 +193,19 @@ export function AmountInput({
   );
 }
 
+function useUntilReset<Value>(
+  resetKey: number,
+  initial: Value,
+): readonly [Value, (value: Value) => void] {
+  const [changed, setChanged] = useState<{ readonly resetKey: number; readonly value: Value }>();
+  return [
+    changed?.resetKey === resetKey ? changed.value : initial,
+    (value) => {
+      setChanged({ resetKey, value });
+    },
+  ];
+}
+
 export function EntryFormShell({
   action,
   titles,
@@ -210,8 +225,9 @@ export function EntryFormShell({
   const today = useBrowserToday();
 
   const variant = variantFor(mode, editing, today);
-  const [typedDay, setTypedDay] = useState<{ readonly resetKey: number; readonly day: string }>();
-  const day = typedDay?.resetKey === resetKey ? typedDay.day : variant.entryDate;
+  const [day, setDay] = useUntilReset(resetKey, variant.entryDate);
+  const [typedTitle, setTypedTitle] = useUntilReset(resetKey, variant.entry?.title ?? '');
+  const matchedTitle = titleMatching(titles, typedTitle);
   const { onSaved } = variant;
   useEffect(() => {
     if (state.outcome === 'saved') {
@@ -230,7 +246,8 @@ export function EntryFormShell({
   const chosenTitle =
     (choice: TitleChoice) =>
     (chosen: string): void => {
-      const offered = titles.find(({ title }) => title === chosen);
+      setTypedTitle(chosen);
+      const offered = titleMatching(titles, chosen);
       if (offered !== undefined) {
         choice.onChoose(offered);
       }
@@ -253,7 +270,7 @@ export function EntryFormShell({
             type="date"
             defaultValue={variant.entryDate}
             onChange={(event) => {
-              setTypedDay({ resetKey, day: event.target.value });
+              setDay(event.target.value);
             }}
             autoFocus={variant.autoFocus}
             required
@@ -268,7 +285,10 @@ export function EntryFormShell({
             defaultValue={variant.entry?.title}
             titles={titles.map(({ title }) => title)}
             onChoose={chosenTitle(choice)}
-            onType={choice.onType}
+            onType={(title) => {
+              setTypedTitle(title);
+              choice.onType?.();
+            }}
           />
           {choice.notice}
         </div>
@@ -314,7 +334,7 @@ export function EntryFormShell({
       <input type="hidden" name={ENTRY_FORM_FIELDS.entryFormMode} value={mode} />
 
       <Fragment key={resetKey}>
-        {children({ id, day, entry: variant.entry, heading, refusal, submitButton })}
+        {children({ id, day, entry: variant.entry, matchedTitle, heading, refusal, submitButton })}
       </Fragment>
     </form>
   );

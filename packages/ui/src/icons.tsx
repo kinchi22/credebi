@@ -122,6 +122,15 @@ export function FallingLineIcon(): ReactNode {
   );
 }
 
+export function SparkleIcon(): ReactNode {
+  return (
+    <StrokeIcon size={16}>
+      <path d="M10 4l1.8 4.7L16.5 10.5l-4.7 1.8L10 17l-1.8-4.7L3.5 10.5l4.7-1.8z" />
+      <path d="M18 15v5M15.5 17.5h5" />
+    </StrokeIcon>
+  );
+}
+
 export function GripIcon(): ReactNode {
   return (
     <StrokeIcon size={16}>

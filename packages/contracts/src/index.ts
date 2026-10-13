@@ -91,6 +91,7 @@ export type {
   EntryId,
   EntryLineInput,
   OfferedTitle,
+  SuggestedAccounts,
   TitleLine,
   PostEntryInput,
   PostedEntry,
