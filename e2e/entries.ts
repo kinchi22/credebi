@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
-import { setEntryFormMode } from './settings';
+import { setEntryFormMode, type EntryFormMode } from './settings';
 
 export const AMOUNT = '12500';
 
@@ -22,6 +22,8 @@ export const nameOf = (account: LineAccount): string =>
   typeof account === 'string' ? account : account.added;
 
 export const SIDES = ['Debit', 'Credit'] as const;
+
+export const ACCOUNT_TYPES = ['Assets', 'Liabilities', 'Equity', 'Revenue', 'Expenses'] as const;
 
 export type Side = (typeof SIDES)[number];
 
@@ -75,14 +77,37 @@ export const entrySearchForm = (page: Page): Locator =>
 export const accountChoices = (form: Page | Locator, side: Side): Locator =>
   form.getByRole('radiogroup', { name: `${side} account`, exact: true });
 
+const chart = (picker: Locator): Locator =>
+  picker.getByRole('group', { name: new RegExp(`^(${ACCOUNT_TYPES.join('|')})$`) });
+
 export const accountChoice = (form: Locator, side: Side, account: string): Locator =>
-  accountChoices(form, side).getByRole('radio', { name: account, exact: true });
+  chart(accountChoices(form, side)).getByRole('radio', { name: account, exact: true });
 
 export const accountTicks = (form: Page | Locator, side: Side): Locator =>
   form.getByRole('group', { name: `${side} accounts`, exact: true });
 
 export const accountTick = (form: Locator, side: Side, account: LineAccount): Locator =>
-  accountTicks(form, side).getByRole('checkbox', { name: nameOf(account), exact: true });
+  chart(accountTicks(form, side)).getByRole('checkbox', { name: nameOf(account), exact: true });
+
+export const suggested = (picker: Locator): Locator =>
+  picker.getByRole('group', { name: 'Suggested', exact: true });
+
+export async function expectSuggested(
+  picker: Locator,
+  role: 'radio' | 'checkbox',
+  accounts: readonly LineAccount[],
+): Promise<void> {
+  await expect(picker).toBeVisible();
+  if (accounts.length === 0) {
+    await expect(suggested(picker)).toBeHidden();
+    return;
+  }
+  const shown = suggested(picker).getByRole(role);
+  await expect(shown).toHaveCount(accounts.length);
+  for (const [index, account] of accounts.entries()) {
+    await expect(shown.nth(index)).toHaveAccessibleName(nameOf(account));
+  }
+}
 
 const lineName = (side: Side, account: LineAccount): string => `${side} ${nameOf(account)}`;
 
@@ -248,7 +273,15 @@ export const headingShowing = (heading: Heading, total = AMOUNT_SHOWN): RegExp =
     'u',
   );
 
-async function fillHeading(form: Locator, heading: Heading): Promise<void> {
+export async function openEntryForm(page: Page, mode: EntryFormMode): Promise<Locator> {
+  await setEntryFormMode(page, mode);
+  await page.goto('/entries');
+  const form = entryForm(page);
+  await expect(form).toBeVisible();
+  return form;
+}
+
+export async function fillHeading(form: Locator, heading: Heading): Promise<void> {
   await form.getByLabel('Date').fill(heading.day);
   if (heading.title !== undefined) {
     await titleField(form).fill(heading.title);

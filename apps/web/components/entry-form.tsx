@@ -6,7 +6,9 @@ import {
   type DomainErrorCode,
   type EntryFormMode,
   type PostedEntry,
+  type OfferedTitle,
 } from '@repo/contracts';
+import { titleMatching } from '@repo/core/entries';
 import { PANEL, PANEL_TITLE } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import {
@@ -49,15 +51,22 @@ export type EditedEntry = {
 export type EntryFormProps = {
   readonly action: EntryFormAction;
   readonly chart: ChartOutput;
-  readonly titles: readonly string[];
+  readonly titles: readonly OfferedTitle[];
   readonly editing?: EditedEntry | undefined;
+};
+
+export type TitleChoice = {
+  readonly onChoose: (title: OfferedTitle) => void;
+  readonly onType?: () => void;
+  readonly notice?: ReactNode;
 };
 
 export type EntryFormParts = {
   readonly id: string;
   readonly day: string | undefined;
   readonly entry: PostedEntry | undefined;
-  readonly heading: ReactNode;
+  readonly matchedTitle: OfferedTitle | undefined;
+  readonly heading: (title: TitleChoice) => ReactNode;
   readonly refusal: ReactNode;
   readonly submitButton: SubmitButton;
 };
@@ -150,6 +159,7 @@ type AmountInputProps = {
   readonly id: string;
   readonly label: string;
   readonly defaultValue?: string | undefined;
+  readonly value?: string | undefined;
   readonly onAmountChange?: (amount: string) => void;
 };
 
@@ -157,6 +167,7 @@ export function AmountInput({
   id,
   label,
   defaultValue,
+  value,
   onAmountChange,
 }: AmountInputProps): ReactNode {
   return (
@@ -165,6 +176,7 @@ export function AmountInput({
       aria-label={label}
       name={ENTRY_FORM_FIELDS.amount}
       defaultValue={defaultValue}
+      value={value}
       onChange={
         onAmountChange === undefined
           ? undefined
@@ -179,6 +191,19 @@ export function AmountInput({
       className={`${CONTROL} w-full min-w-0 text-right ${typeClasses.figure}`}
     />
   );
+}
+
+function useUntilReset<Value>(
+  resetKey: number,
+  initial: Value,
+): readonly [Value, (value: Value) => void] {
+  const [changed, setChanged] = useState<{ readonly resetKey: number; readonly value: Value }>();
+  return [
+    changed?.resetKey === resetKey ? changed.value : initial,
+    (value) => {
+      setChanged({ resetKey, value });
+    },
+  ];
 }
 
 export function EntryFormShell({
@@ -200,8 +225,9 @@ export function EntryFormShell({
   const today = useBrowserToday();
 
   const variant = variantFor(mode, editing, today);
-  const [typedDay, setTypedDay] = useState<{ readonly resetKey: number; readonly day: string }>();
-  const day = typedDay?.resetKey === resetKey ? typedDay.day : variant.entryDate;
+  const [day, setDay] = useUntilReset(resetKey, variant.entryDate);
+  const [typedTitle, setTypedTitle] = useUntilReset(resetKey, variant.entry?.title ?? '');
+  const matchedTitle = titleMatching(titles, typedTitle);
   const { onSaved } = variant;
   useEffect(() => {
     if (state.outcome === 'saved') {
@@ -217,7 +243,17 @@ export function EntryFormShell({
     });
   };
 
-  const heading = (
+  const chosenTitle =
+    (choice: TitleChoice) =>
+    (chosen: string): void => {
+      setTypedTitle(chosen);
+      const offered = titleMatching(titles, chosen);
+      if (offered !== undefined) {
+        choice.onChoose(offered);
+      }
+    };
+
+  const heading = (choice: TitleChoice): ReactNode => (
     <>
       {variant.labelledBy === undefined ? (
         <h2 id={`${id}-title`} className={PANEL_TITLE}>
@@ -234,21 +270,28 @@ export function EntryFormShell({
             type="date"
             defaultValue={variant.entryDate}
             onChange={(event) => {
-              setTypedDay({ resetKey, day: event.target.value });
+              setDay(event.target.value);
             }}
             autoFocus={variant.autoFocus}
             required
             className={DATE_CONTROL}
           />
         </div>
-        <TitleCombobox
-          id={`${id}-entry-title`}
-          name={ENTRY_FORM_FIELDS.title}
-          label={en.entryForm.entryTitle}
-          defaultValue={variant.entry?.title}
-          titles={titles}
-          className="grow"
-        />
+        <div className="flex min-w-0 grow flex-col gap-1">
+          <TitleCombobox
+            id={`${id}-entry-title`}
+            name={ENTRY_FORM_FIELDS.title}
+            label={en.entryForm.entryTitle}
+            defaultValue={variant.entry?.title}
+            titles={titles.map(({ title }) => title)}
+            onChoose={chosenTitle(choice)}
+            onType={(title) => {
+              setTypedTitle(title);
+              choice.onType?.();
+            }}
+          />
+          {choice.notice}
+        </div>
         <div className={`${DENSE_FIELD} basis-full wide:col-span-full`}>
           <label htmlFor={`${id}-memo`} className={FIELD_LABEL}>{en.entryForm.memo}</label>
           <input
@@ -291,7 +334,7 @@ export function EntryFormShell({
       <input type="hidden" name={ENTRY_FORM_FIELDS.entryFormMode} value={mode} />
 
       <Fragment key={resetKey}>
-        {children({ id, day, entry: variant.entry, heading, refusal, submitButton })}
+        {children({ id, day, entry: variant.entry, matchedTitle, heading, refusal, submitButton })}
       </Fragment>
     </form>
   );

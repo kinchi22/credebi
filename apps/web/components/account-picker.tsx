@@ -6,7 +6,6 @@ import {
   type AccountId,
   type AccountOutput,
   type ChartOutput,
-  type PostedEntry,
   type Side,
 } from '@repo/contracts';
 import { ACCOUNT_TYPES } from '@repo/core/accounts';
@@ -30,12 +29,12 @@ import {
   type Run,
 } from './chart-tree';
 import { CloseButton } from './close-button';
-import { type Offered } from './lines-on-day';
 import { SheetBar, SheetTabs } from './sheet';
 import { SIDE_TONE, SIDES } from './side-classes';
+import { NOTHING_SUGGESTED, type Suggested } from './suggested-accounts';
 import { LINK } from './text-classes';
 import { GroupFolder, TreeBranch } from './tree-branch';
-import { Band } from './type-band';
+import { Band, SuggestedBand } from './type-band';
 import { useWide } from './wide';
 
 export type AccountChoice = Readonly<Record<Side, AccountOutput | undefined>>;
@@ -46,6 +45,7 @@ export type AccountPickerProps = {
   readonly multiple?: boolean;
   readonly isChosen: (side: Side, account: AccountId) => boolean;
   readonly onPick: (side: Side, account: AccountOutput, chosen: boolean) => void;
+  readonly suggested: Suggested;
   readonly sheet: AccountSheet;
 };
 
@@ -84,6 +84,11 @@ const PICK_MANY: PickControl = {
   },
   fieldName: undefined,
 };
+
+const asSuggestion = (control: PickControl): PickControl => ({ ...control, fieldName: undefined });
+
+const suggestedFor = (query: string, suggested: Suggested): Suggested =>
+  query.trim() === '' ? suggested : NOTHING_SUGGESTED;
 
 const otherSide = (side: Side): Side => (side === 'debit' ? 'credit' : 'debit');
 
@@ -156,7 +161,7 @@ export function ChooseAccountButton({ side, account, sheet }: ChooseAccountButto
       onClick={(event) => {
         sheet.openOn(side, event.currentTarget);
       }}
-      className={`flex min-h-10 w-full items-center gap-3 border-t-2 py-3 text-left disabled:opacity-50 wide:hidden ${SIDE_TONE[side].edge}`}
+      className={`flex min-h-10 w-full items-center ${ACCOUNT_ROW_GAP} border-t-2 py-3 text-left disabled:opacity-50 wide:hidden ${SIDE_TONE[side].edge}`}
     >
       <AccountRowContent side={side} account={account} placeholderInSideTone />
       {account === undefined ? null : (
@@ -175,8 +180,25 @@ type AccountRowProps = {
 
 export function AccountRow({ side, account }: AccountRowProps): ReactNode {
   return (
-    <div className={`hidden items-center gap-3 border-t-2 py-3 wide:flex ${SIDE_TONE[side].edge}`}>
+    <div className={`hidden items-center ${ACCOUNT_ROW_GAP} border-t-2 py-3 wide:flex ${SIDE_TONE[side].edge}`}>
       <AccountRowContent side={side} account={account} placeholderInSideTone={false} />
+    </div>
+  );
+}
+
+const ACCOUNT_ROW_GAP = 'gap-3';
+
+const SIDE_NAME_COLUMN = 'w-16 shrink-0';
+
+type UnderAccountNameProps = {
+  readonly children: ReactNode;
+};
+
+export function UnderAccountName({ children }: UnderAccountNameProps): ReactNode {
+  return (
+    <div className={`-mt-2 flex pb-3 ${ACCOUNT_ROW_GAP}`}>
+      <span aria-hidden="true" className={SIDE_NAME_COLUMN} />
+      <div className="min-w-0 grow">{children}</div>
     </div>
   );
 }
@@ -196,7 +218,7 @@ function AccountRowContent({
 
   return (
     <>
-      <span className={`w-16 shrink-0 ${typeClasses.label} leading-5 ${SIDE_TONE[side].text}`}>
+      <span className={`${SIDE_NAME_COLUMN} ${typeClasses.label} leading-5 ${SIDE_TONE[side].text}`}>
         {en.sides[side]}
       </span>
       <span className={`min-w-0 grow wrap-anywhere ${account === undefined ? placeholderClass : 'font-semibold'}`}>
@@ -214,6 +236,7 @@ type SideChoicesProps = {
   readonly isChosen: (account: AccountId) => boolean;
   readonly onPick: (account: AccountOutput, chosen: boolean) => void;
   readonly onInvalid?: () => void;
+  readonly suggested: readonly AccountOutput[];
   readonly look: ChoicesLook;
 };
 
@@ -258,6 +281,8 @@ const GROUP_CAPTION = 'leading-7.5 font-medium wrap-anywhere text-text-muted';
 
 const groupBounds = ({ above, below }: GroupRules): string =>
   `border-dashed border-border-control/55 ${above ? 'border-t' : ''} ${below ? 'border-b' : ''}`;
+
+const BAND_PADDING = 'px-2 py-1.5';
 
 const NO_BRANCHES: ReadonlyMap<AccountId, Branch> = new Map();
 
@@ -309,6 +334,7 @@ function SideChoices({
   isChosen,
   onPick,
   onInvalid,
+  suggested,
   look,
 }: SideChoicesProps): ReactNode {
   const typeId = useId();
@@ -317,6 +343,7 @@ function SideChoices({
     accounts: readonly AccountOutput[],
     className: string,
     branches: ReadonlyMap<AccountId, Branch>,
+    pickControl: PickControl = control,
   ): ReactNode => (
     <div className={className}>
       {accounts.map((account) => (
@@ -324,7 +351,7 @@ function SideChoices({
           key={account.id}
           side={side}
           account={account}
-          control={control}
+          control={pickControl}
           shown={matches(account)}
           chosen={isChosen(account.id)}
           branch={branches.get(account.id)}
@@ -403,6 +430,14 @@ function SideChoices({
           {en.sides[side]}
         </p>
       ) : null}
+      {suggested.length === 0 ? null : (
+        <div role="group" aria-labelledby={`${typeId}-suggested`} className="flex flex-col gap-1">
+          <SuggestedBand id={`${typeId}-suggested`} className={BAND_PADDING} />
+          <div className={look.groups === 'tree' ? '' : UNGROUPED}>
+            {choices(suggested, look.accounts, NO_BRANCHES, asSuggestion(control))}
+          </div>
+        </div>
+      )}
       {ACCOUNT_TYPES.map((type) => {
         const runs = runsOf(chart, type);
         return (
@@ -412,7 +447,7 @@ function SideChoices({
             aria-labelledby={`${typeId}-${type}`}
             className={runs.some(isShown) ? 'flex flex-col gap-1' : 'hidden'}
           >
-            <Band accountType={type} id={`${typeId}-${type}`} className="px-2 py-1.5" />
+            <Band accountType={type} id={`${typeId}-${type}`} className={BAND_PADDING} />
             {look.groups === 'tree' ? treeOf(runs) : captionsOf(runs)}
           </div>
         );
@@ -467,6 +502,7 @@ function AccountColumns({
   multiple = false,
   isChosen,
   onPick,
+  suggested,
 }: AccountPickerProps): ReactNode {
   const [shown, setShown] = useState<Side>('debit');
   const [query, setQuery] = useState('');
@@ -522,6 +558,7 @@ function AccountColumns({
               chart={chart}
               control={multiple ? PICK_MANY : PICK_ONE}
               matches={matches}
+              suggested={suggestedFor(query, suggested)[side]}
               look={INLINE_LOOK}
               isChosen={(account) => isChosen(side, account)}
               onPick={(account, chosen) => {
@@ -544,6 +581,7 @@ function AccountSheetDialog({
   multiple = false,
   isChosen,
   onPick,
+  suggested,
   sheet,
 }: AccountPickerProps): ReactNode {
   const tabId = (side: Side): string => `${sheet.id}-${side}-tab`;
@@ -609,6 +647,7 @@ function AccountSheetDialog({
                 chart={chart}
                 control={multiple ? PICK_MANY : PICK_ONE}
                 matches={matches}
+                suggested={suggestedFor(sheet.query, suggested)[side]}
                 look={SHEET_LOOK}
                 isChosen={(account) => isChosen(side, account)}
                 onPick={(account, chosen) => {
@@ -631,29 +670,6 @@ function NoActiveAccount(): ReactNode {
   return (
     <p className={`rounded-panel border border-border bg-ground px-4 py-3 ${typeClasses['body-dense']}`}>
       {en.accountSheet.noActiveAccount}{' '}
-      <Link href={SETTINGS_PATH} className={LINK}>
-        {en.accountSheet.settingsLink}
-      </Link>
-    </p>
-  );
-}
-
-type OutsideActivePeriodProps = {
-  readonly entry: PostedEntry | undefined;
-  readonly offered: Offered;
-};
-
-export function OutsideActivePeriod({ entry, offered }: OutsideActivePeriodProps): ReactNode {
-  const outside = [
-    ...new Set(
-      (entry?.lines ?? [])
-        .filter((line) => !offered.ids.has(line.account))
-        .map((line) => line.accountName),
-    ),
-  ];
-  return outside.length === 0 ? null : (
-    <p className={`min-w-0 text-danger ${typeClasses['body-dense']}`}>
-      {en.accountSheet.outsideActivePeriod} {outside.join(', ')}.{' '}
       <Link href={SETTINGS_PATH} className={LINK}>
         {en.accountSheet.settingsLink}
       </Link>

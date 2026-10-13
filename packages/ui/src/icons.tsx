@@ -122,6 +122,15 @@ export function FallingLineIcon(): ReactNode {
   );
 }
 
+export function SparkleIcon(): ReactNode {
+  return (
+    <StrokeIcon size={16}>
+      <path d="M10 4l1.8 4.7L16.5 10.5l-4.7 1.8L10 17l-1.8-4.7L3.5 10.5l4.7-1.8z" />
+      <path d="M18 15v5M15.5 17.5h5" />
+    </StrokeIcon>
+  );
+}
+
 export function GripIcon(): ReactNode {
   return (
     <StrokeIcon size={16}>
@@ -131,6 +140,16 @@ export function GripIcon(): ReactNode {
       <circle cx="15" cy="12" r="1" />
       <circle cx="9" cy="18" r="1" />
       <circle cx="15" cy="18" r="1" />
+    </StrokeIcon>
+  );
+}
+
+export function HelpIcon(): ReactNode {
+  return (
+    <StrokeIcon size={16}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7v.3" />
+      <path d="M12 17h.01" />
     </StrokeIcon>
   );
 }

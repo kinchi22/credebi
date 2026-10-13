@@ -20,6 +20,7 @@ colors:
   slate: "#4A6461"
   sage: "#9FC4BC"
   fog: "#E1ECE8"
+  mint-fog: "#DCF0E9"
   steel: "#78948F"
   rust: "#B4400F"
   ochre: "#A15C00"
@@ -46,6 +47,7 @@ colors:
   accent-text-hover: "{colors.mint-deeper}"
   border: "{colors.fog}"
   band: "{colors.fog}"
+  band-suggested: "{colors.mint-fog}"
   border-control: "{colors.steel}"
   danger: "{colors.rust}"
   warning: "{colors.ochre}"
@@ -226,6 +228,7 @@ a palette colour.
 | `slate`       | `#4A6461` | muted text                                 |
 | `sage`        | `#9FC4BC` | muted text on ink                          |
 | `fog`         | `#E1ECE8` | dividers, panel edges, Account-type bands  |
+| `mint-fog`    | `#DCF0E9` | the Suggested Band, a touch mintier than `fog` |
 | `steel`       | `#78948F` | control edges                              |
 | `rust`        | `#B4400F` | danger                                     |
 | `ochre`       | `#A15C00` | warning                                    |
@@ -266,9 +269,10 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `accent-text-hover`  | `mint-deeper` | a link under the pointer            |
 | `border`             | `fog`       | dividers, panel edges                 |
 | `band`               | `fog`       | an Account type's Band                |
+| `band-suggested`     | `mint-fog`  | the Suggested Band in the Account picker and the Account sheet |
 | `border-control`     | `steel`     | inputs, secondary buttons, tree connectors, and at 55% the Account picker's group rules |
 | `danger`             | `rust`      | refusals, errors                      |
-| `warning`            | `ochre`     | a degraded health status, a Difference not 0, a line not active on the day |
+| `warning`            | `ochre`     | a degraded health status, a Difference not 0, a line not active on the day, a Title needing Multi-line mode |
 | `positive`           | `mint-deep` | a healthy status                      |
 | `focus`              | `mint-deep` | the 2px focus ring on a light ground  |
 | `focus-on-dark`      | `mint`      | the 2px focus ring on a dark ground   |
@@ -302,7 +306,8 @@ unit test checks every one:
   `text-muted-on-dark` on `ground-dark`, `ground-dark-raised` and
   `ground-dark-hover` (11.78:1 and 6.85:1 on `ink-mid`); `ink` on `mint`; `ink` on `fog`,
   which is `text` on a `band` (12.46:1); `mint-deeper` on `fog`, which is
-  `accent-text-hover` on a `band` (5.90:1); `ink`, `slate`, `cobalt` and `gold`
+  `accent-text-hover` on a `band` (5.90:1); `ink` on `mint-fog`, which is
+  `text` on a `band-suggested` (12.69:1); `ink`, `slate`, `cobalt` and `gold`
   on `mist-pale`, which is `text`, `text-muted`, `debit` and `credit` on
   `surface-hover` (14.32:1, 6.07:1, 5.57:1 and 5.30:1); `ink` on `mint-pale`,
   which is `text` on `surface-chosen` (12.94:1).
@@ -416,11 +421,12 @@ two shadows tinted from `ink`, `shadows` in the tokens module and
 
 | Shadow      | Layers                                                  | On |
 | ----------- | ------------------------------------------------------- | -- |
-| `lift`      | `0 1px 2px` at 5% and `0 1px 3px` at 4%                 | every panel `PANEL` draws, the Account picker and the Segmented control's strip |
+| `lift`      | `0 1px 2px` at 5% and `0 1px 3px` at 4%                 | every panel `PANEL` draws, the Account picker, the Segmented control's strip and a Help tip's panel |
 | `lift-card` | `0 1px 2px` at 5% and `0 12px 32px` at 8%               | the Sign in card |
 
-Nothing else casts a shadow: not a dialog, a menu, a chip or any other control. The
-stylesheet resets `--shadow-*` to `initial`, so these two are the only shadow
+Nothing else casts a shadow: not a dialog, a menu, a chip or any other control.
+A Help tip's panel lifts off the form it opens over, as the Account picker
+lifts off the page. The stylesheet resets `--shadow-*` to `initial`, so these two are the only shadow
 utilities, `shadow-lift` and `shadow-lift-card`. The lint rule
 `repo/no-raw-shape` rejects a bare `shadow`, Tailwind's own shadows and an
 arbitrary one, and `repo/no-raw-color`, which reads the shadow names from the
@@ -614,6 +620,17 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   Band's edge, padded 6px above and below. A search does not count, so the
   layout holds still while the User types. The picker draws no folder icon and
   no tree connector.
+- **Suggested accounts.** While the form's Title matches one of the User's,
+  each Side of the Account picker, and each tab of the Account sheet, opens
+  with up to three Suggested accounts under a Band of their own above the
+  Account types' Bands: the Suggested Band, drawn as an Account type's is,
+  with the same padding and radius, `Suggested` in `body-sm`, semibold, in
+  `text`, led by a 16px sparkle icon, and tinted `band-suggested`, a touch
+  mintier than `band`. The Accounts under it are drawn as those below -- chips
+  that wrap in the picker, padded 6px above and below, rows in the sheet --
+  with the same radio or checkbox, and a chosen one is shown chosen in both
+  places. The section is gone while `Find an account` holds text, and absent
+  when the Title is empty or matches none.
 - **Account sheet.** Below `wide` the Accounts leave the form
   and open `Choose accounts` as a modal dialog rising from the foot of the page
   to 64px below its top, on the `ground` over a `ground-dark` scrim at 60%. In
@@ -676,20 +693,35 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   `label` and the Side's colour, and its lines name no Side. Two columns at all
   widths, about 6:4, the Account's the wider: the left holds the Account name,
   semibold; the right holds the amount field and, beside it, the Remove button.
-- **Line not active on the day.** In Multi-line mode a line whose Account is
-  not active on the Entry's day stays in the form with its amount, and below
-  its Account name `Not active on this day` in `body-dense` and `warning`. It
-  counts in neither Side's total nor the Difference, and choosing a day on which
-  its Account is active counts it again. While one is shown, the submit posts or
-  saves nothing: the refusal below the Difference row, in place of any earlier
-  one, names the first such line, debits first, as `<Side> <Account>`, and
-  every input is kept.
-  Removing that line or any change of day clears the refusal, and only a
-  submit shows it again. The mark on each line stands in for the form-wide
-  `outside the Active period` message, which Multi-line mode does not show. In
-  Two-line mode such an Account's choice is cleared instead, the required
-  choice holds the submit, and an edited Entry whose Account is cleared keeps
-  that message, with its link to Settings.
+- **Line not active on the day.** In either Entry form mode an Account not
+  active on the Entry's day stays in the form, and below its Account name
+  `Not active on this day` in `body-dense` and `warning`, with a Help tip whose
+  `Settings` links there. In Multi-line mode the line keeps its amount and
+  counts in neither Side's total nor the Difference; in Two-line mode the
+  Account keeps its slot, the mark aligned with its name. Choosing a day on
+  which the Account is active clears the mark. While one is shown, the submit
+  posts or saves nothing: the refusal below the submit, in place of any earlier
+  one, names the first such Account, debits first, and every input is kept.
+  Each refusal opens with `The entry was not added.` in the entry form, or
+  `The entry was not saved.` in Edit entry. The two modes differ only in the
+  way out they name, since Two-line mode has no line to remove:
+
+  | Mode            | Help tip | Refusal, after its opening |
+  | --------------- | -------- | -------------------------- |
+  | Multi-line mode | `<Account> can be used only within its active period. Change the day, remove the line, or change the period in Settings.` | `<Side> <Account> is not active on this day. Remove that line, or choose a day on which its account is active.` |
+  | Two-line mode   | `<Account> can be used only within its active period. Change the day, choose another account, or change the period in Settings.` | `<Account> is not active on this day. Choose another account, or choose a day on which it is active.` |
+
+  Removing that line, choosing another Account or any change of day clears the
+  refusal, and only a submit shows it again. The mark is the form's one message
+  about it, in an edited Entry too.
+- **Needs Multi-line mode.** In Two-line mode, choosing a Title whose last
+  Entry has more than one line on a Side while the lines are empty fills
+  nothing, and under the Title field `Needs Multi-line mode` in `body-dense`
+  and `warning`, with a Help tip: `The last Entry titled <Title> has more than
+  one line on a Side, so nothing was filled in. Choose a debit and a credit
+  account to write this Entry yourself, or change the Entry form mode in
+  Settings to fill every line.`, its `Settings` linking there. Typing in the
+  Title field or choosing another Title clears it.
 - **Multi-line totals.** At every width each Side ends with its own total,
   `Debit total` or `Credit total` in `body-dense` and `text-muted`, its amount
   in `figure` on the line grid, right-aligned with the lines' amounts and
@@ -703,6 +735,16 @@ light ground is 36px tall, `controlHeight` in the tokens module and
 - **Remove button.** A bare × icon in `text-muted`, `text` under the pointer,
   with no fill and no border, named `Remove`, on each Multi-line line: 32px
   wide below `wide` and 24px from `wide` up, as tall as the amount field, 36px.
+- **Help tip.** A bare question-mark icon, 24px square, in `text-muted` and
+  `text` under the pointer, right after its message. Its panel opens just
+  below the message's row, aligned with its start, 256px wide. It keeps a
+  24px gutter from each edge of the screen, scrollbar excluded: never wider
+  than the screen less 48px, and a panel that would run past the right gutter
+  shifts left by as much, never past the left one. It is a `surface` panel with a `border` edge, the
+  `control` radius and the `lift` shadow, its text `body-dense` in `text`.
+  Escape closes every open Help tip wherever focus is, never the dialog
+  around it, and returns focus to the button only when focus was inside the
+  tip.
 - **Icon button.** A secondary button holding a stroke icon in place of text,
   with an accessible name: square and 36px, as tall as the Input beside it, as
   `Choose a period` is.
@@ -828,7 +870,9 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   Account sheet; it is decoration, and the group keeps its name alone. Each
   Account type's Band leads with a 16px icon in `text` -- Assets a wallet,
   Liabilities a receipt, Equity a pie, Revenue a rising line and Expenses a
-  falling line -- decoration too, so the Band is named by its type alone. Each
+  falling line -- decoration too, so the Band is named by its type alone; the
+  Suggested Band leads with a sparkle, a four-point star beside a small plus,
+  and is named `Suggested` alone. Each
   Sidebar link and Sign out leads with an 18px icon -- a list, a magnifier,
   sliders and an exit -- so each is named by its text alone; the magnifier is
   the Account picker's search icon at 18px rather than 16px.
@@ -890,8 +934,9 @@ hidden.
   else in it.
 - Don't round a corner by anything but the `control`, `panel` or `card`
   radius; the status dot is the one circle.
-- Don't cast a shadow but `lift` on a panel, the Account picker and the
-  Segmented control's strip, and `lift-card` on the Sign in card.
+- Don't cast a shadow but `lift` on a panel, the Account picker, the
+  Segmented control's strip and a Help tip's panel, and `lift-card` on the
+  Sign in card.
 - Don't set text below 11.5px.
 - Don't add a dark mapping before the dark theme Feature.
 
@@ -903,7 +948,7 @@ hidden.
 | Wordmark       | The name "Credebi" drawn as outlined glyphs, as the Wordmark paragraph under `Logo` states, with C and d in the accent colour of its tone. |
 | Lockup         | A fixed arrangement of the Mark and the Wordmark: horizontal or stacked. The Mark alone is also a variant of the logo. |
 | Semantic token | A colour named by its role, such as `text-muted` or `danger`, mapped onto a brand palette colour. Components use only these. |
-| Band           | A strip tinted `band` with the `control` radius behind an Account type's name, set in `body-sm`, semibold, in `text`, and led by the type's icon, so the Account types read apart from the groups and Accounts under them. It is drawn in the Accounts section, the Account picker and the Account sheet. |
+| Band           | A strip tinted `band` with the `control` radius behind an Account type's name, set in `body-sm`, semibold, in `text`, and led by the type's icon, so the Account types read apart from the groups and Accounts under them. It is drawn in the Accounts section, the Account picker and the Account sheet. The Suggested Band is one more, tinted `band-suggested` and led by a sparkle, over the Suggested accounts in the Account picker and the Account sheet. |
 | Tree connector | A 1px `border-control` line from an Account group's folder icon to the Accounts in it, in the Accounts section and the Account sheet: `├` before each Account shown but the last, `└`, its corner rounded by the `control` radius, before the last shown. It is decoration, hidden from assistive technology. |
 | Chip           | A choice drawn as a small inline box that sits beside others and wraps, rather than one per row; a chosen chip takes a fill and an edge. |
 | Scrim          | The `ground-dark` tint at 60% behind a modal dialog. A click on the scrim is a press that began on it as well as ended there: a press that began inside the dialog, as when selecting a field's text by dragging, and was released on the scrim closes nothing. |

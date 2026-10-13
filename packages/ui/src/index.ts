@@ -16,6 +16,7 @@ export {
   FolderIcon,
   GoogleMark,
   GripIcon,
+  HelpIcon,
   ListIcon,
   MenuIcon,
   PencilIcon,
@@ -25,6 +26,7 @@ export {
   SearchIcon,
   SignOutIcon,
   SlidersIcon,
+  SparkleIcon,
   TrashIcon,
   WalletIcon,
 } from './icons';

@@ -252,13 +252,34 @@ export const en = {
     creditTotal: 'Credit total',
     difference: 'Difference',
     tooLarge: 'These amounts add up to more than an amount can hold.',
-    notActive: {
-      mark: 'Not active on this day',
-      notAdded: 'The entry was not added.',
-      notSaved: 'The entry was not saved.',
+  },
+  notActiveOnDay: {
+    mark: 'Not active on this day',
+    notAdded: 'The entry was not added.',
+    notSaved: 'The entry was not saved.',
+    multiLine: {
       refusal:
         'is not active on this day. Remove that line, or choose a day on which its account is active.',
+      explanation:
+        'can be used only within its active period. Change the day, remove the line, or change the period in',
     },
+    twoLine: {
+      refusal:
+        'is not active on this day. Choose another account, or choose a day on which it is active.',
+      explanation:
+        'can be used only within its active period. Change the day, choose another account, or change the period in',
+    },
+  },
+  needsMultiLineMode: {
+    mark: 'Needs Multi-line mode',
+    lastEntry: 'The last Entry titled',
+    explanation:
+      'has more than one line on a Side, so nothing was filled in. Choose a debit and a credit account to write this Entry yourself, or change the Entry form mode in',
+    afterSettings: 'to fill every line.',
+  },
+  helpTip: {
+    about: 'About',
+    settings: 'Settings',
   },
   accountSheet: {
     title: 'Choose accounts',
@@ -266,9 +287,8 @@ export const en = {
     close: 'Close',
     find: 'Find an account',
     noMatch: 'No account matches',
+    suggested: 'Suggested',
     noActiveAccount: 'No account is active on this day.',
-    outsideActivePeriod:
-      'This entry cannot be saved on this day, because it is outside the Active period of',
     settingsLink: 'Change when your accounts are active in Settings',
     add: {
       debit: 'Add debit account',

@@ -8,6 +8,7 @@ import {
   type ChartOutput,
   type DomainError,
   type Money,
+  type OfferedTitle,
   type PostedEntry,
   type Result,
   type Side,
@@ -27,23 +28,18 @@ import {
   EntryFormShell,
   type EntryFormParts,
   type EntryFormProps,
-  type SubmitButton,
 } from './entry-form';
-import { lineHoldingSubmit, linesOnDay, offeredOn } from './lines-on-day';
+import { isLine, lineName, linesOnDay, offeredOn } from './lines-on-day';
+import { NotActiveMark, useNotActiveHold } from './not-active-on-day';
 import { SIDE_TONE, SIDES } from './side-classes';
 import { DANGER_TEXT, FORM_REFUSAL } from './text-classes';
+import { suggestedOn } from './suggested-accounts';
+import { prefillFrom } from './title-prefill';
 
 type ChosenLine = DraftLine & {
   readonly account: AccountId;
   readonly accountName: string;
 };
-
-const isLine =
-  (side: Side, account: AccountId) =>
-  (line: ChosenLine): boolean =>
-    line.side === side && line.account === account;
-
-const lineName = (line: ChosenLine): string => `${en.sides[line.side]} ${line.accountName}`;
 
 const linesOf = (entry: PostedEntry | undefined): readonly ChosenLine[] =>
   (entry?.lines ?? []).map((line) => ({
@@ -143,7 +139,9 @@ function LineFields({ id, line, active, onAmountChange, onRemove }: LineFieldsPr
         <p aria-hidden className="font-semibold wrap-anywhere">
           {line.accountName}
         </p>
-        {active ? null : <p className="text-warning">{en.multiLineForm.notActive.mark}</p>}
+        {active ? null : (
+          <NotActiveMark accountName={line.accountName} explanation={notActive.explanation} />
+        )}
       </div>
       <div className={`${AMOUNT_COLUMN} items-center`}>
         <div className="min-w-0 grow">
@@ -167,15 +165,8 @@ function LineFields({ id, line, active, onAmountChange, onRemove }: LineFieldsPr
   );
 }
 
-type MultiLineFieldsProps = EntryFormParts & {
-  readonly chart: ChartOutput;
-};
-
-type NotActiveRefusalRaised = {
-  readonly day: string | undefined;
-  readonly side: Side;
-  readonly account: AccountId;
-};
+const { notActiveOnDay } = en;
+const notActive = notActiveOnDay.multiLine;
 
 type NotActiveRefusalProps = {
   readonly editing: boolean;
@@ -183,50 +174,35 @@ type NotActiveRefusalProps = {
 };
 
 function NotActiveRefusal({ editing, line }: NotActiveRefusalProps): ReactNode {
-  const { notActive } = en.multiLineForm;
   return (
     <p role="alert" className={FORM_REFUSAL}>
-      {editing ? notActive.notSaved : notActive.notAdded} {lineName(line)} {notActive.refusal}
+      {editing ? notActiveOnDay.notSaved : notActiveOnDay.notAdded} {lineName(line)} {notActive.refusal}
     </p>
   );
 }
 
-const submitButtonHeldWith = (
-  submitButton: SubmitButton,
-  hold: (() => void) | undefined,
-): ReactNode =>
-  submitButton(
-    hold === undefined
-      ? undefined
-      : (event) => {
-          event.preventDefault();
-          hold();
-        },
-  );
+type MultiLineFieldsProps = EntryFormParts & {
+  readonly chart: ChartOutput;
+};
 
 function MultiLineFields({
   id,
   day,
   chart,
   entry,
+  matchedTitle,
   heading,
   refusal,
   submitButton,
 }: MultiLineFieldsProps): ReactNode {
   const [picked, setPicked] = useState<readonly ChosenLine[]>(() => linesOf(entry));
-  const [raised, setRaised] = useState<NotActiveRefusalRaised>();
-  if (raised !== undefined && raised.day !== day) {
-    setRaised(undefined);
-  }
   const sheet = useAccountSheet();
   const offered = offeredOn(chart, day);
   const lines = linesOnDay(offered, picked);
-  const holdingLine = lineHoldingSubmit(lines);
-  const refusedLine =
-    raised === undefined ? undefined : lines.notActive.find(isLine(raised.side, raised.account));
+  const hold = useNotActiveHold(day, lines);
 
   const remove = (side: Side, account: AccountId): void => {
-    setRaised(undefined);
+    hold.clear();
     setPicked((current) => current.filter((line) => !isLine(side, account)(line)));
   };
 
@@ -250,13 +226,21 @@ function MultiLineFields({
   const isChosen = (side: Side, account: AccountId): boolean =>
     picked.some(isLine(side, account));
 
+  const chooseTitle = ({ lines: source }: OfferedTitle): void => {
+    const prefill = prefillFrom({ mode: 'multi-line', lines: picked }, source, chart);
+    if (prefill.outcome === 'filled') {
+      hold.clear();
+      setPicked(prefill.lines);
+    }
+  };
+
   const totals = draftTotals(lines.counted);
   const isActive = (line: ChosenLine): boolean => !lines.notActive.includes(line);
 
   return (
     <div className={ENTRY_FORM_GRID}>
       <div className="flex min-w-0 flex-col gap-3">
-        {heading}
+        {heading({ onChoose: chooseTitle })}
         <div className="flex flex-col">
           {SIDES.map((side) => {
             const sideLines = picked.filter((line) => line.side === side);
@@ -292,20 +276,13 @@ function MultiLineFields({
         <DifferenceRow
           totals={totals}
           refusal={
-            refusedLine === undefined ? (
+            hold.refused === undefined ? (
               refusal
             ) : (
-              <NotActiveRefusal editing={entry !== undefined} line={refusedLine} />
+              <NotActiveRefusal editing={entry !== undefined} line={hold.refused} />
             )
           }
-          submitButton={submitButtonHeldWith(
-            submitButton,
-            holdingLine === undefined
-              ? undefined
-              : () => {
-                  setRaised({ day, side: holdingLine.side, account: holdingLine.account });
-                },
-          )}
+          submitButton={submitButton(hold.holdSubmit)}
         />
       </div>
       <AccountPicker
@@ -314,6 +291,7 @@ function MultiLineFields({
         multiple
         isChosen={isChosen}
         onPick={pick}
+        suggested={suggestedOn(matchedTitle, offered)}
         sheet={sheet}
       />
     </div>

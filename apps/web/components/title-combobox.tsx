@@ -13,6 +13,8 @@ export type TitleComboboxProps = {
   readonly titles: readonly string[];
   readonly dense?: boolean;
   readonly className?: string;
+  readonly onChoose?: (title: string) => void;
+  readonly onType?: ((title: string) => void) | undefined;
 };
 
 const LIST =
@@ -38,6 +40,8 @@ export function TitleCombobox({
   titles,
   dense = true,
   className = '',
+  onChoose,
+  onType,
 }: TitleComboboxProps): ReactNode {
   const [value, setValue] = useState(defaultValue ?? '');
   const [open, setOpen] = useState(false);
@@ -60,6 +64,7 @@ export function TitleCombobox({
   const choose = (title: string): void => {
     setValue(title);
     close();
+    onChoose?.(title);
   };
 
   const moveTo = (title: string | undefined): void => {
@@ -128,6 +133,7 @@ export function TitleCombobox({
         value={value}
         onChange={(event) => {
           setValue(event.target.value);
+          onType?.(event.target.value);
           setOpen(true);
           if (!composing.current) {
             setActive(undefined);
