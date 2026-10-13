@@ -2,12 +2,19 @@
 
 import { HelpIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { BARE_ICON_BUTTON } from './control-classes';
-import { helpTipAfter, isHelpTipOpen, type HelpTipEvent, type HelpTipState } from './help-tip-state';
+import {
+  helpTipAfter,
+  helpTipMaxWidth,
+  helpTipShift,
+  isHelpTipOpen,
+  type HelpTipEvent,
+  type HelpTipState,
+} from './help-tip-state';
 
-export const HELP_TIP_ROW = 'relative flex min-w-0 items-center gap-1';
+const HELP_TIP_ROW = 'relative flex min-w-0 items-center gap-1';
 
 type HelpTipProps = {
   readonly message: string;
@@ -18,7 +25,28 @@ export function HelpTip({ message, children }: HelpTipProps): ReactNode {
   const [state, setState] = useState<HelpTipState>('closed');
   const root = useRef<HTMLSpanElement>(null);
   const button = useRef<HTMLButtonElement>(null);
+  const panel = useRef<HTMLSpanElement>(null);
   const open = isHelpTipOpen(state);
+
+  useLayoutEffect(() => {
+    const shown = panel.current;
+    if (!open || shown === null) {
+      return undefined;
+    }
+    const keepOnScreen = (): void => {
+      const viewportWidth = document.documentElement.clientWidth;
+      shown.style.maxWidth = `${String(helpTipMaxWidth(viewportWidth))}px`;
+      shown.style.translate = '';
+      const { left, width } = shown.getBoundingClientRect();
+      const shift = helpTipShift({ left, width }, viewportWidth);
+      shown.style.translate = shift === 0 ? '' : `${String(shift)}px`;
+    };
+    keepOnScreen();
+    window.addEventListener('resize', keepOnScreen);
+    return () => {
+      window.removeEventListener('resize', keepOnScreen);
+    };
+  }, [open]);
 
   const apply = (event: HelpTipEvent): void => {
     setState((current) => helpTipAfter(current, event));
@@ -78,7 +106,10 @@ export function HelpTip({ message, children }: HelpTipProps): ReactNode {
       </button>
       <span role="status">
         {open ? (
-          <span className="absolute top-full left-0 z-10 block w-64 max-w-[calc(100vw-2rem)] pt-1">
+          <span
+            ref={panel}
+            className="absolute top-full left-0 z-10 block w-64 pt-1"
+          >
             <span
               className={`block rounded-control border border-border bg-surface px-3 py-2 shadow-lift font-normal text-text ${typeClasses['body-dense']}`}
             >
@@ -88,5 +119,19 @@ export function HelpTip({ message, children }: HelpTipProps): ReactNode {
         ) : null}
       </span>
     </span>
+  );
+}
+
+type WarningWithHelpTipProps = {
+  readonly message: string;
+  readonly children: ReactNode;
+};
+
+export function WarningWithHelpTip({ message, children }: WarningWithHelpTipProps): ReactNode {
+  return (
+    <div className={`${HELP_TIP_ROW} text-warning ${typeClasses['body-dense']}`}>
+      <span>{message}</span>
+      <HelpTip message={message}>{children}</HelpTip>
+    </div>
   );
 }

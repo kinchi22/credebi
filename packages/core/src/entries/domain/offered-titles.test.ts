@@ -4,6 +4,7 @@ import { offeredSince, offeredTitles, type TitledEntry } from './offered-titles'
 
 const CASH = '01920000-0000-7000-8000-00000000c001' as AccountId;
 const EXPENSES = '01920000-0000-7000-8000-00000000c005' as AccountId;
+const SALES = '01920000-0000-7000-8000-00000000c004' as AccountId;
 
 const at = (minute: number): Date => new Date(Date.UTC(2026, 9, 4, 9, minute));
 
@@ -54,8 +55,45 @@ describe('offeredTitles', () => {
     expect(offeredTitles([])).toEqual([]);
   });
 
-  it('answers one object per Title, carrying the Title', () => {
-    expect(offeredTitles([titled(1, 'Rent', at(1))])).toEqual([{ title: 'Rent' }]);
+  it('answers one object per Title, carrying the Title and the lines of its Entry', () => {
+    expect(offeredTitles([titled(1, 'Rent', at(1))])).toEqual([
+      {
+        title: 'Rent',
+        lines: [
+          { account: EXPENSES, side: 'debit', amount: 12500 },
+          { account: CASH, side: 'credit', amount: 12500 },
+        ],
+      },
+    ]);
+  });
+
+  it('carries the lines of the most recently created Entry with the Title, ignoring case, in their stored order', () => {
+    const latest: TitledEntry = {
+      ...titled(2, 'salary', at(3)),
+      lines: [
+        { account: SALES, side: 'credit', amount: 9000 as Money },
+        { account: CASH, side: 'debit', amount: 6000 as Money },
+        { account: EXPENSES, side: 'debit', amount: 3000 as Money },
+      ],
+    };
+
+    expect(
+      offeredTitles([titled(1, 'Salary', at(1)), latest, titled(3, 'SALARY', at(2))]),
+    ).toEqual([{ title: 'salary', lines: latest.lines }]);
+  });
+
+  it('carries the lines of the later id when two Entries with the Title were created at once', () => {
+    const later: TitledEntry = {
+      ...titled(2, 'Rent', at(1)),
+      lines: [
+        { account: EXPENSES, side: 'debit', amount: 700 as Money },
+        { account: SALES, side: 'credit', amount: 700 as Money },
+      ],
+    };
+
+    expect(offeredTitles([later, titled(1, 'Rent', at(1))])).toEqual([
+      { title: 'Rent', lines: later.lines },
+    ]);
   });
 });
 

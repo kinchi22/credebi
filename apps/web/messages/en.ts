@@ -255,7 +255,6 @@ export const en = {
   },
   notActiveOnDay: {
     mark: 'Not active on this day',
-    settings: 'Settings',
     notAdded: 'The entry was not added.',
     notSaved: 'The entry was not saved.',
     multiLine: {
@@ -271,8 +270,16 @@ export const en = {
         'can be used only within its active period. Change the day, choose another account, or change the period in',
     },
   },
+  needsMultiLineMode: {
+    mark: 'Needs Multi-line mode',
+    lastEntry: 'The last Entry titled',
+    explanation:
+      'has more than one line on a Side, so nothing was filled in. Choose a debit and a credit account to write this Entry yourself, or change the Entry form mode in',
+    afterSettings: 'to fill every line.',
+  },
   helpTip: {
     about: 'About',
+    settings: 'Settings',
   },
   accountSheet: {
     title: 'Choose accounts',
