@@ -1,24 +1,12 @@
 'use client';
 
-import { type AccountId, type Side } from '@repo/contracts';
 import Link from 'next/link';
 import { useState, type MouseEvent, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { SETTINGS_PATH } from '../server/return-path';
 import { HELP_TIP_ROW, HelpTip } from './help-tip';
-import { lineHoldingSubmit, type AccountLine, type LinesOnDay } from './lines-on-day';
+import { isLine, lineHoldingSubmit, type AccountLine, type LinesOnDay } from './lines-on-day';
 import { LINK } from './text-classes';
-
-export type NamedLine = AccountLine & {
-  readonly accountName: string;
-};
-
-export const lineName = (line: NamedLine): string => `${en.sides[line.side]} ${line.accountName}`;
-
-export const isLine =
-  (side: Side, account: AccountId) =>
-  (line: AccountLine): boolean =>
-    line.side === side && line.account === account;
 
 const { notActiveOnDay } = en;
 

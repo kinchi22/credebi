@@ -29,11 +29,12 @@ import {
   type EntryFormProps,
 } from './entry-form';
 import { linesOn } from './entry-lines';
-import { linesOnDay, offeredOn } from './lines-on-day';
-import { lineName, NotActiveMark, useNotActiveHold, type NamedLine } from './not-active-on-day';
+import { isLine, lineName, linesOnDay, offeredOn, type NamedLine } from './lines-on-day';
+import { NotActiveMark, useNotActiveHold } from './not-active-on-day';
 import { FORM_REFUSAL } from './text-classes';
 
-const notActive = en.notActiveOnDay.twoLine;
+const { notActiveOnDay } = en;
+const notActive = notActiveOnDay.twoLine;
 
 const NOTHING_CHOSEN: AccountChoice = { debit: undefined, credit: undefined };
 
@@ -86,7 +87,6 @@ function TwoLineFields({
 
   const isChosen = (side: Side, account: AccountId): boolean => picked[side]?.id === account;
 
-
   return (
     <div className={ENTRY_FORM_GRID}>
       <div className="flex min-w-0 flex-col gap-3">
@@ -104,7 +104,7 @@ function TwoLineFields({
                   <ChooseAccountButton side={side} account={picked[side]} sheet={sheet} />
                 )}
                 <AccountRow side={side} account={picked[side]} />
-                {line !== undefined && lines.notActive.includes(line) ? (
+                {line !== undefined && lines.notActive.some(isLine(line.side, line.account)) ? (
                   <UnderAccountName>
                     <NotActiveMark
                       accountName={line.accountName}
@@ -130,6 +130,7 @@ function TwoLineFields({
           refusal
         ) : (
           <p role="alert" className={FORM_REFUSAL}>
+            {entry === undefined ? notActiveOnDay.notAdded : notActiveOnDay.notSaved}{' '}
             {hold.refused.accountName} {notActive.refusal}
           </p>
         )}

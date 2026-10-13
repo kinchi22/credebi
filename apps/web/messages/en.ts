@@ -256,9 +256,9 @@ export const en = {
   notActiveOnDay: {
     mark: 'Not active on this day',
     settings: 'Settings',
+    notAdded: 'The entry was not added.',
+    notSaved: 'The entry was not saved.',
     multiLine: {
-      notAdded: 'The entry was not added.',
-      notSaved: 'The entry was not saved.',
       refusal:
         'is not active on this day. Remove that line, or choose a day on which its account is active.',
       explanation:

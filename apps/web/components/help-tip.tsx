@@ -20,7 +20,7 @@ export function HelpTip({ message, children }: HelpTipProps): ReactNode {
   const button = useRef<HTMLButtonElement>(null);
   const open = isHelpTipOpen(state);
 
-  const on = (event: HelpTipEvent): void => {
+  const apply = (event: HelpTipEvent): void => {
     setState((current) => helpTipAfter(current, event));
   };
 
@@ -58,10 +58,10 @@ export function HelpTip({ message, children }: HelpTipProps): ReactNode {
       ref={root}
       className="inline-flex shrink-0"
       onPointerEnter={(event) => {
-        if (event.pointerType === 'mouse') on('enter');
+        if (event.pointerType === 'mouse') apply('enter');
       }}
       onPointerLeave={(event) => {
-        if (event.pointerType === 'mouse') on('leave');
+        if (event.pointerType === 'mouse') apply('leave');
       }}
     >
       <button
@@ -70,7 +70,7 @@ export function HelpTip({ message, children }: HelpTipProps): ReactNode {
         aria-label={`${en.helpTip.about} ${message}`}
         aria-expanded={open}
         onClick={() => {
-          on('toggle');
+          apply('toggle');
         }}
         className={`size-6 ${BARE_ICON_BUTTON}`}
       >
@@ -80,7 +80,7 @@ export function HelpTip({ message, children }: HelpTipProps): ReactNode {
         {open ? (
           <span className="absolute top-full left-0 z-10 block w-64 max-w-[calc(100vw-2rem)] pt-1">
             <span
-              className={`block rounded-control border border-border bg-surface px-3 shadow-lift py-2 font-normal text-text ${typeClasses['body-dense']}`}
+              className={`block rounded-control border border-border bg-surface px-3 py-2 shadow-lift font-normal text-text ${typeClasses['body-dense']}`}
             >
               {children}
             </span>

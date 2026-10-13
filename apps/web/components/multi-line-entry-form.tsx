@@ -28,8 +28,8 @@ import {
   type EntryFormParts,
   type EntryFormProps,
 } from './entry-form';
-import { linesOnDay, offeredOn } from './lines-on-day';
-import { isLine, lineName, NotActiveMark, useNotActiveHold } from './not-active-on-day';
+import { isLine, lineName, linesOnDay, offeredOn } from './lines-on-day';
+import { NotActiveMark, useNotActiveHold } from './not-active-on-day';
 import { SIDE_TONE, SIDES } from './side-classes';
 import { DANGER_TEXT, FORM_REFUSAL } from './text-classes';
 
@@ -162,7 +162,8 @@ function LineFields({ id, line, active, onAmountChange, onRemove }: LineFieldsPr
   );
 }
 
-const notActive = en.notActiveOnDay.multiLine;
+const { notActiveOnDay } = en;
+const notActive = notActiveOnDay.multiLine;
 
 type NotActiveRefusalProps = {
   readonly editing: boolean;
@@ -172,7 +173,7 @@ type NotActiveRefusalProps = {
 function NotActiveRefusal({ editing, line }: NotActiveRefusalProps): ReactNode {
   return (
     <p role="alert" className={FORM_REFUSAL}>
-      {editing ? notActive.notSaved : notActive.notAdded} {lineName(line)} {notActive.refusal}
+      {editing ? notActiveOnDay.notSaved : notActiveOnDay.notAdded} {lineName(line)} {notActive.refusal}
     </p>
   );
 }
