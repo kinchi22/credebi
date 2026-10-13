@@ -54,10 +54,11 @@ import {
   helpTipButton,
   needsMultiLineExplanation,
   NEEDS_MULTI_LINE_MODE,
-  notActiveExplanation,
+  multiLineNotActiveExplanation,
   NOT_ACTIVE_ON_THIS_DAY,
   openHelpTip,
   settingsLink,
+  twoLineNotActiveExplanation,
 } from './help-tip';
 import { signIn } from './session';
 import { entryFormModeChoice, setEntryFormMode } from './settings';
@@ -566,7 +567,7 @@ test('keeps a Two-line mode Account not active on a newly chosen day in its slot
 
   await form.getByLabel('Date').fill(WALLET_ENDED);
   const slot = await expectWalletSlotMarked(form);
-  const shown = await openHelpTip(helpTipButton(slot, NOT_ACTIVE_ON_THIS_DAY), notActiveExplanation(WALLET));
+  const shown = await openHelpTip(helpTipButton(slot, NOT_ACTIVE_ON_THIS_DAY), twoLineNotActiveExplanation(WALLET));
   await expect(settingsLink(shown)).toBeVisible();
 
   await submit(form);
@@ -622,7 +623,7 @@ test('marks a Two-line mode Account not active on the day in its slot in Edit en
   await expectListed(page, memo, WALLET_IN_USE, WALLET_TWO_LINE);
   await expectWalletSlotMarked(dialog);
 
-  const shown = await openHelpTip(helpTipButton(slot, NOT_ACTIVE_ON_THIS_DAY), notActiveExplanation(WALLET));
+  const shown = await openHelpTip(helpTipButton(slot, NOT_ACTIVE_ON_THIS_DAY), twoLineNotActiveExplanation(WALLET));
   await expect(settingsLink(shown)).toBeVisible();
 
   await expectWalletChosenAgain(dialog, WALLET_STILL_IN_USE);
@@ -640,7 +641,7 @@ test('gives the Multi-line mode mark of an Account not active on the day the sam
   const line = lineGroup(form, 'Debit', OLD_WALLET);
   await expect(notActiveMark(line)).toBeVisible();
 
-  await followSettingsLink(helpTipButton(line, NOT_ACTIVE_ON_THIS_DAY), notActiveExplanation(WALLET));
+  await followSettingsLink(helpTipButton(line, NOT_ACTIVE_ON_THIS_DAY), multiLineNotActiveExplanation(WALLET));
 });
 
 async function markedWalletTip(page: Page): Promise<{ readonly tip: Locator; readonly shown: Locator; readonly form: Locator }> {
@@ -649,7 +650,7 @@ async function markedWalletTip(page: Page): Promise<{ readonly tip: Locator; rea
   await form.getByLabel('Date').fill(WALLET_ENDED);
   const slot = await expectWalletSlotMarked(form);
   const tip = helpTipButton(slot, NOT_ACTIVE_ON_THIS_DAY);
-  const shown = helpTipExplanation(page, notActiveExplanation(WALLET));
+  const shown = helpTipExplanation(page, twoLineNotActiveExplanation(WALLET));
   await expect(tip).toBeVisible();
   await expect(tip).toHaveAttribute('aria-expanded', 'false');
   await expect(shown).toBeHidden();
