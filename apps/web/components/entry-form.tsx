@@ -31,6 +31,7 @@ import {
   FIELD_LABEL,
   PRIMARY_BUTTON,
 } from './control-classes';
+import { titleMatching } from './suggested-accounts';
 import { FORM_REFUSAL } from './text-classes';
 import { TitleCombobox } from './title-combobox';
 
@@ -64,6 +65,7 @@ export type EntryFormParts = {
   readonly id: string;
   readonly day: string | undefined;
   readonly entry: PostedEntry | undefined;
+  readonly matchedTitle: OfferedTitle | undefined;
   readonly heading: (title: TitleChoice) => ReactNode;
   readonly refusal: ReactNode;
   readonly submitButton: SubmitButton;
@@ -212,6 +214,11 @@ export function EntryFormShell({
   const variant = variantFor(mode, editing, today);
   const [typedDay, setTypedDay] = useState<{ readonly resetKey: number; readonly day: string }>();
   const day = typedDay?.resetKey === resetKey ? typedDay.day : variant.entryDate;
+  const [typed, setTyped] = useState<{ readonly resetKey: number; readonly title: string }>();
+  const matchedTitle = titleMatching(
+    titles,
+    typed?.resetKey === resetKey ? typed.title : (variant.entry?.title ?? ''),
+  );
   const { onSaved } = variant;
   useEffect(() => {
     if (state.outcome === 'saved') {
@@ -230,6 +237,7 @@ export function EntryFormShell({
   const chosenTitle =
     (choice: TitleChoice) =>
     (chosen: string): void => {
+      setTyped({ resetKey, title: chosen });
       const offered = titles.find(({ title }) => title === chosen);
       if (offered !== undefined) {
         choice.onChoose(offered);
@@ -268,7 +276,10 @@ export function EntryFormShell({
             defaultValue={variant.entry?.title}
             titles={titles.map(({ title }) => title)}
             onChoose={chosenTitle(choice)}
-            onType={choice.onType}
+            onType={(title) => {
+              setTyped({ resetKey, title });
+              choice.onType?.();
+            }}
           />
           {choice.notice}
         </div>
@@ -314,7 +325,7 @@ export function EntryFormShell({
       <input type="hidden" name={ENTRY_FORM_FIELDS.entryFormMode} value={mode} />
 
       <Fragment key={resetKey}>
-        {children({ id, day, entry: variant.entry, heading, refusal, submitButton })}
+        {children({ id, day, entry: variant.entry, matchedTitle, heading, refusal, submitButton })}
       </Fragment>
     </form>
   );

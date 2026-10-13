@@ -31,6 +31,7 @@ import {
 import { CloseButton } from './close-button';
 import { SheetBar, SheetTabs } from './sheet';
 import { SIDE_TONE, SIDES } from './side-classes';
+import { NOTHING_SUGGESTED, type Suggested } from './suggested-accounts';
 import { LINK } from './text-classes';
 import { GroupFolder, TreeBranch } from './tree-branch';
 import { Band } from './type-band';
@@ -44,6 +45,7 @@ export type AccountPickerProps = {
   readonly multiple?: boolean;
   readonly isChosen: (side: Side, account: AccountId) => boolean;
   readonly onPick: (side: Side, account: AccountOutput, chosen: boolean) => void;
+  readonly suggested: Suggested;
   readonly sheet: AccountSheet;
 };
 
@@ -82,6 +84,9 @@ const PICK_MANY: PickControl = {
   },
   fieldName: undefined,
 };
+
+const suggestedFor = (query: string, suggested: Suggested): Suggested =>
+  query.trim() === '' ? suggested : NOTHING_SUGGESTED;
 
 const otherSide = (side: Side): Side => (side === 'debit' ? 'credit' : 'debit');
 
@@ -229,6 +234,7 @@ type SideChoicesProps = {
   readonly isChosen: (account: AccountId) => boolean;
   readonly onPick: (account: AccountOutput, chosen: boolean) => void;
   readonly onInvalid?: () => void;
+  readonly suggested: readonly AccountOutput[];
   readonly look: ChoicesLook;
 };
 
@@ -273,6 +279,8 @@ const GROUP_CAPTION = 'leading-7.5 font-medium wrap-anywhere text-text-muted';
 
 const groupBounds = ({ above, below }: GroupRules): string =>
   `border-dashed border-border-control/55 ${above ? 'border-t' : ''} ${below ? 'border-b' : ''}`;
+
+const SUGGESTED_HEADING = `px-2 py-1.5 ${typeClasses['body-sm']} font-semibold text-text-muted`;
 
 const NO_BRANCHES: ReadonlyMap<AccountId, Branch> = new Map();
 
@@ -324,6 +332,7 @@ function SideChoices({
   isChosen,
   onPick,
   onInvalid,
+  suggested,
   look,
 }: SideChoicesProps): ReactNode {
   const typeId = useId();
@@ -332,6 +341,7 @@ function SideChoices({
     accounts: readonly AccountOutput[],
     className: string,
     branches: ReadonlyMap<AccountId, Branch>,
+    pickControl: PickControl = control,
   ): ReactNode => (
     <div className={className}>
       {accounts.map((account) => (
@@ -339,7 +349,7 @@ function SideChoices({
           key={account.id}
           side={side}
           account={account}
-          control={control}
+          control={pickControl}
           shown={matches(account)}
           chosen={isChosen(account.id)}
           branch={branches.get(account.id)}
@@ -418,6 +428,16 @@ function SideChoices({
           {en.sides[side]}
         </p>
       ) : null}
+      {suggested.length === 0 ? null : (
+        <div role="group" aria-labelledby={`${typeId}-suggested`} className="flex flex-col gap-1">
+          <p id={`${typeId}-suggested`} className={SUGGESTED_HEADING}>
+            {en.accountSheet.suggested}
+          </p>
+          <div className={look.groups === 'tree' ? '' : UNGROUPED}>
+            {choices(suggested, look.accounts, NO_BRANCHES, { ...control, fieldName: undefined })}
+          </div>
+        </div>
+      )}
       {ACCOUNT_TYPES.map((type) => {
         const runs = runsOf(chart, type);
         return (
@@ -482,6 +502,7 @@ function AccountColumns({
   multiple = false,
   isChosen,
   onPick,
+  suggested,
 }: AccountPickerProps): ReactNode {
   const [shown, setShown] = useState<Side>('debit');
   const [query, setQuery] = useState('');
@@ -537,6 +558,7 @@ function AccountColumns({
               chart={chart}
               control={multiple ? PICK_MANY : PICK_ONE}
               matches={matches}
+              suggested={suggestedFor(query, suggested)[side]}
               look={INLINE_LOOK}
               isChosen={(account) => isChosen(side, account)}
               onPick={(account, chosen) => {
@@ -559,6 +581,7 @@ function AccountSheetDialog({
   multiple = false,
   isChosen,
   onPick,
+  suggested,
   sheet,
 }: AccountPickerProps): ReactNode {
   const tabId = (side: Side): string => `${sheet.id}-${side}-tab`;
@@ -624,6 +647,7 @@ function AccountSheetDialog({
                 chart={chart}
                 control={multiple ? PICK_MANY : PICK_ONE}
                 matches={matches}
+                suggested={suggestedFor(sheet.query, suggested)[side]}
                 look={SHEET_LOOK}
                 isChosen={(account) => isChosen(side, account)}
                 onPick={(account, chosen) => {

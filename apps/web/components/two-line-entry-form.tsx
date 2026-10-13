@@ -36,6 +36,7 @@ import { WarningWithHelpTip } from './help-tip';
 import { isLine, lineName, linesOnDay, offeredOn, type NamedLine } from './lines-on-day';
 import { NotActiveMark, useNotActiveHold } from './not-active-on-day';
 import { FORM_REFUSAL, LINK } from './text-classes';
+import { suggestedOn } from './suggested-accounts';
 import { prefillFrom, type PrefilledLine } from './title-prefill';
 
 const { helpTip, needsMultiLineMode, notActiveOnDay } = en;
@@ -95,6 +96,7 @@ function TwoLineFields({
   day,
   chart,
   entry,
+  matchedTitle,
   heading,
   refusal,
   submitButton,
@@ -185,7 +187,14 @@ function TwoLineFields({
           </p>
         )}
       </div>
-      <AccountPicker id={id} chart={offered.chart} isChosen={isChosen} onPick={choose} sheet={sheet} />
+      <AccountPicker
+        id={id}
+        chart={offered.chart}
+        isChosen={isChosen}
+        onPick={choose}
+        suggested={suggestedOn(matchedTitle, offered)}
+        sheet={sheet}
+      />
     </div>
   );
 }

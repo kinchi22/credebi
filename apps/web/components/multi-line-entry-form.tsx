@@ -33,6 +33,7 @@ import { isLine, lineName, linesOnDay, offeredOn } from './lines-on-day';
 import { NotActiveMark, useNotActiveHold } from './not-active-on-day';
 import { SIDE_TONE, SIDES } from './side-classes';
 import { DANGER_TEXT, FORM_REFUSAL } from './text-classes';
+import { suggestedOn } from './suggested-accounts';
 import { prefillFrom } from './title-prefill';
 
 type ChosenLine = DraftLine & {
@@ -189,6 +190,7 @@ function MultiLineFields({
   day,
   chart,
   entry,
+  matchedTitle,
   heading,
   refusal,
   submitButton,
@@ -289,6 +291,7 @@ function MultiLineFields({
         multiple
         isChosen={isChosen}
         onPick={pick}
+        suggested={suggestedOn(matchedTitle, offered)}
         sheet={sheet}
       />
     </div>

@@ -199,6 +199,17 @@ describe('createGetTitles', () => {
     expect(await offered(titles, ADA)).toEqual(['Gym class']);
   });
 
+  it("answers with each Title the Accounts its Entries name on each Side", async () => {
+    const { post, titles } = books();
+    await post(ADA, 'Rent');
+
+    const answered = await titles(ADA);
+
+    expect(answered.ok && answered.value.map(({ suggested }) => suggested)).toEqual([
+      { debit: [EXPENSES], credit: [CASH] },
+    ]);
+  });
+
   it('passes a repository failure through as the result', async () => {
     const down = domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.');
     const { entries } = inMemoryEntries();

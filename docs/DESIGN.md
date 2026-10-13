@@ -615,6 +615,15 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   Band's edge, padded 6px above and below. A search does not count, so the
   layout holds still while the User types. The picker draws no folder icon and
   no tree connector.
+- **Suggested accounts.** While the form's Title matches one of the User's,
+  each Side of the Account picker and of the Account sheet opens with up to
+  three Suggested accounts above its first Band, under a `Suggested` heading in
+  `body-sm`, semibold and in `text-muted`, padded as a Band is. They are drawn
+  as the Accounts below them are -- chips that wrap in the picker, padded 6px
+  above and below, rows in the sheet -- with the same radio or checkbox, and a
+  chosen one is shown chosen in both places. The section is gone while
+  `Find an account` holds text, and absent when the Title is empty or matches
+  none.
 - **Account sheet.** Below `wide` the Accounts leave the form
   and open `Choose accounts` as a modal dialog rising from the foot of the page
   to 64px below its top, on the `ground` over a `ground-dark` scrim at 60%. In
