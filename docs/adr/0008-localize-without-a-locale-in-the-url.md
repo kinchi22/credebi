@@ -2,6 +2,7 @@
 
 **Status:** Deferred
 **Date:** 2026-09-15
+**Amended:** 2026-10-13, PR #421
 **Trigger:** Feature #239, which ships `ko` and `ja`, each catalogue checked by
 the owner, who is fluent in both.
 
