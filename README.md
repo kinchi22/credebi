@@ -209,7 +209,7 @@ the working agreement in `AGENTS.md`. Both read the same rules;
 `docs/agents/harnesses.md` maps every concept that agreement names to the
 mechanism each harness gives you.
 
-Five skills from [`mattpocock/skills`](https://github.com/mattpocock/skills) are
+Six skills from [`mattpocock/skills`](https://github.com/mattpocock/skills) are
 part of the workflow:
 
 | Skill | Invoked by | For |
@@ -219,6 +219,7 @@ part of the workflow:
 | `to-tickets` | the owner, by hand | refinement: opening the Tasks under it |
 | `tdd` | the `implement-issue` loop | building a Task test-first |
 | `code-review` | the `implement-issue` loop | reviewing what comes back |
+| `pr` | the `implement-issue` loop | writing a pull request's body |
 
 They are deliberately **not vendored** here. A committed copy of someone else's
 MIT skill set is a second source of truth that no gate can check against
@@ -227,7 +228,7 @@ arrives without any work here. The cost is that a clone is not self-contained,
 which is what the rest of this section is for.
 
 **Claude Code needs no install step.** `.claude/settings.json` is committed, and
-its `enabledPlugins` entry turns the set on for this repository, so the five are
+its `enabledPlugins` entry turns the set on for this repository, so the six are
 there the first time a session opens the clone.
 
 **Codex takes one command**, once per machine, because it has no committed
@@ -235,10 +236,10 @@ equivalent of `enabledPlugins`:
 
 ```bash
 npx skills@latest add mattpocock/skills --global --agent codex \
-  --skill grill-with-docs to-spec to-tickets tdd code-review
+  --skill grill-with-docs to-spec to-tickets tdd code-review pr
 ```
 
-Then check where they landed: `ls ~/.agents/skills` should name the five.
+Then check where they landed: `ls ~/.agents/skills` should name the six.
 `~/.agents/skills` is the user-level directory Codex scans, beside
 `.agents/skills` in the repository and `/etc/codex/skills`. It is **not**
 `~/.codex/skills`, which holds Codex's configuration and no skills -- and the

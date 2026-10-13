@@ -38,7 +38,7 @@ that for a pull request into `main` alone; for one into `milestone/**`,
 
 Refinement is worked with the owner, in order: `grill-with-docs #<feature>`,
 then `to-spec #<feature>`, then `to-tickets #<feature>`. Those Skills, and
-`code-review`, come from the `mattpocock-skills` set, which is not vendored
+`code-review` and `pr`, come from the `mattpocock-skills` set, which is not vendored
 here; `docs/agents/harnesses.md` names how each harness installs it, and how a
 Skill is invoked there. They are typed by hand: a Skill cannot reach them. Where they publish, they publish as follows.
 

@@ -81,8 +81,9 @@ Stop the loop and report where the Feature stands when:
 - **The frontier is empty but Tasks are open**: they are blocked, assigned or
   not Ready. Say which, and by what.
 - **Every Task is closed.** Open the integration pull request,
-  `milestone/<name> -> main`, titled after the Feature, its body
-  `Closes #<feature>` and a line per merged Task. Set the Feature In Review.
+  `milestone/<name> -> main`, titled after the Feature, its body written
+  with the `pr` Skill, listing each merged Task and ending with
+  `Closes #<feature>`. Set the Feature In Review.
   The owner approves it. A Feature with no specs has no milestone branch, so
   its last Task's pull request closes it, and a Feature whose every criterion
   the app already meets has none either, so its specs pull request closes it. For either, open
