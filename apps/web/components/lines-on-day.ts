@@ -25,7 +25,7 @@ export function offeredOn(chart: ChartOutput, day: string | undefined): Offered 
   return { chart: offered, ids: new Set(accountsIn(offered).map((account) => account.id)) };
 }
 
-type AccountLine = {
+export type AccountLine = {
   readonly side: Side;
   readonly account: AccountId;
 };

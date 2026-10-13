@@ -17,6 +17,7 @@ import {
   AccountPicker,
   AccountRow,
   ChooseAccountButton,
+  UnderAccountName,
   useAccountSheet,
   type AccountChoice,
 } from './account-picker';
@@ -30,6 +31,9 @@ import {
 import { linesOn } from './entry-lines';
 import { linesOnDay, offeredOn } from './lines-on-day';
 import { lineName, NotActiveMark, useNotActiveHold, type NamedLine } from './not-active-on-day';
+import { FORM_REFUSAL } from './text-classes';
+
+const notActive = en.notActiveOnDay.twoLine;
 
 const NOTHING_CHOSEN: AccountChoice = { debit: undefined, credit: undefined };
 
@@ -71,14 +75,9 @@ function TwoLineFields({
   const [picked, setPicked] = useState<AccountChoice>(() => choiceOf(chart, entry));
   const sheet = useAccountSheet();
   const offered = offeredOn(chart, day);
-  const lines = linesOnDay(offered, namedLines(picked));
-  const hold = useNotActiveHold({
-    day,
-    lines,
-    editing: entry !== undefined,
-    refusal,
-    submitButton,
-  });
+  const named = namedLines(picked);
+  const lines = linesOnDay(offered, named);
+  const hold = useNotActiveHold(day, lines);
 
   const choose = (side: Side, account: AccountOutput): void => {
     hold.clear();
@@ -87,7 +86,6 @@ function TwoLineFields({
 
   const isChosen = (side: Side, account: AccountId): boolean => picked[side]?.id === account;
 
-  const notActiveOn = (side: Side): boolean => lines.notActive.some((line) => line.side === side);
 
   return (
     <div className={ENTRY_FORM_GRID}>
@@ -95,25 +93,24 @@ function TwoLineFields({
         {heading}
         <div className={`flex flex-col ${typeClasses['body-dense']}`}>
           {sideSchema.options.map((side) => {
-            const account = picked[side];
+            const line = named.find((chosen) => chosen.side === side);
             return (
               <div
                 key={side}
-                role={account === undefined ? undefined : 'group'}
-                aria-label={
-                  account === undefined
-                    ? undefined
-                    : lineName({ side, account: account.id, accountName: account.name })
-                }
+                role={line === undefined ? undefined : 'group'}
+                aria-label={line === undefined ? undefined : lineName(line)}
               >
                 {offered.ids.size === 0 ? null : (
-                  <ChooseAccountButton side={side} account={account} sheet={sheet} />
+                  <ChooseAccountButton side={side} account={picked[side]} sheet={sheet} />
                 )}
-                <AccountRow side={side} account={account} />
-                {account !== undefined && notActiveOn(side) ? (
-                  <div className="-mt-2 pb-3 pl-19">
-                    <NotActiveMark accountName={account.name} />
-                  </div>
+                <AccountRow side={side} account={picked[side]} />
+                {line !== undefined && lines.notActive.includes(line) ? (
+                  <UnderAccountName>
+                    <NotActiveMark
+                      accountName={line.accountName}
+                      explanation={notActive.explanation}
+                    />
+                  </UnderAccountName>
                 ) : null}
               </div>
             );
@@ -127,9 +124,15 @@ function TwoLineFields({
               defaultValue={entry === undefined ? undefined : String(entry.total)}
             />
           </div>
-          {hold.submitButton}
+          {submitButton(hold.holdSubmit)}
         </div>
-        {hold.refusal}
+        {hold.refused === undefined ? (
+          refusal
+        ) : (
+          <p role="alert" className={FORM_REFUSAL}>
+            {hold.refused.accountName} {notActive.refusal}
+          </p>
+        )}
       </div>
       <AccountPicker id={id} chart={offered.chart} isChosen={isChosen} onPick={choose} sheet={sheet} />
     </div>

@@ -31,7 +31,7 @@ import {
 import { linesOnDay, offeredOn } from './lines-on-day';
 import { isLine, lineName, NotActiveMark, useNotActiveHold } from './not-active-on-day';
 import { SIDE_TONE, SIDES } from './side-classes';
-import { DANGER_TEXT } from './text-classes';
+import { DANGER_TEXT, FORM_REFUSAL } from './text-classes';
 
 type ChosenLine = DraftLine & {
   readonly account: AccountId;
@@ -136,7 +136,9 @@ function LineFields({ id, line, active, onAmountChange, onRemove }: LineFieldsPr
         <p aria-hidden className="font-semibold wrap-anywhere">
           {line.accountName}
         </p>
-        {active ? null : <NotActiveMark accountName={line.accountName} />}
+        {active ? null : (
+          <NotActiveMark accountName={line.accountName} explanation={notActive.explanation} />
+        )}
       </div>
       <div className={`${AMOUNT_COLUMN} items-center`}>
         <div className="min-w-0 grow">
@@ -160,6 +162,21 @@ function LineFields({ id, line, active, onAmountChange, onRemove }: LineFieldsPr
   );
 }
 
+const notActive = en.notActiveOnDay.multiLine;
+
+type NotActiveRefusalProps = {
+  readonly editing: boolean;
+  readonly line: ChosenLine;
+};
+
+function NotActiveRefusal({ editing, line }: NotActiveRefusalProps): ReactNode {
+  return (
+    <p role="alert" className={FORM_REFUSAL}>
+      {editing ? notActive.notSaved : notActive.notAdded} {lineName(line)} {notActive.refusal}
+    </p>
+  );
+}
+
 type MultiLineFieldsProps = EntryFormParts & {
   readonly chart: ChartOutput;
 };
@@ -177,13 +194,7 @@ function MultiLineFields({
   const sheet = useAccountSheet();
   const offered = offeredOn(chart, day);
   const lines = linesOnDay(offered, picked);
-  const hold = useNotActiveHold({
-    day,
-    lines,
-    editing: entry !== undefined,
-    refusal,
-    submitButton,
-  });
+  const hold = useNotActiveHold(day, lines);
 
   const remove = (side: Side, account: AccountId): void => {
     hold.clear();
@@ -251,8 +262,14 @@ function MultiLineFields({
         </div>
         <DifferenceRow
           totals={totals}
-          refusal={hold.refusal}
-          submitButton={hold.submitButton}
+          refusal={
+            hold.refused === undefined ? (
+              refusal
+            ) : (
+              <NotActiveRefusal editing={entry !== undefined} line={hold.refused} />
+            )
+          }
+          submitButton={submitButton(hold.holdSubmit)}
         />
       </div>
       <AccountPicker

@@ -255,13 +255,21 @@ export const en = {
   },
   notActiveOnDay: {
     mark: 'Not active on this day',
-    notAdded: 'The entry was not added.',
-    notSaved: 'The entry was not saved.',
-    refusal:
-      'is not active on this day. Remove that line, or choose a day on which its account is active.',
-    explanation:
-      'can be used only within its active period. Change the day, remove the line, or change the period in',
     settings: 'Settings',
+    multiLine: {
+      notAdded: 'The entry was not added.',
+      notSaved: 'The entry was not saved.',
+      refusal:
+        'is not active on this day. Remove that line, or choose a day on which its account is active.',
+      explanation:
+        'can be used only within its active period. Change the day, remove the line, or change the period in',
+    },
+    twoLine: {
+      refusal:
+        'is not active on this day. Choose another account, or choose a day on which it is active.',
+      explanation:
+        'can be used only within its active period. Change the day, choose another account, or change the period in',
+    },
   },
   helpTip: {
     about: 'About',

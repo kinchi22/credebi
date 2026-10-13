@@ -17,6 +17,7 @@ type HelpTipProps = {
 export function HelpTip({ message, children }: HelpTipProps): ReactNode {
   const [state, setState] = useState<HelpTipState>('closed');
   const root = useRef<HTMLSpanElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
   const open = isHelpTipOpen(state);
 
   const on = (event: HelpTipEvent): void => {
@@ -32,9 +33,23 @@ export function HelpTip({ message, children }: HelpTipProps): ReactNode {
         setState('closed');
       }
     };
+    const dismissOnEscape = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape') {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      const focused = document.activeElement;
+      setState('closed');
+      if (focused !== button.current && root.current?.contains(focused) === true) {
+        button.current?.focus();
+      }
+    };
     document.addEventListener('pointerdown', dismissOutside, true);
+    window.addEventListener('keydown', dismissOnEscape, true);
     return () => {
       document.removeEventListener('pointerdown', dismissOutside, true);
+      window.removeEventListener('keydown', dismissOnEscape, true);
     };
   }, [open]);
 
@@ -48,15 +63,9 @@ export function HelpTip({ message, children }: HelpTipProps): ReactNode {
       onPointerLeave={(event) => {
         if (event.pointerType === 'mouse') on('leave');
       }}
-      onKeyDown={(event) => {
-        if (event.key === 'Escape' && open) {
-          event.preventDefault();
-          event.stopPropagation();
-          on('dismiss');
-        }
-      }}
     >
       <button
+        ref={button}
         type="button"
         aria-label={`${en.helpTip.about} ${message}`}
         aria-expanded={open}
@@ -71,7 +80,7 @@ export function HelpTip({ message, children }: HelpTipProps): ReactNode {
         {open ? (
           <span className="absolute top-full left-0 z-10 block w-64 max-w-[calc(100vw-2rem)] pt-1">
             <span
-              className={`block rounded-control border border-border bg-surface px-3 py-2 font-normal text-text ${typeClasses['body-dense']}`}
+              className={`block rounded-control border border-border bg-surface px-3 shadow-lift py-2 font-normal text-text ${typeClasses['body-dense']}`}
             >
               {children}
             </span>

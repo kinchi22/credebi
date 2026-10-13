@@ -2,34 +2,37 @@
 
 import { type AccountId, type Side } from '@repo/contracts';
 import Link from 'next/link';
-import { useState, type ReactNode } from 'react';
+import { useState, type MouseEvent, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { SETTINGS_PATH } from '../server/return-path';
-import { type SubmitButton } from './entry-form';
 import { HELP_TIP_ROW, HelpTip } from './help-tip';
-import { lineHoldingSubmit, type LinesOnDay } from './lines-on-day';
-import { FORM_REFUSAL, LINK } from './text-classes';
+import { lineHoldingSubmit, type AccountLine, type LinesOnDay } from './lines-on-day';
+import { LINK } from './text-classes';
 
-export type NamedLine = {
-  readonly side: Side;
-  readonly account: AccountId;
+export type NamedLine = AccountLine & {
   readonly accountName: string;
 };
 
 export const lineName = (line: NamedLine): string => `${en.sides[line.side]} ${line.accountName}`;
 
+export const isLine =
+  (side: Side, account: AccountId) =>
+  (line: AccountLine): boolean =>
+    line.side === side && line.account === account;
+
 const { notActiveOnDay } = en;
 
 type NotActiveMarkProps = {
   readonly accountName: string;
+  readonly explanation: string;
 };
 
-export function NotActiveMark({ accountName }: NotActiveMarkProps): ReactNode {
+export function NotActiveMark({ accountName, explanation }: NotActiveMarkProps): ReactNode {
   return (
     <div className={`${HELP_TIP_ROW} text-warning`}>
       <span>{notActiveOnDay.mark}</span>
       <HelpTip message={notActiveOnDay.mark}>
-        {accountName} {notActiveOnDay.explanation}{' '}
+        {accountName} {explanation}{' '}
         <Link href={SETTINGS_PATH} className={LINK}>
           {notActiveOnDay.settings}
         </Link>
@@ -39,70 +42,36 @@ export function NotActiveMark({ accountName }: NotActiveMarkProps): ReactNode {
   );
 }
 
-type NotActiveRefusalProps = {
-  readonly editing: boolean;
-  readonly line: NamedLine;
-};
-
-function NotActiveRefusal({ editing, line }: NotActiveRefusalProps): ReactNode {
-  return (
-    <p role="alert" className={FORM_REFUSAL}>
-      {editing ? notActiveOnDay.notSaved : notActiveOnDay.notAdded} {lineName(line)}{' '}
-      {notActiveOnDay.refusal}
-    </p>
-  );
-}
-
-type Raised = {
+type Raised = AccountLine & {
   readonly day: string | undefined;
-  readonly side: Side;
-  readonly account: AccountId;
 };
 
-export const isLine =
-  (side: Side, account: AccountId) =>
-  (line: NamedLine): boolean =>
-    line.side === side && line.account === account;
-
-export type NotActiveHold = {
-  readonly refusal: ReactNode;
-  readonly submitButton: ReactNode;
+export type NotActiveHold<Line extends AccountLine> = {
+  readonly refused: Line | undefined;
+  readonly holdSubmit: ((event: MouseEvent<HTMLButtonElement>) => void) | undefined;
   readonly clear: () => void;
 };
 
-type NotActiveHoldOptions<Line extends NamedLine> = {
-  readonly day: string | undefined;
-  readonly lines: LinesOnDay<Line>;
-  readonly editing: boolean;
-  readonly refusal: ReactNode;
-  readonly submitButton: SubmitButton;
-};
-
-export function useNotActiveHold<Line extends NamedLine>({
-  day,
-  lines,
-  editing,
-  refusal,
-  submitButton,
-}: NotActiveHoldOptions<Line>): NotActiveHold {
+export function useNotActiveHold<Line extends AccountLine>(
+  day: string | undefined,
+  lines: LinesOnDay<Line>,
+): NotActiveHold<Line> {
   const [raised, setRaised] = useState<Raised>();
   if (raised !== undefined && raised.day !== day) {
     setRaised(undefined);
   }
   const holding = lineHoldingSubmit(lines);
-  const refused =
-    raised === undefined ? undefined : lines.notActive.find(isLine(raised.side, raised.account));
 
   return {
-    refusal: refused === undefined ? refusal : <NotActiveRefusal editing={editing} line={refused} />,
-    submitButton: submitButton(
+    refused:
+      raised === undefined ? undefined : lines.notActive.find(isLine(raised.side, raised.account)),
+    holdSubmit:
       holding === undefined
         ? undefined
         : (event) => {
             event.preventDefault();
             setRaised({ day, side: holding.side, account: holding.account });
           },
-    ),
     clear: () => {
       setRaised(undefined);
     },

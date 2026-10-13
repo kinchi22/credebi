@@ -154,7 +154,7 @@ export function ChooseAccountButton({ side, account, sheet }: ChooseAccountButto
       onClick={(event) => {
         sheet.openOn(side, event.currentTarget);
       }}
-      className={`flex min-h-10 w-full items-center gap-3 border-t-2 py-3 text-left disabled:opacity-50 wide:hidden ${SIDE_TONE[side].edge}`}
+      className={`flex min-h-10 w-full items-center ${ACCOUNT_ROW_GAP} border-t-2 py-3 text-left disabled:opacity-50 wide:hidden ${SIDE_TONE[side].edge}`}
     >
       <AccountRowContent side={side} account={account} placeholderInSideTone />
       {account === undefined ? null : (
@@ -173,8 +173,25 @@ type AccountRowProps = {
 
 export function AccountRow({ side, account }: AccountRowProps): ReactNode {
   return (
-    <div className={`hidden items-center gap-3 border-t-2 py-3 wide:flex ${SIDE_TONE[side].edge}`}>
+    <div className={`hidden items-center ${ACCOUNT_ROW_GAP} border-t-2 py-3 wide:flex ${SIDE_TONE[side].edge}`}>
       <AccountRowContent side={side} account={account} placeholderInSideTone={false} />
+    </div>
+  );
+}
+
+const ACCOUNT_ROW_GAP = 'gap-3';
+
+const SIDE_NAME_COLUMN = 'w-16 shrink-0';
+
+type UnderAccountNameProps = {
+  readonly children: ReactNode;
+};
+
+export function UnderAccountName({ children }: UnderAccountNameProps): ReactNode {
+  return (
+    <div className={`-mt-2 flex pb-3 ${ACCOUNT_ROW_GAP}`}>
+      <span aria-hidden="true" className={SIDE_NAME_COLUMN} />
+      <div className="min-w-0 grow">{children}</div>
     </div>
   );
 }
@@ -194,7 +211,7 @@ function AccountRowContent({
 
   return (
     <>
-      <span className={`w-16 shrink-0 ${typeClasses.label} leading-5 ${SIDE_TONE[side].text}`}>
+      <span className={`${SIDE_NAME_COLUMN} ${typeClasses.label} leading-5 ${SIDE_TONE[side].text}`}>
         {en.sides[side]}
       </span>
       <span className={`min-w-0 grow wrap-anywhere ${account === undefined ? placeholderClass : 'font-semibold'}`}>
