@@ -14,7 +14,7 @@ export const NEEDS_MULTI_LINE_MODE = 'Needs Multi-line mode';
 export const NOT_ACTIVE_ON_THIS_DAY = 'Not active on this day';
 
 export const needsMultiLineExplanation = (title: string): string =>
-  `The last Entry titled ${title} has more than one line on a Side. Two-line mode posts one debit and one credit line. Change the Entry form mode in Settings.`;
+  `The last Entry titled ${title} has more than one line on a Side, so nothing was filled in. Choose a debit and a credit account to write this Entry yourself, or change the Entry form mode in Settings to fill every line.`;
 
 export const twoLineNotActiveExplanation = (account: string): string =>
   `${account} can be used only within its active period. Change the day, choose another account, or change the period in Settings.`;

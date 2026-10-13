@@ -60,9 +60,10 @@ import {
   settingsLink,
   twoLineNotActiveExplanation,
 } from './help-tip';
+import { SETTINGS_URL } from './routes';
 import { signIn } from './session';
 import { entryFormModeChoice, setEntryFormMode } from './settings';
-import { PHONE } from './viewport';
+import { expectWithinPhone, PHONE } from './viewport';
 
 const LATER_DAY = '2026-09-25';
 
@@ -266,7 +267,7 @@ test('leaves Multi-line mode lines as they are when a Title is chosen while the 
   await expectLines(form, [{ side: 'Debit', account: 'Capital', amount: '' }]);
 });
 
-test('fills nothing in Two-line mode from an Entry with more than one line on a Side, says it needs Multi-line mode with a Help tip linking to Settings, clears that when the Title changes, and keeps the Entry form mode', async ({ page }) => {
+test('fills nothing in Two-line mode from an Entry with more than one line on a Side, says it needs Multi-line mode with a Help tip linking to Settings that stays within the screen at 390px, clears that when the Title changes, and keeps the Entry form mode', async ({ page }) => {
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postSalary(page, `Pay ${randomUUID()}`);
   await postEntries(page, [titled('Rent', `Flat ${randomUUID()}`)]);
@@ -292,11 +293,15 @@ test('fills nothing in Two-line mode from an Entry with more than one line on a 
   await expectTwoLine(form, 'Expenses', 'Cash', '12500');
   await expect(message).toBeHidden();
 
+  await page.setViewportSize(PHONE);
   await page.reload();
   const again = entryForm(page);
   await chooseTitle(again, 'Salary');
   await expect(again.getByText(NEEDS_MULTI_LINE_MODE, { exact: true })).toBeVisible();
-  await followSettingsLink(helpTipButton(again, NEEDS_MULTI_LINE_MODE), needsMultiLineExplanation('Salary'));
+  const onPhone = await openHelpTip(helpTipButton(again, NEEDS_MULTI_LINE_MODE), needsMultiLineExplanation('Salary'));
+  await expectWithinPhone(page, onPhone);
+  await settingsLink(onPhone).click();
+  await expect(page).toHaveURL(SETTINGS_URL);
   await expect(entryFormModeChoice(page, 'Two-line mode')).toBeChecked();
 });
 
@@ -705,14 +710,16 @@ test('toggles a Help tip with Enter and Space, and closes it with Escape or a cl
   await expect(shown).toBeHidden();
 });
 
-test('toggles a Help tip with a tap', async ({ browser }) => {
+test('toggles a Help tip with a tap, keeping it within the screen at 390px', async ({ browser }) => {
   const context = await browser.newContext({ hasTouch: true });
   try {
     const page = await context.newPage();
     const { tip, shown } = await markedWalletTip(page);
+    await page.setViewportSize(PHONE);
 
     await tip.tap();
     await expect(shown).toBeVisible();
+    await expectWithinPhone(page, shown);
     await tip.tap();
     await expect(shown).toBeHidden();
   } finally {
