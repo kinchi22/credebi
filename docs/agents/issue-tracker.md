@@ -17,6 +17,29 @@ found along the way that is not the current Task becomes an issue of its own.
 The label is the type. GitHub's Issue Types are an organisation feature and are
 not used. A Feature's progress is its sub-issues' completion.
 
+## Kind
+
+Every Feature carries exactly one `kind:*` label, which says what kind of change
+it is, so the project board shows the mix of open Features without opening any.
+
+| Label              | Test | Examples |
+| ------------------ | ---- | -------- |
+| `kind:capability`  | A User can do something they could not do before, in any form. | #252, #238, #239 |
+| `kind:improvement` | Something a User could already do now covers more cases, performance included. | #364, #385, #53 |
+| `kind:polish`      | The same thing is done, only easier or clearer. | #334, #359, #314 |
+| `kind:infra`       | Build, CI/CD, deployment, hosting, observability. | #371, #345, #51 |
+| `kind:agent`       | How agents work on this repository: rules, Skills, Harnesses, evals. | #81, #108, #118, #390 |
+
+A Feature carries one kind; a Task and a Bug carry none. The kind is applied
+when a Feature is opened, and when its spec is published if it has none yet; an
+existing kind is left alone. A Feature that fits more than one kind gets the
+closest, without asking, and the owner corrects it if they disagree.
+
+A kind is a reference for reading the board, and nothing depends on it. It never
+changes how an issue is worked: milestone, specs, base branch and review follow
+from the rules below alone, so a `kind:infra` or `kind:agent` Feature that states
+a criterion a spec can state has a milestone like any other.
+
 ## Status
 
 `Backlog -> Ready -> In Progress -> In Review -> Done`, the project's `Status`
@@ -43,8 +66,8 @@ here; `docs/agents/harnesses.md` names how each harness installs it, and how a
 Skill is invoked there. They are typed by hand: a Skill cannot reach them. Where they publish, they publish as follows.
 
 **Publishing a spec** rewrites the Feature's body when the Feature exists, and
-otherwise opens one labelled `type:feature`. The body adds a section to the
-skill's template:
+otherwise opens one labelled `type:feature`. Either way it applies the Feature's
+kind when it has none ("Kind"). The body adds a section to the skill's template:
 
 ```markdown
 ## Milestone branch
@@ -160,6 +183,9 @@ gh issue view <n> --comments --json number,title,body,labels,state,assignees,pro
 
 # Open one; the project adds it as Backlog
 gh issue create --label type:task --title "..." --body "..."
+
+# Open a Feature, with its kind
+gh issue create --label type:feature --label kind:<kind> --title "..." --body "..."
 
 # Set a Status: item-add returns the existing item when there is one
 item=$(gh project item-add 2 --owner kinchi22 --url <issue-url> --format json --jq .id)
