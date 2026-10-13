@@ -2,8 +2,8 @@
 
 **Status:** Deferred
 **Date:** 2026-09-15
-**Trigger:** A locale other than `en` is scheduled for release, with a catalogue
-a fluent speaker has checked.
+**Trigger:** Feature #239, which ships `ko` and `ja`, each catalogue checked by
+the owner, who is fluent in both.
 
 ## Problem
 
@@ -23,12 +23,20 @@ launch breaks every link anyone has shared.
 When the trigger holds, localization is built as follows. None of it is in
 force before then.
 
-- **Locales.** `en`, the default, and `ko`. `ja` only after a fluent speaker has
-  checked its catalogue.
+- **Locales.** `en`, the default, `ko` and `ja`. A non-English catalogue ships
+  only once a fluent speaker has checked it.
 - **Resolution.** The first of these that names a supported locale: the
   signed-in user's setting, the `locale` cookie, `Accept-Language`, `en`. Each
   request reads only the cookie. The setting and the header decide what the
   cookie holds, when it is absent and when the setting changes.
+- **The setting.** Every user has one. A new user takes the locale their first
+  sign-in request resolves to; a user who existed before adoption has `en`.
+  Signing in writes the user's setting into the cookie, changing it rewrites the
+  cookie at once, and signing out leaves the cookie, so a signed-out page shows
+  the last signed-in user's locale. There is no "follow the browser" setting.
+- **The switch.** A signed-out page may carry a switch that writes the cookie and
+  nothing else; `/sign-in` does, below the sign-in box. A signed-in page carries
+  none: there the setting is the one control.
 - **No locale in the URL.** `app/` does not move. A URL names a page, not a
   language.
 - **Library.** `next-intl`, without its i18n routing: a request config resolves
@@ -50,6 +58,12 @@ over, apart from the keys that need an argument (ADR-0007).
 `next-intl`'s examples load a catalogue with `import()`. Dynamic imports are
 forbidden everywhere (ADR-0002), so adoption imports every catalogue statically
 into one map, and the server bundle carries every locale.
+
+A user's five starting Accounts are named in their locale when the user is
+created, from the catalogue, and are then the user's own: changing the locale
+never renames them. Source is English-only, so core holds no names but `en`'s;
+the server reads the others from the catalogue, so `apps/web/server` imports it
+too, and ADR-0007's boundary line changes with adoption.
 
 Without a locale in the URL:
 
@@ -75,6 +89,15 @@ into one cookie makes both a cost paid once.
 **Exempting catalogues by folder name.** `**/messages/**` and three globs like
 it, as the config had until #10. They exempted any source in a folder of that
 name, so a feature named `messages` would have gone unchecked.
+
+**A setting left empty until chosen, following the browser meanwhile.** It
+gives two answers to one question for every user who never chose: the page
+would change with the device. A required setting taken at sign-up makes the
+first answer the user's own.
+
+**A switch on every page, writing the setting when signed in.** Two controls
+for one value, which can disagree about where the value lives, the cookie or the
+setting.
 
 **Catalogues nobody fluent has read.** A generated `ja` catalogue could exist
 today. It could say something different from the English, and nothing here
