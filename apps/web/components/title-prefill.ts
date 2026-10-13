@@ -1,4 +1,4 @@
-import { accountsIn, type ChartOutput, type TitleLine } from '@repo/contracts';
+import { accountsIn, type AccountId, type ChartOutput, type TitleLine } from '@repo/contracts';
 import { draftLinesInOrder } from '@repo/core/entries';
 import { hasOneLinePerSide } from './entry-lines';
 import { type NamedLine } from './lines-on-day';
@@ -6,8 +6,8 @@ import { type NamedLine } from './lines-on-day';
 export type FormLines =
   | {
       readonly mode: 'two-line';
-      readonly debit: string | undefined;
-      readonly credit: string | undefined;
+      readonly debit: AccountId | undefined;
+      readonly credit: AccountId | undefined;
       readonly amount: string;
     }
   | {

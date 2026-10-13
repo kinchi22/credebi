@@ -20,7 +20,7 @@ export function NotActiveMark({ accountName, explanation }: NotActiveMarkProps):
     <WarningWithHelpTip message={notActiveOnDay.mark}>
       {accountName} {explanation}{' '}
       <Link href={SETTINGS_PATH} className={LINK}>
-        {notActiveOnDay.settings}
+        {en.helpTip.settings}
       </Link>
       .
     </WarningWithHelpTip>

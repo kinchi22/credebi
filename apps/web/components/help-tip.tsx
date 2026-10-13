@@ -7,6 +7,7 @@ import { en } from '../messages/en';
 import { BARE_ICON_BUTTON } from './control-classes';
 import {
   helpTipAfter,
+  helpTipMaxWidth,
   helpTipShift,
   isHelpTipOpen,
   type HelpTipEvent,
@@ -33,9 +34,11 @@ export function HelpTip({ message, children }: HelpTipProps): ReactNode {
       return undefined;
     }
     const keepOnScreen = (): void => {
+      const viewportWidth = document.documentElement.clientWidth;
+      shown.style.maxWidth = `${String(helpTipMaxWidth(viewportWidth))}px`;
       shown.style.translate = '';
       const { left, width } = shown.getBoundingClientRect();
-      const shift = helpTipShift({ left, width }, document.documentElement.clientWidth);
+      const shift = helpTipShift({ left, width }, viewportWidth);
       shown.style.translate = shift === 0 ? '' : `${String(shift)}px`;
     };
     keepOnScreen();
@@ -105,7 +108,7 @@ export function HelpTip({ message, children }: HelpTipProps): ReactNode {
         {open ? (
           <span
             ref={panel}
-            className="absolute top-full left-0 z-10 block w-64 max-w-[calc(100vw-2rem)] pt-1"
+            className="absolute top-full left-0 z-10 block w-64 pt-1"
           >
             <span
               className={`block rounded-control border border-border bg-surface px-3 py-2 shadow-lift font-normal text-text ${typeClasses['body-dense']}`}
@@ -121,17 +124,12 @@ export function HelpTip({ message, children }: HelpTipProps): ReactNode {
 
 type WarningWithHelpTipProps = {
   readonly message: string;
-  readonly className?: string;
   readonly children: ReactNode;
 };
 
-export function WarningWithHelpTip({
-  message,
-  className = '',
-  children,
-}: WarningWithHelpTipProps): ReactNode {
+export function WarningWithHelpTip({ message, children }: WarningWithHelpTipProps): ReactNode {
   return (
-    <div className={`${HELP_TIP_ROW} text-warning ${className}`}>
+    <div className={`${HELP_TIP_ROW} text-warning ${typeClasses['body-dense']}`}>
       <span>{message}</span>
       <HelpTip message={message}>{children}</HelpTip>
     </div>

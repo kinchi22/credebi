@@ -268,7 +268,7 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `band`               | `fog`       | an Account type's Band                |
 | `border-control`     | `steel`     | inputs, secondary buttons, tree connectors, and at 55% the Account picker's group rules |
 | `danger`             | `rust`      | refusals, errors                      |
-| `warning`            | `ochre`     | a degraded health status, a Difference not 0, a line not active on the day, `Needs Multi-line mode` |
+| `warning`            | `ochre`     | a degraded health status, a Difference not 0, a line not active on the day, a Title needing Multi-line mode |
 | `positive`           | `mint-deep` | a healthy status                      |
 | `focus`              | `mint-deep` | the 2px focus ring on a light ground  |
 | `focus-on-dark`      | `mint`      | the 2px focus ring on a dark ground   |
@@ -721,10 +721,10 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   wide below `wide` and 24px from `wide` up, as tall as the amount field, 36px.
 - **Help tip.** A bare question-mark icon, 24px square, in `text-muted` and
   `text` under the pointer, right after its message. Its panel opens just
-  below the message's row, aligned with its start, 256px wide and never wider
-  than the screen less 32px. It stays within the screen with a 16px gutter:
-  a panel that would run past the right gutter shifts left by as much, never
-  past the left one. It is a `surface` panel with a `border` edge, the
+  below the message's row, aligned with its start, 256px wide. It keeps a
+  24px gutter from each edge of the screen, scrollbar excluded: never wider
+  than the screen less 48px, and a panel that would run past the right gutter
+  shifts left by as much, never past the left one. It is a `surface` panel with a `border` edge, the
   `control` radius and the `lift` shadow, its text `body-dense` in `text`.
   Escape closes every open Help tip wherever focus is, never the dialog
   around it, and returns focus to the button only when focus was inside the

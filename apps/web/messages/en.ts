@@ -255,7 +255,6 @@ export const en = {
   },
   notActiveOnDay: {
     mark: 'Not active on this day',
-    settings: 'Settings',
     notAdded: 'The entry was not added.',
     notSaved: 'The entry was not saved.',
     multiLine: {
@@ -276,11 +275,11 @@ export const en = {
     lastEntry: 'The last Entry titled',
     explanation:
       'has more than one line on a Side, so nothing was filled in. Choose a debit and a credit account to write this Entry yourself, or change the Entry form mode in',
-    settings: 'Settings',
     afterSettings: 'to fill every line.',
   },
   helpTip: {
     about: 'About',
+    settings: 'Settings',
   },
   accountSheet: {
     title: 'Choose accounts',

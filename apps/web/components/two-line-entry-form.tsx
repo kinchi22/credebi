@@ -15,6 +15,7 @@ import { typeClasses } from '@repo/ui/type-classes';
 import Link from 'next/link';
 import { useState, type ReactNode } from 'react';
 import { en } from '../messages/en';
+import { SETTINGS_PATH } from '../server/return-path';
 import {
   AccountPicker,
   AccountRow,
@@ -34,23 +35,20 @@ import { linesOn } from './entry-lines';
 import { WarningWithHelpTip } from './help-tip';
 import { isLine, lineName, linesOnDay, offeredOn, type NamedLine } from './lines-on-day';
 import { NotActiveMark, useNotActiveHold } from './not-active-on-day';
-import { SETTINGS_PATH } from '../server/return-path';
 import { FORM_REFUSAL, LINK } from './text-classes';
 import { prefillFrom, type PrefilledLine } from './title-prefill';
 
-const { notActiveOnDay } = en;
+const { helpTip, needsMultiLineMode, notActiveOnDay } = en;
 const notActive = notActiveOnDay.twoLine;
-
-const { needsMultiLineMode } = en;
 
 const NOTHING_CHOSEN: AccountChoice = { debit: undefined, credit: undefined };
 
-const accountNamed = (chart: ChartOutput, id: AccountId | undefined): AccountOutput | undefined =>
+const accountById = (chart: ChartOutput, id: AccountId | undefined): AccountOutput | undefined =>
   accountsIn(chart).find((account) => account.id === id);
 
 const prefilledChoice = (chart: ChartOutput, lines: readonly PrefilledLine[]): AccountChoice => ({
-  debit: accountNamed(chart, lines.find((line) => line.side === 'debit')?.account),
-  credit: accountNamed(chart, lines.find((line) => line.side === 'credit')?.account),
+  debit: accountById(chart, lines.find((line) => line.side === 'debit')?.account),
+  credit: accountById(chart, lines.find((line) => line.side === 'credit')?.account),
 });
 
 type NeedsMultiLineMarkProps = {
@@ -59,10 +57,10 @@ type NeedsMultiLineMarkProps = {
 
 function NeedsMultiLineMark({ title }: NeedsMultiLineMarkProps): ReactNode {
   return (
-    <WarningWithHelpTip message={needsMultiLineMode.mark} className={typeClasses['body-dense']}>
+    <WarningWithHelpTip message={needsMultiLineMode.mark}>
       {needsMultiLineMode.lastEntry} {title} {needsMultiLineMode.explanation}{' '}
       <Link href={SETTINGS_PATH} className={LINK}>
-        {needsMultiLineMode.settings}
+        {helpTip.settings}
       </Link>{' '}
       {needsMultiLineMode.afterSettings}
     </WarningWithHelpTip>
@@ -73,7 +71,7 @@ const accountOn = (
   chart: ChartOutput,
   entry: PostedEntry,
   side: Side,
-): AccountOutput | undefined => accountNamed(chart, linesOn(entry, side)[0]?.account);
+): AccountOutput | undefined => accountById(chart, linesOn(entry, side)[0]?.account);
 
 const namedLines = (choice: AccountChoice): readonly NamedLine[] =>
   sideSchema.options.flatMap((side) => {
