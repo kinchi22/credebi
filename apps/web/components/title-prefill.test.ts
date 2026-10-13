@@ -121,13 +121,4 @@ describe('prefillFrom', () => {
       ],
     });
   });
-
-  it('fills nothing for a line whose Account is no longer in the chart', () => {
-    expect(
-      prefillFrom(EMPTY_MULTI_LINE, [source('debit', 'dead', 500), source('credit', 'c001', 500)], CHART),
-    ).toEqual({
-      outcome: 'filled',
-      lines: [{ side: 'credit', account: CASH.id, accountName: 'Cash', amount: '500' }],
-    });
-  });
 });

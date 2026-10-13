@@ -275,8 +275,9 @@ export const en = {
     mark: 'Needs Multi-line mode',
     lastEntry: 'The last Entry titled',
     explanation:
-      'has more than one line on a Side. Two-line mode posts one debit and one credit line. Change the Entry form mode in',
+      'has more than one line on a Side, so nothing was filled in. Choose a debit and a credit account to write this Entry yourself, or change the Entry form mode in',
     settings: 'Settings',
+    afterSettings: 'to fill every line.',
   },
   helpTip: {
     about: 'About',

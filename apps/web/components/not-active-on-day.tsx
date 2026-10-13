@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState, type MouseEvent, type ReactNode } from 'react';
 import { en } from '../messages/en';
 import { SETTINGS_PATH } from '../server/return-path';
-import { HELP_TIP_ROW, HelpTip } from './help-tip';
+import { WarningWithHelpTip } from './help-tip';
 import { isLine, lineHoldingSubmit, type AccountLine, type LinesOnDay } from './lines-on-day';
 import { LINK } from './text-classes';
 
@@ -17,16 +17,13 @@ type NotActiveMarkProps = {
 
 export function NotActiveMark({ accountName, explanation }: NotActiveMarkProps): ReactNode {
   return (
-    <div className={`${HELP_TIP_ROW} text-warning`}>
-      <span>{notActiveOnDay.mark}</span>
-      <HelpTip message={notActiveOnDay.mark}>
-        {accountName} {explanation}{' '}
-        <Link href={SETTINGS_PATH} className={LINK}>
-          {notActiveOnDay.settings}
-        </Link>
-        .
-      </HelpTip>
-    </div>
+    <WarningWithHelpTip message={notActiveOnDay.mark}>
+      {accountName} {explanation}{' '}
+      <Link href={SETTINGS_PATH} className={LINK}>
+        {notActiveOnDay.settings}
+      </Link>
+      .
+    </WarningWithHelpTip>
   );
 }
 

@@ -16,3 +16,16 @@ export function helpTipAfter(state: HelpTipState, event: HelpTipEvent): HelpTipS
 }
 
 export const isHelpTipOpen = (state: HelpTipState): boolean => state !== 'closed';
+
+export const HELP_TIP_GUTTER = 16;
+
+export type PanelPlace = {
+  readonly left: number;
+  readonly width: number;
+};
+
+export function helpTipShift({ left, width }: PanelPlace, viewportWidth: number): number {
+  const overflow = left + width - (viewportWidth - HELP_TIP_GUTTER);
+  const shift = Math.min(overflow, Math.max(0, left - HELP_TIP_GUTTER));
+  return shift > 0 ? -shift : 0;
+}

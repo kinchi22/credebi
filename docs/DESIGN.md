@@ -268,7 +268,7 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `band`               | `fog`       | an Account type's Band                |
 | `border-control`     | `steel`     | inputs, secondary buttons, tree connectors, and at 55% the Account picker's group rules |
 | `danger`             | `rust`      | refusals, errors                      |
-| `warning`            | `ochre`     | a degraded health status, a Difference not 0, a line not active on the day |
+| `warning`            | `ochre`     | a degraded health status, a Difference not 0, a line not active on the day, `Needs Multi-line mode` |
 | `positive`           | `mint-deep` | a healthy status                      |
 | `focus`              | `mint-deep` | the 2px focus ring on a light ground  |
 | `focus-on-dark`      | `mint`      | the 2px focus ring on a dark ground   |
@@ -698,6 +698,14 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   Removing that line, choosing another Account or any change of day clears the
   refusal, and only a submit shows it again. The mark is the form's one message
   about it, in an edited Entry too.
+- **Needs Multi-line mode.** In Two-line mode, choosing a Title whose last
+  Entry has more than one line on a Side while the lines are empty fills
+  nothing, and under the Title field `Needs Multi-line mode` in `body-dense`
+  and `warning`, with a Help tip: `The last Entry titled <Title> has more than
+  one line on a Side, so nothing was filled in. Choose a debit and a credit
+  account to write this Entry yourself, or change the Entry form mode in
+  Settings to fill every line.`, its `Settings` linking there. Typing in the
+  Title field or choosing another Title clears it.
 - **Multi-line totals.** At every width each Side ends with its own total,
   `Debit total` or `Credit total` in `body-dense` and `text-muted`, its amount
   in `figure` on the line grid, right-aligned with the lines' amounts and
@@ -714,7 +722,9 @@ light ground is 36px tall, `controlHeight` in the tokens module and
 - **Help tip.** A bare question-mark icon, 24px square, in `text-muted` and
   `text` under the pointer, right after its message. Its panel opens just
   below the message's row, aligned with its start, 256px wide and never wider
-  than the screen less 32px: a `surface` panel with a `border` edge, the
+  than the screen less 32px. It stays within the screen with a 16px gutter:
+  a panel that would run past the right gutter shifts left by as much, never
+  past the left one. It is a `surface` panel with a `border` edge, the
   `control` radius and the `lift` shadow, its text `body-dense` in `text`.
   Escape closes every open Help tip wherever focus is, never the dialog
   around it, and returns focus to the button only when focus was inside the

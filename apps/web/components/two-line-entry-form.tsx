@@ -31,7 +31,7 @@ import {
   type EntryFormProps,
 } from './entry-form';
 import { linesOn } from './entry-lines';
-import { HELP_TIP_ROW, HelpTip } from './help-tip';
+import { WarningWithHelpTip } from './help-tip';
 import { isLine, lineName, linesOnDay, offeredOn, type NamedLine } from './lines-on-day';
 import { NotActiveMark, useNotActiveHold } from './not-active-on-day';
 import { SETTINGS_PATH } from '../server/return-path';
@@ -59,16 +59,13 @@ type NeedsMultiLineMarkProps = {
 
 function NeedsMultiLineMark({ title }: NeedsMultiLineMarkProps): ReactNode {
   return (
-    <div className={`${HELP_TIP_ROW} text-warning ${typeClasses['body-dense']}`}>
-      <span>{needsMultiLineMode.mark}</span>
-      <HelpTip message={needsMultiLineMode.mark}>
-        {needsMultiLineMode.lastEntry} {title} {needsMultiLineMode.explanation}{' '}
-        <Link href={SETTINGS_PATH} className={LINK}>
-          {needsMultiLineMode.settings}
-        </Link>
-        .
-      </HelpTip>
-    </div>
+    <WarningWithHelpTip message={needsMultiLineMode.mark} className={typeClasses['body-dense']}>
+      {needsMultiLineMode.lastEntry} {title} {needsMultiLineMode.explanation}{' '}
+      <Link href={SETTINGS_PATH} className={LINK}>
+        {needsMultiLineMode.settings}
+      </Link>{' '}
+      {needsMultiLineMode.afterSettings}
+    </WarningWithHelpTip>
   );
 }
 

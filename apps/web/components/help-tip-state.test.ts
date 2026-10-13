@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { helpTipAfter, isHelpTipOpen, type HelpTipState } from './help-tip-state';
+import { helpTipAfter, helpTipShift, isHelpTipOpen, type HelpTipState } from './help-tip-state';
 
 const STATES: readonly HelpTipState[] = ['closed', 'hovered', 'pinned'];
 
@@ -32,5 +32,21 @@ describe('helpTipAfter', () => {
 describe('isHelpTipOpen', () => {
   it('shows the explanation while hovered or pinned, never while closed', () => {
     expect(STATES.map(isHelpTipOpen)).toEqual([false, true, true]);
+  });
+});
+
+describe('helpTipShift', () => {
+  it('leaves a panel in place while it ends 16px or more inside the screen', () => {
+    expect(helpTipShift({ left: 40, width: 256 }, 390)).toBe(0);
+    expect(helpTipShift({ left: 118, width: 256 }, 390)).toBe(0);
+  });
+
+  it('shifts a panel left by as much as it runs past the 16px gutter on the right', () => {
+    expect(helpTipShift({ left: 200, width: 256 }, 390)).toBe(-82);
+  });
+
+  it('never shifts a panel past the 16px gutter on the left', () => {
+    expect(helpTipShift({ left: 100, width: 358 }, 360)).toBe(-84);
+    expect(helpTipShift({ left: 16, width: 358 }, 360)).toBe(0);
   });
 });
