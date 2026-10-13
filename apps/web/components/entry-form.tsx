@@ -54,11 +54,17 @@ export type EntryFormProps = {
   readonly editing?: EditedEntry | undefined;
 };
 
+export type TitleChoice = {
+  readonly onChoose: (title: OfferedTitle) => void;
+  readonly onType?: () => void;
+  readonly notice?: ReactNode;
+};
+
 export type EntryFormParts = {
   readonly id: string;
   readonly day: string | undefined;
   readonly entry: PostedEntry | undefined;
-  readonly heading: ReactNode;
+  readonly heading: (title: TitleChoice) => ReactNode;
   readonly refusal: ReactNode;
   readonly submitButton: SubmitButton;
 };
@@ -151,6 +157,7 @@ type AmountInputProps = {
   readonly id: string;
   readonly label: string;
   readonly defaultValue?: string | undefined;
+  readonly value?: string | undefined;
   readonly onAmountChange?: (amount: string) => void;
 };
 
@@ -158,6 +165,7 @@ export function AmountInput({
   id,
   label,
   defaultValue,
+  value,
   onAmountChange,
 }: AmountInputProps): ReactNode {
   return (
@@ -166,6 +174,7 @@ export function AmountInput({
       aria-label={label}
       name={ENTRY_FORM_FIELDS.amount}
       defaultValue={defaultValue}
+      value={value}
       onChange={
         onAmountChange === undefined
           ? undefined
@@ -218,7 +227,16 @@ export function EntryFormShell({
     });
   };
 
-  const heading = (
+  const chosenTitle =
+    (choice: TitleChoice) =>
+    (chosen: string): void => {
+      const offered = titles.find(({ title }) => title === chosen);
+      if (offered !== undefined) {
+        choice.onChoose(offered);
+      }
+    };
+
+  const heading = (choice: TitleChoice): ReactNode => (
     <>
       {variant.labelledBy === undefined ? (
         <h2 id={`${id}-title`} className={PANEL_TITLE}>
@@ -242,14 +260,18 @@ export function EntryFormShell({
             className={DATE_CONTROL}
           />
         </div>
-        <TitleCombobox
-          id={`${id}-entry-title`}
-          name={ENTRY_FORM_FIELDS.title}
-          label={en.entryForm.entryTitle}
-          defaultValue={variant.entry?.title}
-          titles={titles.map(({ title }) => title)}
-          className="grow"
-        />
+        <div className="flex min-w-0 grow flex-col gap-1">
+          <TitleCombobox
+            id={`${id}-entry-title`}
+            name={ENTRY_FORM_FIELDS.title}
+            label={en.entryForm.entryTitle}
+            defaultValue={variant.entry?.title}
+            titles={titles.map(({ title }) => title)}
+            onChoose={chosenTitle(choice)}
+            onType={choice.onType}
+          />
+          {choice.notice}
+        </div>
         <div className={`${DENSE_FIELD} basis-full wide:col-span-full`}>
           <label htmlFor={`${id}-memo`} className={FIELD_LABEL}>{en.entryForm.memo}</label>
           <input

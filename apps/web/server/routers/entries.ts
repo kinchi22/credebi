@@ -28,7 +28,10 @@ export const entriesRouter = router({
     if (!result.ok) {
       throw toTrpcError(result.error);
     }
-    return result.value.map(({ title }) => ({ title }));
+    return result.value.map(({ title, lines }) => ({
+      title,
+      lines: lines.map(({ account, side, amount }) => ({ account, side, amount })),
+    }));
   }),
 
   post: sessionProcedure

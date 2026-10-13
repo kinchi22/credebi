@@ -271,6 +271,13 @@ export const en = {
         'can be used only within its active period. Change the day, choose another account, or change the period in',
     },
   },
+  needsMultiLineMode: {
+    mark: 'Needs Multi-line mode',
+    lastEntry: 'The last Entry titled',
+    explanation:
+      'has more than one line on a Side. Two-line mode posts one debit and one credit line. Change the Entry form mode in',
+    settings: 'Settings',
+  },
   helpTip: {
     about: 'About',
   },

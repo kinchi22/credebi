@@ -8,6 +8,7 @@ import {
   type ChartOutput,
   type DomainError,
   type Money,
+  type OfferedTitle,
   type PostedEntry,
   type Result,
   type Side,
@@ -32,6 +33,7 @@ import { isLine, lineName, linesOnDay, offeredOn } from './lines-on-day';
 import { NotActiveMark, useNotActiveHold } from './not-active-on-day';
 import { SIDE_TONE, SIDES } from './side-classes';
 import { DANGER_TEXT, FORM_REFUSAL } from './text-classes';
+import { prefillFrom } from './title-prefill';
 
 type ChosenLine = DraftLine & {
   readonly account: AccountId;
@@ -222,13 +224,21 @@ function MultiLineFields({
   const isChosen = (side: Side, account: AccountId): boolean =>
     picked.some(isLine(side, account));
 
+  const chooseTitle = ({ lines: source }: OfferedTitle): void => {
+    const prefill = prefillFrom({ mode: 'multi-line', lines: picked }, source, chart);
+    if (prefill.outcome === 'filled') {
+      hold.clear();
+      setPicked(prefill.lines);
+    }
+  };
+
   const totals = draftTotals(lines.counted);
   const isActive = (line: ChosenLine): boolean => !lines.notActive.includes(line);
 
   return (
     <div className={ENTRY_FORM_GRID}>
       <div className="flex min-w-0 flex-col gap-3">
-        {heading}
+        {heading({ onChoose: chooseTitle })}
         <div className="flex flex-col">
           {SIDES.map((side) => {
             const sideLines = picked.filter((line) => line.side === side);

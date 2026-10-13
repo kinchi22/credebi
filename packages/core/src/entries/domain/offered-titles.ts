@@ -17,6 +17,7 @@ export type TitledEntry = {
 
 export type OfferedTitle = {
   readonly title: string;
+  readonly lines: readonly TitledLine[];
 };
 
 export function offeredSince(now: Date): Date {
@@ -31,11 +32,11 @@ const latestFirst = (first: TitledEntry, second: TitledEntry): number =>
 export function offeredTitles(entries: readonly TitledEntry[]): readonly OfferedTitle[] {
   const seen = new Set<string>();
   const offered: OfferedTitle[] = [];
-  for (const { title } of [...entries].sort(latestFirst)) {
+  for (const { title, lines } of [...entries].sort(latestFirst)) {
     const folded = title.toLowerCase();
     if (title !== '' && !seen.has(folded)) {
       seen.add(folded);
-      offered.push({ title });
+      offered.push({ title, lines });
     }
   }
   return offered;
