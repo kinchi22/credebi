@@ -63,6 +63,7 @@ status in the ADR itself.
 | [ADR-0025: Ban comments in code](adr/0025-ban-comments-in-code.md) | Accepted |
 | [ADR-0026: Keep a chart of accounts per User](adr/0026-keep-a-chart-of-accounts-per-user.md) | Accepted |
 | [ADR-0027: Total by Account, and name an Entry by its Title](adr/0027-total-by-account-and-name-an-entry-by-its-title.md) | Accepted |
+| [ADR-0028: Remove an Account no shown Entry names](adr/0028-remove-an-account-no-shown-entry-names.md) | Deferred |
 
 ## Package layout
 
