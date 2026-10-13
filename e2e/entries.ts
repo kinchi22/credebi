@@ -23,6 +23,8 @@ export const nameOf = (account: LineAccount): string =>
 
 export const SIDES = ['Debit', 'Credit'] as const;
 
+export const ACCOUNT_TYPES = ['Assets', 'Liabilities', 'Equity', 'Revenue', 'Expenses'] as const;
+
 export type Side = (typeof SIDES)[number];
 
 export type Heading = {
@@ -75,14 +77,37 @@ export const entrySearchForm = (page: Page): Locator =>
 export const accountChoices = (form: Page | Locator, side: Side): Locator =>
   form.getByRole('radiogroup', { name: `${side} account`, exact: true });
 
+const chart = (picker: Locator): Locator =>
+  picker.getByRole('group', { name: new RegExp(`^(${ACCOUNT_TYPES.join('|')})$`) });
+
 export const accountChoice = (form: Locator, side: Side, account: string): Locator =>
-  accountChoices(form, side).getByRole('radio', { name: account, exact: true });
+  chart(accountChoices(form, side)).getByRole('radio', { name: account, exact: true });
 
 export const accountTicks = (form: Page | Locator, side: Side): Locator =>
   form.getByRole('group', { name: `${side} accounts`, exact: true });
 
 export const accountTick = (form: Locator, side: Side, account: LineAccount): Locator =>
-  accountTicks(form, side).getByRole('checkbox', { name: nameOf(account), exact: true });
+  chart(accountTicks(form, side)).getByRole('checkbox', { name: nameOf(account), exact: true });
+
+export const suggested = (picker: Locator): Locator =>
+  picker.getByRole('group', { name: 'Suggested', exact: true });
+
+export async function expectSuggested(
+  picker: Locator,
+  role: 'radio' | 'checkbox',
+  accounts: readonly LineAccount[],
+): Promise<void> {
+  await expect(picker).toBeVisible();
+  if (accounts.length === 0) {
+    await expect(suggested(picker)).toBeHidden();
+    return;
+  }
+  const shown = suggested(picker).getByRole(role);
+  await expect(shown).toHaveCount(accounts.length);
+  for (const [index, account] of accounts.entries()) {
+    await expect(shown.nth(index)).toHaveAccessibleName(nameOf(account));
+  }
+}
 
 const lineName = (side: Side, account: LineAccount): string => `${side} ${nameOf(account)}`;
 

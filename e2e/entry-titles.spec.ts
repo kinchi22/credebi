@@ -20,7 +20,6 @@ import {
   submit,
   submitMultiLineEntry,
   submitTwoLineEntry,
-  submitTwoLineEntryOnPhone,
   titleField,
   TITLE_MAX,
   titled,
@@ -471,7 +470,9 @@ test('offers the Titles at 390px within the screen, and posts the Title chosen f
 
   await offeredTitle(page, 'Starbucks').click();
   await expect(field).toHaveValue('Starbucks');
-  await submitTwoLineEntryOnPhone(form, twoLine({ day: DAY, memo }));
+  await form.getByLabel('Date').fill(DAY);
+  await form.getByLabel('Memo').fill(memo);
+  await submit(form);
 
   await expect(listedEntry(page, memo)).toContainText(headingShowing({ day: DAY, title: 'Starbucks', memo }));
 });
