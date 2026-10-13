@@ -1,6 +1,11 @@
 'use client';
 
-import { type ChartOutput, type EntryFormMode, type PostedEntry } from '@repo/contracts';
+import {
+  type ChartOutput,
+  type EntryFormMode,
+  type OfferedTitle,
+  type PostedEntry,
+} from '@repo/contracts';
 import { PencilIcon } from '@repo/ui';
 import { useId, type ReactNode } from 'react';
 import { en } from '../messages/en';
@@ -24,7 +29,7 @@ export type EditEntryAction = (
 export type EditEntryProps = {
   readonly entry: PostedEntry;
   readonly chart: ChartOutput;
-  readonly titles: readonly string[];
+  readonly titles: readonly OfferedTitle[];
   readonly entryFormMode: EntryFormMode;
   readonly action: EditEntryAction;
 };

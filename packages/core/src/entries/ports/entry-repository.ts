@@ -1,5 +1,6 @@
 import { type DomainError, type EntryId, type Result, type UserId } from '@repo/contracts';
 import { type Entry } from '../domain/entry';
+import { type TitledEntry } from '../domain/offered-titles';
 import { type Reversal } from '../domain/reversal';
 import { type SearchCriteria } from '../domain/search-criteria';
 
@@ -19,5 +20,8 @@ export type EntryRepository = {
     userId: UserId,
     criteria: SearchCriteria,
   ) => Promise<Result<readonly Entry[], DomainError>>;
-  readonly titles: (userId: UserId) => Promise<Result<readonly string[], DomainError>>;
+  readonly titledEntries: (
+    userId: UserId,
+    createdSince: Date,
+  ) => Promise<Result<readonly TitledEntry[], DomainError>>;
 };

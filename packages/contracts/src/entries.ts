@@ -95,6 +95,12 @@ export function toPostedEntry(entry: {
   };
 }
 
+export const offeredTitleSchema = z.object({
+  title: z.string(),
+});
+
+export type OfferedTitle = z.infer<typeof offeredTitleSchema>;
+
 export const SEARCH_CRITERIA_FIELDS = {
   from: 'from',
   to: 'to',

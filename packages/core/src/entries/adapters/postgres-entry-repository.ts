@@ -33,6 +33,7 @@ import { describeError } from '../../logging/domain/describe-error';
 import { type Logger } from '../../logging/ports/logger';
 import { money } from '../../money/domain/money';
 import { makeEntry, type Entry, type EntryDraft } from '../domain/entry';
+import { type TitledEntry, type TitledLine } from '../domain/offered-titles';
 import { type SearchCriteria } from '../domain/search-criteria';
 import { reversedAlready, type Reversal } from '../domain/reversal';
 import { reversed, shownEntry } from './shown-entry';
@@ -232,24 +233,38 @@ export function postgresEntriesOn(database: PostgresExecutor, logger: Logger): E
       return ok(entries);
     },
 
-    titles: async (userId: UserId): Promise<Result<readonly string[], DomainError>> => {
-      const folded = foldedTitle();
-      const latest = database
-        .selectDistinctOn([folded], {
-          title: schema.entries.title,
-          createdAt: schema.entries.createdAt,
-          id: schema.entries.id,
-        })
-        .from(schema.entries)
-        .where(and(eq(schema.entries.userId, userId), shownEntry(), ne(schema.entries.title, '')))
-        .orderBy(folded, desc(schema.entries.createdAt), desc(schema.entries.id))
-        .as('latest');
+    titledEntries: async (
+      userId: UserId,
+      createdSince: Date,
+    ): Promise<Result<readonly TitledEntry[], DomainError>> => {
+      const titled = and(
+        eq(schema.entries.userId, userId),
+        shownEntry(),
+        ne(schema.entries.title, ''),
+        gte(schema.entries.createdAt, createdSince),
+      );
+      let entryRows: Pick<EntryRow, 'id' | 'title' | 'createdAt'>[];
+      let lineRows: Omit<LineRow, 'accountName'>[];
       try {
-        const rows = await database
-          .select({ title: latest.title })
-          .from(latest)
-          .orderBy(desc(latest.createdAt), desc(latest.id));
-        return ok(rows.map((row) => row.title));
+        entryRows = await database
+          .select({
+            id: schema.entries.id,
+            title: schema.entries.title,
+            createdAt: schema.entries.createdAt,
+          })
+          .from(schema.entries)
+          .where(titled);
+        lineRows = await database
+          .select({
+            entryId: schema.entryLines.entryId,
+            accountId: schema.entryLines.accountId,
+            side: schema.entryLines.side,
+            amount: schema.entryLines.amount,
+          })
+          .from(schema.entryLines)
+          .innerJoin(schema.entries, eq(schema.entries.id, schema.entryLines.entryId))
+          .where(titled)
+          .orderBy(asc(schema.entryLines.entryId), asc(schema.entryLines.lineNumber));
       } catch (error) {
         logger.error(
           { event: 'entries.titles_failed', error: describeError(error) },
@@ -257,6 +272,26 @@ export function postgresEntriesOn(database: PostgresExecutor, logger: Logger): E
         );
         return unavailable('The Titles could not be read.');
       }
+
+      const linesByEntry = new Map<string, TitledLine[]>();
+      for (const line of lineRows) {
+        const side = sideSchema.safeParse(line.side);
+        const amount = money(line.amount);
+        if (!side.success || !amount.ok) {
+          return unavailable(`Stored entry ${line.entryId} has a line with no valid side or amount.`);
+        }
+        const lines = linesByEntry.get(line.entryId) ?? [];
+        lines.push({ account: line.accountId as AccountId, side: side.data, amount: amount.value });
+        linesByEntry.set(line.entryId, lines);
+      }
+      return ok(
+        entryRows.map((row) => ({
+          id: row.id as EntryId,
+          title: row.title,
+          createdAt: row.createdAt,
+          lines: linesByEntry.get(row.id) ?? [],
+        })),
+      );
     },
   };
 }
