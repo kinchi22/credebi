@@ -30,7 +30,8 @@ export default defineConfig({
   forbidOnly: isCI,
   retries: isCI && !isAdvisory ? 2 : 0,
   reporter: [
-    ...(isCI ? [['github'], ['html', { open: 'never' }]] as const : [['list']] as const),
+    ...(isCI ? [['github']] as const : [['list']] as const),
+    ...(isCI || isAdvisory ? [['html', { open: 'never' }]] as const : []),
     ...(isAdvisory ? [['json']] as const : []),
   ],
   use: {

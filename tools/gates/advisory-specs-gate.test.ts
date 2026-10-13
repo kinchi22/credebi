@@ -218,19 +218,22 @@ describe('run-advisory-specs.ts, run as CI runs it', () => {
   const repository = newRepository();
   const config = path.join(repository, 'playwright.advisory-fixture.config.ts');
 
-  const run = (...args: string[]): Run => {
+  const run = (...args: string[]): Run => runIn({ CI: 'true' }, ...args);
+
+  const runIn = (env: NodeJS.ProcessEnv, ...args: string[]): Run => {
     const result = spawnSync(process.execPath, [COMMAND, ...args], {
       cwd: repository,
       encoding: 'utf8',
       env: {
         ...process.env,
-        CI: 'true',
+        CI: undefined,
         E2E_LIVENESS: '1',
         E2E_BASE_URL: undefined,
         E2E_ADVISORY: undefined,
         PLAYWRIGHT_JSON_OUTPUT_NAME: undefined,
         PLAYWRIGHT_HTML_OUTPUT_DIR: undefined,
         GITHUB_ACTIONS: undefined,
+        ...env,
       },
     });
     return { status: result.status ?? -1, stdout: result.stdout, stderr: result.stderr };
@@ -311,6 +314,19 @@ describe('run-advisory-specs.ts, run as CI runs it', () => {
     const outputs = readdirSync(path.join(repository, 'test-results', 'advisory-feature'), { recursive: true }).map(String);
     expect(outputs.filter((file) => file.endsWith('trace.zip'))).toHaveLength(1);
     expect(existsSync(path.join(repository, 'playwright-report', 'advisory-feature', 'index.html'))).toBe(true);
+  });
+
+  it('writes the HTML report outside CI too, so the group can be read before CI runs it', () => {
+    rmSync(path.join(repository, 'playwright-report'), { recursive: true, force: true });
+
+    const result = runIn({}, 'feature', '--base', 'main', '--config', config);
+
+    expect(result.status, result.stdout + result.stderr).toBe(1);
+    expect(existsSync(path.join(repository, 'playwright-report', 'advisory-feature', 'index.html'))).toBe(true);
+    expect(executed('feature')).toEqual([
+      'added.spec.ts added is built expectedx1',
+      'added.spec.ts added is not built yet unexpectedx1',
+    ]);
   });
 
   it('runs the inherited spec files, edited ones included, against the current helpers', () => {

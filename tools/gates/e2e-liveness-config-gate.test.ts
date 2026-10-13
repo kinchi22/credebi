@@ -78,9 +78,9 @@ describe('the strict and advisory E2E configuration', () => {
 
   it.each([
     { mode: 'CI', env: { CI: 'true' }, reporter: [['github'], ['html', { open: 'never' }], ['json']] },
-    { mode: 'local', env: {}, reporter: [['list'], ['json']] },
+    { mode: 'local', env: {}, reporter: [['list'], ['html', { open: 'never' }], ['json']] },
   ])(
-    'runs each advisory test once in $mode, keeps its first failed trace and adds a JSON report',
+    'runs each advisory test once in $mode, keeps its first failed trace and writes HTML and JSON reports',
     ({ env, reporter }) => {
       const config = configFor({ ...env, E2E_ADVISORY: '1' });
 

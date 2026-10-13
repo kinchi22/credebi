@@ -1,16 +1,22 @@
-import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { SPEC_ROOT } from './check-pr-isolation.ts';
-import { type LivenessReport, type ReportSpec, specsIn } from './verify-e2e-liveness.ts';
+import {
+  type LivenessReport,
+  noReport,
+  type ReportSpec,
+  runPlaywright,
+  specsIn,
+} from './verify-e2e-liveness.ts';
 
-export const GROUPS = ['existing', 'feature'] as const;
+const GROUPS = ['existing', 'feature'] as const;
 
 export type Group = (typeof GROUPS)[number];
 
-export const DEFAULT_BASE = 'origin/main';
+const DEFAULT_BASE = 'origin/main';
 
 export type Rename = { readonly from: string; readonly to: string };
 
@@ -31,9 +37,7 @@ export type Comparison =
 
 const LABEL: Record<Group, string> = { existing: 'Existing specs', feature: 'Feature specs' };
 
-const REPO_ROOT = path.resolve(import.meta.dirname, '..');
-
-export const isSpecFile = (file: string): boolean =>
+const isRunnableSpec = (file: string): boolean =>
   file.startsWith(SPEC_ROOT) && /\.(spec|test)\.[cm]?[jt]sx?$/.test(file);
 
 export function classifySpecFiles(
@@ -41,8 +45,8 @@ export function classifySpecFiles(
   current: readonly string[],
   renames: readonly Rename[],
 ): Classification {
-  const inherited = new Set(baseline.filter(isSpecFile));
-  const present = new Set(current.filter(isSpecFile));
+  const inherited = new Set(baseline.filter(isRunnableSpec));
+  const present = new Set(current.filter(isRunnableSpec));
   const renamed = renames.filter(({ from, to }) => inherited.has(from) && present.has(to));
   const carried = new Set(renamed.map(({ to }) => to));
   const moved = new Set(renamed.map(({ from }) => from));
@@ -133,7 +137,7 @@ const listed = (heading: string, files: readonly string[]): readonly string[] =>
   ...(files.length === 0 ? ['  none'] : files.map((file) => `  ${file}`)),
 ];
 
-export function describeComparison(group: Group, baseRef: string, comparison: Comparison & { ok: true }): string {
+function describeComparison(group: Group, baseRef: string, comparison: Comparison & { ok: true }): string {
   const { classification } = comparison;
   return [
     `Advisory group: ${group}.`,
@@ -198,7 +202,7 @@ function judgeReport(
   return { status: exitStatus, lines };
 }
 
-export type RunOptions = {
+type RunOptions = {
   readonly cwd: string;
   readonly group: Group;
   readonly baseRef: string;
@@ -232,7 +236,6 @@ export async function runAdvisoryGroup({ cwd, group, baseRef, config }: RunOptio
     };
   }
 
-  const specDirectory = path.join(cwd, SPEC_ROOT);
   const outputDirectory = path.join(cwd, 'test-results', `advisory-${group}`);
   const reportDirectory = path.join(cwd, 'playwright-report', `advisory-${group}`);
   const reportFile = path.join(outputDirectory, 'report.json');
@@ -242,62 +245,28 @@ export async function runAdvisoryGroup({ cwd, group, baseRef, config }: RunOptio
 
   console.log(header);
 
-  const exit = await new Promise<{ code: number | null; signal: NodeJS.Signals | null }>((resolve, reject) => {
-    const child = spawn(
-      path.join(REPO_ROOT, 'node_modules', '.bin', 'playwright'),
-      [
-        'test',
-        '--test-list',
-        listFile,
-        '--output',
-        outputDirectory,
-        ...(config === undefined ? [] : ['--config', config]),
-      ],
-      {
-        cwd,
-        stdio: 'inherit',
-        env: {
-          ...process.env,
-          E2E_LIVENESS: undefined,
-          E2E_ADVISORY: '1',
-          PLAYWRIGHT_JSON_OUTPUT_NAME: reportFile,
-          PLAYWRIGHT_HTML_OUTPUT_DIR: reportDirectory,
-        },
-      },
-    );
-    const forward = (signal: NodeJS.Signals): void => {
-      child.kill(signal);
-    };
-    process.on('SIGINT', forward).on('SIGTERM', forward);
-    child.on('error', reject);
-    child.on('close', (code, signal) => {
-      process.off('SIGINT', forward).off('SIGTERM', forward);
-      resolve({ code, signal });
-    });
+  const run = await runPlaywright({
+    cwd,
+    args: ['--test-list', listFile, '--output', outputDirectory, ...(config === undefined ? [] : ['--config', config])],
+    env: { E2E_LIVENESS: undefined, E2E_ADVISORY: '1', PLAYWRIGHT_HTML_OUTPUT_DIR: reportDirectory },
+    reportFile,
   }).finally(() => {
     rmSync(listDirectory, { recursive: true, force: true });
   });
 
-  const reports = [
-    `HTML report: ${path.relative(cwd, reportDirectory)}`,
-    `Traces of failed tests and the JSON report: ${path.relative(cwd, outputDirectory)}`,
-  ];
-  if (exit.signal !== null || exit.code === null) {
-    return {
-      status: 1,
-      lines: [`${LABEL[group]} are incomplete: Playwright was stopped by ${String(exit.signal)} before it finished.`, ...reports],
-    };
-  }
-  if (!existsSync(reportFile)) {
-    return {
-      status: exit.code === 0 ? 1 : exit.code,
-      lines: [`${LABEL[group]} are incomplete: Playwright wrote no report (exit status ${String(exit.code)}).`],
-    };
+  if (run.report === undefined || run.exitStatus === null) {
+    return { status: run.exitStatus === null || run.exitStatus === 0 ? 1 : run.exitStatus, lines: [`${LABEL[group]} are incomplete: ${noReport(run)}`] };
   }
 
-  const report = JSON.parse(readFileSync(reportFile, 'utf8')) as LivenessReport;
-  const outcome = judgeReport(group, selected, specDirectory, report, exit.code);
-  return { status: outcome.status, lines: [...outcome.lines, ...reports] };
+  const outcome = judgeReport(group, selected, path.join(cwd, SPEC_ROOT), run.report, run.exitStatus);
+  return {
+    status: outcome.status,
+    lines: [
+      ...outcome.lines,
+      `HTML report: ${path.relative(cwd, reportDirectory)}`,
+      `Traces of failed tests and the JSON report: ${path.relative(cwd, outputDirectory)}`,
+    ],
+  };
 }
 
 const isGroup = (value: string | undefined): value is Group =>
