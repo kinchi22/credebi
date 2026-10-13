@@ -16,6 +16,7 @@ export {
   FolderIcon,
   GoogleMark,
   GripIcon,
+  HelpIcon,
   ListIcon,
   MenuIcon,
   PencilIcon,

@@ -6,7 +6,6 @@ import {
   type AccountId,
   type AccountOutput,
   type ChartOutput,
-  type PostedEntry,
   type Side,
 } from '@repo/contracts';
 import { ACCOUNT_TYPES } from '@repo/core/accounts';
@@ -30,7 +29,6 @@ import {
   type Run,
 } from './chart-tree';
 import { CloseButton } from './close-button';
-import { type Offered } from './lines-on-day';
 import { SheetBar, SheetTabs } from './sheet';
 import { SIDE_TONE, SIDES } from './side-classes';
 import { LINK } from './text-classes';
@@ -631,29 +629,6 @@ function NoActiveAccount(): ReactNode {
   return (
     <p className={`rounded-panel border border-border bg-ground px-4 py-3 ${typeClasses['body-dense']}`}>
       {en.accountSheet.noActiveAccount}{' '}
-      <Link href={SETTINGS_PATH} className={LINK}>
-        {en.accountSheet.settingsLink}
-      </Link>
-    </p>
-  );
-}
-
-type OutsideActivePeriodProps = {
-  readonly entry: PostedEntry | undefined;
-  readonly offered: Offered;
-};
-
-export function OutsideActivePeriod({ entry, offered }: OutsideActivePeriodProps): ReactNode {
-  const outside = [
-    ...new Set(
-      (entry?.lines ?? [])
-        .filter((line) => !offered.ids.has(line.account))
-        .map((line) => line.accountName),
-    ),
-  ];
-  return outside.length === 0 ? null : (
-    <p className={`min-w-0 text-danger ${typeClasses['body-dense']}`}>
-      {en.accountSheet.outsideActivePeriod} {outside.join(', ')}.{' '}
       <Link href={SETTINGS_PATH} className={LINK}>
         {en.accountSheet.settingsLink}
       </Link>

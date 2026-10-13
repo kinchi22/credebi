@@ -17,7 +17,6 @@ import {
   AccountPicker,
   AccountRow,
   ChooseAccountButton,
-  OutsideActivePeriod,
   useAccountSheet,
   type AccountChoice,
 } from './account-picker';
@@ -29,7 +28,8 @@ import {
   type EntryFormProps,
 } from './entry-form';
 import { linesOn } from './entry-lines';
-import { offeredOn } from './lines-on-day';
+import { linesOnDay, offeredOn } from './lines-on-day';
+import { lineName, NotActiveMark, useNotActiveHold, type NamedLine } from './not-active-on-day';
 
 const NOTHING_CHOSEN: AccountChoice = { debit: undefined, credit: undefined };
 
@@ -41,6 +41,14 @@ const accountOn = (
   const line = linesOn(entry, side)[0];
   return accountsIn(chart).find((account) => account.id === line?.account);
 };
+
+const namedLines = (choice: AccountChoice): readonly NamedLine[] =>
+  sideSchema.options.flatMap((side) => {
+    const account = choice[side];
+    return account === undefined
+      ? []
+      : [{ side, account: account.id, accountName: account.name }];
+  });
 
 const choiceOf = (chart: ChartOutput, entry: PostedEntry | undefined): AccountChoice =>
   entry === undefined
@@ -63,32 +71,53 @@ function TwoLineFields({
   const [picked, setPicked] = useState<AccountChoice>(() => choiceOf(chart, entry));
   const sheet = useAccountSheet();
   const offered = offeredOn(chart, day);
-  const offeredAccount = (account: AccountOutput | undefined): AccountOutput | undefined =>
-    account !== undefined && offered.ids.has(account.id) ? account : undefined;
-  const chosen: AccountChoice = {
-    debit: offeredAccount(picked.debit),
-    credit: offeredAccount(picked.credit),
-  };
+  const lines = linesOnDay(offered, namedLines(picked));
+  const hold = useNotActiveHold({
+    day,
+    lines,
+    editing: entry !== undefined,
+    refusal,
+    submitButton,
+  });
 
   const choose = (side: Side, account: AccountOutput): void => {
+    hold.clear();
     setPicked((current) => ({ ...current, [side]: account }));
   };
 
-  const isChosen = (side: Side, account: AccountId): boolean => chosen[side]?.id === account;
+  const isChosen = (side: Side, account: AccountId): boolean => picked[side]?.id === account;
+
+  const notActiveOn = (side: Side): boolean => lines.notActive.some((line) => line.side === side);
 
   return (
     <div className={ENTRY_FORM_GRID}>
       <div className="flex min-w-0 flex-col gap-3">
         {heading}
         <div className={`flex flex-col ${typeClasses['body-dense']}`}>
-          {sideSchema.options.map((side) => (
-            <div key={side}>
-              {offered.ids.size === 0 ? null : (
-                <ChooseAccountButton side={side} account={chosen[side]} sheet={sheet} />
-              )}
-              <AccountRow side={side} account={chosen[side]} />
-            </div>
-          ))}
+          {sideSchema.options.map((side) => {
+            const account = picked[side];
+            return (
+              <div
+                key={side}
+                role={account === undefined ? undefined : 'group'}
+                aria-label={
+                  account === undefined
+                    ? undefined
+                    : lineName({ side, account: account.id, accountName: account.name })
+                }
+              >
+                {offered.ids.size === 0 ? null : (
+                  <ChooseAccountButton side={side} account={account} sheet={sheet} />
+                )}
+                <AccountRow side={side} account={account} />
+                {account !== undefined && notActiveOn(side) ? (
+                  <div className="-mt-2 pb-3 pl-19">
+                    <NotActiveMark accountName={account.name} />
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
         <div className="flex items-end gap-3">
           <div className="min-w-0 grow">
@@ -98,10 +127,9 @@ function TwoLineFields({
               defaultValue={entry === undefined ? undefined : String(entry.total)}
             />
           </div>
-          {submitButton()}
+          {hold.submitButton}
         </div>
-        <OutsideActivePeriod entry={entry} offered={offered} />
-        {refusal}
+        {hold.refusal}
       </div>
       <AccountPicker id={id} chart={offered.chart} isChosen={isChosen} onPick={choose} sheet={sheet} />
     </div>
