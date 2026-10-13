@@ -1,6 +1,7 @@
 import { accountsIn, type AccountId, type ChartOutput, type Side } from '@repo/contracts';
 import { isActiveOn } from '@repo/core/accounts';
 import { draftLinesInOrder } from '@repo/core/entries';
+import { en } from '../messages/en';
 
 export type Offered = {
   readonly chart: ChartOutput;
@@ -25,10 +26,21 @@ export function offeredOn(chart: ChartOutput, day: string | undefined): Offered 
   return { chart: offered, ids: new Set(accountsIn(offered).map((account) => account.id)) };
 }
 
-type AccountLine = {
+export type AccountLine = {
   readonly side: Side;
   readonly account: AccountId;
 };
+
+export type NamedLine = AccountLine & {
+  readonly accountName: string;
+};
+
+export const lineName = (line: NamedLine): string => `${en.sides[line.side]} ${line.accountName}`;
+
+export const isLine =
+  (side: Side, account: AccountId) =>
+  (line: AccountLine): boolean =>
+    line.side === side && line.account === account;
 
 export type LinesOnDay<Line extends AccountLine> = {
   readonly counted: readonly Line[];

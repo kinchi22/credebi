@@ -416,11 +416,12 @@ two shadows tinted from `ink`, `shadows` in the tokens module and
 
 | Shadow      | Layers                                                  | On |
 | ----------- | ------------------------------------------------------- | -- |
-| `lift`      | `0 1px 2px` at 5% and `0 1px 3px` at 4%                 | every panel `PANEL` draws, the Account picker and the Segmented control's strip |
+| `lift`      | `0 1px 2px` at 5% and `0 1px 3px` at 4%                 | every panel `PANEL` draws, the Account picker, the Segmented control's strip and a Help tip's panel |
 | `lift-card` | `0 1px 2px` at 5% and `0 12px 32px` at 8%               | the Sign in card |
 
-Nothing else casts a shadow: not a dialog, a menu, a chip or any other control. The
-stylesheet resets `--shadow-*` to `initial`, so these two are the only shadow
+Nothing else casts a shadow: not a dialog, a menu, a chip or any other control.
+A Help tip's panel lifts off the form it opens over, as the Account picker
+lifts off the page. The stylesheet resets `--shadow-*` to `initial`, so these two are the only shadow
 utilities, `shadow-lift` and `shadow-lift-card`. The lint rule
 `repo/no-raw-shape` rejects a bare `shadow`, Tailwind's own shadows and an
 arbitrary one, and `repo/no-raw-color`, which reads the shadow names from the
@@ -676,20 +677,27 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   `label` and the Side's colour, and its lines name no Side. Two columns at all
   widths, about 6:4, the Account's the wider: the left holds the Account name,
   semibold; the right holds the amount field and, beside it, the Remove button.
-- **Line not active on the day.** In Multi-line mode a line whose Account is
-  not active on the Entry's day stays in the form with its amount, and below
-  its Account name `Not active on this day` in `body-dense` and `warning`. It
-  counts in neither Side's total nor the Difference, and choosing a day on which
-  its Account is active counts it again. While one is shown, the submit posts or
-  saves nothing: the refusal below the Difference row, in place of any earlier
-  one, names the first such line, debits first, as `<Side> <Account>`, and
-  every input is kept.
-  Removing that line or any change of day clears the refusal, and only a
-  submit shows it again. The mark on each line stands in for the form-wide
-  `outside the Active period` message, which Multi-line mode does not show. In
-  Two-line mode such an Account's choice is cleared instead, the required
-  choice holds the submit, and an edited Entry whose Account is cleared keeps
-  that message, with its link to Settings.
+- **Line not active on the day.** In either Entry form mode an Account not
+  active on the Entry's day stays in the form, and below its Account name
+  `Not active on this day` in `body-dense` and `warning`, with a Help tip whose
+  `Settings` links there. In Multi-line mode the line keeps its amount and
+  counts in neither Side's total nor the Difference; in Two-line mode the
+  Account keeps its slot, the mark aligned with its name. Choosing a day on
+  which the Account is active clears the mark. While one is shown, the submit
+  posts or saves nothing: the refusal below the submit, in place of any earlier
+  one, names the first such Account, debits first, and every input is kept.
+  Each refusal opens with `The entry was not added.` in the entry form, or
+  `The entry was not saved.` in Edit entry. The two modes differ only in the
+  way out they name, since Two-line mode has no line to remove:
+
+  | Mode            | Help tip | Refusal, after its opening |
+  | --------------- | -------- | -------------------------- |
+  | Multi-line mode | `<Account> can be used only within its active period. Change the day, remove the line, or change the period in Settings.` | `<Side> <Account> is not active on this day. Remove that line, or choose a day on which its account is active.` |
+  | Two-line mode   | `<Account> can be used only within its active period. Change the day, choose another account, or change the period in Settings.` | `<Account> is not active on this day. Choose another account, or choose a day on which it is active.` |
+
+  Removing that line, choosing another Account or any change of day clears the
+  refusal, and only a submit shows it again. The mark is the form's one message
+  about it, in an edited Entry too.
 - **Multi-line totals.** At every width each Side ends with its own total,
   `Debit total` or `Credit total` in `body-dense` and `text-muted`, its amount
   in `figure` on the line grid, right-aligned with the lines' amounts and
@@ -703,6 +711,14 @@ light ground is 36px tall, `controlHeight` in the tokens module and
 - **Remove button.** A bare × icon in `text-muted`, `text` under the pointer,
   with no fill and no border, named `Remove`, on each Multi-line line: 32px
   wide below `wide` and 24px from `wide` up, as tall as the amount field, 36px.
+- **Help tip.** A bare question-mark icon, 24px square, in `text-muted` and
+  `text` under the pointer, right after its message. Its panel opens just
+  below the message's row, aligned with its start, 256px wide and never wider
+  than the screen less 32px: a `surface` panel with a `border` edge, the
+  `control` radius and the `lift` shadow, its text `body-dense` in `text`.
+  Escape closes every open Help tip wherever focus is, never the dialog
+  around it, and returns focus to the button only when focus was inside the
+  tip.
 - **Icon button.** A secondary button holding a stroke icon in place of text,
   with an accessible name: square and 36px, as tall as the Input beside it, as
   `Choose a period` is.
@@ -890,8 +906,9 @@ hidden.
   else in it.
 - Don't round a corner by anything but the `control`, `panel` or `card`
   radius; the status dot is the one circle.
-- Don't cast a shadow but `lift` on a panel, the Account picker and the
-  Segmented control's strip, and `lift-card` on the Sign in card.
+- Don't cast a shadow but `lift` on a panel, the Account picker, the
+  Segmented control's strip and a Help tip's panel, and `lift-card` on the
+  Sign in card.
 - Don't set text below 11.5px.
 - Don't add a dark mapping before the dark theme Feature.
 

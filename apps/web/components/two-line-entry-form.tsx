@@ -17,7 +17,7 @@ import {
   AccountPicker,
   AccountRow,
   ChooseAccountButton,
-  OutsideActivePeriod,
+  UnderAccountName,
   useAccountSheet,
   type AccountChoice,
 } from './account-picker';
@@ -29,7 +29,12 @@ import {
   type EntryFormProps,
 } from './entry-form';
 import { linesOn } from './entry-lines';
-import { offeredOn } from './lines-on-day';
+import { isLine, lineName, linesOnDay, offeredOn, type NamedLine } from './lines-on-day';
+import { NotActiveMark, useNotActiveHold } from './not-active-on-day';
+import { FORM_REFUSAL } from './text-classes';
+
+const { notActiveOnDay } = en;
+const notActive = notActiveOnDay.twoLine;
 
 const NOTHING_CHOSEN: AccountChoice = { debit: undefined, credit: undefined };
 
@@ -41,6 +46,14 @@ const accountOn = (
   const line = linesOn(entry, side)[0];
   return accountsIn(chart).find((account) => account.id === line?.account);
 };
+
+const namedLines = (choice: AccountChoice): readonly NamedLine[] =>
+  sideSchema.options.flatMap((side) => {
+    const account = choice[side];
+    return account === undefined
+      ? []
+      : [{ side, account: account.id, accountName: account.name }];
+  });
 
 const choiceOf = (chart: ChartOutput, entry: PostedEntry | undefined): AccountChoice =>
   entry === undefined
@@ -63,32 +76,45 @@ function TwoLineFields({
   const [picked, setPicked] = useState<AccountChoice>(() => choiceOf(chart, entry));
   const sheet = useAccountSheet();
   const offered = offeredOn(chart, day);
-  const offeredAccount = (account: AccountOutput | undefined): AccountOutput | undefined =>
-    account !== undefined && offered.ids.has(account.id) ? account : undefined;
-  const chosen: AccountChoice = {
-    debit: offeredAccount(picked.debit),
-    credit: offeredAccount(picked.credit),
-  };
+  const named = namedLines(picked);
+  const lines = linesOnDay(offered, named);
+  const hold = useNotActiveHold(day, lines);
 
   const choose = (side: Side, account: AccountOutput): void => {
+    hold.clear();
     setPicked((current) => ({ ...current, [side]: account }));
   };
 
-  const isChosen = (side: Side, account: AccountId): boolean => chosen[side]?.id === account;
+  const isChosen = (side: Side, account: AccountId): boolean => picked[side]?.id === account;
 
   return (
     <div className={ENTRY_FORM_GRID}>
       <div className="flex min-w-0 flex-col gap-3">
         {heading}
         <div className={`flex flex-col ${typeClasses['body-dense']}`}>
-          {sideSchema.options.map((side) => (
-            <div key={side}>
-              {offered.ids.size === 0 ? null : (
-                <ChooseAccountButton side={side} account={chosen[side]} sheet={sheet} />
-              )}
-              <AccountRow side={side} account={chosen[side]} />
-            </div>
-          ))}
+          {sideSchema.options.map((side) => {
+            const line = named.find((chosen) => chosen.side === side);
+            return (
+              <div
+                key={side}
+                role={line === undefined ? undefined : 'group'}
+                aria-label={line === undefined ? undefined : lineName(line)}
+              >
+                {offered.ids.size === 0 ? null : (
+                  <ChooseAccountButton side={side} account={picked[side]} sheet={sheet} />
+                )}
+                <AccountRow side={side} account={picked[side]} />
+                {line !== undefined && lines.notActive.some(isLine(line.side, line.account)) ? (
+                  <UnderAccountName>
+                    <NotActiveMark
+                      accountName={line.accountName}
+                      explanation={notActive.explanation}
+                    />
+                  </UnderAccountName>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
         <div className="flex items-end gap-3">
           <div className="min-w-0 grow">
@@ -98,10 +124,16 @@ function TwoLineFields({
               defaultValue={entry === undefined ? undefined : String(entry.total)}
             />
           </div>
-          {submitButton()}
+          {submitButton(hold.holdSubmit)}
         </div>
-        <OutsideActivePeriod entry={entry} offered={offered} />
-        {refusal}
+        {hold.refused === undefined ? (
+          refusal
+        ) : (
+          <p role="alert" className={FORM_REFUSAL}>
+            {entry === undefined ? notActiveOnDay.notAdded : notActiveOnDay.notSaved}{' '}
+            {hold.refused.accountName} {notActive.refusal}
+          </p>
+        )}
       </div>
       <AccountPicker id={id} chart={offered.chart} isChosen={isChosen} onPick={choose} sheet={sheet} />
     </div>
