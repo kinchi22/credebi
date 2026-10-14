@@ -7,8 +7,8 @@
 ## Problem
 
 The brief makes the project English-only and lets product copy be localized
-later. Localization itself is decided and not built (ADR-0008). Whatever
-eventually translates the app needs to find its copy, and copy written inline
+later. Localization itself was then decided and not yet built (ADR-0008, since
+adopted). Whatever eventually translates the app needs to find its copy, and copy written inline
 can only be found string by string: only a person reading a string can tell
 copy from a value.
 

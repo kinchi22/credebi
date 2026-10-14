@@ -47,7 +47,7 @@ status in the ADR itself.
 | [ADR-0005: Validate the environment once, at first use](adr/0005-validate-the-environment-once-at-first-use.md) | Accepted |
 | [ADR-0006: Gate main on the specs, run against a build](adr/0006-gate-main-on-the-specs-run-against-a-build.md) | Accepted |
 | [ADR-0007: Keep copy in one catalogue](adr/0007-keep-copy-in-one-catalogue.md) | Accepted |
-| [ADR-0008: Localize without a locale in the URL](adr/0008-localize-without-a-locale-in-the-url.md) | Deferred |
+| [ADR-0008: Localize without a locale in the URL](adr/0008-localize-without-a-locale-in-the-url.md) | Accepted |
 | [ADR-0009: Deploy to Vercel against two Neon projects](adr/0009-deploy-to-vercel-against-two-neon-projects.md) | Superseded by ADR-0024 |
 | [ADR-0010: Model a record as a balanced entry of lines](adr/0010-model-a-record-as-a-balanced-entry-of-lines.md) | Accepted |
 | [ADR-0011: Make an aggregate write atomic](adr/0011-make-an-aggregate-write-atomic.md) | Accepted |
