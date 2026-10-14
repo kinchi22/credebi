@@ -25,7 +25,7 @@ export type PostgresAccountRepository = AccountRepository & {
   readonly close: () => Promise<void>;
 };
 
-type AccountRow = Omit<typeof schema.accounts.$inferSelect, 'userId'>;
+type AccountRow = Omit<typeof schema.accounts.$inferSelect, 'userId' | 'removedAt'>;
 
 type GroupRow = Omit<typeof schema.accountGroups.$inferSelect, 'userId'>;
 
@@ -87,8 +87,17 @@ export function createPostgresAccountRepository(
         if (!accountType.ok) {
           return accountType;
         }
+        const { position } = row;
+        if (position === null) {
+          logger.error(
+            { event: 'accounts.stored_account_unplaced', accountId: row.id },
+            'A stored Account has no position, so the chart was not read.',
+          );
+          return err(domainError('DEPENDENCY_UNAVAILABLE', 'A stored Account has no position.'));
+        }
         accounts.push({
           ...row,
+          position,
           id: row.id as AccountId,
           accountType: accountType.value,
           groupId: row.groupId as AccountGroupId | null,

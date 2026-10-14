@@ -152,6 +152,17 @@ describe('createPostgresAccountRepository', () => {
     expect(logged).toEqual([{ event: 'accounts.stored_account_invalid', accountId: odd.id }]);
   });
 
+  it('reports a stored Account with no position rather than answering with it', async () => {
+    const unplaced = account(1, 'asset', 0, 'Unplaced');
+    await store(ADA, unplaced);
+    await database.execute(sql`update accounts set position = null where id = ${unplaced.id}`);
+
+    const read = await repository.readChart(ADA);
+
+    expect(isErr(read) && read.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+    expect(logged).toEqual([{ event: 'accounts.stored_account_unplaced', accountId: unplaced.id }]);
+  });
+
   it('reports an unreachable database as a result, never by throwing', async () => {
     const read = await dead.readChart(ADA);
 
