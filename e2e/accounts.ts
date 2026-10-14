@@ -190,14 +190,24 @@ export async function boxOf(locator: Locator, what: string): Promise<Box> {
   return box;
 }
 
+async function centreInViewport(page: Page, from: Point, to: Point): Promise<void> {
+  const viewport = page.viewportSize();
+  if (viewport === null) throw new Error('the page has no viewport to scroll');
+  const by = (from.y + to.y) / 2 - viewport.height / 2;
+  await page.evaluate(`window.scrollBy(0, ${String(by)})`);
+}
+
 export async function dragTo(page: Page, from: Locator, target: Point): Promise<void> {
+  const measured = centre(await boxOf(from, 'the grip being dragged'));
+  await centreInViewport(page, measured, target);
   await from.hover();
   const start = centre(await boxOf(from, 'the grip being dragged'));
+  const end = { x: target.x + start.x - measured.x, y: target.y + start.y - measured.y };
   await page.mouse.move(start.x, start.y);
   await page.mouse.down();
-  const direction = target.y > start.y ? 1 : -1;
+  const direction = end.y > start.y ? 1 : -1;
   await page.mouse.move(start.x, start.y + direction * 8, { steps: 4 });
-  await page.mouse.move(target.x, target.y, { steps: 24 });
+  await page.mouse.move(end.x, end.y, { steps: 24 });
   await page.mouse.up();
 }
 
