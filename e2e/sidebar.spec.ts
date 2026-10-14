@@ -91,3 +91,19 @@ test('puts the Sidebar behind a Menu button at 390px, whose drawer holds the lin
   await expect(page).toHaveURL(ENTRY_SEARCH_WITHOUT_QUERY);
   await expect(entrySearchForm(page)).toBeVisible();
 });
+
+test('focuses the drawer, not a Sidebar link, when Menu opens it, and Tab then focuses Entries', async ({ page }) => {
+  await signIn(page);
+  await page.setViewportSize(PHONE);
+
+  await page.getByRole('button', { name: 'Menu', exact: true }).click();
+  await expect(sidebar(page)).toBeFocused();
+  await expect(sidebarLink(page, 'Entries')).not.toBeFocused();
+  await expect(sidebarLink(page, 'Entry search')).not.toBeFocused();
+  await expect(sidebarLink(page, 'Settings')).not.toBeFocused();
+
+  await page.keyboard.press('Tab');
+  const entries = sidebarLink(page, 'Entries');
+  await expect(entries).toBeFocused();
+  await expect(entries.and(page.locator(':focus-visible'))).toBeVisible();
+});

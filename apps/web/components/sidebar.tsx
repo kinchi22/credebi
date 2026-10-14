@@ -15,7 +15,7 @@ export type SidebarProps = {
 
 type SidebarNavProps = SidebarProps & {
   readonly className: string;
-  readonly firstLink?: RefObject<HTMLAnchorElement | null>;
+  readonly focusTarget?: RefObject<HTMLElement | null>;
   readonly onFollow?: () => void;
 };
 
@@ -29,7 +29,7 @@ const LOGO_HEIGHT = 40;
 const BAR_LOGO_HEIGHT = 32;
 
 const ON_DARK_FOCUS = 'focus-visible:outline-focus-on-dark';
-const SIDEBAR_ITEM = `flex items-center gap-2.5 rounded-control px-2.5 py-2 ${ON_DARK_FOCUS}`;
+const SIDEBAR_ITEM = `relative flex items-center gap-2.5 rounded-control px-2.5 py-2 focus-visible:z-10 ${ON_DARK_FOCUS}`;
 const IDLE_TONE = 'text-text-muted-on-dark hover:bg-ground-dark-hover hover:text-text-on-dark';
 const ACTIVE_LINK = `${SIDEBAR_ITEM} bg-ground-dark-raised font-medium text-text-on-dark`;
 const IDLE_LINK = `${SIDEBAR_ITEM} ${IDLE_TONE}`;
@@ -38,21 +38,25 @@ const ICON_BUTTON = `-ml-2 inline-flex size-10 items-center justify-center round
 const SIDEBAR = 'flex-col gap-7 bg-ground-dark px-3 pt-5 pb-4 text-text-on-dark';
 const WIDE_SIDEBAR = `hidden ${SIDEBAR} wide:sticky wide:top-0 wide:flex wide:h-screen wide:w-58 wide:shrink-0 wide:overflow-y-auto`;
 
-function SidebarNav({ signOut, className, firstLink, onFollow }: SidebarNavProps): ReactNode {
+function SidebarNav({ signOut, className, focusTarget, onFollow }: SidebarNavProps): ReactNode {
   const pathname = usePathname();
 
   return (
-    <nav aria-label={en.sidebar.ariaLabel} className={className}>
+    <nav
+      ref={focusTarget}
+      tabIndex={focusTarget === undefined ? undefined : -1}
+      aria-label={en.sidebar.ariaLabel}
+      className={className}
+    >
       <span className="flex px-2">
         <Logo variant="horizontal" tone="reverse" name={en.app.name} height={LOGO_HEIGHT} />
       </span>
       <ul className={`flex flex-col gap-0.5 ${typeClasses['body-sm']}`}>
-        {LINKS.map((link, index) => {
+        {LINKS.map((link) => {
           const current = link.href === pathname;
           return (
             <li key={link.href}>
               <Link
-                ref={index === 0 ? firstLink : undefined}
                 href={link.href}
                 aria-current={current ? 'page' : undefined}
                 className={current ? ACTIVE_LINK : IDLE_LINK}
@@ -80,7 +84,7 @@ function SidebarNav({ signOut, className, firstLink, onFollow }: SidebarNavProps
 export function Sidebar({ signOut }: SidebarProps): ReactNode {
   const drawerId = useId();
   const drawer = useModalDialog();
-  const firstLink = useRef<HTMLAnchorElement>(null);
+  const drawerNav = useRef<HTMLElement>(null);
 
   return (
     <>
@@ -92,7 +96,7 @@ export function Sidebar({ signOut }: SidebarProps): ReactNode {
           aria-controls={drawerId}
           onClick={(event) => {
             drawer.show(event.currentTarget);
-            firstLink.current?.focus();
+            drawerNav.current?.focus();
           }}
           className={ICON_BUTTON}
         >
@@ -111,8 +115,8 @@ export function Sidebar({ signOut }: SidebarProps): ReactNode {
       >
         <SidebarNav
           signOut={signOut}
-          className={`flex h-full ${SIDEBAR} overflow-y-auto`}
-          firstLink={firstLink}
+          className={`flex h-full ${SIDEBAR} overflow-y-auto ${ON_DARK_FOCUS}`}
+          focusTarget={drawerNav}
           onFollow={drawer.close}
         />
       </dialog>
