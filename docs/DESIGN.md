@@ -813,13 +813,22 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   `Edit group` are drawn as a confirmation dialog, opened from the Accounts
   section. Its first row holds the title and, below it, the Account type in
   `text-muted`, with a close icon named `Close` at the top right of the panel
-  beside them; the form follows, then the refusal in `danger`, then `Save`, a
-  primary button reading `Saving...` while it runs, alone at the end of the
-  last row. It has no `Cancel`. Focus starts on Name. `Close`, Escape or a
-  click on the scrim closes it at once when the form holds what it opened with,
-  and focus returns to the button that opened it; when the form holds changes,
-  they open `Discard changes` instead. While it saves, `Close` and `Save` are
-  disabled and nothing closes it.
+  beside them; the form follows, then the status line, then the last row:
+  `Save`, a primary button reading `Saving...` while it runs, at its end. It
+  has no `Cancel`. Focus starts on Name. The status line is one `status` region
+  in `text-muted` holding one message at a time: the refusal in `danger`, or
+  the confirmation `<name> was added.`. In `Add account` and `Add group` the
+  last row starts with an `Add another` checkbox in `body-sm`. It is unchecked
+  whenever the dialog opens. It is not part of the form, so toggling it alone
+  is no change. `Save` with it checked keeps the dialog open on the same Account
+  type: Name and Description clear, an Account keeps the Group, Active from and
+  Active until it was saved with, focus returns to Name, and the confirmation
+  replaces any refusal. `Edit account` and `Edit group` have no checkbox.
+  `Close`, Escape or a click on the scrim closes it at once when the form holds
+  what it opened with, and focus returns to the button that opened it; when
+  the form holds changes, they open `Discard changes` instead. What it opened
+  with is taken again from the cleared form after each kept-open save. While it
+  saves, `Close`, `Add another` and `Save` are disabled and nothing closes it.
 - **Discard changes dialog.** `Discard changes` is a confirmation dialog over
   `Edit entry` or an Account dialog, whose thing is a sentence saying the
   changes will be lost, in `body-sm`. `Keep editing` stands where `Cancel` does
