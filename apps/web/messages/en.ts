@@ -360,6 +360,13 @@ export const en = {
       MEMO_TOO_LONG: 'This entry could not be deleted. Reload the page and try again.',
     },
   },
+  startingAccounts: {
+    asset: 'Cash',
+    liability: 'Accounts payable',
+    equity: 'Capital',
+    revenue: 'Sales',
+    expense: 'Expenses',
+  },
   accountTypes: {
     asset: 'Assets',
     liability: 'Liabilities',

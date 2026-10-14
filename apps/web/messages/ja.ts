@@ -374,6 +374,13 @@ export const ja = {
       MEMO_TOO_LONG: entryNotDeleted,
     },
   },
+  startingAccounts: {
+    asset: '現金',
+    liability: '買掛金',
+    equity: '資本金',
+    revenue: '売上',
+    expense: '費用',
+  },
   accountTypes: {
     asset: '資産',
     liability: '負債',

@@ -65,9 +65,16 @@ describe('parseDay', () => {
 });
 
 describe('startingChart', () => {
-  it('starts a User with Cash, Accounts payable, Capital, Sales and Expenses, one under each Account type, from the given day', () => {
+  it('starts a User with one Account under each Account type, in Account type order, named as given, from the given day', () => {
     let issued = 0;
-    const chart = startingChart('2026-09-18', () => {
+    const names = {
+      expense: 'Expenses',
+      revenue: 'Sales',
+      equity: 'Capital',
+      liability: 'Accounts payable',
+      asset: 'Cash',
+    };
+    const chart = startingChart('2026-09-18', names, () => {
       issued += 1;
       return idOf(issued);
     });

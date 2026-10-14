@@ -46,7 +46,8 @@ started as `aria-hidden`, `className`, `data-*`, `dateTime`, `href`, `htmlFor`,
 
 `apps/web/messages` is an `eslint-plugin-boundaries` element of its own. Nothing
 else in the repo is imported by it, and only `server` imports it, for the
-request config through which `next-intl` serves every catalogue.
+request config through which `next-intl` serves every catalogue and for the
+names of a new User's starting Accounts in their Language.
 
 ## Consequences
 

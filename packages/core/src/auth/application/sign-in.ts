@@ -4,10 +4,18 @@ import {
   ok,
   type AccountId,
   type DomainError,
+  type Language,
   type Result,
   type UserId,
 } from '@repo/contracts';
-import { dayOf, parseDay, startingChart } from '../../accounts/domain/account';
+import {
+  dayOf,
+  parseDay,
+  startingChart,
+  type StartingAccountNames,
+} from '../../accounts/domain/account';
+import { DEFAULT_SETTINGS } from '../../settings/domain/settings';
+import { type SettingsRepository } from '../../settings/ports/settings-repository';
 import { sessionExpiry, type SessionToken, type SessionTokenHash } from '../domain/session';
 import { googleSignIn, testSignIn, type SignInClaims } from '../domain/user';
 import { type GoogleSignIn, type PendingSignIn } from '../ports/google-sign-in';
@@ -17,6 +25,8 @@ import { type UserRepository } from '../ports/user-repository';
 export type SignInDependencies = {
   readonly users: UserRepository;
   readonly sessions: SessionRepository;
+  readonly settings: Pick<SettingsRepository, 'read'>;
+  readonly startingAccountNames: (language: Language) => StartingAccountNames;
   readonly newUserId: () => UserId;
   readonly newAccountId: () => AccountId;
   readonly newSessionToken: () => SessionToken;
@@ -27,36 +37,41 @@ export type SignInDependencies = {
 export type IssuedSession = {
   readonly token: SessionToken;
   readonly expiresAt: Date;
+  readonly language: Language;
 };
 
 export type TestSignIn = (
   identifier: string,
+  language: Language,
   accountsStartOn?: string,
 ) => Promise<Result<IssuedSession, DomainError>>;
 
 export type FinishGoogleSignIn = (
   callbackUrl: URL,
   pending: PendingSignIn | undefined,
+  language: Language,
 ) => Promise<Result<IssuedSession, DomainError>>;
 
 export function createTestSignIn(dependencies: SignInDependencies): TestSignIn {
-  return async (identifier, accountsStartOn) => {
+  return async (identifier, language, accountsStartOn) => {
     const claims = testSignIn(identifier);
     if (!claims.ok) {
       return claims;
     }
     if (accountsStartOn === undefined) {
-      return signIn(dependencies, claims.value, undefined);
+      return signIn(dependencies, claims.value, { language });
     }
     const startsOn = parseDay(accountsStartOn);
-    return startsOn.ok ? signIn(dependencies, claims.value, startsOn.value) : startsOn;
+    return startsOn.ok
+      ? signIn(dependencies, claims.value, { language, accountsStartOn: startsOn.value })
+      : startsOn;
   };
 }
 
 export function createFinishGoogleSignIn(
   dependencies: SignInDependencies & { readonly google: GoogleSignIn },
 ): FinishGoogleSignIn {
-  return async (callbackUrl, pending) => {
+  return async (callbackUrl, pending, language) => {
     if (pending === undefined) {
       return err(domainError('INVALID_INPUT', 'No sign-in with Google was begun here.'));
     }
@@ -65,18 +80,30 @@ export function createFinishGoogleSignIn(
       return answered;
     }
     const claims = googleSignIn(answered.value);
-    return claims.ok ? signIn(dependencies, claims.value, undefined) : claims;
+    return claims.ok
+      ? signIn(dependencies, claims.value, { language })
+      : claims;
   };
 }
+
+type SignInRequest = {
+  readonly language: Language;
+  readonly accountsStartOn?: string;
+};
+
+type SignedInUser = {
+  readonly userId: UserId;
+  readonly language: Language;
+};
 
 async function signIn(
   dependencies: SignInDependencies,
   claims: SignInClaims,
-  accountsStartOn: string | undefined,
+  request: SignInRequest,
 ): Promise<Result<IssuedSession, DomainError>> {
-  const userId = await findOrAddUser(dependencies, claims, accountsStartOn);
-  if (!userId.ok) {
-    return userId;
+  const user = await findOrAddUser(dependencies, claims, request);
+  if (!user.ok) {
+    return user;
   }
 
   const { sessions, newSessionToken, hashSessionToken, now } = dependencies;
@@ -84,17 +111,26 @@ async function signIn(
   const expiresAt = sessionExpiry(now());
   const added = await sessions.add({
     tokenHash: hashSessionToken(token),
-    userId: userId.value,
+    userId: user.value.userId,
     expiresAt,
   });
-  return added.ok ? ok({ token, expiresAt }) : added;
+  return added.ok ? ok({ token, expiresAt, language: user.value.language }) : added;
+}
+
+async function withStoredLanguage(
+  { settings }: SignInDependencies,
+  userId: UserId,
+): Promise<Result<SignedInUser, DomainError>> {
+  const read = await settings.read(userId);
+  return read.ok ? ok({ userId, language: read.value.language }) : read;
 }
 
 async function findOrAddUser(
-  { users, newUserId, newAccountId, now }: SignInDependencies,
+  dependencies: SignInDependencies,
   { identity, profile }: SignInClaims,
-  accountsStartOn: string | undefined,
-): Promise<Result<UserId, DomainError>> {
+  { language, accountsStartOn }: SignInRequest,
+): Promise<Result<SignedInUser, DomainError>> {
+  const { users, newUserId, newAccountId, startingAccountNames, now } = dependencies;
   const found = await users.findByIdentity(identity);
   if (!found.ok) {
     return found;
@@ -102,18 +138,22 @@ async function findOrAddUser(
   if (found.value !== undefined) {
     const userId = found.value.id;
     const updated = await users.updateProfile(userId, profile);
-    return updated.ok ? ok(userId) : updated;
+    return updated.ok ? withStoredLanguage(dependencies, userId) : updated;
   }
 
   const user = { id: newUserId(), ...profile, createdAt: now() };
-  const chart = startingChart(accountsStartOn ?? dayOf(user.createdAt), newAccountId);
-  const added = await users.add(user, identity, chart);
+  const chart = startingChart(
+    accountsStartOn ?? dayOf(user.createdAt),
+    startingAccountNames(language),
+    newAccountId,
+  );
+  const added = await users.add(user, identity, chart, { ...DEFAULT_SETTINGS, language });
   if (added.ok) {
-    return ok(user.id);
+    return ok({ userId: user.id, language });
   }
   const raced = await users.findByIdentity(identity);
   if (!raced.ok) {
     return raced;
   }
-  return raced.value === undefined ? added : ok(raced.value.id);
+  return raced.value === undefined ? added : withStoredLanguage(dependencies, raced.value.id);
 }

@@ -2,12 +2,9 @@ import { DEFAULT_LANGUAGE, languageSchema, type Language } from '@repo/contracts
 import { resolveLanguage, type LanguageSources } from '@repo/core/settings';
 import { getRequestConfig, getTranslations, type RequestConfig } from 'next-intl/server';
 import { cookies, headers } from 'next/headers';
-import { en, type Catalogue } from '../messages/en';
-import { ja } from '../messages/ja';
-import { ko } from '../messages/ko';
+import { type en } from '../messages/en';
+import { CATALOGUES } from './catalogues';
 import { LANGUAGE_COOKIE } from './language-cookie';
-
-const CATALOGUES: Readonly<Record<Language, Catalogue>> = { en, ko, ja };
 
 export const configForLanguage = (language: Language): RequestConfig => ({
   locale: language,
@@ -27,6 +24,9 @@ async function requestSources(): Promise<LanguageSources> {
   }
   return { cookie, acceptLanguage: (await headers()).get('accept-language') };
 }
+
+export const requestLanguage = async (): Promise<Language> =>
+  resolveLanguage(await requestSources());
 
 export default getRequestConfig(async ({ locale }) =>
   locale === undefined ? requestConfig(await requestSources()) : configForLanguage(locale),

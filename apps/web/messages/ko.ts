@@ -372,6 +372,13 @@ export const ko = {
       MEMO_TOO_LONG: entryNotDeleted,
     },
   },
+  startingAccounts: {
+    asset: '현금',
+    liability: '매입채무',
+    equity: '자본금',
+    revenue: '매출',
+    expense: '비용',
+  },
   accountTypes: {
     asset: '자산',
     liability: '부채',

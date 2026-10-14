@@ -51,16 +51,7 @@ export type NamedAccount = {
 
 export type AccountNames = ReadonlyMap<string, NamedAccount>;
 
-export const STARTING_ACCOUNTS: readonly {
-  readonly accountType: AccountType;
-  readonly name: string;
-}[] = [
-  { accountType: 'asset', name: 'Cash' },
-  { accountType: 'liability', name: 'Accounts payable' },
-  { accountType: 'equity', name: 'Capital' },
-  { accountType: 'revenue', name: 'Sales' },
-  { accountType: 'expense', name: 'Expenses' },
-];
+export type StartingAccountNames = Readonly<Record<AccountType, string>>;
 
 export function dayOf(instant: Date): string {
   return instant.toISOString().slice(0, 10);
@@ -75,13 +66,14 @@ export function parseDay(text: string): Result<string, DomainError> {
 
 export function startingChart(
   startsOn: string,
+  names: StartingAccountNames,
   newAccountId: () => AccountId,
 ): readonly Account[] {
-  return STARTING_ACCOUNTS.map(({ accountType, name }) => ({
+  return ACCOUNT_TYPES.map((accountType) => ({
     id: newAccountId(),
     accountType,
     groupId: null,
-    name,
+    name: names[accountType],
     description: null,
     position: 0,
     activeFrom: startsOn,
