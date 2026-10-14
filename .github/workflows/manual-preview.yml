@@ -36,8 +36,11 @@ jobs:
     name: Deploy approved ${{ needs.resolve.outputs.sha }} to Preview
     needs: resolve
     environment:
-      name: preview-deployment
+      name: Preview
       deployment: false
+    permissions:
+      contents: read
+      deployments: write
     runs-on: ubuntu-latest
     timeout-minutes: 30
     outputs:
@@ -63,13 +66,28 @@ jobs:
         run: |
           node -e 'if (!/^\d+\.\d+\.\d+$/.test(process.env.VERCEL_CLI_VERSION ?? "")) process.exit(1)'
           npm install --global "vercel@$VERCEL_CLI_VERSION"
+      - name: Record approved commit in Preview
+        id: record
+        env:
+          APPROVED_SHA: ${{ needs.resolve.outputs.sha }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node tooling/tools/manual-preview.ts record-start
       - name: Deploy approved checkout
         id: deploy
+        timeout-minutes: 25
         env:
           APPROVED_SHA: ${{ needs.resolve.outputs.sha }}
           SOURCE_DIRECTORY: source
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: node tooling/tools/manual-preview.ts deploy
+      - name: Record Preview outcome
+        if: always()
+        env:
+          DEPLOYMENT_ID: ${{ steps.record.outputs.id }}
+          DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
+          PREVIEW_URL: ${{ steps.deploy.outputs.url }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node tooling/tools/manual-preview.ts record-finish
 
   summary:
     if: always()

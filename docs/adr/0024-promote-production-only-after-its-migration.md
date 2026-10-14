@@ -132,8 +132,11 @@ anything.
   without it need no synchronization or project-wide block.
   Explicit Preview requests use the Vercel CLI through the manually dispatched
   Actions workflow. Repository branches and full commit SHAs resolve once before
-  owner approval in `preview-deployment`; checkout and deployment use that frozen
-  SHA. Only that environment holds `VERCEL_TOKEN`. Every request deploys Preview,
+  owner approval in `Preview`, the single application Preview environment;
+  checkout and deployment use that frozen SHA. Only that environment holds
+  `VERCEL_TOKEN`. The workflow runs from `main`, so its deploy job writes the
+  `Preview` deployment record itself for the approved SHA rather than `main`'s,
+  and a newest active record can outlive Vercel's Preview retention. Every request deploys Preview,
   including `main`, with Vercel's default build cache. The CLI workflow provides
   no Production deployment, Promotion or rollback path. Production remains on
   the Git integration and its Deployment Checks. Actual environment protection
