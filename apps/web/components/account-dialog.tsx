@@ -67,7 +67,7 @@ export type AccountDialogProps = {
   readonly actions: ChartActions;
 };
 
-type KeptFields = {
+type AccountDefaults = {
   readonly groupId: string;
   readonly activeFrom: string | undefined;
   readonly activeUntil: string;
@@ -75,7 +75,7 @@ type KeptFields = {
 
 type Kept = {
   readonly round: number;
-  readonly fields: KeptFields | undefined;
+  readonly fields: AccountDefaults | undefined;
 };
 
 type StatusLine =
@@ -88,7 +88,7 @@ const textOf = (form: FormData, field: string): string => {
   return typeof value === 'string' ? value : '';
 };
 
-const keptFrom = (form: FormData): KeptFields => ({
+const accountDefaultsFrom = (form: FormData): AccountDefaults => ({
   groupId: textOf(form, ACCOUNT_FORM_FIELDS.group),
   activeFrom: textOf(form, ACCOUNT_FORM_FIELDS.activeFrom),
   activeUntil: textOf(form, ACCOUNT_FORM_FIELDS.activeUntil),
@@ -127,7 +127,7 @@ function AccountFields({
   accountType,
   groups,
 }: {
-  readonly defaults: KeptFields;
+  readonly defaults: AccountDefaults;
   readonly accountType: AccountType;
   readonly groups: readonly AccountGroupOutput[];
 }): ReactNode {
@@ -188,7 +188,7 @@ function AccountForm({
   save,
   pending,
   startTransition,
-  onKept,
+  retakeSnapshot,
 }: {
   readonly target: AccountDialogTarget;
   readonly groups: readonly AccountGroupOutput[];
@@ -199,7 +199,7 @@ function AccountForm({
   readonly save: (form: FormData) => Promise<ChartChange>;
   readonly pending: boolean;
   readonly startTransition: TransitionStartFunction;
-  readonly onKept: () => void;
+  readonly retakeSnapshot: () => void;
 }): ReactNode {
   const [status, setStatus] = useState<StatusLine>();
   const [addAnother, setAddAnother] = useState(false);
@@ -209,11 +209,11 @@ function AccountForm({
   const described = target.editing;
   const adding = described === undefined;
 
-  const takeKeptAsOpened = useEffectEvent(onKept);
+  const retakeSnapshotAfterKeptOpen = useEffectEvent(retakeSnapshot);
 
   useEffect(() => {
     if (kept.round > 0) {
-      takeKeptAsOpened();
+      retakeSnapshotAfterKeptOpen();
     }
   }, [kept.round]);
 
@@ -234,13 +234,13 @@ function AccountForm({
         onSaved();
         return;
       }
-      setStatus({ shows: 'added', name: textOf(form, ACCOUNT_FORM_FIELDS.name) });
-      setKept((previous) => ({ round: previous.round + 1, fields: keptFrom(form) }));
+      setStatus({ shows: 'added', name: textOf(form, ACCOUNT_FORM_FIELDS.name).trim() });
+      setKept((previous) => ({ round: previous.round + 1, fields: accountDefaultsFrom(form) }));
     });
   };
 
   const account = target.kind === 'account' ? target.editing : undefined;
-  const accountDefaults: KeptFields = kept.fields ?? {
+  const accountDefaults: AccountDefaults = kept.fields ?? {
     groupId: account?.groupId ?? '',
     activeFrom: account?.activeFrom ?? today,
     activeUntil: account?.activeUntil ?? '',
@@ -286,31 +286,33 @@ function AccountForm({
           />
         ) : null}
       </Fragment>
-      <div role="status" className={`${MUTED_TEXT} empty:-mt-4`}>
-        {status?.shows === 'refusal' ? (
-          <p role="alert" className={DANGER_TEXT}>
-            {kind.refusals[status.code]}
-          </p>
-        ) : null}
-        {status?.shows === 'added' ? <p>{en.accountDialog.added(status.name)}</p> : null}
-      </div>
-      <div className="flex items-center gap-3">
-        {adding ? (
-          <label className={`flex items-center gap-2 ${typeClasses['body-sm']}`}>
-            <input
-              type="checkbox"
-              disabled={pending}
-              checked={addAnother}
-              onChange={(event) => {
-                setAddAnother(event.currentTarget.checked);
-              }}
-            />
-            {en.accountDialog.addAnother}
-          </label>
-        ) : null}
-        <button type="submit" disabled={pending} className={`${PRIMARY_BUTTON} ml-auto`}>
-          {pending ? en.accountDialog.pending : en.accountDialog.save}
-        </button>
+      <div className="flex flex-col">
+        <div role="status" className={`${MUTED_TEXT} not-empty:mb-4`}>
+          {status?.shows === 'refusal' ? (
+            <p role="alert" className={DANGER_TEXT}>
+              {kind.refusals[status.code]}
+            </p>
+          ) : null}
+          {status?.shows === 'added' ? <p>{en.accountDialog.added(status.name)}</p> : null}
+        </div>
+        <div className="flex items-center gap-3">
+          {adding ? (
+            <label className={`flex items-center gap-2 ${typeClasses['body-sm']}`}>
+              <input
+                type="checkbox"
+                disabled={pending}
+                checked={addAnother}
+                onChange={(event) => {
+                  setAddAnother(event.currentTarget.checked);
+                }}
+              />
+              {en.accountDialog.addAnother}
+            </label>
+          ) : null}
+          <button type="submit" disabled={pending} className={`${PRIMARY_BUTTON} ml-auto`}>
+            {pending ? en.accountDialog.pending : en.accountDialog.save}
+          </button>
+        </div>
       </div>
     </form>
   );
@@ -345,7 +347,7 @@ export function AccountDialog({
             save={saverOf(target, actions)}
             pending={pending}
             startTransition={startTransition}
-            onKept={guard.retakeSnapshot}
+            retakeSnapshot={guard.retakeSnapshot}
           />
         ) : null}
       </dialog>

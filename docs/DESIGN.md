@@ -818,9 +818,9 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   has no `Cancel`. Focus starts on Name. The status line is one `status` region
   in `text-muted` holding one message at a time: the refusal in `danger`, or
   the confirmation `<name> was added.`. In `Add account` and `Add group` the
-  last row starts with an `Add another` checkbox in `body-sm`, unchecked
-  whenever the dialog opens and no form field, so toggling it alone is no
-  change. `Save` with it checked keeps the dialog open on the same Account
+  last row starts with an `Add another` checkbox in `body-sm`. It is unchecked
+  whenever the dialog opens. It is not part of the form, so toggling it alone
+  is no change. `Save` with it checked keeps the dialog open on the same Account
   type: Name and Description clear, an Account keeps the Group, Active from and
   Active until it was saved with, focus returns to Name, and the confirmation
   replaces any refusal. `Edit account` and `Edit group` have no checkbox.
