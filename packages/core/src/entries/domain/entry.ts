@@ -59,6 +59,9 @@ export type EntryStamp = {
 const invalid = (message: string): Err<DomainError> =>
   err(domainError('INVALID_INPUT', message));
 
+export const notInChart = (account: string): Err<DomainError> =>
+  invalid(`Account "${account}" is not in the User's chart of accounts.`);
+
 export function makeEntry(
   draft: EntryDraft,
   stamp: EntryStamp,
@@ -134,7 +137,7 @@ function checkLines(
   for (const line of drafts) {
     const account = names.get(line.account);
     if (account === undefined) {
-      return invalid(`Account "${line.account}" is not in the User's chart of accounts.`);
+      return notInChart(line.account);
     }
     if (moneyToMinorUnits(line.amount) <= 0) {
       return invalid('Every line needs an amount greater than zero.');

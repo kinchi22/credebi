@@ -145,6 +145,27 @@ async function titledFound(userId: UserId): Promise<readonly string[]> {
   return isOk(result) ? result.value.map(({ title }) => title).toSorted() : [];
 }
 
+const NOT_IN_CHART = (account: AccountId) =>
+  err(domainError('INVALID_INPUT', `Account "${account}" is not in the User's chart of accounts.`));
+
+async function markRemoved(account: AccountId): Promise<void> {
+  await database.execute(sql`update accounts set removed_at = now() where id = ${account}`);
+}
+
+async function untilWaitingOnLock(): Promise<void> {
+  for (let attempt = 0; attempt < 200; attempt += 1) {
+    const waiting = await database.execute<{ count: number }>(
+      sql`select count(*)::int as count from pg_stat_activity
+          where wait_event_type = 'Lock' and query ilike '%for share%'`,
+    );
+    if ((waiting.rows[0]?.count ?? 0) > 0) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error('The Entry write never waited on the Account row.');
+}
+
 async function countEntries(): Promise<number> {
   const result = await database.execute<{ count: number }>(
     sql`select count(*)::int as count from entries`,
@@ -890,6 +911,48 @@ describe('createPostgresEntryRepository', () => {
     expect(isErr(result) && result.error.message).toContain(saved.id);
   });
 
+  it('refuses an Entry whose line names a removed Account, as one the chart does not hold, and writes nothing', async () => {
+    await markRemoved(CASH);
+
+    const result = await repository.save(ADA, entry());
+
+    expect(result).toEqual(NOT_IN_CHART(CASH));
+    expect(await countEntries()).toBe(0);
+    expect(logged).toEqual([]);
+  });
+
+  it('waits for a removal that holds an Account, then refuses the Entry once that Account is removed', async () => {
+    const remover = createDatabase(databaseUrl);
+    let saving: ReturnType<typeof repository.save> | undefined;
+
+    await remover.database.transaction(async (transaction) => {
+      await transaction.execute(sql`select id from accounts where id = ${CASH} for update`);
+      saving = repository.save(ADA, entry());
+      await untilWaitingOnLock();
+      await transaction.execute(sql`update accounts set removed_at = now() where id = ${CASH}`);
+    });
+    await remover.close();
+
+    expect(await saving).toEqual(NOT_IN_CHART(CASH));
+    expect(await countEntries()).toBe(0);
+  });
+
+  it('writes an Entry once a removal that held its Account was refused and left it in the chart', async () => {
+    const remover = createDatabase(databaseUrl);
+    const saved = entry();
+    let saving: ReturnType<typeof repository.save> | undefined;
+
+    await remover.database.transaction(async (transaction) => {
+      await transaction.execute(sql`select id from accounts where id = ${CASH} for update`);
+      saving = repository.save(ADA, saved);
+      await untilWaitingOnLock();
+    });
+    await remover.close();
+
+    expect(await saving).toEqual(ok(undefined));
+    expect(await found()).toEqual([saved]);
+  });
+
   it('reports an unreachable database when reading one Entry or saving a Reversal', async () => {
     const saved = entry();
     const read = await dead.find(ADA, saved.id);
@@ -968,6 +1031,29 @@ describe('createPostgresUnitOfWork', () => {
 
     expect(isErr(done) && done.error.code).toBe('CONFLICT');
     expect(await countEntries()).toBe(2);
+  });
+
+  it('refuses a Correction whose replacement names a removed Account: neither the Reversal nor the replacement is written', async () => {
+    const original = entry({
+      lines: [
+        { account: EXPENSES, side: 'debit', amount: 12500 as Money },
+        { account: PAYABLE, side: 'credit', amount: 12500 as Money },
+      ],
+    });
+    await repository.save(ADA, original);
+    await markRemoved(CASH);
+
+    const done = await unitOfWork.run(async (entries) => {
+      const reversed = await entries.saveReversal(ADA, reversalOf(original));
+      if (!reversed.ok) return reversed;
+      return entries.save(ADA, entry({ memo: 'Replacement' }));
+    });
+
+    expect(done).toEqual(NOT_IN_CHART(CASH));
+    expect(await countEntries()).toBe(1);
+    expect(await repository.find(ADA, original.id)).toEqual(
+      ok({ entry: original, reversed: false }),
+    );
   });
 
   it('reports an unreachable database to a unit of work as unavailable, never by throwing', async () => {

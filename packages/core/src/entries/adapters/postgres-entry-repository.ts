@@ -6,6 +6,7 @@ import {
   exists,
   gte,
   ilike,
+  inArray,
   isNull,
   lte,
   ne,
@@ -32,7 +33,7 @@ import { type NamedAccount } from '../../accounts/domain/account';
 import { describeError } from '../../logging/domain/describe-error';
 import { type Logger } from '../../logging/ports/logger';
 import { money } from '../../money/domain/money';
-import { makeEntry, type Entry, type EntryDraft } from '../domain/entry';
+import { makeEntry, notInChart, type Entry, type EntryDraft } from '../domain/entry';
 import { type TitledEntry, type TitledLine } from '../domain/offered-titles';
 import { type SearchCriteria } from '../domain/search-criteria';
 import { reversedAlready, type Reversal } from '../domain/reversal';
@@ -71,27 +72,51 @@ export function createPostgresEntryRepository(
 }
 
 export function postgresEntriesOn(database: PostgresExecutor, logger: Logger): EntryRepository {
-  const insert = (userId: UserId, entry: Entry, reverses: EntryId | null): Promise<void> =>
-    database.transaction(async (transaction) => {
-      await transaction.insert(schema.entries).values({
-        id: entry.id,
-        userId,
-        entryDate: entry.entryDate,
-        title: entry.title,
-        memo: entry.memo,
-        createdAt: entry.createdAt,
-        reversesEntryId: reverses,
-      });
-      await transaction.insert(schema.entryLines).values(
-        entry.lines.map((line, index) => ({
-          entryId: entry.id,
-          lineNumber: index + 1,
-          accountId: line.account,
-          side: line.side,
-          amount: line.amount,
-        })),
-      );
+  const insert = async (
+    transaction: PostgresExecutor,
+    userId: UserId,
+    entry: Entry,
+    reverses: EntryId | null,
+  ): Promise<void> => {
+    await transaction.insert(schema.entries).values({
+      id: entry.id,
+      userId,
+      entryDate: entry.entryDate,
+      title: entry.title,
+      memo: entry.memo,
+      createdAt: entry.createdAt,
+      reversesEntryId: reverses,
     });
+    await transaction.insert(schema.entryLines).values(
+      entry.lines.map((line, index) => ({
+        entryId: entry.id,
+        lineNumber: index + 1,
+        accountId: line.account,
+        side: line.side,
+        amount: line.amount,
+      })),
+    );
+  };
+
+  const unheldAccount = async (
+    transaction: PostgresExecutor,
+    entry: Entry,
+  ): Promise<AccountId | undefined> => {
+    const named = [...new Set(entry.lines.map((line) => line.account))].toSorted();
+    const held = await transaction
+      .select({ id: schema.accounts.id })
+      .from(schema.accounts)
+      .where(
+        and(
+          inArray(schema.accounts.id, named),
+          isNull(schema.accounts.removedAt),
+        ),
+      )
+      .orderBy(asc(schema.accounts.id))
+      .for('share');
+    const heldIds = new Set<string>(held.map((row) => row.id));
+    return named.find((account) => !heldIds.has(account));
+  };
 
   const logSaveFailed = (entry: Entry, error: unknown, message: string): void => {
     logger.error(
@@ -117,8 +142,14 @@ export function postgresEntriesOn(database: PostgresExecutor, logger: Logger): E
   return {
     save: async (userId: UserId, entry: Entry): Promise<Result<void, DomainError>> => {
       try {
-        await insert(userId, entry, null);
-        return ok(undefined);
+        const unheld = await database.transaction(async (transaction) => {
+          const account = await unheldAccount(transaction, entry);
+          if (account === undefined) {
+            await insert(transaction, userId, entry, null);
+          }
+          return account;
+        });
+        return unheld === undefined ? ok(undefined) : notInChart(unheld);
       } catch (error) {
         logSaveFailed(entry, error, 'An entry could not be stored.');
         return unavailable('The entry could not be stored.');
@@ -130,7 +161,9 @@ export function postgresEntriesOn(database: PostgresExecutor, logger: Logger): E
       reversal: Reversal,
     ): Promise<Result<void, DomainError>> => {
       try {
-        await insert(userId, reversal, reversal.reverses);
+        await database.transaction((transaction) =>
+          insert(transaction, userId, reversal, reversal.reverses),
+        );
         return ok(undefined);
       } catch (error) {
         if (violates(error, REVERSED_ONCE)) {
