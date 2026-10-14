@@ -1,6 +1,6 @@
-import { languageSchema, type Language } from '@repo/contracts';
+import { DEFAULT_LANGUAGE, languageSchema, type Language } from '@repo/contracts';
 import { resolveLanguage, type LanguageSources } from '@repo/core/settings';
-import { getRequestConfig, type RequestConfig } from 'next-intl/server';
+import { getRequestConfig, getTranslations, type RequestConfig } from 'next-intl/server';
 import { cookies, headers } from 'next/headers';
 import { en, type Catalogue } from '../messages/en';
 import { ja } from '../messages/ja';
@@ -9,13 +9,16 @@ import { LANGUAGE_COOKIE } from './language-cookie';
 
 const CATALOGUES: Readonly<Record<Language, Catalogue>> = { en, ko, ja };
 
-export const configIn = (language: Language): RequestConfig => ({
+export const configForLanguage = (language: Language): RequestConfig => ({
   locale: language,
   messages: CATALOGUES[language] as typeof en,
 });
 
 export const requestConfig = (sources: LanguageSources): RequestConfig =>
-  configIn(resolveLanguage(sources));
+  configForLanguage(resolveLanguage(sources));
+
+export const getPrerenderedAppCopy = (): ReturnType<typeof getTranslations<'app'>> =>
+  getTranslations({ locale: DEFAULT_LANGUAGE, namespace: 'app' });
 
 async function requestSources(): Promise<LanguageSources> {
   const cookie = (await cookies()).get(LANGUAGE_COOKIE)?.value;
@@ -26,7 +29,7 @@ async function requestSources(): Promise<LanguageSources> {
 }
 
 export default getRequestConfig(async ({ locale }) =>
-  locale === undefined ? requestConfig(await requestSources()) : configIn(locale),
+  locale === undefined ? requestConfig(await requestSources()) : configForLanguage(locale),
 );
 
 declare module 'next-intl' {

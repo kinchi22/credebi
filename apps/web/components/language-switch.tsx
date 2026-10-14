@@ -5,6 +5,7 @@ import { CheckIcon, GlobeIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useLocale, useTranslations } from 'next-intl';
 import {
+  useCallback,
   useEffect,
   useId,
   useRef,
@@ -14,19 +15,14 @@ import {
   type ReactNode,
 } from 'react';
 import { BARE_ICON_BUTTON } from './control-classes';
+import { useDismissOutside } from './dismiss-outside';
+import { DOWN_STEPS } from './roving-focus';
 
 export type LanguageSwitchProps = {
-  readonly action: (language: string) => Promise<void>;
+  readonly action: (language: Language) => Promise<void>;
 };
 
 const LANGUAGES = languageSchema.options;
-
-const STEP: Readonly<Record<string, (index: number) => number>> = {
-  ArrowDown: (index) => (index + 1) % LANGUAGES.length,
-  ArrowUp: (index) => (index - 1 + LANGUAGES.length) % LANGUAGES.length,
-  Home: () => 0,
-  End: () => LANGUAGES.length - 1,
-};
 
 export function LanguageSwitch({ action }: LanguageSwitchProps): ReactNode {
   const t = useTranslations('language');
@@ -38,20 +34,15 @@ export function LanguageSwitch({ action }: LanguageSwitchProps): ReactNode {
   const choices = useRef<(HTMLButtonElement | null)[]>([]);
   const menuId = useId();
 
+  const dismiss = useCallback((): void => {
+    setOpen(false);
+  }, []);
+  useDismissOutside(open, root, dismiss);
+
   useEffect(() => {
-    if (!open) {
-      return undefined;
+    if (open) {
+      choices.current[LANGUAGES.indexOf(current)]?.focus();
     }
-    choices.current[LANGUAGES.indexOf(current)]?.focus();
-    const dismissOutside = (event: PointerEvent): void => {
-      if (event.target instanceof Node && root.current?.contains(event.target) !== true) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('pointerdown', dismissOutside, true);
-    return () => {
-      document.removeEventListener('pointerdown', dismissOutside, true);
-    };
   }, [open, current]);
 
   const close = (): void => {
@@ -78,13 +69,13 @@ export function LanguageSwitch({ action }: LanguageSwitchProps): ReactNode {
       setOpen(false);
       return;
     }
-    const step = STEP[event.key];
+    const step = DOWN_STEPS[event.key];
     if (step === undefined) {
       return;
     }
     event.preventDefault();
     const focused = choices.current.findIndex((choice) => choice === document.activeElement);
-    choices.current[step(focused === -1 ? LANGUAGES.indexOf(current) : focused)]?.focus();
+    choices.current[step(focused === -1 ? LANGUAGES.indexOf(current) : focused, LANGUAGES.length)]?.focus();
   };
 
   return (

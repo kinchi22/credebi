@@ -496,9 +496,8 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   element set in the `h2` step, centred), the failure line when sign-in failed,
   centred, the Google sign-in button, and, where test sign-in is offered, the
   `Test sign-in` form below a dashed `border` rule with 20px above it.
-- **Language switch.** The control on a signed-out page that changes the
-  Language, and on `/sign-in` alone, centred 16px below the Sign in card. It is
-  a bare button 36px tall in `body-sm` and `text-muted`, `text` under the
+- **Language switch.** On `/sign-in` alone, centred 16px below the Sign in
+  card. It is a bare button 36px tall in `body-sm` and `text-muted`, `text` under the
   pointer: a 16px globe icon, never a flag, 6px before `Language` in the
   page's Language, which is its accessible name. It opens a menu above it: a
   `surface` fill, a `border` edge and the `control` radius, at least 160px wide,

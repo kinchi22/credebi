@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { configIn, requestConfig } from './i18n-request';
+import { configForLanguage, requestConfig } from './i18n-request';
 
 describe('the request config', () => {
   it('serves English, with the English catalogue, to a request that names no Language', () => {
@@ -24,7 +24,7 @@ describe('the request config', () => {
   });
 
   it('serves a Language named outright, with its catalogue, whatever the request holds', () => {
-    const config = configIn('ko');
+    const config = configForLanguage('ko');
 
     expect(config.locale).toBe('ko');
     expect(config.messages).toMatchObject({ language: { label: '\uC5B8\uC5B4' } });

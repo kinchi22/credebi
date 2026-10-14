@@ -139,7 +139,7 @@ export const fontFaces = {
 
 export type ScriptLanguage = 'ko' | 'ja';
 
-export const scriptFaces: Readonly<Record<ScriptLanguage, readonly string[]>> = {
+const scriptFaces: Readonly<Record<ScriptLanguage, readonly string[]>> = {
   ko: ['Apple SD Gothic Neo', 'Malgun Gothic'],
   ja: ['Hiragino Sans', 'Yu Gothic'],
 };

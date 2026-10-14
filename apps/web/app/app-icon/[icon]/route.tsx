@@ -1,8 +1,7 @@
-import { DEFAULT_LANGUAGE } from '@repo/contracts';
-import { getTranslations } from 'next-intl/server';
 import { type ImageResponse } from 'next/og';
 import { notFound } from 'next/navigation';
 import { APP_ICONS, appIcon, type AppIconName } from '../../../components/app-icon';
+import { getPrerenderedAppCopy } from '../../../server/i18n-request';
 
 const isAppIcon = (name: string): name is AppIconName => Object.hasOwn(APP_ICONS, name);
 
@@ -20,6 +19,6 @@ export async function GET(
   if (!isAppIcon(icon)) {
     notFound();
   }
-  const t = await getTranslations({ locale: DEFAULT_LANGUAGE, namespace: 'app' });
+  const t = await getPrerenderedAppCopy();
   return appIcon(APP_ICONS[icon], t('name'));
 }
