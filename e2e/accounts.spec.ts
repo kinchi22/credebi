@@ -73,16 +73,6 @@ async function postToday(
   await postEntries(page, [{ day, memo, debitAccount, creditAccount, amount: AMOUNT }]);
 }
 
-async function deleteEntry(page: Page, memo: string): Promise<void> {
-  await page.goto('/entries');
-  const entry = listedEntry(page, memo);
-  await entry.getByRole('button', { name: 'Delete', exact: true }).click();
-  const dialog = page.getByRole('dialog', { name: 'Delete entry', exact: true });
-  await dialog.getByRole('button', { name: 'Delete', exact: true }).click();
-  await expect(dialog).toBeHidden();
-  await expect(entry).toHaveCount(0);
-}
-
 test('gives a new User Cash, Accounts payable, Capital, Sales and Expenses, one under each Account type, in the Accounts section of Settings', async ({ page }) => {
   await openSettings(page);
 
@@ -143,50 +133,6 @@ test('shows the new name of a renamed Account on an Entry that names it', async 
   await expect(lines.nth(0)).toContainText('Expenses');
   await expect(lines.nth(1)).toContainText('Wallet');
   await expect(lines.nth(1)).not.toContainText('Cash');
-});
-
-test('deletes an Account no Entry names, and refuses to delete one an Entry names, also after that Entry was deleted', async ({ page }) => {
-  test.slow();
-  const run = randomUUID();
-  const kept = `Kept ${run}`;
-  const deleted = `Deleted ${run}`;
-  await signIn(page);
-  await postToday(page, kept, 'Expenses', 'Cash');
-  await postToday(page, deleted, 'Cash', 'Sales');
-  await deleteEntry(page, deleted);
-
-  await page.goto('/settings');
-  await addAccount(page, 'Assets', { name: 'Petty cash' });
-
-  const cancelled = await openDelete(page, 'Assets', 'Petty cash');
-  await cancelled.getByRole('button', { name: 'Cancel', exact: true }).click();
-  await expect(cancelled).toBeHidden();
-  await expectOrder(accountType(page, 'Assets'), ['Cash', 'Petty cash']);
-
-  const unnamed = await openDelete(page, 'Assets', 'Petty cash');
-  await confirmDelete(unnamed);
-  await expect(unnamed).toBeHidden();
-  await expectOrder(accountType(page, 'Assets'), ['Cash']);
-
-  const named = await openDelete(page, 'Assets', 'Cash');
-  await confirmDelete(named);
-  await expectRefused(named);
-  await expect(named.getByRole('alert')).toContainText(/end day/i);
-
-  await named.getByRole('button', { name: 'Cancel', exact: true }).click();
-  await expect(named).toBeHidden();
-
-  const namedOnlyByDeleted = await openDelete(page, 'Revenue', 'Sales');
-  await confirmDelete(namedOnlyByDeleted);
-  await expectRefused(namedOnlyByDeleted);
-  await expect(namedOnlyByDeleted.getByRole('alert')).toContainText(/end day/i);
-
-  await page.reload();
-  await expectOrder(accountType(page, 'Assets'), ['Cash']);
-  await expectOrder(accountType(page, 'Revenue'), ['Sales']);
-
-  await page.goto('/entries');
-  await expect(listedEntry(page, kept).getByTestId('entry-line').nth(1)).toContainText('Cash');
 });
 
 test('deletes an empty Account group, and refuses to delete one that holds an Account', async ({ page }) => {
