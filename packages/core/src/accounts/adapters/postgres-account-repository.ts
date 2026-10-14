@@ -1,4 +1,4 @@
-import { and, asc, eq, max, min, TransactionRollbackError } from 'drizzle-orm';
+import { and, asc, eq, isNull, max, min, TransactionRollbackError, type SQL } from 'drizzle-orm';
 import {
   accountTypeSchema,
   domainError,
@@ -19,6 +19,7 @@ import { describeError } from '../../logging/domain/describe-error';
 import { type LogFields, type Logger } from '../../logging/ports/logger';
 import { type Account, type AccountGroup, type Chart } from '../domain/account';
 import { type ShownSpan } from '../domain/active-period';
+import { type AccountRemoval } from '../domain/removal';
 import { type AccountRepository } from '../ports/account-repository';
 
 export type PostgresAccountRepository = AccountRepository & {
@@ -54,7 +55,7 @@ export function createPostgresAccountRepository(
               activeUntil: schema.accounts.activeUntil,
             })
             .from(schema.accounts)
-            .where(eq(schema.accounts.userId, userId))
+            .where(and(eq(schema.accounts.userId, userId), isNull(schema.accounts.removedAt)))
             .orderBy(asc(schema.accounts.position), asc(schema.accounts.id)),
           database
             .select({
@@ -141,7 +142,7 @@ export function createPostgresAccountRepository(
             activeFrom: account.activeFrom,
             activeUntil: account.activeUntil,
           })
-          .where(and(eq(schema.accounts.id, account.id), eq(schema.accounts.userId, userId)))
+          .where(heldAccount(userId, account.id))
           .returning({ id: schema.accounts.id });
       } catch (error) {
         return saveFailure(logger, 'accounts.update_failed', error, account);
@@ -186,7 +187,7 @@ export function createPostgresAccountRepository(
             const updated = await transaction
               .update(schema.accounts)
               .set({ groupId: account.groupId, position: account.position })
-              .where(and(eq(schema.accounts.id, account.id), eq(schema.accounts.userId, userId)))
+              .where(heldAccount(userId, account.id))
               .returning({ id: schema.accounts.id });
             counts.push(updated.length);
           }
@@ -215,25 +216,6 @@ export function createPostgresAccountRepository(
           );
         }
         return databaseFailure(logger, 'accounts.place_failed', error, 'The chart could not be reordered.');
-      }
-    },
-
-    isAccountNamed: async (userId: UserId, id: AccountId): Promise<Result<boolean, DomainError>> => {
-      try {
-        const naming = await database
-          .select({ entryId: schema.entryLines.entryId })
-          .from(schema.entryLines)
-          .innerJoin(schema.accounts, eq(schema.accounts.id, schema.entryLines.accountId))
-          .where(and(eq(schema.accounts.id, id), eq(schema.accounts.userId, userId)))
-          .limit(1);
-        return ok(naming.length > 0);
-      } catch (error) {
-        return databaseFailure(
-          logger,
-          'accounts.named_read_failed',
-          error,
-          'Whether an Entry names the Account could not be read.',
-        );
       }
     },
 
@@ -266,25 +248,48 @@ export function createPostgresAccountRepository(
       }
     },
 
-    deleteAccount: async (userId: UserId, id: AccountId): Promise<Result<void, DomainError>> => {
-      let deleted: { readonly id: string }[];
+    removeAccount: async (
+      userId: UserId,
+      id: AccountId,
+      removedAt: Date,
+    ): Promise<Result<AccountRemoval, DomainError>> => {
+      let removal: AccountRemoval | null;
       try {
-        deleted = await database
-          .delete(schema.accounts)
-          .where(and(eq(schema.accounts.id, id), eq(schema.accounts.userId, userId)))
-          .returning({ id: schema.accounts.id });
+        removal = await database.transaction(async (transaction) => {
+          const [held] = await transaction
+            .select({ id: schema.accounts.id })
+            .from(schema.accounts)
+            .where(heldAccount(userId, id))
+            .for('update');
+          if (held === undefined) {
+            return null;
+          }
+          const naming = (shown: boolean) =>
+            transaction
+              .select({ entryId: schema.entryLines.entryId })
+              .from(schema.entryLines)
+              .innerJoin(schema.entries, eq(schema.entries.id, schema.entryLines.entryId))
+              .where(and(eq(schema.entryLines.accountId, id), shown ? shownEntry() : undefined))
+              .limit(1);
+          if ((await naming(true)).length > 0) {
+            return 'refused';
+          }
+          if ((await naming(false)).length > 0) {
+            await transaction
+              .update(schema.accounts)
+              .set({ removedAt, groupId: null, position: null })
+              .where(eq(schema.accounts.id, id));
+            return 'marked';
+          }
+          await transaction.delete(schema.accounts).where(eq(schema.accounts.id, id));
+          return 'deleted';
+        });
       } catch (error) {
-        return deleteFailure(
-          logger,
-          'accounts.delete_failed',
-          error,
-          `An Entry names Account ${id}, so it cannot be deleted.`,
-          'The Account could not be deleted.',
-        );
+        return databaseFailure(logger, 'accounts.remove_failed', error, 'The Account could not be removed.');
       }
-      return deleted.length === 0
+      return removal === null
         ? err(domainError('NOT_FOUND', `Account ${id} is not in the User's chart of accounts.`))
-        : ok(undefined);
+        : ok(removal);
     },
 
     deleteGroup: async (userId: UserId, id: AccountGroupId): Promise<Result<void, DomainError>> => {
@@ -310,6 +315,14 @@ export function createPostgresAccountRepository(
 
     close,
   };
+}
+
+function heldAccount(userId: UserId, id: AccountId): SQL | undefined {
+  return and(
+    eq(schema.accounts.id, id),
+    eq(schema.accounts.userId, userId),
+    isNull(schema.accounts.removedAt),
+  );
 }
 
 function storedAccountType(

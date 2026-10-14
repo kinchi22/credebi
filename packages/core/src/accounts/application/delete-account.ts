@@ -1,12 +1,13 @@
-import { type DeleteAccountInput, type DomainError, type Result } from '@repo/contracts';
-import { requireUser, type AuthContext } from '../../auth/domain/auth-context';
-import { type Account } from '../domain/account';
-import { removedAccount } from '../domain/removal';
+import { ok, type DeleteAccountInput, type DomainError, type Result } from '@repo/contracts';
+import { type AuthContext } from '../../auth/domain/auth-context';
+import { findAccount, type Account } from '../domain/account';
+import { accountInUse } from '../domain/removal';
 import { type AccountRepository } from '../ports/account-repository';
 import { changeChart } from './change-chart';
 
 export type DeleteAccountDependencies = {
   readonly accounts: AccountRepository;
+  readonly now: () => Date;
 };
 
 export type DeleteAccount = (
@@ -14,23 +15,18 @@ export type DeleteAccount = (
   input: DeleteAccountInput,
 ) => Promise<Result<Account, DomainError>>;
 
-export function createDeleteAccount({ accounts }: DeleteAccountDependencies): DeleteAccount {
-  return async (auth, { id }) => {
-    const userId = requireUser(auth);
-    if (!userId.ok) {
-      return userId;
-    }
-
-    const named = await accounts.isAccountNamed(userId.value, id);
-    if (!named.ok) {
-      return named;
-    }
-
-    return changeChart(
+export function createDeleteAccount({ accounts, now }: DeleteAccountDependencies): DeleteAccount {
+  return (auth, { id }) =>
+    changeChart(
       accounts,
       auth,
-      (chart) => removedAccount(chart, id, named.value),
-      (owner, account) => accounts.deleteAccount(owner, account.id),
+      (chart) => findAccount(chart, id),
+      async (owner, account) => {
+        const removal = await accounts.removeAccount(owner, account.id, now());
+        if (!removal.ok) {
+          return removal;
+        }
+        return removal.value === 'refused' ? accountInUse(account) : ok(undefined);
+      },
     );
-  };
 }

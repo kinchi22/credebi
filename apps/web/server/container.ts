@@ -148,7 +148,7 @@ export function createContainer({ databaseUrl, google, testSignIn }: Env): Conta
       newAccountGroupId: () => accountGroupIdSchema.parse(uuidv7()),
     }),
     editAccountGroup: createEditAccountGroup({ accounts }),
-    deleteAccount: createDeleteAccount({ accounts }),
+    deleteAccount: createDeleteAccount({ accounts, now: () => new Date() }),
     deleteAccountGroup: createDeleteAccountGroup({ accounts }),
     moveChartNode: createMoveChartNode({ accounts }),
     getSettings: createGetSettings({ settings }),
