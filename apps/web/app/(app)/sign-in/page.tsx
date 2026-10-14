@@ -1,9 +1,10 @@
 import { GoogleMark, Logo, SIGN_IN_CARD } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
+import { type Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 import { type ReactNode } from 'react';
 import { DANGER_TEXT } from '../../../components/text-classes';
 import { TestSignInForm } from '../../../components/test-sign-in-form';
-import { en } from '../../../messages/en';
 import { createContext } from '../../../server/context';
 import { returnPath } from '../../../server/return-path';
 import { createCaller } from '../../../server/root-router';
@@ -11,9 +12,10 @@ import { signInWithTestIdentifier } from './actions';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata = {
-  title: en.signInPage.title,
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations();
+  return { title: t('signInPage.title') };
+}
 
 type SignInPageProps = {
   readonly searchParams: Promise<Readonly<Record<string, string | string[] | undefined>>>;
@@ -21,6 +23,7 @@ type SignInPageProps = {
 
 export default async function SignInPage({ searchParams }: SignInPageProps): Promise<ReactNode> {
   const query = await searchParams;
+  const t = await getTranslations();
   const returnTo = returnPath(query['returnTo']);
   const caller = createCaller(await createContext());
   const testSignInOffered = await caller.auth.testSignInOffered();
@@ -29,12 +32,12 @@ export default async function SignInPage({ searchParams }: SignInPageProps): Pro
     <main className="flex min-h-screen items-center justify-center p-4 wide:p-8">
       <div className={`flex w-full flex-col gap-6 ${SIGN_IN_CARD} px-5 py-7 wide:w-100 wide:px-10 wide:py-10`}>
         <div className="flex justify-center">
-          <Logo variant="stacked" tone="color" name={en.app.name} height={112} />
+          <Logo variant="stacked" tone="color" name={t('app.name')} height={112} />
         </div>
-        <h1 className={`mt-2 text-center ${typeClasses.h2}`}>{en.signInPage.title}</h1>
+        <h1 className={`mt-2 text-center ${typeClasses.h2}`}>{t('signInPage.title')}</h1>
         {query['error'] === undefined ? null : (
           <p role="alert" className={`text-center ${DANGER_TEXT}`}>
-            {en.signInPage.failed}
+            {t('signInPage.failed')}
           </p>
         )}
         <a
@@ -42,7 +45,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps): Pro
           className={`flex h-10 items-center justify-center gap-2.5 rounded-control border border-border-google bg-surface px-4 ${typeClasses['body-sm']} font-semibold text-text`}
         >
           <GoogleMark />
-          {en.signInPage.google}
+          {t('signInPage.google')}
         </a>
         {testSignInOffered ? (
           <div className="border-t border-dashed border-border pt-5">

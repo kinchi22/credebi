@@ -1,9 +1,9 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { HelpIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { en } from '../messages/en';
 import { BARE_ICON_BUTTON } from './control-classes';
 import {
   helpTipAfter,
@@ -22,6 +22,7 @@ type HelpTipProps = {
 };
 
 export function HelpTip({ message, children }: HelpTipProps): ReactNode {
+  const t = useTranslations();
   const [state, setState] = useState<HelpTipState>('closed');
   const root = useRef<HTMLSpanElement>(null);
   const button = useRef<HTMLButtonElement>(null);
@@ -95,7 +96,7 @@ export function HelpTip({ message, children }: HelpTipProps): ReactNode {
       <button
         ref={button}
         type="button"
-        aria-label={`${en.helpTip.about} ${message}`}
+        aria-label={t('helpTip.about', { subject: message })}
         aria-expanded={open}
         onClick={() => {
           apply('toggle');

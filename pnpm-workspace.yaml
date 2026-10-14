@@ -33,6 +33,11 @@ minimumReleaseAgeExclude: []
 # only speeds up SSH crypto, used for reaching a remote Docker host over SSH,
 # which this repo never does, and protobufjs only generates CLI helper files.
 # Refusing all three leaves the JavaScript fallbacks in place.
+#
+# @swc/core and @parcel/watcher arrive under next-intl, for its message
+# extractor, which this repo does not use. Each install script only checks for
+# or builds a native binary the extractor would need; the app builds and
+# translates without either.
 allowBuilds:
   esbuild@0.18.20: true
   esbuild@0.25.12: true
@@ -40,3 +45,5 @@ allowBuilds:
   cpu-features@0.0.10: false
   protobufjs@7.6.6: false
   ssh2@1.17.0: false
+  '@parcel/watcher@2.6.0': false
+  '@swc/core@1.16.13': false

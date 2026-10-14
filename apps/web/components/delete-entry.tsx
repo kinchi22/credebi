@@ -1,10 +1,10 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { type DomainErrorCode, type PostedEntry } from '@repo/contracts';
 import { TrashIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useId, useState, useTransition, type ReactNode } from 'react';
-import { en } from '../messages/en';
 import { formatAmount } from './amount';
 import {
   BUTTON,
@@ -28,6 +28,7 @@ export type DeleteEntryProps = {
 };
 
 export function DeleteEntry({ entry, action }: DeleteEntryProps): ReactNode {
+  const t = useTranslations();
   const titleId = useId();
   const dialog = useModalDialog({ closesWhenWide: false });
   const [refusal, setRefusal] = useState<DomainErrorCode>();
@@ -54,7 +55,7 @@ export function DeleteEntry({ entry, action }: DeleteEntryProps): ReactNode {
     <>
       <button
         type="button"
-        aria-label={en.deleteEntry.open}
+        aria-label={t('deleteEntry.open')}
         onClick={(event) => {
           setRefusal(undefined);
           dialog.show(event.currentTarget);
@@ -66,7 +67,7 @@ export function DeleteEntry({ entry, action }: DeleteEntryProps): ReactNode {
       <PendingDialog dialog={dialog} titleId={titleId} pending={pending}>
         <div className={CONFIRMATION_PANEL}>
           <h2 id={titleId} className={typeClasses.h2}>
-            {en.deleteEntry.title}
+            {t('deleteEntry.title')}
           </h2>
           <p className={`flex items-baseline gap-x-3 border-y border-border py-2 ${typeClasses['body-sm']}`}>
             <time dateTime={entry.entryDate} className={`${typeClasses.date} shrink-0 text-text-muted`}>
@@ -86,15 +87,15 @@ export function DeleteEntry({ entry, action }: DeleteEntryProps): ReactNode {
           </p>
           {refusal === undefined ? null : (
             <p role="alert" className={DANGER_TEXT}>
-              {en.deleteEntry.refusals[refusal]}
+              {t(`deleteEntry.refusals.${refusal}`)}
             </p>
           )}
           <div className="flex justify-end gap-3">
             <button type="button" autoFocus onClick={cancel} disabled={pending} className={BUTTON}>
-              {en.deleteEntry.cancel}
+              {t('deleteEntry.cancel')}
             </button>
             <button type="button" onClick={confirm} disabled={pending} className={DANGER_BUTTON}>
-              {pending ? en.deleteEntry.pending : en.deleteEntry.confirm}
+              {pending ? t('deleteEntry.pending') : t('deleteEntry.confirm')}
             </button>
           </div>
         </div>

@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import {
   type ChartOutput,
   type EntryFormMode,
@@ -8,7 +9,6 @@ import {
 } from '@repo/contracts';
 import { PencilIcon } from '@repo/ui';
 import { useId, type ReactNode } from 'react';
-import { en } from '../messages/en';
 import { useChangeGuard } from './change-guard';
 import { CloseButton } from './close-button';
 import { ROW_ICON_BUTTON } from './control-classes';
@@ -43,6 +43,7 @@ const modeFor = (entry: PostedEntry, chosen: EntryFormMode): EntryFormMode =>
   chosen === 'two-line' && hasOneLinePerSide(entry) ? 'two-line' : 'multi-line';
 
 export function EditEntry({ entry, chart, titles, entryFormMode, action }: EditEntryProps): ReactNode {
+  const t = useTranslations();
   const titleId = useId();
   const dialog = useModalDialog({ closesWhenWide: false });
   const guard = useChangeGuard(dialog);
@@ -52,7 +53,7 @@ export function EditEntry({ entry, chart, titles, entryFormMode, action }: EditE
     <>
       <button
         type="button"
-        aria-label={en.editEntry.open}
+        aria-label={t('editEntry.open')}
         onClick={(event) => {
           dialog.show(event.currentTarget);
         }}
@@ -68,8 +69,8 @@ export function EditEntry({ entry, chart, titles, entryFormMode, action }: EditE
       >
         {dialog.open ? (
           <div className="flex h-full flex-col wide:h-auto wide:max-h-[calc(100dvh-4rem)]">
-            <SheetBar titleId={titleId} title={en.editEntry.title}>
-              <CloseButton label={en.editEntry.close} onClose={guard.requestClose} />
+            <SheetBar titleId={titleId} title={t('editEntry.title')}>
+              <CloseButton label={t('editEntry.close')} onClose={guard.requestClose} />
             </SheetBar>
             <div className="min-h-0 grow overflow-y-auto p-4 wide:p-6">
               <EntryForm
@@ -84,7 +85,7 @@ export function EditEntry({ entry, chart, titles, entryFormMode, action }: EditE
       </dialog>
       <DiscardChanges
         dialog={guard.discard}
-        body={en.discardChanges.entry}
+        body={t('discardChanges.entry')}
         onDiscard={guard.discardChanges}
       />
     </>

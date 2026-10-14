@@ -1,8 +1,8 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useFormStatus } from 'react-dom';
 import { type ReactNode } from 'react';
-import { en } from '../messages/en';
 import { BUTTON } from './control-classes';
 
 export type RefreshButtonProps = {
@@ -10,6 +10,7 @@ export type RefreshButtonProps = {
 };
 
 function SubmitButton(): ReactNode {
+  const t = useTranslations();
   const { pending } = useFormStatus();
 
   return (
@@ -18,7 +19,7 @@ function SubmitButton(): ReactNode {
       className={BUTTON}
       disabled={pending}
     >
-      {pending ? en.refreshButton.pending : en.refreshButton.idle}
+      {pending ? t('refreshButton.pending') : t('refreshButton.idle')}
     </button>
   );
 }

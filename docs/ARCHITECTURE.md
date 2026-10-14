@@ -106,9 +106,10 @@ Whitelist: anything not marked allowed is a violation.
 apps/web reaches core only through its public surface (`@repo/core`,
 `@repo/core/server`, `@repo/core/<feature>`), never into a layer directly.
 
-Inside apps/web, `messages/` imports nothing else in the repo, and only `app/`
-and `components/` import it. That line is `eslint-plugin-boundaries` alone:
-dependency-cruiser treats `apps/web` as one unit. ADR-0007.
+Inside apps/web, `messages/` imports nothing else in the repo, and only
+`server/` imports it; `app/` and `components/` read copy through `next-intl`.
+That line is `eslint-plugin-boundaries` alone: dependency-cruiser treats
+`apps/web` as one unit. ADR-0007.
 
 ### Layer rules inside `core`
 
@@ -168,7 +169,7 @@ Raise the TypeScript major only together with `typescript-eslint`.
 | Healthcheck          | `health.get` is the deployment's healthcheck, not a demonstration of the Phase 0 slice, and outlives the panel that renders it. Every external component the app depends on reports through it as a named component, and the smoke run asserts the strict answer: `healthy`, with `postgres` reachable. ADR-0020. |
 | Barrels              | One `index.ts` per public surface. No barrels inside a package.        |
 | Metadata files       | The favicon, icons, web manifest and share image use Next.js metadata file conventions at the root of `apps/web/app/`, drawn from the `Logo` module's geometry and the tokens. An image the conventions cannot name, such as a web manifest icon, is served by a route handler at `apps/web/app/<name>/[param]/route.tsx` that renders it and nothing else: its params come from `generateStaticParams`, with `dynamicParams` off. The shared rendering lives in `apps/web/components/`. The share image sets its text in IBM Plex Sans from `apps/web/app/fonts/IBMPlexSans-Regular.ttf`, because `ImageResponse` cannot read woff2. |
-| User-facing copy     | In `apps/web/messages/en.ts`, a plain object read by import, grouped by the part of the UI that renders it. `repo/no-inline-copy` rejects copy written as a literal in `apps/web/app` or `apps/web/components`. ADR-0007. Localization is decided and not built: ADR-0008, Deferred. |
+| User-facing copy     | In `apps/web/messages/en.ts`, a plain object read through `next-intl` (`getTranslations` in a server component, `useTranslations` in a client one), grouped by the part of the UI that renders it. `repo/no-inline-copy` rejects copy written as a literal in `apps/web/app` or `apps/web/components`. ADR-0007. `next-intl` is built in with `en` its only Language; the rest of ADR-0008 is not built yet. |
 
 ## Testing layers
 

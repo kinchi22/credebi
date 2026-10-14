@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import {
   accountsIn,
   entryFormModeSchema,
@@ -14,7 +15,6 @@ import {
 import { typeClasses } from '@repo/ui/type-classes';
 import Link from 'next/link';
 import { useState, type ReactNode } from 'react';
-import { en } from '../messages/en';
 import { SETTINGS_PATH } from '../server/return-path';
 import {
   AccountPicker,
@@ -33,14 +33,11 @@ import {
 } from './entry-form';
 import { linesOn } from './entry-lines';
 import { WarningWithHelpTip } from './help-tip';
-import { isLine, lineName, linesOnDay, offeredOn, type NamedLine } from './lines-on-day';
+import { isLine, linesOnDay, offeredOn, type NamedLine } from './lines-on-day';
 import { NotActiveMark, useNotActiveHold } from './not-active-on-day';
 import { FORM_REFUSAL, LINK } from './text-classes';
 import { suggestedOn } from './suggested-accounts';
 import { prefillFrom, type PrefilledLine } from './title-prefill';
-
-const { helpTip, needsMultiLineMode, notActiveOnDay } = en;
-const notActive = notActiveOnDay.twoLine;
 
 const NOTHING_CHOSEN: AccountChoice = { debit: undefined, credit: undefined };
 
@@ -57,13 +54,17 @@ type NeedsMultiLineMarkProps = {
 };
 
 function NeedsMultiLineMark({ title }: NeedsMultiLineMarkProps): ReactNode {
+  const t = useTranslations();
   return (
-    <WarningWithHelpTip message={needsMultiLineMode.mark}>
-      {needsMultiLineMode.lastEntry} {title} {needsMultiLineMode.explanation}{' '}
-      <Link href={SETTINGS_PATH} className={LINK}>
-        {helpTip.settings}
-      </Link>{' '}
-      {needsMultiLineMode.afterSettings}
+    <WarningWithHelpTip message={t('needsMultiLineMode.mark')}>
+      {t.rich('needsMultiLineMode.explanation', {
+        title,
+        settings: (chunks) => (
+          <Link href={SETTINGS_PATH} className={LINK}>
+            {chunks}
+          </Link>
+        ),
+      })}
     </WarningWithHelpTip>
   );
 }
@@ -101,6 +102,7 @@ function TwoLineFields({
   refusal,
   submitButton,
 }: TwoLineFieldsProps): ReactNode {
+  const t = useTranslations();
   const [picked, setPicked] = useState<AccountChoice>(() => choiceOf(chart, entry));
   const [amount, setAmount] = useState(entry === undefined ? '' : String(entry.total));
   const [needsMultiLine, setNeedsMultiLine] = useState<string>();
@@ -149,7 +151,7 @@ function TwoLineFields({
               <div
                 key={side}
                 role={line === undefined ? undefined : 'group'}
-                aria-label={line === undefined ? undefined : lineName(line)}
+                aria-label={line === undefined ? undefined : t('entryLine.name', { side: t(`sides.${line.side}`), account: line.accountName })}
               >
                 {offered.ids.size === 0 ? null : (
                   <ChooseAccountButton side={side} account={picked[side]} sheet={sheet} />
@@ -157,10 +159,7 @@ function TwoLineFields({
                 <AccountRow side={side} account={picked[side]} />
                 {line !== undefined && lines.notActive.some(isLine(line.side, line.account)) ? (
                   <UnderAccountName>
-                    <NotActiveMark
-                      accountName={line.accountName}
-                      explanation={notActive.explanation}
-                    />
+                    <NotActiveMark accountName={line.accountName} lineRemovable={false} />
                   </UnderAccountName>
                 ) : null}
               </div>
@@ -171,7 +170,7 @@ function TwoLineFields({
           <div className="min-w-0 grow">
             <AmountInput
               id={`${id}-amount`}
-              label={en.twoLineForm.amount}
+              label={t('twoLineForm.amount')}
               value={amount}
               onAmountChange={setAmount}
             />
@@ -182,8 +181,9 @@ function TwoLineFields({
           refusal
         ) : (
           <p role="alert" className={FORM_REFUSAL}>
-            {entry === undefined ? notActiveOnDay.notAdded : notActiveOnDay.notSaved}{' '}
-            {hold.refused.accountName} {notActive.refusal}
+            {t(entry === undefined ? 'notActiveOnDay.twoLine.notAdded' : 'notActiveOnDay.twoLine.notSaved', {
+              account: hold.refused.accountName,
+            })}
           </p>
         )}
       </div>

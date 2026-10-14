@@ -1,11 +1,11 @@
 import { Panel, StatusDot } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import Link from 'next/link';
+import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 import { type ReactNode } from 'react';
 import { LINK, MUTED_TEXT } from '../../components/text-classes';
 import { RefreshButton } from '../../components/refresh-button';
-import { en } from '../../messages/en';
 import { createContext } from '../../server/context';
 import { createCaller } from '../../server/root-router';
 import { recheckHealth } from './actions';
@@ -18,17 +18,18 @@ export default async function HomePage(): Promise<ReactNode> {
     redirect('/entries');
   }
   const health = await caller.health.get();
+  const t = await getTranslations();
 
   return (
     <main className="mx-auto flex max-w-xl flex-col gap-4 p-4 wide:p-8">
-      <h1 className={typeClasses.h1}>{en.app.name}</h1>
+      <h1 className={typeClasses.h1}>{t('app.name')}</h1>
       <nav>
         <Link href="/entries" className={`${typeClasses['body-sm']} ${LINK}`}>
-          {en.home.entriesLink}
+          {t('home.entriesLink')}
         </Link>
       </nav>
 
-      <Panel title={en.healthPanel.title}>
+      <Panel title={t('healthPanel.title')}>
         <div className="flex flex-col gap-2" data-testid="health">
           <StatusDot
             tone={health.status === 'healthy' ? 'positive' : 'negative'}
@@ -38,7 +39,7 @@ export default async function HomePage(): Promise<ReactNode> {
             {health.components.map((component) => (
               <li key={component.name} data-testid={`component-${component.name}`}>
                 {component.name}:{' '}
-                {component.reachable ? en.healthPanel.reachable : en.healthPanel.unreachable}
+                {component.reachable ? t('healthPanel.reachable') : t('healthPanel.unreachable')}
               </li>
             ))}
           </ul>
@@ -47,7 +48,7 @@ export default async function HomePage(): Promise<ReactNode> {
             dateTime={health.checkedAt}
             data-testid="checked-at"
           >
-            {en.healthPanel.checkedAt} {health.checkedAt}
+            {t('healthPanel.checkedAt', { instant: health.checkedAt })}
           </time>
           <RefreshButton action={recheckHealth} />
         </div>

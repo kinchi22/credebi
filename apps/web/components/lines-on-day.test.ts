@@ -1,6 +1,6 @@
 import type { AccountGroupId, AccountId, ChartOutput, Side } from '@repo/contracts';
 import { describe, expect, it } from 'vitest';
-import { isLine, lineHoldingSubmit, lineName, linesOnDay, offeredOn } from './lines-on-day';
+import { isLine, lineHoldingSubmit, linesOnDay, offeredOn } from './lines-on-day';
 
 const id = (tail: string): string => `01920000-0000-7000-8000-${tail.padStart(12, '0')}`;
 
@@ -120,14 +120,6 @@ describe('linesOnDay', () => {
 
   it('holds no line back when there is none', () => {
     expect(linesOnDay(offeredOn(CHART, '2026-09-15'), [])).toEqual({ counted: [], notActive: [] });
-  });
-});
-
-describe('lineName', () => {
-  it('names a line by its Side and its Account', () => {
-    expect(lineName({ side: 'credit', account: OLD_WALLET.id, accountName: 'Old wallet' })).toBe(
-      'Credit Old wallet',
-    );
   });
 });
 

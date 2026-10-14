@@ -1,11 +1,12 @@
 import { type SearchQuery } from '@repo/contracts';
+import { type Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 import { type ReactNode } from 'react';
 import { EntrySearchColdVisit } from '../../../../../components/entry-search-cold-visit';
 import { EntrySearchForm } from '../../../../../components/entry-search-form';
 import { EntrySearchOutcome } from '../../../../../components/entry-search-results';
 import { PAGE_HEADING } from '../../../../../components/text-classes';
-import { en } from '../../../../../messages/en';
 import { createContext } from '../../../../../server/context';
 import { answerEntrySearch } from '../../../../../server/entry-search';
 import { ENTRY_SEARCH_PATH, pathWithQuery, signInPath } from '../../../../../server/return-path';
@@ -16,11 +17,10 @@ import { searchDefaultRange } from './actions';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata = {
-  title: en.entrySearch.title,
-};
-
-const heading = <h1 className={PAGE_HEADING}>{en.entrySearchPage.heading}</h1>;
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations();
+  return { title: t('entrySearch.title') };
+}
 
 type EntrySearchPageProps = {
   readonly searchParams: Promise<SearchQuery>;
@@ -30,6 +30,8 @@ export default async function EntrySearchPage({
   searchParams,
 }: EntrySearchPageProps): Promise<ReactNode> {
   const query = await searchParams;
+  const t = await getTranslations();
+  const heading = <h1 className={PAGE_HEADING}>{t('entrySearchPage.heading')}</h1>;
   const path = pathWithQuery(ENTRY_SEARCH_PATH, query);
   const caller = createCaller(await createContext());
   if (path === ENTRY_SEARCH_PATH) {

@@ -1,13 +1,14 @@
 import { palette, semanticColors } from '@repo/ui/tokens';
 import { type MetadataRoute } from 'next';
+import { getTranslations } from 'next-intl/server';
 import { APP_ICONS } from '../components/app-icon';
-import { en } from '../messages/en';
 
-export default function manifest(): MetadataRoute.Manifest {
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  const t = await getTranslations('app');
   return {
-    name: en.app.name,
-    short_name: en.app.name,
-    description: en.app.description,
+    name: t('name'),
+    short_name: t('name'),
+    description: t('description'),
     start_url: '/',
     display: 'standalone',
     background_color: palette[semanticColors.ground],

@@ -59,7 +59,7 @@ export const en = {
     title: 'Pipeline health',
     reachable: 'reachable',
     unreachable: 'unreachable',
-    checkedAt: 'checked at',
+    checkedAt: 'checked at {instant}',
   },
   refreshButton: {
     idle: 'Re-check',
@@ -112,8 +112,8 @@ export const en = {
     addGroupText: '+ Group',
     edit: 'Edit',
     delete: 'Delete',
-    move: 'Move',
-    startsOn: 'Starts',
+    move: 'Move {name}',
+    startsOn: 'Starts <day>{date}</day>',
     moveRefusals: {
       INVALID_INPUT: notMoved,
       NAME_TAKEN: notMoved,
@@ -129,15 +129,16 @@ export const en = {
     drag: {
       instructions:
         'Drag a grip with a pointer to move its account or group. The Group field of Edit account also moves an account.',
-      pickedUp: 'Picked up',
-      wouldGo: 'would go',
-      went: 'was moved',
-      into: 'into',
-      before: 'before',
-      lastIn: 'last in',
-      stays: 'would stay where it is',
-      overNothing: 'is over no place it can be dropped',
-      putBack: 'was put back where it was',
+      pickedUp: 'Picked up {name}',
+      wouldGo: '{name} would go {place}',
+      went: '{name} was moved {place}',
+      into: 'into {group}',
+      intoBefore: 'into {group}, before {sibling}',
+      before: 'before {sibling}',
+      lastIn: 'last in {accountType}',
+      stays: '{name} would stay where it is',
+      overNothing: '{name} is over no place it can be dropped',
+      putBack: '{name} was put back where it was',
     },
   },
   accountDialog: {
@@ -155,7 +156,7 @@ export const en = {
     pending: 'Saving...',
     close: 'Close',
     addAnother: 'Add another',
-    added: (name: string): string => `${name} was added.`,
+    added: '{name} was added.',
     refusals: chartRefusals(
       'account',
       accountNotSaved,
@@ -212,16 +213,14 @@ export const en = {
       month: 'Month',
       relative: 'Relative',
     },
-    quarterPrefix: 'Q',
-    months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    quarter: 'Q{quarter}',
+    month:
+      '{month, plural, =1 {Jan} =2 {Feb} =3 {Mar} =4 {Apr} =5 {May} =6 {Jun} =7 {Jul} =8 {Aug} =9 {Sep} =10 {Oct} =11 {Nov} =12 {Dec} other {#}}',
+    periodOfYear: '{period} {year}',
     relative: {
-      last: 'Last ',
-      next: 'Next ',
-      around: '\u00B1',
-    },
-    monthUnit: {
-      one: 'month',
-      many: 'months',
+      last: 'Last {months, plural, one {# month} other {# months}}',
+      next: 'Next {months, plural, one {# month} other {# months}}',
+      around: '\u00B1{months, plural, one {# month} other {# months}}',
     },
   },
   entryForm: {
@@ -257,38 +256,37 @@ export const en = {
   },
   notActiveOnDay: {
     mark: 'Not active on this day',
-    notAdded: 'The entry was not added.',
-    notSaved: 'The entry was not saved.',
     multiLine: {
-      refusal:
-        'is not active on this day. Remove that line, or choose a day on which its account is active.',
+      notAdded:
+        'The entry was not added. {side} {account} is not active on this day. Remove that line, or choose a day on which its account is active.',
+      notSaved:
+        'The entry was not saved. {side} {account} is not active on this day. Remove that line, or choose a day on which its account is active.',
       explanation:
-        'can be used only within its active period. Change the day, remove the line, or change the period in',
+        '{account} can be used only within its active period. Change the day, remove the line, or change the period in <settings>Settings</settings>.',
     },
     twoLine: {
-      refusal:
-        'is not active on this day. Choose another account, or choose a day on which it is active.',
+      notAdded:
+        'The entry was not added. {account} is not active on this day. Choose another account, or choose a day on which it is active.',
+      notSaved:
+        'The entry was not saved. {account} is not active on this day. Choose another account, or choose a day on which it is active.',
       explanation:
-        'can be used only within its active period. Change the day, choose another account, or change the period in',
+        '{account} can be used only within its active period. Change the day, choose another account, or change the period in <settings>Settings</settings>.',
     },
   },
   needsMultiLineMode: {
     mark: 'Needs Multi-line mode',
-    lastEntry: 'The last Entry titled',
     explanation:
-      'has more than one line on a Side, so nothing was filled in. Choose a debit and a credit account to write this Entry yourself, or change the Entry form mode in',
-    afterSettings: 'to fill every line.',
+      'The last Entry titled {title} has more than one line on a Side, so nothing was filled in. Choose a debit and a credit account to write this Entry yourself, or change the Entry form mode in <settings>Settings</settings> to fill every line.',
   },
   helpTip: {
-    about: 'About',
-    settings: 'Settings',
+    about: 'About {subject}',
   },
   accountSheet: {
     title: 'Choose accounts',
     done: 'Done',
     close: 'Close',
     find: 'Find an account',
-    noMatch: 'No account matches',
+    noMatch: 'No account matches "{query}".',
     suggested: 'Suggested',
     noActiveAccount: 'No account is active on this day.',
     settingsLink: 'Change when your accounts are active in Settings',
@@ -359,6 +357,9 @@ export const en = {
     equity: 'Equity',
     revenue: 'Revenue',
     expense: 'Expenses',
+  },
+  entryLine: {
+    name: '{side} {account}',
   },
   sides: {
     debit: 'Debit',

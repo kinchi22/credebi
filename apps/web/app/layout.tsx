@@ -1,7 +1,9 @@
 import localFont from 'next/font/local';
 import { typeClasses } from '@repo/ui/type-classes';
+import { type Metadata } from 'next';
+import { NextIntlClientProvider } from 'next-intl';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { type ReactNode } from 'react';
-import { en } from '../messages/en';
 import './globals.css';
 
 const plexSans = localFont({
@@ -23,16 +25,22 @@ const plexMono = localFont({
   display: 'swap',
 });
 
-export const metadata = {
-  title: { template: en.app.titleTemplate, default: en.app.name },
-  description: en.app.description,
-  applicationName: en.app.name,
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('app');
+  return {
+    title: { template: t('titleTemplate'), default: t('name') },
+    description: t('description'),
+    applicationName: t('name'),
+  };
+}
 
-export default function RootLayout({ children }: { children: ReactNode }): ReactNode {
+export default async function RootLayout({ children }: { children: ReactNode }): Promise<ReactNode> {
+  const language = await getLocale();
   return (
-    <html lang="en" className={`${plexSans.variable} ${plexMono.variable}`}>
-      <body className={`bg-ground ${typeClasses.body} text-text antialiased`}>{children}</body>
+    <html lang={language} className={`${plexSans.variable} ${plexMono.variable}`}>
+      <body className={`bg-ground ${typeClasses.body} text-text antialiased`}>
+        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+      </body>
     </html>
   );
 }

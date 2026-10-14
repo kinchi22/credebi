@@ -72,7 +72,7 @@ export const DEPENDENCY_POLICIES = [
 
   { from: from(...WEB), allow: allow('contracts', 'core-surface', 'ui', ...WEB) },
 
-  { from: from('web-app', 'web-components'), allow: allow('web-messages') },
+  { from: from('web-server'), allow: allow('web-messages') },
   { from: from('web-messages'), allow: [] },
 ];
 

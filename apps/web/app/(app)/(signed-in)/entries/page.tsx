@@ -1,12 +1,13 @@
 import { type EntryFormMode } from '@repo/contracts';
 import { NO_CRITERIA } from '@repo/core';
+import { type Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 import { type ReactNode } from 'react';
 import { type EntryFormProps } from '../../../../components/entry-form';
 import { EntryList } from '../../../../components/entry-list';
 import { MultiLineEntryForm } from '../../../../components/multi-line-entry-form';
 import { PAGE_HEADING } from '../../../../components/text-classes';
 import { TwoLineEntryForm } from '../../../../components/two-line-entry-form';
-import { en } from '../../../../messages/en';
 import { createContext } from '../../../../server/context';
 import { SIGNED_IN_HOME } from '../../../../server/return-path';
 import { createCaller } from '../../../../server/root-router';
@@ -15,9 +16,10 @@ import { deleteEntry, editEntry, postEntry } from './actions';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata = {
-  title: en.entriesPage.title,
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations();
+  return { title: t('entriesPage.title') };
+}
 
 const FORM_BY_MODE: Readonly<Record<EntryFormMode, (props: EntryFormProps) => ReactNode>> = {
   'two-line': TwoLineEntryForm,
@@ -25,6 +27,7 @@ const FORM_BY_MODE: Readonly<Record<EntryFormMode, (props: EntryFormProps) => Re
 };
 
 export default async function EntriesPage(): Promise<ReactNode> {
+  const t = await getTranslations();
   const caller = createCaller(await createContext());
   const [settings, chart, titles, entries] = await Promise.all([
     orSignIn(caller.settings.read(), SIGNED_IN_HOME),
@@ -36,7 +39,7 @@ export default async function EntriesPage(): Promise<ReactNode> {
 
   return (
     <>
-      <h1 className={PAGE_HEADING}>{en.entriesPage.title}</h1>
+      <h1 className={PAGE_HEADING}>{t('entriesPage.title')}</h1>
       <EntryForm action={postEntry} chart={chart} titles={titles} />
       <EntryList
         entries={entries}
