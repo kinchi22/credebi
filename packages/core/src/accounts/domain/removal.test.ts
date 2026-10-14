@@ -52,21 +52,26 @@ const refusal = (result: Result<unknown, DomainError>): string =>
 
 describe('removedAccount', () => {
   it('removes an Account no Entry line names, answering with it', () => {
-    expect(removedAccount(CHART, CASH.id, false)).toEqual({ ok: true, value: CASH });
-    expect(removedAccount(CHART, ABC_BANK.id, false)).toEqual({ ok: true, value: ABC_BANK });
+    expect(removedAccount(CHART, CASH.id, 'unnamed')).toEqual({ ok: true, value: CASH });
+    expect(removedAccount(CHART, ABC_BANK.id, 'unnamed')).toEqual({ ok: true, value: ABC_BANK });
   });
 
-  it('refuses an Account an Entry line names as in use, telling the User to end it instead', () => {
-    expect(refusal(removedAccount(CHART, CASH.id, true))).toBe(
-      'IN_USE: An Entry names Account "Cash", a deleted or edited Entry included, so it cannot be deleted; give it an end day instead.',
+  it('removes an Account only hidden Reversal pairs name, answering with it', () => {
+    expect(removedAccount(CHART, CASH.id, 'hidden')).toEqual({ ok: true, value: CASH });
+  });
+
+  it('refuses an Account a shown Entry names as in use, telling the User to end it instead', () => {
+    expect(refusal(removedAccount(CHART, CASH.id, 'shown'))).toBe(
+      'IN_USE: A shown Entry names Account "Cash", so it cannot be deleted; give it an end day instead.',
     );
   });
 
-  it("refuses an Account outside the User's chart as not found, named or not", () => {
+  it("refuses an Account outside the User's chart as not found, however it is named", () => {
     const expected = `NOT_FOUND: Account ${ABSENT_ACCOUNT} is not in the User's chart of accounts.`;
 
-    expect(refusal(removedAccount(CHART, ABSENT_ACCOUNT, false))).toBe(expected);
-    expect(refusal(removedAccount(CHART, ABSENT_ACCOUNT, true))).toBe(expected);
+    expect(refusal(removedAccount(CHART, ABSENT_ACCOUNT, 'unnamed'))).toBe(expected);
+    expect(refusal(removedAccount(CHART, ABSENT_ACCOUNT, 'hidden'))).toBe(expected);
+    expect(refusal(removedAccount(CHART, ABSENT_ACCOUNT, 'shown'))).toBe(expected);
   });
 });
 

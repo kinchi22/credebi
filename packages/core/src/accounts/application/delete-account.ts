@@ -7,6 +7,7 @@ import { changeChart } from './change-chart';
 
 export type DeleteAccountDependencies = {
   readonly accounts: AccountRepository;
+  readonly now: () => Date;
 };
 
 export type DeleteAccount = (
@@ -14,23 +15,26 @@ export type DeleteAccount = (
   input: DeleteAccountInput,
 ) => Promise<Result<Account, DomainError>>;
 
-export function createDeleteAccount({ accounts }: DeleteAccountDependencies): DeleteAccount {
+export function createDeleteAccount({ accounts, now }: DeleteAccountDependencies): DeleteAccount {
   return async (auth, { id }) => {
     const userId = requireUser(auth);
     if (!userId.ok) {
       return userId;
     }
 
-    const named = await accounts.isAccountNamed(userId.value, id);
-    if (!named.ok) {
-      return named;
+    const naming = await accounts.readNaming(userId.value, id);
+    if (!naming.ok) {
+      return naming;
     }
 
     return changeChart(
       accounts,
       auth,
-      (chart) => removedAccount(chart, id, named.value),
-      (owner, account) => accounts.deleteAccount(owner, account.id),
+      (chart) => removedAccount(chart, id, naming.value),
+      (owner, account) =>
+        naming.value === 'hidden'
+          ? accounts.markAccountRemoved(owner, account.id, now())
+          : accounts.deleteAccount(owner, account.id),
     );
   };
 }

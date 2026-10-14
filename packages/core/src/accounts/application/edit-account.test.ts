@@ -162,8 +162,8 @@ describe('createEditAccount', () => {
   });
 
   it('changes an Active period freely when only hidden Entries name the Account', async () => {
-    const { editAccount, nameInEntry } = useCases();
-    nameInEntry(CASH.id);
+    const { editAccount, hideInEntry } = useCases();
+    hideInEntry(CASH.id);
 
     const edited = await editAccount(ADA, renamed({ activeFrom: '2030-01-01', activeUntil: null }));
 

@@ -8,20 +8,22 @@ import {
 } from '@repo/contracts';
 import { findAccount, findGroup, type Account, type AccountGroup, type Chart } from './account';
 
+export type AccountNaming = 'unnamed' | 'hidden' | 'shown';
+
 export function removedAccount(
   chart: Chart,
   id: AccountId,
-  named: boolean,
+  naming: AccountNaming,
 ): Result<Account, DomainError> {
   const account = findAccount(chart, id);
   if (!account.ok) {
     return account;
   }
-  if (named) {
+  if (naming === 'shown') {
     return err(
       domainError(
         'IN_USE',
-        `An Entry names Account "${account.value.name}", a deleted or edited Entry included, so it cannot be deleted; give it an end day instead.`,
+        `A shown Entry names Account "${account.value.name}", so it cannot be deleted; give it an end day instead.`,
       ),
     );
   }

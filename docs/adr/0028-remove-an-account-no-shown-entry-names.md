@@ -1,8 +1,9 @@
 # ADR-0028: Remove an Account no shown Entry names
 
-**Status:** Deferred
+**Status:** Accepted
 **Date:** 2026-10-13
 **Trigger:** Feature #364, removing an Account once only deleted Entries name it.
+**Adopted:** 2026-10-14, PR #429
 
 ## Problem
 
@@ -45,9 +46,10 @@ ADR-0026 stands. None of this is in force before then.
 - **Writing an Entry.** The write refuses, in its transaction, a line naming a
   removed Account, answering as for an Account not in the chart, so a removal
   racing a post cannot leave a shown Entry naming one.
-- **Migration, in one release** (ADR-0024). It adds the nullable `removed_at`
-  and makes the name index partial. Current Production ignores the column and
-  marks nothing, so it stays correct until Promotion.
+- **Migration, in one release** (ADR-0024). It adds the nullable `removed_at`,
+  makes `position` nullable so removal can clear it, and makes the name index
+  partial. Current Production ignores the column and marks nothing, so it stays
+  correct until Promotion.
 
 ## Consequences
 

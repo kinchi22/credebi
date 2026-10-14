@@ -41,17 +41,20 @@ describe('inMemoryAccounts', () => {
     expect(await accounts.readChart(GRACE_ID)).toEqual(ok({ accounts: [CASH], groups: [BANK] }));
   });
 
-  it('answers that an Account is named only once an Entry names it, and only to its own User', async () => {
-    const { accounts, hold, nameInEntry } = inMemoryAccounts();
+  it('answers how Entries name an Account, shown over hidden, and only to its own User', async () => {
+    const { accounts, hold, hideInEntry, showInEntry } = inMemoryAccounts();
     hold(ADA_ID, [CASH]);
+    hold(GRACE_ID, [{ ...CASH, id: '01920000-0000-7000-8000-000000000002' as AccountId }]);
 
-    expect(await accounts.isAccountNamed(ADA_ID, CASH.id)).toEqual(ok(false));
-    nameInEntry(CASH.id);
-    expect(await accounts.isAccountNamed(ADA_ID, CASH.id)).toEqual(ok(true));
-    expect(await accounts.isAccountNamed(GRACE_ID, CASH.id)).toEqual(ok(false));
+    expect(await accounts.readNaming(ADA_ID, CASH.id)).toEqual(ok('unnamed'));
+    hideInEntry(CASH.id);
+    expect(await accounts.readNaming(ADA_ID, CASH.id)).toEqual(ok('hidden'));
+    showInEntry(CASH.id, '2026-09-15');
+    expect(await accounts.readNaming(ADA_ID, CASH.id)).toEqual(ok('shown'));
+    expect(await accounts.readNaming(GRACE_ID, CASH.id)).toEqual(ok('unnamed'));
   });
 
-  it('answers the first and last day shown Entries name an Account on, only to its own User, and counts it as named', async () => {
+  it('answers the first and last day shown Entries name an Account on, only to its own User', async () => {
     const { accounts, hold, showInEntry } = inMemoryAccounts();
     hold(ADA_ID, [CASH]);
 
@@ -65,7 +68,6 @@ describe('inMemoryAccounts', () => {
       ok({ first: '2026-09-10', last: '2026-09-20' }),
     );
     expect(await accounts.readShownSpan(GRACE_ID, CASH.id)).toEqual(ok(null));
-    expect(await accounts.isAccountNamed(ADA_ID, CASH.id)).toEqual(ok(true));
   });
 
   it("deletes an Account and an Account group from their User's chart alone", async () => {
@@ -78,6 +80,20 @@ describe('inMemoryAccounts', () => {
 
     expect(await accounts.readChart(ADA_ID)).toEqual(ok({ accounts: [], groups: [] }));
     expect(await accounts.readChart(GRACE_ID)).toEqual(ok({ accounts: [CASH], groups: [BANK] }));
+  });
+
+  it("marks an Account removed in its User's chart alone, at the moment given, and drops it from the chart", async () => {
+    const { accounts, hold, removedAt } = inMemoryAccounts();
+    const moment = new Date('2026-10-14T02:00:00Z');
+    hold(ADA_ID, [CASH], [BANK]);
+    hold(GRACE_ID, [], [BANK]);
+
+    expect(await accounts.markAccountRemoved(GRACE_ID, CASH.id, moment)).toEqual(ok(undefined));
+    expect(removedAt(CASH.id)).toBeUndefined();
+    expect(await accounts.markAccountRemoved(ADA_ID, CASH.id, moment)).toEqual(ok(undefined));
+
+    expect(removedAt(CASH.id)).toEqual(moment);
+    expect(await accounts.readChart(ADA_ID)).toEqual(ok({ accounts: [], groups: [BANK] }));
   });
 
   it("places Accounts and Account groups in their User's chart alone, leaving the rest where they were", async () => {

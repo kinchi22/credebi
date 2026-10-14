@@ -1,4 +1,4 @@
-import { and, asc, eq, max, min, TransactionRollbackError } from 'drizzle-orm';
+import { and, asc, eq, isNull, max, min, TransactionRollbackError } from 'drizzle-orm';
 import {
   accountTypeSchema,
   domainError,
@@ -19,6 +19,7 @@ import { describeError } from '../../logging/domain/describe-error';
 import { type LogFields, type Logger } from '../../logging/ports/logger';
 import { type Account, type AccountGroup, type Chart } from '../domain/account';
 import { type ShownSpan } from '../domain/active-period';
+import { type AccountNaming } from '../domain/removal';
 import { type AccountRepository } from '../ports/account-repository';
 
 export type PostgresAccountRepository = AccountRepository & {
@@ -54,7 +55,7 @@ export function createPostgresAccountRepository(
               activeUntil: schema.accounts.activeUntil,
             })
             .from(schema.accounts)
-            .where(eq(schema.accounts.userId, userId))
+            .where(and(eq(schema.accounts.userId, userId), isNull(schema.accounts.removedAt)))
             .orderBy(asc(schema.accounts.position), asc(schema.accounts.id)),
           database
             .select({
@@ -218,21 +219,32 @@ export function createPostgresAccountRepository(
       }
     },
 
-    isAccountNamed: async (userId: UserId, id: AccountId): Promise<Result<boolean, DomainError>> => {
-      try {
-        const naming = await database
+    readNaming: async (userId: UserId, id: AccountId): Promise<Result<AccountNaming, DomainError>> => {
+      const naming = (shown: boolean) =>
+        database
           .select({ entryId: schema.entryLines.entryId })
           .from(schema.entryLines)
-          .innerJoin(schema.accounts, eq(schema.accounts.id, schema.entryLines.accountId))
-          .where(and(eq(schema.accounts.id, id), eq(schema.accounts.userId, userId)))
+          .innerJoin(schema.entries, eq(schema.entries.id, schema.entryLines.entryId))
+          .where(
+            and(
+              eq(schema.entryLines.accountId, id),
+              eq(schema.entries.userId, userId),
+              shown ? shownEntry() : undefined,
+            ),
+          )
           .limit(1);
-        return ok(naming.length > 0);
+      try {
+        const [named, shown] = await Promise.all([naming(false), naming(true)]);
+        if (shown.length > 0) {
+          return ok('shown');
+        }
+        return ok(named.length > 0 ? 'hidden' : 'unnamed');
       } catch (error) {
         return databaseFailure(
           logger,
-          'accounts.named_read_failed',
+          'accounts.naming_read_failed',
           error,
-          'Whether an Entry names the Account could not be read.',
+          'How Entries name the Account could not be read.',
         );
       }
     },
@@ -278,11 +290,37 @@ export function createPostgresAccountRepository(
           logger,
           'accounts.delete_failed',
           error,
-          `An Entry names Account ${id}, so it cannot be deleted.`,
+          `A shown Entry names Account ${id}, so it cannot be deleted.`,
           'The Account could not be deleted.',
         );
       }
       return deleted.length === 0
+        ? err(domainError('NOT_FOUND', `Account ${id} is not in the User's chart of accounts.`))
+        : ok(undefined);
+    },
+
+    markAccountRemoved: async (
+      userId: UserId,
+      id: AccountId,
+      removedAt: Date,
+    ): Promise<Result<void, DomainError>> => {
+      let marked: { readonly id: string }[];
+      try {
+        marked = await database
+          .update(schema.accounts)
+          .set({ removedAt, groupId: null, position: null })
+          .where(
+            and(
+              eq(schema.accounts.id, id),
+              eq(schema.accounts.userId, userId),
+              isNull(schema.accounts.removedAt),
+            ),
+          )
+          .returning({ id: schema.accounts.id });
+      } catch (error) {
+        return databaseFailure(logger, 'accounts.remove_failed', error, 'The Account could not be removed.');
+      }
+      return marked.length === 0
         ? err(domainError('NOT_FOUND', `Account ${id} is not in the User's chart of accounts.`))
         : ok(undefined);
     },
