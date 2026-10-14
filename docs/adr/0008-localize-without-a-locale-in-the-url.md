@@ -60,9 +60,10 @@ into one map, and the server bundle carries every Language.
 
 A user's five starting Accounts are named in their Language when the user is
 created, from the catalogue, and are then the user's own: changing the Language
-never renames them. Source is English-only, so core holds no names but `en`'s;
-the server reads the others from the catalogue, so `apps/web/server` imports it
-too, and ADR-0007's boundary line changes with adoption.
+never renames them. Core holds no starting names: every Language's, `en`
+included, comes from the catalogue through a function from a Language to the
+five names, which the composition root hands sign-in. So `apps/web/server`
+imports the catalogue too, and ADR-0007's boundary line changes with adoption.
 
 Without a Language in the URL:
 

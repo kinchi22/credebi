@@ -57,8 +57,9 @@ When the trigger holds, accounts become their own feature,
   group is removed only while it is empty. There is no archived flag.
 - **Seeding.** A User starts with five Accounts, Cash, Accounts payable,
   Capital, Sales and Expenses, one directly under each Account type, starting on
-  the day the User was created. The names are stored as data in English and are
-  the User's from then on; the catalogue's `accounts` copy is deleted.
+  the day the User was created. The names are taken from the catalogue in the
+  User's Language when the User is created (#239, ADR-0008), and are the User's
+  own data from then on.
 - **Migration, in two releases** (ADR-0024). The first creates `accounts`, adds
   `entry_lines.account_id` referencing it, seeds the five Accounts for every
   existing User, the Smoke User included, and fills `account_id` from each

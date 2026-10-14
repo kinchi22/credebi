@@ -59,7 +59,7 @@ export function createTestSignIn(dependencies: SignInDependencies): TestSignIn {
       return claims;
     }
     if (accountsStartOn === undefined) {
-      return signIn(dependencies, claims.value, { language, accountsStartOn: undefined });
+      return signIn(dependencies, claims.value, { language });
     }
     const startsOn = parseDay(accountsStartOn);
     return startsOn.ok
@@ -81,14 +81,14 @@ export function createFinishGoogleSignIn(
     }
     const claims = googleSignIn(answered.value);
     return claims.ok
-      ? signIn(dependencies, claims.value, { language, accountsStartOn: undefined })
+      ? signIn(dependencies, claims.value, { language })
       : claims;
   };
 }
 
-type NewUser = {
+type SignInRequest = {
   readonly language: Language;
-  readonly accountsStartOn: string | undefined;
+  readonly accountsStartOn?: string;
 };
 
 type SignedInUser = {
@@ -99,9 +99,9 @@ type SignedInUser = {
 async function signIn(
   dependencies: SignInDependencies,
   claims: SignInClaims,
-  newUser: NewUser,
+  request: SignInRequest,
 ): Promise<Result<IssuedSession, DomainError>> {
-  const user = await findOrAddUser(dependencies, claims, newUser);
+  const user = await findOrAddUser(dependencies, claims, request);
   if (!user.ok) {
     return user;
   }
@@ -117,7 +117,7 @@ async function signIn(
   return added.ok ? ok({ token, expiresAt, language: user.value.language }) : added;
 }
 
-async function existingUser(
+async function withStoredLanguage(
   { settings }: SignInDependencies,
   userId: UserId,
 ): Promise<Result<SignedInUser, DomainError>> {
@@ -128,7 +128,7 @@ async function existingUser(
 async function findOrAddUser(
   dependencies: SignInDependencies,
   { identity, profile }: SignInClaims,
-  { language, accountsStartOn }: NewUser,
+  { language, accountsStartOn }: SignInRequest,
 ): Promise<Result<SignedInUser, DomainError>> {
   const { users, newUserId, newAccountId, startingAccountNames, now } = dependencies;
   const found = await users.findByIdentity(identity);
@@ -138,7 +138,7 @@ async function findOrAddUser(
   if (found.value !== undefined) {
     const userId = found.value.id;
     const updated = await users.updateProfile(userId, profile);
-    return updated.ok ? existingUser(dependencies, userId) : updated;
+    return updated.ok ? withStoredLanguage(dependencies, userId) : updated;
   }
 
   const user = { id: newUserId(), ...profile, createdAt: now() };
@@ -155,5 +155,5 @@ async function findOrAddUser(
   if (!raced.ok) {
     return raced;
   }
-  return raced.value === undefined ? added : existingUser(dependencies, raced.value.id);
+  return raced.value === undefined ? added : withStoredLanguage(dependencies, raced.value.id);
 }
