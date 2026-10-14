@@ -147,6 +147,7 @@ export const userSettings = pgTable('user_settings', {
     .primaryKey()
     .references(() => users.id, { onDelete: 'cascade' }),
   entryFormMode: text('entry_form_mode').notNull(),
+  language: text('language').notNull().default('en'),
 });
 
 export const schema = {
