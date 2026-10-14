@@ -34,8 +34,8 @@ export type Heading = {
 };
 
 export type TwoLineEntry = Heading & {
-  readonly debitAccount: Account;
-  readonly creditAccount: Account;
+  readonly debitAccount: LineAccount;
+  readonly creditAccount: LineAccount;
   readonly amount: string;
 };
 
@@ -295,8 +295,8 @@ export async function submit(form: Locator, name: 'Add entry' | 'Save' = 'Add en
 
 export async function submitTwoLineEntry(form: Locator, entry: TwoLineEntry): Promise<void> {
   await fillHeading(form, entry);
-  await accountChoice(form, 'Debit', entry.debitAccount).check();
-  await accountChoice(form, 'Credit', entry.creditAccount).check();
+  await accountChoice(form, 'Debit', nameOf(entry.debitAccount)).check();
+  await accountChoice(form, 'Credit', nameOf(entry.creditAccount)).check();
   await form.getByLabel('Amount').fill(entry.amount);
   await submit(form);
 }
@@ -307,9 +307,9 @@ export async function submitTwoLineEntryOnPhone(
 ): Promise<void> {
   await fillHeading(form, entry);
   const sheet = await openTwoLineAccountSheet(form, 'Debit');
-  await accountChoice(sheet, 'Debit', entry.debitAccount).check();
+  await accountChoice(sheet, 'Debit', nameOf(entry.debitAccount)).check();
   await expectSheetOnSide(sheet, 'Credit');
-  await accountChoice(sheet, 'Credit', entry.creditAccount).check();
+  await accountChoice(sheet, 'Credit', nameOf(entry.creditAccount)).check();
   await expect(sheet).toBeHidden();
   await form.getByLabel('Amount').fill(entry.amount);
   await submit(form);
