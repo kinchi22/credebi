@@ -57,6 +57,13 @@
       "when": 1791687035604,
       "tag": "0007_entries_title",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791942763246,
+      "tag": "0008_accounts_removed_at",
+      "breakpoints": true
     }
   ]
 }
