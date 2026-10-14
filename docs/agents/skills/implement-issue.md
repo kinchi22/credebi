@@ -59,12 +59,23 @@ it serial.
    --required`). Green, and with no owned path in the diff, merge it:
    `gh pr merge <pr> --squash --delete-branch`. An owned path, or a pull
    request into `main`, waits for the owner: that is a stop.
-7. **Read the milestone's `E2E build (advisory)`**, on a Feature with a
-   milestone. A push to the milestone starts one, and that is the name it
-   reports under in the checks list. The Feature's own specs are red until
-   their Task lands, so a failure in a spec file this Feature is building is
-   expected. A failure anywhere else is a regression the milestone is carrying:
-   open a Bug, and do not let it reach the integration pull request.
+7. **Read the milestone's two advisory checks**, on a Feature with a
+   milestone. A push to the milestone starts both, and `docs/ARCHITECTURE.md`,
+   "How a criterion ships", says how they split the specs. Read each on its own;
+   neither says anything about the other.
+   - **`E2E build (advisory, existing specs)`**: a failing test is a regression
+     candidate. Investigate it; a regression the milestone is carrying is a
+     Bug, opened and kept from the integration pull request.
+   - **`E2E build (advisory, Feature specs)`**: the Feature's own specs, red
+     until their Task lands. Read it as progress, not as a regression.
+   - **Skipped**: the log says no spec file is in that group, and nothing ran.
+     That is not a pass of anything.
+   - **Inconclusive**: a failed comparison, a step before the tests that
+     failed, a cancelled leg or a timed-out one. It proves nothing either way;
+     neither a pass nor a regression. Rerun it, or find what broke the leg.
+   The log lists the spec files removed since the merge-base: none is tested.
+   Each finished leg uploads its HTML report and traces under an artifact
+   named after its group.
 8. **Next.** On a Feature, go back to 1.
 
 ## Stops

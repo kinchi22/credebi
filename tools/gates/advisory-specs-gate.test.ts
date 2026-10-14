@@ -1,4 +1,4 @@
-import { spawnSync } from 'node:child_process';
+import { type ChildProcess, spawn, spawnSync } from 'node:child_process';
 import {
   appendFileSync,
   existsSync,
@@ -214,9 +214,48 @@ describe('compareWithBase, against real Git histories', () => {
 
 type Run = { readonly status: number; readonly stdout: string; readonly stderr: string };
 
+const advisoryEnvironment = (env: NodeJS.ProcessEnv): NodeJS.ProcessEnv => ({
+  ...process.env,
+  CI: undefined,
+  E2E_LIVENESS: '1',
+  E2E_BASE_URL: undefined,
+  E2E_ADVISORY: undefined,
+  PLAYWRIGHT_JSON_OUTPUT_NAME: undefined,
+  PLAYWRIGHT_HTML_OUTPUT_DIR: undefined,
+  GITHUB_ACTIONS: undefined,
+  ...env,
+});
+
+const FIXTURE_CONFIG = 'playwright.advisory-fixture.config.ts';
+
+const prepareFixture = (repository: string): void => {
+  symlinkSync(path.join(REPO_ROOT, 'node_modules'), path.join(repository, 'node_modules'));
+  write(repository, '.gitignore', 'node_modules\ntest-results/\nplaywright-report/\n');
+  write(
+    repository,
+    FIXTURE_CONFIG,
+    [
+      `import { defineConfig } from '@playwright/test';`,
+      `import base from ${JSON.stringify(path.join(REPO_ROOT, 'playwright.config.ts'))};`,
+      '',
+      `export default defineConfig({ ...base, testDir: './e2e', webServer: [] });`,
+      '',
+    ].join('\n'),
+  );
+};
+
+const executedIn = (repository: string, group: string): readonly string[] =>
+  specsIn(
+    (JSON.parse(
+      readFileSync(path.join(repository, 'test-results', `advisory-${group}`, 'report.json'), 'utf8'),
+    ) as LivenessReport).suites,
+  )
+    .map((spec) => `${spec.file} ${spec.title} ${spec.tests.map((test) => `${test.status}x${String(test.results.length)}`).join()}`)
+    .sort();
+
 describe('run-advisory-specs.ts, run as CI runs it', () => {
   const repository = newRepository();
-  const config = path.join(repository, 'playwright.advisory-fixture.config.ts');
+  const config = path.join(repository, FIXTURE_CONFIG);
 
   const run = (...args: string[]): Run => runIn({ CI: 'true' }, ...args);
 
@@ -224,45 +263,15 @@ describe('run-advisory-specs.ts, run as CI runs it', () => {
     const result = spawnSync(process.execPath, [COMMAND, ...args], {
       cwd: repository,
       encoding: 'utf8',
-      env: {
-        ...process.env,
-        CI: undefined,
-        E2E_LIVENESS: '1',
-        E2E_BASE_URL: undefined,
-        E2E_ADVISORY: undefined,
-        PLAYWRIGHT_JSON_OUTPUT_NAME: undefined,
-        PLAYWRIGHT_HTML_OUTPUT_DIR: undefined,
-        GITHUB_ACTIONS: undefined,
-        ...env,
-      },
+      env: advisoryEnvironment(env),
     });
     return { status: result.status ?? -1, stdout: result.stdout, stderr: result.stderr };
   };
 
-  const reportOf = (group: string): LivenessReport =>
-    JSON.parse(
-      readFileSync(path.join(repository, 'test-results', `advisory-${group}`, 'report.json'), 'utf8'),
-    ) as LivenessReport;
-
-  const executed = (group: string): readonly string[] =>
-    specsIn(reportOf(group).suites)
-      .map((spec) => `${spec.file} ${spec.title} ${spec.tests.map((test) => `${test.status}x${String(test.results.length)}`).join()}`)
-      .sort();
+  const executed = (group: string): readonly string[] => executedIn(repository, group);
 
   beforeAll(() => {
-    symlinkSync(path.join(REPO_ROOT, 'node_modules'), path.join(repository, 'node_modules'));
-    write(repository, '.gitignore', 'node_modules\ntest-results/\nplaywright-report/\n');
-    write(
-      repository,
-      'playwright.advisory-fixture.config.ts',
-      [
-        `import { defineConfig } from '@playwright/test';`,
-        `import base from ${JSON.stringify(path.join(REPO_ROOT, 'playwright.config.ts'))};`,
-        '',
-        `export default defineConfig({ ...base, testDir: './e2e', webServer: [] });`,
-        '',
-      ].join('\n'),
-    );
+    prepareFixture(repository);
     write(repository, 'e2e/helper.ts', `export const answer = (): number => 42;\n`);
     write(
       repository,
@@ -411,5 +420,120 @@ describe('run-advisory-specs.ts, run as CI runs it', () => {
 
     expect(result.status).toBe(2);
     expect(result.stderr).toContain('Usage: run-advisory-specs.ts <existing|feature>');
+  });
+});
+
+type Pending = { readonly finished: Promise<Run>; readonly alive: () => boolean; readonly stop: () => void };
+
+describe('the two groups, run side by side as the CI legs run them', () => {
+  const repository = newRepository();
+  const config = path.join(repository, FIXTURE_CONFIG);
+  const waiting = path.join(repository, 'waiting');
+  const started: ChildProcess[] = [];
+
+  const start = (group: string): Pending => {
+    const child = spawn(process.execPath, [COMMAND, group, '--base', 'main', '--config', config], {
+      cwd: repository,
+      env: advisoryEnvironment({ CI: 'true' }),
+    });
+    started.push(child);
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString(); });
+    child.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
+    const finished = new Promise<Run>((resolve) => {
+      child.on('close', (code) => { resolve({ status: code ?? -1, stdout, stderr }); });
+    });
+    return {
+      finished,
+      alive: () => child.exitCode === null && child.signalCode === null,
+      stop: () => { child.kill('SIGTERM'); },
+    };
+  };
+
+  const until = async (condition: () => boolean): Promise<void> => {
+    const deadline = Date.now() + 60_000;
+    while (!condition()) {
+      if (Date.now() > deadline) throw new Error('the condition never held');
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  };
+
+  const hanging = async (): Promise<Pending> => {
+    rmSync(waiting, { force: true });
+    const feature = start('feature');
+    await until(() => existsSync(waiting));
+    return feature;
+  };
+
+  const executed = (group: string): readonly string[] => executedIn(repository, group);
+
+  beforeAll(() => {
+    prepareFixture(repository);
+    write(
+      repository,
+      'e2e/inherited.spec.ts',
+      `import { expect, test } from '@playwright/test';\n\ntest('inherited holds', () => { expect(1).toBe(1); });\n`,
+    );
+    commit(repository, 'inherited');
+    git(repository, 'switch', '--quiet', '--create', 'milestone/x');
+    write(
+      repository,
+      'e2e/added.spec.ts',
+      [
+        `import { writeFileSync } from 'node:fs';`,
+        `import { expect, test } from '@playwright/test';`,
+        '',
+        `test('added is not built yet', () => { expect('built').toBe('missing'); });`,
+        `test('added waits for what never comes', async () => {`,
+        `  test.setTimeout(8000);`,
+        `  writeFileSync(${JSON.stringify(waiting)}, '');`,
+        `  await new Promise(() => {});`,
+        `});`,
+        '',
+      ].join('\n'),
+    );
+    commit(repository, 'milestone work');
+  });
+
+  afterAll(() => {
+    for (const child of started) child.kill('SIGKILL');
+  });
+
+  it('reports the existing group while a failing, slow Feature group is still running', async () => {
+    const feature = await hanging();
+
+    const existing = await start('existing').finished;
+
+    expect(feature.alive()).toBe(true);
+    expect(existing.status, existing.stdout + existing.stderr).toBe(0);
+    expect(existing.stdout).toContain('Existing specs: 1 passed, 0 failed, 0 flaky, 0 skipped, from 1 of 1 selected spec files.');
+    expect(executed('existing')).toEqual(['inherited.spec.ts inherited holds expectedx1']);
+
+    const failed = await feature.finished;
+
+    expect(failed.status).toBe(1);
+    expect(failed.stderr).toContain('Feature specs: 0 passed, 2 failed, 0 flaky, 0 skipped, from 1 of 1 selected spec files.');
+    expect(executed('feature')).toEqual([
+      'added.spec.ts added is not built yet unexpectedx1',
+      'added.spec.ts added waits for what never comes unexpectedx1',
+    ]);
+    expect(executed('existing')).toEqual(['inherited.spec.ts inherited holds expectedx1']);
+    expect(existsSync(path.join(repository, 'playwright-report', 'advisory-existing', 'index.html'))).toBe(true);
+    expect(existsSync(path.join(repository, 'playwright-report', 'advisory-feature', 'index.html'))).toBe(true);
+  });
+
+  it('reports a Feature group stopped mid-run as incomplete, and the existing group still passes', async () => {
+    const feature = await hanging();
+    const existing = start('existing');
+    feature.stop();
+
+    const [stopped, passed] = await Promise.all([feature.finished, existing.finished]);
+
+    expect(stopped.status).toBe(1);
+    expect(stopped.stderr).toContain('Feature specs are incomplete: Playwright was stopped by SIGTERM before it wrote a report.');
+    expect(stopped.stderr).not.toContain('Feature specs: ');
+    expect(passed.status, passed.stdout + passed.stderr).toBe(0);
+    expect(passed.stdout).toContain('Existing specs: 1 passed, 0 failed');
   });
 });

@@ -322,10 +322,10 @@ whose every criterion the app already meets has no milestone: its specs go to
 
 | Pull request                | Approved by | E2E    | Isolation |
 | --------------------------- | ----------- | ------ | --------- |
-| specs -> `milestone/x`      | the owner, as code owner | not on the pull request (the specs would fail by design); `E2E build (advisory)` on the merge | e2e only |
+| specs -> `milestone/x`      | the owner, as code owner | not on the pull request (the specs would fail by design); the two advisory checks on the merge | e2e only |
 | migration -> `milestone/x`  | the owner, as code owner of `packages/db/drizzle/` | as for a feature | no specs |
-| feature -> `milestone/x`    | nobody      | not on the pull request (the specs would fail until the behaviour lands); `E2E build (advisory)` on the merge | no specs |
-| `main` -> `milestone/x`     | the owner, who pushes it: a merge commit, not a pull request | `E2E build (advisory)`, on the push | exempt |
+| feature -> `milestone/x`    | nobody      | not on the pull request (the specs would fail until the behaviour lands); the two advisory checks on the merge | no specs |
+| `main` -> `milestone/x`     | the owner, who pushes it: a merge commit, not a pull request | the two advisory checks, on the push | exempt |
 | `milestone/x` -> `main`     | the owner, like every pull request into `main` | green, required | exempt |
 | specs -> `main`, for a Feature whose every criterion the app already meets | the owner, as code owner | green, required | e2e only |
 
@@ -376,16 +376,52 @@ it: that one would be red by design, and ADR-0002 does not let the specs block
 it. The push run lands as each Task merges, and it is advisory -- in no ruleset,
 blocking no merge -- because no gate can tell a spec that is red by design from
 one that regressed: the run reports, and the driver reading it judges, which is
-a step in the `implement-issue` Skill's loop. That run reports under a name of
-its own, `E2E build (advisory)`, set by an expression on the job, because `E2E
-build` is what the `main` ruleset requires and a required check's name must
-resolve to one run: a milestone's last commit is both the tip of the branch and
-the head of the integration pull request, so a shared name would put a red
-advisory run and the green gate on one commit. The job brings a
+a step in the `implement-issue` Skill's loop. The job brings a
 `postgres:18-alpine` service of its own and migrates it first, so a spec that
 writes is judged against the schema its own commit carries; the smoke runs
 against deployed URLs are not merge checks and run the `@smoke`-tagged reads
 alone. ADR-0012.
+
+On a milestone push the workflow runs two advisory executions instead of the
+suite, one matrix leg each, through `pnpm test:e2e:advisory <existing|feature>`
+(`tools/run-advisory-specs.ts`):
+
+| Check | Runs | Read as |
+| ----- | ---- | ------- |
+| `E2E build (advisory, existing specs)` | every current spec file the merge-base already had, edited or renamed ones included | a failure is a regression candidate |
+| `E2E build (advisory, Feature specs)` | the spec files added since the merge-base | the Feature's progress: red until its Tasks land |
+
+The command classifies by file, against the milestone commit's merge-base with
+`origin/main` rather than `main`'s latest tree, so `main` advancing changes
+nothing until the owner merges it into the milestone. A spec file added since
+then is a Feature spec; one the merge-base had stays an existing spec when it is
+edited, and so does a rename Git recognises, under its new name. A helper is not
+a spec file and decides no group, and a test appended to an existing file runs
+as an existing spec ("Writing a spec"). Each
+run prints the classification, including the spec files removed since the
+merge-base: no group runs them, and none counts as passing.
+
+Each leg has its own 20-minute budget, preparation included, runs each test
+once with no retry, and keeps the trace of a failed first attempt;
+`fail-fast: false` keeps one leg's failure or timeout from cancelling the
+other. The leg checks out the whole history, which brings `origin/main`. A
+missing baseline, an unresolved merge-base or a failed Git command fails the
+leg before any test runs, and a run Playwright did not finish fails it too:
+none is a green result. A group with no spec file is reported as skipped,
+green, and Playwright is not started, since an empty selection would run the
+whole suite; with no spec file added, every current spec runs as an existing
+spec. A leg that finished, passing or failing, uploads its HTML report, traces
+and JSON report as `playwright-report-advisory-existing` or
+`playwright-report-advisory-feature`; a cancelled or timed-out leg uploads none.
+
+Every check name is distinct from `E2E build`, which is what the `main` ruleset
+requires, because a required check's name must resolve to one run: a
+milestone's last commit is both the tip of the branch and the head of the
+integration pull request, so a shared name would put red advisory runs and the
+green gate on one commit. Into `main` and on `main` the workflow runs one strict
+leg, the whole suite with two retries, under `E2E build`. The legs come from the
+matrix rather than from jobs behind `if:`, because a skipped job still reports
+a success under its name.
 
 Required checks belong to a ruleset, and there are two: `main`, which requires
 one approval, a code owner's where one applies, and six checks -- `Gates`,
@@ -422,6 +458,10 @@ or by position in a list. Where order is the subject, it reads position only
 among the rows it wrote itself, after asserting how many there are. Which specs
 may run against Production is the Smoke tag's rule (`docs/GLOSSARY.md`).
 ADR-0012.
+
+A spec of a criterion a milestone does not yet meet goes in a spec file of its
+own, never appended to an existing one: the advisory run classifies by file, so
+an appended test would be read as a regression rather than as progress.
 
 An absence is asserted only after a presence: after the list it would be
 missing from has visibly rendered, or after the same question has been shown to

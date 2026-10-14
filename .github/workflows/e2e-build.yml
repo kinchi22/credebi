@@ -14,26 +14,33 @@ name: E2E build
 # design: the criterion's specs land first and fail until each Task builds the
 # behaviour they describe. It is in no ruleset there and blocks nothing. It
 # runs as each Task merges so the milestone is judged by the specs as it grows,
-# and the driver reads it: a failure outside the criterion's own spec file is a
-# regression the milestone is carrying, not a specification waiting for its
-# behaviour. No gate can tell those two apart, which is why this one reports
-# and a person judges. That is #71's decision, not ADR-0006's: ADR-0006 rejected
-# a check allowed to be red on the ground that nobody reads it, and the answer
-# is the reader, written into `/implement-issue`'s loop.
+# and the driver reads it. No gate can tell a spec waiting for its Task from one
+# that regressed, which is why this run reports and a person judges. That is
+# #71's decision, not ADR-0006's: ADR-0006 rejected a check allowed to be red on
+# the ground that nobody reads it, and the answer is the reader, written into
+# `/implement-issue`'s loop.
 #
-# That advisory run reports under a name of its own, `E2E build (advisory)`,
-# which is what the `name:` expression on the job below produces. The `main`
-# ruleset requires `E2E build` by name, and a required check's name has to mean
-# one thing: GitHub's "About protected branches" says to keep job names unique
-# across workflows, because a shared name "can cause ambiguous status check
-# results and block pull requests from being merged", and "Troubleshooting
-# required status checks" says that when a check and a status share a name, both
-# must pass for that name to pass. A milestone's final commit is the head of the
-# integration pull request and the tip of the milestone at once, so without the
-# second name one SHA would carry two runs called `E2E build` -- a green gate
-# and an advisory run that is red by design. Everything the ruleset reads keeps
-# the name `E2E build`: a pull request builds `refs/pull/N/merge`, which is not
-# a push, and a push to `main` is not `refs/heads/milestone/`.
+# That advisory run is two matrix legs, the existing specs and the Feature
+# specs, each through `pnpm test:e2e:advisory`. How the command splits them, and
+# what each leg's budget, history, empty group and report mean, is in
+# `docs/ARCHITECTURE.md`, "How a criterion ships".
+#
+# Each leg reports under a name of its own, `E2E build (advisory, existing
+# specs)` and `E2E build (advisory, Feature specs)`, which is what the `name:`
+# expression on the job below produces. The `main` ruleset requires `E2E build`
+# by name, and a required check's name has to mean one thing: GitHub's "About
+# protected branches" says to keep job names unique across workflows, because a
+# shared name "can cause ambiguous status check results and block pull requests
+# from being merged", and "Troubleshooting required status checks" says that
+# when a check and a status share a name, both must pass for that name to pass.
+# A milestone's final commit is the head of the integration pull request and the
+# tip of the milestone at once, so without names of their own one SHA would
+# carry runs called `E2E build` that are red by design beside the green gate.
+# Everything the ruleset reads runs the single `strict` leg under the name
+# `E2E build`: a pull request builds `refs/pull/N/merge`, which is not a push,
+# and a push to `main` is not `refs/heads/milestone/`. The legs come from the
+# matrix rather than from jobs behind `if:`, because a job skipped by `if:`
+# still reports, as a success, under its name.
 # https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches
 # https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks
 #
@@ -69,12 +76,20 @@ env:
 
 jobs:
   e2e-build:
-    name: ${{ github.event_name == 'push'
-      && startsWith(github.ref, 'refs/heads/milestone/')
-      && 'E2E build (advisory)'
+    name: ${{ matrix.suite == 'existing'
+      && 'E2E build (advisory, existing specs)'
+      || matrix.suite == 'feature'
+      && 'E2E build (advisory, Feature specs)'
       || 'E2E build' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: ${{ fromJSON(github.event_name == 'push'
+          && startsWith(github.ref, 'refs/heads/milestone/')
+          && '["existing", "feature"]'
+          || '["strict"]') }}
 
     # ADR-0012. The first criterion of Phase 1 writes an entry and reads it
     # back, so the gate that decides whether a milestone may reach `main` needs
@@ -106,6 +121,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: ${{ matrix.suite == 'strict' && 1 || 0 }}
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v5
         with:
@@ -141,6 +158,7 @@ jobs:
       # first use, and no spec follows the Google link. So these are
       # placeholders, not secrets.
       - name: 7. test:e2e
+        if: matrix.suite == 'strict'
         run: pnpm test:e2e
         env:
           DATABASE_URL: postgres://e2e:e2e@127.0.0.1:5432/e2e
@@ -148,9 +166,37 @@ jobs:
           GOOGLE_CLIENT_ID: e2e-build-placeholder
           GOOGLE_CLIENT_SECRET: e2e-build-placeholder
 
+      # The same server and environment as the strict step, through the command
+      # that selects the group, runs it once per test and judges its report.
+      - name: 7. test:e2e:advisory
+        id: advisory
+        if: matrix.suite != 'strict'
+        run: pnpm test:e2e:advisory "$SUITE" --base origin/main
+        env:
+          SUITE: ${{ matrix.suite }}
+          DATABASE_URL: postgres://e2e:e2e@127.0.0.1:5432/e2e
+          AUTH_TEST_LOGIN: '1'
+          GOOGLE_CLIENT_ID: e2e-build-placeholder
+          GOOGLE_CLIENT_SECRET: e2e-build-placeholder
+
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && matrix.suite == 'strict'
         with:
           name: playwright-report-build
           path: playwright-report
           if-no-files-found: warn
+
+      # Only after the group finished, passing or failing: a cancelled or
+      # timed-out run wrote no complete report, and a skipped one wrote none.
+      # The HTML report carries the traces of failed tests; the JSON report and
+      # the traces themselves are beside it.
+      - uses: actions/upload-artifact@v4
+        if: >-
+          always() && matrix.suite != 'strict'
+          && (steps.advisory.outcome == 'success' || steps.advisory.outcome == 'failure')
+        with:
+          name: playwright-report-advisory-${{ matrix.suite }}
+          path: |
+            playwright-report/advisory-${{ matrix.suite }}
+            test-results/advisory-${{ matrix.suite }}
+          if-no-files-found: ignore
