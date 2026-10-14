@@ -11,20 +11,22 @@ export const LANGUAGE_NAMES: Readonly<Record<Language, string>> = {
   ja: '\u65E5\u672C\u8A9E',
 };
 
-export type Copy = {
+export type CatalogueText = {
   readonly language: string;
   readonly signIn: string;
   readonly google: string;
   readonly settings: string;
+  readonly signOut: string;
   readonly startingAccounts: readonly string[];
 };
 
-export const COPY: Readonly<Record<Language, Copy>> = {
+export const CATALOGUE: Readonly<Record<Language, CatalogueText>> = {
   en: {
     language: 'Language',
     signIn: 'Sign in',
     google: 'Sign in with Google',
     settings: 'Settings',
+    signOut: 'Sign out',
     startingAccounts: ACCOUNTS,
   },
   ko: {
@@ -32,6 +34,7 @@ export const COPY: Readonly<Record<Language, Copy>> = {
     signIn: '\uB85C\uADF8\uC778',
     google: 'Google\uB85C \uB85C\uADF8\uC778',
     settings: '\uC124\uC815',
+    signOut: '\uB85C\uADF8\uC544\uC6C3',
     startingAccounts: [
       '\uD604\uAE08',
       '\uB9E4\uC785\uCC44\uBB34',
@@ -45,6 +48,7 @@ export const COPY: Readonly<Record<Language, Copy>> = {
     signIn: '\u30ED\u30B0\u30A4\u30F3',
     google: 'Google\u3067\u30ED\u30B0\u30A4\u30F3',
     settings: '\u8A2D\u5B9A',
+    signOut: '\u30ED\u30B0\u30A2\u30A6\u30C8',
     startingAccounts: [
       '\u73FE\u91D1',
       '\u8CB7\u639B\u91D1',
@@ -60,7 +64,7 @@ const IDENTIFIER_FIELD = 'input[name="identifier"]';
 export const documentLanguage = (page: Page): Locator => page.locator('html');
 
 export const languageSwitch = (page: Page, shown: Language): Locator =>
-  page.getByRole('button', { name: COPY[shown].language, exact: true });
+  page.getByRole('button', { name: CATALOGUE[shown].language, exact: true });
 
 export const switchMenu = (page: Page): Locator => page.getByRole('menu');
 
@@ -70,13 +74,21 @@ export const switchChoice = (page: Page, language: Language): Locator =>
   switchMenu(page).getByRole('menuitemradio', { name: LANGUAGE_NAMES[language], exact: true });
 
 export const languageChoices = (page: Page, shown: Language): Locator =>
-  page.getByRole('group', { name: COPY[shown].language, exact: true });
+  page.getByRole('group', { name: CATALOGUE[shown].language, exact: true });
 
 export const languageChoice = (page: Page, shown: Language, language: Language): Locator =>
   languageChoices(page, shown).getByRole('radio', { name: LANGUAGE_NAMES[language], exact: true });
 
-export const settingsLink = (page: Page, shown: Language): Locator =>
-  page.getByRole('link', { name: COPY[shown].settings, exact: true });
+export const sidebarSettingsLink = (page: Page, shown: Language): Locator =>
+  page.getByRole('navigation').getByRole('link', { name: CATALOGUE[shown].settings, exact: true });
+
+export async function signOutIn(page: Page, shown: Language): Promise<void> {
+  await page
+    .getByRole('navigation')
+    .getByRole('button', { name: CATALOGUE[shown].signOut, exact: true })
+    .click();
+  await expect(page).not.toHaveURL(ENTRIES_URL);
+}
 
 export async function preferLanguages(page: Page, acceptLanguage: string): Promise<void> {
   await page.route('**/*', async (route) => {
@@ -89,9 +101,9 @@ export async function preferLanguages(page: Page, acceptLanguage: string): Promi
 export async function expectSignInPageIn(page: Page, language: Language): Promise<void> {
   await expect(documentLanguage(page)).toHaveAttribute('lang', language);
   await expect(
-    page.getByRole('heading', { level: 1, name: COPY[language].signIn, exact: true }),
+    page.getByRole('heading', { level: 1, name: CATALOGUE[language].signIn, exact: true }),
   ).toBeVisible();
-  await expect(page.getByRole('link', { name: COPY[language].google, exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: CATALOGUE[language].google, exact: true })).toBeVisible();
 }
 
 export async function expectSwitchMarking(page: Page, language: Language): Promise<void> {
@@ -107,17 +119,17 @@ export async function chooseWithSwitch(page: Page, from: Language, to: Language)
   await expectSignInPageIn(page, to);
 }
 
-export async function submitTestSignInInAnyLanguage(page: Page, identifier: string): Promise<void> {
+export async function submitTestSignInByField(page: Page, identifier: string): Promise<void> {
   const form = page.locator('form').filter({ has: page.locator(IDENTIFIER_FIELD) });
   await form.locator(IDENTIFIER_FIELD).fill(identifier);
   await form.getByRole('button').click();
 }
 
-export async function signUpIn(page: Page, language: Language): Promise<string> {
+export async function signUpAfterChoosing(page: Page, language: Language): Promise<string> {
   const identifier = freshIdentifier();
   await page.goto('/sign-in');
   if (language !== 'en') await chooseWithSwitch(page, 'en', language);
-  await submitTestSignInInAnyLanguage(page, identifier);
+  await submitTestSignInByField(page, identifier);
   await expect(page).toHaveURL(ENTRIES_URL);
   return identifier;
 }
@@ -125,25 +137,27 @@ export async function signUpIn(page: Page, language: Language): Promise<string> 
 export async function expectSettingsPageIn(page: Page, language: Language): Promise<void> {
   await expect(documentLanguage(page)).toHaveAttribute('lang', language);
   await expect(
-    page.getByRole('heading', { level: 1, name: COPY[language].settings, exact: true }),
+    page.getByRole('heading', { level: 1, name: CATALOGUE[language].settings, exact: true }),
   ).toBeVisible();
   await expect(languageChoice(page, language, language)).toBeChecked();
 }
 
-export async function tabTo(page: Page, target: Locator): Promise<void> {
+async function pressUntilFocused(
+  page: Page,
+  key: string,
+  target: Locator,
+  presses: number,
+): Promise<void> {
   await expect(target).toBeVisible();
-  for (let press = 0; press < 60; press += 1) {
+  for (let press = 0; press < presses; press += 1) {
     if ((await target.and(page.locator(':focus')).count()) > 0) break;
-    await page.keyboard.press('Tab');
+    await page.keyboard.press(key);
   }
   await expect(target).toBeFocused();
 }
 
-export async function arrowDownTo(page: Page, target: Locator): Promise<void> {
-  await expect(target).toBeVisible();
-  for (let press = 0; press < 4; press += 1) {
-    if ((await target.and(page.locator(':focus')).count()) > 0) break;
-    await page.keyboard.press('ArrowDown');
-  }
-  await expect(target).toBeFocused();
-}
+export const tabTo = (page: Page, target: Locator): Promise<void> =>
+  pressUntilFocused(page, 'Tab', target, 60);
+
+export const arrowDownTo = (page: Page, target: Locator): Promise<void> =>
+  pressUntilFocused(page, 'ArrowDown', target, 4);

@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto';
-import { expect, test, type Locator } from '@playwright/test';
-import { addAccount, BOOKS_OPEN } from './accounts';
+import { expect, test } from '@playwright/test';
+import { addAccount, BOOKS_OPEN, bottom, boxOf } from './accounts';
 import { AMOUNT, DAY, listedEntry, postEntries } from './entries';
 import {
   arrowDownTo,
   chooseWithSwitch,
-  COPY,
+  CATALOGUE,
   documentLanguage,
   expectSettingsPageIn,
   expectSignInPageIn,
@@ -15,9 +15,10 @@ import {
   languageChoices,
   languageSwitch,
   preferLanguages,
-  settingsLink,
-  signUpIn,
-  submitTestSignInInAnyLanguage,
+  sidebarSettingsLink,
+  signOutIn,
+  signUpAfterChoosing,
+  submitTestSignInByField,
   switchChoice,
   switchChoices,
   switchMenu,
@@ -48,23 +49,17 @@ for (const { acceptLanguage, shown } of PREFERRED) {
   });
 }
 
-async function bottomOf(upper: Locator): Promise<number> {
-  const box = await upper.boundingBox();
-  expect(box, 'the element above the Language switch has a box').not.toBeNull();
-  return (box?.y ?? Number.NaN) + (box?.height ?? Number.NaN);
-}
-
 test('lists each Language in itself below the sign-in box, marks the current one, and changes the sign-in page', async ({ page }) => {
   await page.goto('/sign-in');
   await expectSignInPageIn(page, 'en');
 
-  const google = page.getByRole('link', { name: COPY.en.google, exact: true });
+  const google = page.getByRole('link', { name: CATALOGUE.en.google, exact: true });
   const testSignIn = page.getByRole('form', { name: 'Test sign-in' });
-  const above = [await bottomOf(google)];
-  if ((await testSignIn.count()) > 0) above.push(await bottomOf(testSignIn));
+  const above = [bottom(await boxOf(google, 'the Google link'))];
+  if ((await testSignIn.count()) > 0) above.push(bottom(await boxOf(testSignIn, 'the Test sign-in form')));
   await expect(languageSwitch(page, 'en')).toBeVisible();
-  const switchBox = await languageSwitch(page, 'en').boundingBox();
-  expect(switchBox?.y ?? Number.NaN).toBeGreaterThanOrEqual(Math.max(...above));
+  const switchBox = await boxOf(languageSwitch(page, 'en'), 'the Language switch');
+  expect(switchBox.y).toBeGreaterThanOrEqual(Math.max(...above));
 
   await languageSwitch(page, 'en').click();
   await expect(switchChoices(page)).toHaveText([LANGUAGE_NAMES.en, LANGUAGE_NAMES.ko, LANGUAGE_NAMES.ja]);
@@ -98,8 +93,8 @@ test('remembers the Language chosen with the switch on the next signed-out page,
 });
 
 for (const language of ['ko', 'ja'] as const) {
-  test(`gives a User who signs up after choosing ${language} with the switch that Language as their Setting, and starting Accounts named in it`, async ({ page }) => {
-    await signUpIn(page, language);
+  test(`gives a User who signs up after choosing ${language} with the switch that Language in their Settings, and starting Accounts named in it`, async ({ page }) => {
+    await signUpAfterChoosing(page, language);
 
     await page.goto('/settings');
 
@@ -108,61 +103,79 @@ for (const language of ['ko', 'ja'] as const) {
       if (other !== language) await expect(languageChoice(page, language, other)).not.toBeChecked();
     }
     const main = page.getByRole('main');
-    for (const name of COPY[language].startingAccounts) {
-      await expect(main.getByText(name, { exact: true }).first()).toBeVisible();
+    for (const name of CATALOGUE[language].startingAccounts) {
+      await expect(main.getByRole('listitem').getByText(name, { exact: true })).toBeVisible();
     }
-    for (const name of COPY.en.startingAccounts) {
-      await expect(main.getByText(name, { exact: true })).toHaveCount(0);
+    for (const name of CATALOGUE.en.startingAccounts) {
+      await expect(main.getByRole('listitem').getByText(name, { exact: true })).toHaveCount(0);
     }
   });
 
   test(`shows a signed-in page in ${language}, with the document declaring it`, async ({ page }) => {
-    await signUpIn(page, language);
+    await signUpAfterChoosing(page, language);
 
     await page.goto('/settings');
 
     await expect(documentLanguage(page)).toHaveAttribute('lang', language);
-    await expect(page).toHaveTitle(`${COPY[language].settings} \u00B7 Credebi`);
+    await expect(page).toHaveTitle(`${CATALOGUE[language].settings} \u00B7 Credebi`);
     await expect(
-      page.getByRole('heading', { level: 1, name: COPY[language].settings, exact: true }),
+      page.getByRole('heading', { level: 1, name: CATALOGUE[language].settings, exact: true }),
     ).toBeVisible();
-    await expect(settingsLink(page, language)).toBeVisible();
-    await expect(settingsLink(page, 'en')).toHaveCount(0);
+    await expect(sidebarSettingsLink(page, language)).toBeVisible();
+    await expect(sidebarSettingsLink(page, 'en')).toHaveCount(0);
   });
 }
 
 test('shows an existing User their own Language over the one the browser last showed, and keeps it on the sign-in page after signing out', async ({ page }) => {
   const identifier = freshIdentifier();
   await signIn(page, { identifier });
-  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
-  await expect(page).not.toHaveURL(ENTRIES_URL);
+  await signOutIn(page, 'en');
 
   await page.goto('/sign-in');
   await chooseWithSwitch(page, 'en', 'ja');
-  await submitTestSignInInAnyLanguage(page, identifier);
+  await submitTestSignInByField(page, identifier);
 
   await expect(page).toHaveURL(ENTRIES_URL);
   await expect(documentLanguage(page)).toHaveAttribute('lang', 'en');
-  await expect(settingsLink(page, 'en')).toBeVisible();
+  await expect(sidebarSettingsLink(page, 'en')).toBeVisible();
   await page.goto('/settings');
   await expectSettingsPageIn(page, 'en');
 
-  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
-  await expect(page).not.toHaveURL(ENTRIES_URL);
+  await signOutIn(page, 'en');
   await page.goto('/sign-in');
 
   await expectSignInPageIn(page, 'en');
   await expectSwitchMarking(page, 'en');
 });
 
+for (const language of ['ko', 'ja'] as const) {
+  test(`keeps a ${language} User's Language on a browser preferring English, and on the sign-in page after they sign out`, async ({ page, context }) => {
+    const identifier = await signUpAfterChoosing(page, language);
+    await context.clearCookies();
+    await page.goto('/sign-in');
+    await expectSignInPageIn(page, 'en');
+
+    await submitTestSignInByField(page, identifier);
+    await expect(page).toHaveURL(ENTRIES_URL);
+    await expect(documentLanguage(page)).toHaveAttribute('lang', language);
+    await expect(sidebarSettingsLink(page, language)).toBeVisible();
+
+    await signOutIn(page, language);
+    await page.goto('/sign-in');
+
+    await expectSignInPageIn(page, language);
+    await expectSwitchMarking(page, language);
+  });
+}
+
 test('shows a User their own Language on a browser that has never shown it', async ({ page, context }) => {
-  const identifier = await signUpIn(page, 'ko');
+  const identifier = await signUpAfterChoosing(page, 'ko');
   await context.clearCookies();
   await preferLanguages(page, 'ja-JP,ja;q=0.9');
   await page.goto('/sign-in');
   await expectSignInPageIn(page, 'ja');
 
-  await submitTestSignInInAnyLanguage(page, identifier);
+  await submitTestSignInByField(page, identifier);
 
   await expect(page).toHaveURL(ENTRIES_URL);
   await expect(documentLanguage(page)).toHaveAttribute('lang', 'ko');
@@ -175,6 +188,7 @@ test('changes the Language at Settings at once, with no save button and no reloa
   await page.goto('/settings');
   await expectSettingsPageIn(page, 'en');
   await expect(languageChoices(page, 'en').getByRole('button')).toHaveCount(0);
+  await expect(page.getByRole('main').getByRole('button', { name: 'Save', exact: true })).toHaveCount(0);
   await page.evaluate('window.languageUnchangedByReload = true');
 
   await languageChoice(page, 'en', 'ja').check();
@@ -186,8 +200,8 @@ test('changes the Language at Settings at once, with no save button and no reloa
   for (const path of SIGNED_IN_PAGES) {
     await page.goto(path);
     await expect(documentLanguage(page)).toHaveAttribute('lang', 'ja');
-    await expect(settingsLink(page, 'ja')).toBeVisible();
-    await expect(settingsLink(page, 'en')).toHaveCount(0);
+    await expect(sidebarSettingsLink(page, 'ja')).toBeVisible();
+    await expect(sidebarSettingsLink(page, 'en')).toHaveCount(0);
     await expect(languageSwitch(page, 'ja')).toHaveCount(0);
   }
 

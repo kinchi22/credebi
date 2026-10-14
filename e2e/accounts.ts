@@ -182,9 +182,9 @@ type Box = { readonly x: number; readonly y: number; readonly width: number; rea
 
 const centre = (box: Box): Point => ({ x: box.x + box.width / 2, y: box.y + box.height / 2 });
 
-const bottom = (box: Box): number => box.y + box.height;
+export const bottom = (box: Box): number => box.y + box.height;
 
-async function boxOf(locator: Locator, what: string): Promise<Box> {
+export async function boxOf(locator: Locator, what: string): Promise<Box> {
   const box = await locator.boundingBox();
   if (box === null) throw new Error(`${what} is not on screen`);
   return box;
