@@ -3,8 +3,9 @@
 import { useTranslations } from 'next-intl';
 import { HelpIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { BARE_ICON_BUTTON } from './control-classes';
+import { useDismissOutside } from './dismiss-outside';
 import {
   helpTipAfter,
   helpTipMaxWidth,
@@ -53,15 +54,15 @@ export function HelpTip({ message, children }: HelpTipProps): ReactNode {
     setState((current) => helpTipAfter(current, event));
   };
 
+  const close = useCallback((): void => {
+    setState('closed');
+  }, []);
+  useDismissOutside(open, root, close);
+
   useEffect(() => {
     if (!open) {
       return undefined;
     }
-    const dismissOutside = (event: PointerEvent): void => {
-      if (event.target instanceof Node && root.current?.contains(event.target) !== true) {
-        setState('closed');
-      }
-    };
     const dismissOnEscape = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape') {
         return;
@@ -74,10 +75,8 @@ export function HelpTip({ message, children }: HelpTipProps): ReactNode {
         button.current?.focus();
       }
     };
-    document.addEventListener('pointerdown', dismissOutside, true);
     window.addEventListener('keydown', dismissOnEscape, true);
     return () => {
-      document.removeEventListener('pointerdown', dismissOutside, true);
       window.removeEventListener('keydown', dismissOnEscape, true);
     };
   }, [open]);

@@ -1,9 +1,10 @@
 'use server';
 
-import { TEST_SIGN_IN_FIELDS } from '@repo/contracts';
+import { TEST_SIGN_IN_FIELDS, languageSchema } from '@repo/contracts';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createContext } from '../../../server/context';
+import { LANGUAGE_COOKIE, LANGUAGE_COOKIE_OPTIONS } from '../../../server/language-cookie';
 import { createCaller } from '../../../server/root-router';
 import { returnPath } from '../../../server/return-path';
 import { SESSION_COOKIE, SESSION_COOKIE_OPTIONS } from '../../../server/session-cookie';
@@ -19,4 +20,11 @@ export async function signInWithTestIdentifier(form: FormData): Promise<void> {
   });
   (await cookies()).set(SESSION_COOKIE, session.token, SESSION_COOKIE_OPTIONS);
   redirect(returnPath(form.get(TEST_SIGN_IN_FIELDS.returnTo)));
+}
+
+export async function chooseLanguage(language: string): Promise<void> {
+  const chosen = languageSchema.safeParse(language);
+  if (chosen.success) {
+    (await cookies()).set(LANGUAGE_COOKIE, chosen.data, LANGUAGE_COOKIE_OPTIONS);
+  }
 }

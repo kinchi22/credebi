@@ -1,10 +1,10 @@
 import { palette, semanticColors } from '@repo/ui/tokens';
 import { type MetadataRoute } from 'next';
-import { getTranslations } from 'next-intl/server';
 import { APP_ICONS } from '../components/app-icon';
+import { getPrerenderedAppCopy } from '../server/i18n-request';
 
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
-  const t = await getTranslations('app');
+  const t = await getPrerenderedAppCopy();
   return {
     name: t('name'),
     short_name: t('name'),

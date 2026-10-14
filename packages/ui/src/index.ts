@@ -10,10 +10,12 @@ export type { LogoTone, LogoVariant } from './logo-drawing';
 
 export {
   CalendarIcon,
+  CheckIcon,
   ChevronIcon,
   CloseIcon,
   FallingLineIcon,
   FolderIcon,
+  GlobeIcon,
   GoogleMark,
   GripIcon,
   HelpIcon,

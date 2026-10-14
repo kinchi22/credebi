@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  DEFAULT_LANGUAGE,
   changeEntryFormModeInputSchema,
   entryFormModeSchema,
+  languageSchema,
   settingsSchema,
   toSettings,
 } from './settings';
@@ -13,6 +15,22 @@ describe('entryFormModeSchema', () => {
 
   it('rejects anything else', () => {
     expect(entryFormModeSchema.safeParse('three-line').success).toBe(false);
+  });
+});
+
+describe('languageSchema', () => {
+  it('holds English, Korean and Japanese', () => {
+    expect(languageSchema.options).toEqual(['en', 'ko', 'ja']);
+  });
+
+  it('rejects a Language the app has no catalogue for, and a region it does not tell apart', () => {
+    expect(languageSchema.safeParse('fr').success).toBe(false);
+    expect(languageSchema.safeParse('ko-KR').success).toBe(false);
+    expect(languageSchema.safeParse('EN').success).toBe(false);
+  });
+
+  it('defaults to English', () => {
+    expect(DEFAULT_LANGUAGE).toBe('en');
   });
 });
 

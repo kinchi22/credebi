@@ -3,12 +3,13 @@ import { typeClasses } from '@repo/ui/type-classes';
 import { type Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { type ReactNode } from 'react';
+import { LanguageSwitch } from '../../../components/language-switch';
 import { DANGER_TEXT } from '../../../components/text-classes';
 import { TestSignInForm } from '../../../components/test-sign-in-form';
 import { createContext } from '../../../server/context';
 import { returnPath } from '../../../server/return-path';
 import { createCaller } from '../../../server/root-router';
-import { signInWithTestIdentifier } from './actions';
+import { chooseLanguage, signInWithTestIdentifier } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +30,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps): Pro
   const testSignInOffered = await caller.auth.testSignInOffered();
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-4 wide:p-8">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-4 p-4 wide:p-8">
       <div className={`flex w-full flex-col gap-6 ${SIGN_IN_CARD} px-5 py-7 wide:w-100 wide:px-10 wide:py-10`}>
         <div className="flex justify-center">
           <Logo variant="stacked" tone="color" name={t('app.name')} height={112} />
@@ -53,6 +54,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps): Pro
           </div>
         ) : null}
       </div>
+      <LanguageSwitch action={chooseLanguage} />
     </main>
   );
 }

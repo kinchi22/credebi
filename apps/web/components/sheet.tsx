@@ -2,6 +2,7 @@
 
 import { typeClasses } from '@repo/ui/type-classes';
 import { useRef, type KeyboardEvent, type ReactNode } from 'react';
+import { ACROSS_STEPS } from './roving-focus';
 
 export type SheetTabsProps<Tab extends string> = {
   readonly tabs: readonly Tab[];
@@ -17,13 +18,6 @@ const TAB = `flex-1 border-b-2 py-3 ${typeClasses['body-sm']}`;
 const IDLE_TAB = `${TAB} border-border text-text-muted`;
 const ACCENT_TONE = 'border-accent text-accent-text';
 const shownTab = (tone: string): string => `${TAB} ${tone} font-semibold`;
-
-const STEPS: Readonly<Record<string, (index: number, count: number) => number>> = {
-  ArrowLeft: (index, count) => (index + count - 1) % count,
-  ArrowRight: (index, count) => (index + 1) % count,
-  Home: () => 0,
-  End: (_index, count) => count - 1,
-};
 
 export type SheetBarProps = {
   readonly titleId: string;
@@ -54,7 +48,7 @@ export function SheetTabs<Tab extends string>({
   const buttons = useRef<Partial<Record<Tab, HTMLButtonElement | null>>>({});
 
   const move = (event: KeyboardEvent<HTMLButtonElement>, index: number): void => {
-    const step = STEPS[event.key];
+    const step = ACROSS_STEPS[event.key];
     const next = step === undefined ? undefined : tabs[step(index, tabs.length)];
     if (next === undefined) {
       return;
