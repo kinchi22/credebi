@@ -859,8 +859,9 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   a drawer: a `ground-dark` bar holds `Menu` at its left and the logo after it,
   and `Menu` opens the Sidebar as a modal dialog on the page's left edge over a
   `ground-dark` scrim at 60%, with the same logo, links and Sign out.
-  The bar's logo hides while it is open, so one logo shows. Escape, a click on
-  the scrim or following a link closes it, and focus returns to `Menu`.
+  The bar's logo hides while it is open, so one logo shows. Focus starts on the
+  drawer, and Tab reaches `Entries` first. Escape, a click on the scrim or
+  following a link closes it, and focus returns to `Menu`.
 - **Focus.** A 2px ring on every focusable element: `focus` on a light ground,
   `focus-on-dark` on a dark one, 2px outside its edge. A focused Input adds a
   3px `accent` halo at 25%, `ring-3 ring-accent/25`, around its edge and under
