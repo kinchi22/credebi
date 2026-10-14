@@ -110,6 +110,7 @@ export const en = {
       'multi-line': 'Two or more Entry lines, each on its own Side.',
     },
     notSaved: 'Your choice was not saved, so your Entry form mode is unchanged. Try again.',
+    languageNotSaved: 'Your choice was not saved, so your Language is unchanged. Try again.',
   },
   accountsSection: {
     title: 'Accounts',

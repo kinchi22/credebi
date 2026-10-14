@@ -124,6 +124,7 @@ export const ja = {
       'multi-line': '仕訳の行が2つ以上、各行が借方か貸方。',
     },
     notSaved: '選択は保存されなかったため、仕訳の入力方式は変わっていません。もう一度お試しください。',
+    languageNotSaved: '選択は保存されなかったため、言語は変わっていません。もう一度お試しください。',
   },
   accountsSection: {
     title: '勘定科目',

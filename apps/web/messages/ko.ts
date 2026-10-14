@@ -123,6 +123,7 @@ export const ko = {
       'multi-line': '분개 행 두 개 이상, 행마다 차변 또는 대변.',
     },
     notSaved: '선택을 저장하지 않아 분개 입력 방식은 그대로입니다. 다시 시도하세요.',
+    languageNotSaved: '선택을 저장하지 않아 언어는 그대로입니다. 다시 시도하세요.',
   },
   accountsSection: {
     title: '계정',

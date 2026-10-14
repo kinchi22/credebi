@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { type ReactNode } from 'react';
 import { AccountsSection } from '../../../../components/accounts-section';
 import { EntryFormModeChoice } from '../../../../components/entry-form-mode-choice';
+import { LanguageChoice } from '../../../../components/language-choice';
 import { PAGE_HEADING } from '../../../../components/text-classes';
 import { createContext } from '../../../../server/context';
 import { SETTINGS_PATH } from '../../../../server/return-path';
@@ -12,6 +13,7 @@ import {
   addAccount,
   addAccountGroup,
   changeEntryFormMode,
+  changeLanguage,
   deleteAccount,
   deleteAccountGroup,
   editAccount,
@@ -38,6 +40,7 @@ export default async function SettingsPage(): Promise<ReactNode> {
     <>
       <h1 className={PAGE_HEADING}>{t('settingsPage.title')}</h1>
       <EntryFormModeChoice chosen={settings.entryFormMode} action={changeEntryFormMode} />
+      <LanguageChoice chosen={settings.language} action={changeLanguage} />
       <AccountsSection
         chart={chart}
         actions={{
