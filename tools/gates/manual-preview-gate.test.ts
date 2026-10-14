@@ -44,7 +44,7 @@ interface ReceivedRequest {
   body: Record<string, unknown>;
 }
 
-async function fakeGitHub(creationStatus = 201) {
+async function fakeGitHub({ creationStatus = 201, statusStatus = 201 } = {}) {
   const requests: ReceivedRequest[] = [];
   const server = createServer((request, response) => {
     let text = '';
@@ -52,7 +52,7 @@ async function fakeGitHub(creationStatus = 201) {
     request.on('end', () => {
       requests.push({ method: request.method ?? '', path: request.url ?? '', headers: request.headers, body: text ? (JSON.parse(text) as Record<string, unknown>) : {} });
       const creating = request.url === '/repos/kinchi22/credebi/deployments';
-      response.writeHead(creating ? creationStatus : 201, { 'content-type': 'application/json' });
+      response.writeHead(creating ? creationStatus : statusStatus, { 'content-type': 'application/json' });
       response.end(JSON.stringify(creating ? (creationStatus === 201 ? { id: 4242 } : { message: 'Conflict' }) : { id: 1 }));
     });
   });
@@ -70,6 +70,12 @@ function runTool(mode: string, environment: NodeJS.ProcessEnv) {
     child.stderr.on('data', (chunk: Buffer) => (output += chunk.toString()));
     child.on('close', (status) => { resolve({ status, output }); });
   });
+}
+
+function scratchOutput() {
+  const directory = mkdtempSync(path.join(tmpdir(), 'manual-preview-record-'));
+  directories.push(directory);
+  return path.join(directory, 'output');
 }
 
 const approvedSha = 'b'.repeat(40);
@@ -157,9 +163,7 @@ describe('manual Preview deployment outcomes', () => {
 describe('manual Preview deployment record', () => {
   it('creates the record for the approved SHA in Preview and marks it in progress, linked to the run, before Vercel deploys', async () => {
     const github = await fakeGitHub();
-    const directory = mkdtempSync(path.join(tmpdir(), 'manual-preview-record-'));
-    directories.push(directory);
-    const outputFile = path.join(directory, 'output');
+    const outputFile = scratchOutput();
     const started = await runTool('record-start', recordEnvironment(github.url, outputFile));
     expect(started.status).toBe(0);
     expect(readFileSync(outputFile, 'utf8')).toBe('id=4242\n');
@@ -173,7 +177,7 @@ describe('manual Preview deployment record', () => {
       transient_environment: false,
       description: `Manual Preview of ${approvedSha}`,
     });
-    expect(github.requests[1]?.body).toEqual({ state: 'in_progress', log_url: runUrl });
+    expect(github.requests[1]?.body).toEqual({ state: 'in_progress', log_url: runUrl, auto_inactive: false });
     for (const request of github.requests) expect(request.headers.authorization).toBe('Bearer github-fixture-token');
     expect(JSON.stringify(github.requests)).not.toContain(vercelToken);
     expect(started.output).not.toContain(vercelToken);
@@ -181,7 +185,7 @@ describe('manual Preview deployment record', () => {
 
   it('records a successful deployment with its Preview URL and makes earlier Preview records inactive', async () => {
     const github = await fakeGitHub();
-    const outputFile = path.join(tmpdir(), 'unused-output');
+    const outputFile = scratchOutput();
     const finished = await runTool('record-finish', recordEnvironment(github.url, outputFile, { DEPLOYMENT_ID: '4242', DEPLOY_OUTCOME: 'success', PREVIEW_URL: 'https://credebi-example.vercel.app' }));
     expect(finished.status).toBe(0);
     expect(github.requests.map((request) => `${request.method} ${request.path}`)).toEqual(['POST /repos/kinchi22/credebi/deployments/4242/statuses']);
@@ -200,16 +204,14 @@ describe('manual Preview deployment record', () => {
     ['success', 'https://credebi-example.vercel.app/path'],
   ])('records a %s deploy with URL %j as failure, never success', async (outcome, url) => {
     const github = await fakeGitHub();
-    const finished = await runTool('record-finish', recordEnvironment(github.url, path.join(tmpdir(), 'unused-output'), { DEPLOYMENT_ID: '4242', DEPLOY_OUTCOME: outcome, PREVIEW_URL: url }));
+    const finished = await runTool('record-finish', recordEnvironment(github.url, scratchOutput(), { DEPLOYMENT_ID: '4242', DEPLOY_OUTCOME: outcome, PREVIEW_URL: url }));
     expect(finished.status).toBe(0);
-    expect(github.requests.map((request) => request.body)).toEqual([{ state: 'failure', log_url: runUrl, auto_inactive: true }]);
+    expect(github.requests.map((request) => request.body)).toEqual([{ state: 'failure', log_url: runUrl, auto_inactive: false }]);
   });
 
   it('moves one record through in progress to its final state in order', async () => {
     const github = await fakeGitHub();
-    const directory = mkdtempSync(path.join(tmpdir(), 'manual-preview-record-'));
-    directories.push(directory);
-    const outputFile = path.join(directory, 'output');
+    const outputFile = scratchOutput();
     expect((await runTool('record-start', recordEnvironment(github.url, outputFile))).status).toBe(0);
     const id = /^id=(\d+)$/m.exec(readFileSync(outputFile, 'utf8'))?.[1];
     expect((await runTool('record-finish', recordEnvironment(github.url, outputFile, { DEPLOYMENT_ID: id, DEPLOY_OUTCOME: 'success', PREVIEW_URL: 'https://credebi-example.vercel.app' }))).status).toBe(0);
@@ -217,26 +219,33 @@ describe('manual Preview deployment record', () => {
   });
 
   it('fails without a status or an id when GitHub does not create the record', async () => {
-    const github = await fakeGitHub(409);
-    const directory = mkdtempSync(path.join(tmpdir(), 'manual-preview-record-'));
-    directories.push(directory);
-    const outputFile = path.join(directory, 'output');
+    const github = await fakeGitHub({ creationStatus: 409 });
+    const outputFile = scratchOutput();
     const started = await runTool('record-start', recordEnvironment(github.url, outputFile));
     expect(started.status).toBe(1);
     expect(github.requests).toHaveLength(1);
     expect(existsSync(outputFile)).toBe(false);
   });
 
+  it('keeps the created record id for the final step when marking it in progress fails', async () => {
+    const github = await fakeGitHub({ statusStatus: 500 });
+    const outputFile = scratchOutput();
+    const started = await runTool('record-start', recordEnvironment(github.url, outputFile));
+    expect(started.status).toBe(1);
+    expect(github.requests).toHaveLength(2);
+    expect(readFileSync(outputFile, 'utf8')).toBe('id=4242\n');
+  });
+
   it('refuses to record anything but a full approved SHA', async () => {
     const github = await fakeGitHub();
-    const started = await runTool('record-start', recordEnvironment(github.url, path.join(tmpdir(), 'unused-output'), { APPROVED_SHA: 'main' }));
+    const started = await runTool('record-start', recordEnvironment(github.url, scratchOutput(), { APPROVED_SHA: 'main' }));
     expect(started.status).toBe(1);
     expect(github.requests).toHaveLength(0);
   });
 
   it('fails the final step when there is no record to finish', async () => {
     const github = await fakeGitHub();
-    const finished = await runTool('record-finish', recordEnvironment(github.url, path.join(tmpdir(), 'unused-output'), { DEPLOYMENT_ID: '', DEPLOY_OUTCOME: 'failure' }));
+    const finished = await runTool('record-finish', recordEnvironment(github.url, scratchOutput(), { DEPLOYMENT_ID: '', DEPLOY_OUTCOME: 'failure' }));
     expect(finished.status).toBe(1);
     expect(github.requests).toHaveLength(0);
   });
@@ -246,8 +255,8 @@ it('keeps approval and the token after resolution, uses the frozen checkout, and
   const workflow = readFileSync(path.resolve(import.meta.dirname, '../../.github/workflows/manual-preview.yml'), 'utf8');
   expect(workflow).toContain('workflow_dispatch:');
   expect(workflow).not.toMatch(/^ {2}(push|pull_request|workflow_call|schedule):/m);
-  expect(workflow).toContain("if: github.ref == 'refs/heads/main'");
   const resolve = workflow.slice(workflow.indexOf('  resolve:'), workflow.indexOf('  deploy:'));
+  expect(resolve).toMatch(/^ {2}resolve:\n {4}if: github\.ref == 'refs\/heads\/main'\n/);
   expect(resolve).not.toContain('VERCEL_TOKEN');
   const deploy = workflow.slice(workflow.indexOf('  deploy:'), workflow.indexOf('  summary:'));
   expect(deploy).toContain('needs: resolve');

@@ -136,10 +136,11 @@ anything.
   checkout and deployment use that frozen SHA. Only that environment holds
   `VERCEL_TOKEN`. The workflow runs from `main`, so its deploy job writes the
   `Preview` deployment record itself for the approved SHA rather than `main`'s,
-  and a newest active record can outlive Vercel's Preview retention. Every request deploys Preview,
-  including `main`, with Vercel's default build cache. The CLI workflow provides
-  no Production deployment, Promotion or rollback path. Production remains on
-  the Git integration and its Deployment Checks. Actual environment protection
+  and a newest active record can outlive Vercel's Preview retention. Every
+  request deploys Preview, including `main`, with Vercel's default build cache.
+  The CLI workflow provides no Production deployment, Promotion or rollback
+  path. Production remains on the Git integration and its Deployment Checks.
+  Actual environment protection
   and an owner-approved Preview are verified before operational adoption.
 - *Migrations.* Applied from CI, never from a Vercel build, and only after the
   owner approves in `production-database`.

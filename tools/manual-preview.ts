@@ -64,7 +64,7 @@ async function postToGitHub(resource: string, body: Record<string, unknown>, env
     },
     body: JSON.stringify(body),
   });
-  if (response.status !== 201) throw new Error(`GitHub refused the Preview deployment record with status ${String(response.status)}.`);
+  if (response.status !== 201) throw new Error(`GitHub refused POST ${resource} with status ${String(response.status)}.`);
   return response.json();
 }
 
@@ -72,7 +72,7 @@ function runUrl(environment: NodeJS.ProcessEnv): string {
   return `${environment['GITHUB_SERVER_URL'] ?? 'https://github.com'}/${environment['GITHUB_REPOSITORY'] ?? ''}/actions/runs/${environment['GITHUB_RUN_ID'] ?? ''}`;
 }
 
-export async function startPreviewRecord(sha: string, environment = process.env): Promise<string> {
+export async function createPreviewRecord(sha: string, environment = process.env): Promise<string> {
   if (!/^[a-f\d]{40}$/.test(sha)) throw new Error('Only a full approved commit SHA can be recorded.');
   const created = await postToGitHub('deployments', {
     ref: sha,
@@ -85,8 +85,11 @@ export async function startPreviewRecord(sha: string, environment = process.env)
   }, environment);
   const id = (created as { id?: unknown }).id;
   if (typeof id !== 'number') throw new Error('GitHub returned no Preview deployment record.');
-  await postToGitHub(`deployments/${String(id)}/statuses`, { state: 'in_progress', log_url: runUrl(environment) }, environment);
   return String(id);
+}
+
+export async function markPreviewRecordInProgress(id: string, environment = process.env): Promise<void> {
+  await postToGitHub(`deployments/${id}/statuses`, { state: 'in_progress', log_url: runUrl(environment), auto_inactive: false }, environment);
 }
 
 export async function finishPreviewRecord(id: string, outcome: string, url: string, environment = process.env): Promise<void> {
@@ -96,7 +99,7 @@ export async function finishPreviewRecord(id: string, outcome: string, url: stri
     state: succeeded ? 'success' : 'failure',
     log_url: runUrl(environment),
     ...(succeeded ? { environment_url: url } : {}),
-    auto_inactive: true,
+    auto_inactive: succeeded,
   }, environment);
 }
 
@@ -105,19 +108,24 @@ export function renderPreviewSummary(target: string, sha: string, status: string
   return `## Preview deployment\n\nRequested target: ${escapedTarget}\n\nResolved commit: ${sha || 'Unresolved'}\n\nStatus: ${status}\n\n${url ? `Preview URL: ${url}\n` : ''}`;
 }
 
+function writeStepOutput(line: string): void {
+  appendFileSync(process.env['GITHUB_OUTPUT'] ?? '/dev/stdout', `${line}\n`);
+}
+
 async function main(mode: string | undefined): Promise<void> {
   const target = process.env['REQUESTED_TARGET'] ?? '';
   const directory = process.env['SOURCE_DIRECTORY'] ?? '.';
   if (mode === 'resolve') {
     const sha = resolvePreviewTarget(target, directory);
-    appendFileSync(process.env['GITHUB_OUTPUT'] ?? '/dev/stdout', `sha=${sha}\n`);
+    writeStepOutput(`sha=${sha}`);
     appendFileSync(process.env['GITHUB_STEP_SUMMARY'] ?? '/dev/stdout', `Resolved Preview commit: \`${sha}\`\n\nReview this SHA before approving the Preview environment.\n`);
   } else if (mode === 'record-start') {
-    const id = await startPreviewRecord(process.env['APPROVED_SHA'] ?? '');
-    appendFileSync(process.env['GITHUB_OUTPUT'] ?? '/dev/stdout', `id=${id}\n`);
+    const id = await createPreviewRecord(process.env['APPROVED_SHA'] ?? '');
+    writeStepOutput(`id=${id}`);
+    await markPreviewRecordInProgress(id);
   } else if (mode === 'deploy') {
     const url = deployPreview(process.env['APPROVED_SHA'] ?? '', directory);
-    appendFileSync(process.env['GITHUB_OUTPUT'] ?? '/dev/stdout', `url=${url}\n`);
+    writeStepOutput(`url=${url}`);
   } else if (mode === 'record-finish') {
     await finishPreviewRecord(process.env['DEPLOYMENT_ID'] ?? '', process.env['DEPLOY_OUTCOME'] ?? '', process.env['PREVIEW_URL'] ?? '');
   } else if (mode === 'summary') {
