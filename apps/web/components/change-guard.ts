@@ -11,6 +11,7 @@ export type ChangeGuard = {
   readonly discard: ModalDialog;
   readonly requestClose: () => void;
   readonly discardChanges: () => void;
+  readonly retakeSnapshot: () => void;
   readonly dialogProps: ModalDialog['dialogProps'] & {
     readonly onKeyDown: (event: KeyboardEvent<HTMLDialogElement>) => void;
     readonly onCancel: (event: SyntheticEvent<HTMLDialogElement>) => void;
@@ -53,6 +54,9 @@ export function useChangeGuard(dialog: ModalDialog, locked = false): ChangeGuard
     discardChanges: () => {
       discard.close();
       dialog.close();
+    },
+    retakeSnapshot: () => {
+      opened.current = fieldsIn(element.current);
     },
     dialogProps: {
       ...dialog.dialogProps,
