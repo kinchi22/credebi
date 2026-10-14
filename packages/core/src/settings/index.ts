@@ -13,4 +13,7 @@ export type {
   ChangeEntryFormModeDependencies,
 } from './application/change-entry-form-mode';
 
+export { createChangeLanguage } from './application/change-language';
+export type { ChangeLanguage, ChangeLanguageDependencies } from './application/change-language';
+
 export type { SettingsRepository } from './ports/settings-repository';

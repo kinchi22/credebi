@@ -3,9 +3,11 @@ import {
   domainError,
   entryFormModeSchema,
   err,
+  languageSchema,
   ok,
   type DomainError,
   type EntryFormMode,
+  type Language,
   type Result,
   type UserId,
 } from '@repo/contracts';
@@ -25,12 +27,30 @@ export function createPostgresSettingsRepository(
 ): PostgresSettingsRepository {
   const { database, close } = createDatabase(connectionString);
 
+  const save = async (
+    userId: UserId,
+    change: Partial<Settings>,
+  ): Promise<Result<void, DomainError>> => {
+    try {
+      await database
+        .insert(schema.userSettings)
+        .values({ userId, ...DEFAULT_SETTINGS, ...change })
+        .onConflictDoUpdate({ target: schema.userSettings.userId, set: change });
+      return ok(undefined);
+    } catch (error) {
+      return databaseFailure(logger, 'settings.save_failed', error, 'The Settings could not be saved.');
+    }
+  };
+
   return {
     read: async (userId: UserId): Promise<Result<Settings, DomainError>> => {
-      let rows: { readonly entryFormMode: string }[];
+      let rows: { readonly entryFormMode: string; readonly language: string }[];
       try {
         rows = await database
-          .select({ entryFormMode: schema.userSettings.entryFormMode })
+          .select({
+            entryFormMode: schema.userSettings.entryFormMode,
+            language: schema.userSettings.language,
+          })
           .from(schema.userSettings)
           .where(eq(schema.userSettings.userId, userId));
       } catch (error) {
@@ -43,37 +63,26 @@ export function createPostgresSettingsRepository(
       }
 
       const entryFormMode = entryFormModeSchema.safeParse(row.entryFormMode);
-      if (!entryFormMode.success) {
+      const language = languageSchema.safeParse(row.language);
+      if (!entryFormMode.success || !language.success) {
         logger.error(
           { event: 'settings.stored_settings_invalid', userId },
-          'Stored Settings hold no valid Entry form mode, so they were not read.',
+          'Stored Settings hold no valid Entry form mode or Language, so they were not read.',
         );
         return err(
-          domainError('DEPENDENCY_UNAVAILABLE', 'The stored Settings hold no valid Entry form mode.'),
+          domainError(
+            'DEPENDENCY_UNAVAILABLE',
+            'The stored Settings hold no valid Entry form mode or Language.',
+          ),
         );
       }
-      return ok({ entryFormMode: entryFormMode.data });
+      return ok({ entryFormMode: entryFormMode.data, language: language.data });
     },
 
-    saveEntryFormMode: async (
-      userId: UserId,
-      entryFormMode: EntryFormMode,
-    ): Promise<Result<void, DomainError>> => {
-      try {
-        await database
-          .insert(schema.userSettings)
-          .values({ userId, entryFormMode })
-          .onConflictDoUpdate({ target: schema.userSettings.userId, set: { entryFormMode } });
-        return ok(undefined);
-      } catch (error) {
-        return databaseFailure(
-          logger,
-          'settings.save_failed',
-          error,
-          'The Settings could not be saved.',
-        );
-      }
-    },
+    saveEntryFormMode: (userId: UserId, entryFormMode: EntryFormMode) =>
+      save(userId, { entryFormMode }),
+
+    saveLanguage: (userId: UserId, language: Language) => save(userId, { language }),
 
     close,
   };

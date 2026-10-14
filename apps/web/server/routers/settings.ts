@@ -1,4 +1,9 @@
-import { changeEntryFormModeInputSchema, settingsSchema, toSettings } from '@repo/contracts';
+import {
+  changeEntryFormModeInputSchema,
+  changeLanguageInputSchema,
+  settingsSchema,
+  toSettings,
+} from '@repo/contracts';
 import { toTrpcError } from '../domain-error';
 import { router, sessionProcedure } from '../trpc';
 
@@ -15,6 +20,15 @@ export const settingsRouter = router({
     .input(changeEntryFormModeInputSchema)
     .mutation(async ({ ctx, input }) => {
       const result = await ctx.container.changeEntryFormMode(ctx.auth, input.entryFormMode);
+      if (!result.ok) {
+        throw toTrpcError(result.error);
+      }
+    }),
+
+  changeLanguage: sessionProcedure
+    .input(changeLanguageInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const result = await ctx.container.changeLanguage(ctx.auth, input.language);
       if (!result.ok) {
         throw toTrpcError(result.error);
       }

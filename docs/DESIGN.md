@@ -533,9 +533,14 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   4px bars with round ends, 72px wide at most: Two-line is two equal bars, one `debit`
   over one `credit`; Multi-line is four of varying length, two `debit` then two
   `credit`.
-  Choosing a mode saves it silently, as the Accounts section saves: no
-  confirmation shows. A refused save puts the earlier mode back and shows the
-  refusal in `danger` below the strip.
+  It is also the Language in Settings, in the row below the Entry form mode:
+  three equal segments, each the Language's name in itself -- English, 한국어,
+  日本語 -- centred, in that order whatever the page's Language, with no
+  drawing and no description. Choosing a Language renders the page in it at
+  once.
+  Choosing a mode or a Language saves it silently, as the Accounts section
+  saves: no confirmation shows. A refused save puts the earlier choice back and
+  shows the refusal in `danger` below the strip.
 - **Settings row.** Settings' rows sit on the page ground, not in a panel:
   each setting is a row between
   `border` hairlines, padded 20px above and below, its name on the left and its

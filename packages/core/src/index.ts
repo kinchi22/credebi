@@ -115,9 +115,12 @@ export {
 export {
   DEFAULT_SETTINGS,
   createChangeEntryFormMode,
+  createChangeLanguage,
   createGetSettings,
   type ChangeEntryFormMode,
   type ChangeEntryFormModeDependencies,
+  type ChangeLanguage,
+  type ChangeLanguageDependencies,
   type GetSettings,
   type GetSettingsDependencies,
   type Settings,
