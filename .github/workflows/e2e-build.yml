@@ -20,18 +20,10 @@ name: E2E build
 # the ground that nobody reads it, and the answer is the reader, written into
 # `/implement-issue`'s loop.
 #
-# That advisory run is two executions, not one (#345). `tools/run-advisory-specs.ts`
-# compares the milestone commit with its merge-base with `origin/main`: the
-# spec files added since then are the Feature specs, and every other current
-# spec file -- edited or renamed ones included -- is an existing spec. Each
-# group runs in a matrix leg of its own, with its own 20-minute budget,
-# preparation included, and no retries, so unfinished Feature specs can neither
-# spend the existing specs' time nor hide their result. `fail-fast: false`
-# keeps one leg's failure or timeout from cancelling the other. The comparison
-# needs the merge-base, so an advisory leg checks out the whole history, which
-# brings `origin/main` with it; a missing baseline fails the leg rather than
-# passing it empty. An empty group is reported and skipped by the command, and
-# never handed to Playwright, which would run the whole suite.
+# That advisory run is two matrix legs, the existing specs and the Feature
+# specs, each through `pnpm test:e2e:advisory`. How the command splits them, and
+# what each leg's budget, history, empty group and report mean, is in
+# `docs/ARCHITECTURE.md`, "How a criterion ships".
 #
 # Each leg reports under a name of its own, `E2E build (advisory, existing
 # specs)` and `E2E build (advisory, Feature specs)`, which is what the `name:`

@@ -396,8 +396,8 @@ The command classifies by file, against the milestone commit's merge-base with
 nothing until the owner merges it into the milestone. A spec file added since
 then is a Feature spec; one the merge-base had stays an existing spec when it is
 edited, and so does a rename Git recognises, under its new name. A helper is not
-a spec file and decides no group. So a Feature's new specs go in new spec files:
-a test appended to an existing file runs, and fails, as an existing spec. Each
+a spec file and decides no group, and a test appended to an existing file runs
+as an existing spec ("Writing a spec"). Each
 run prints the classification, including the spec files removed since the
 merge-base: no group runs them, and none counts as passing.
 
