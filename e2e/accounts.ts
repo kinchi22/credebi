@@ -57,7 +57,7 @@ const deleteDialog = (page: Page, kind: Kind): Locator =>
 
 const groupField = (dialog: Locator): Locator => dialog.getByLabel('Group', { exact: true });
 
-const chosenGroup = (dialog: Locator): Locator => groupField(dialog).locator('option:checked');
+export const chosenGroup = (dialog: Locator): Locator => groupField(dialog).locator('option:checked');
 
 export const activeFrom = (dialog: Locator): Locator =>
   dialog.getByLabel('Active from', { exact: true });

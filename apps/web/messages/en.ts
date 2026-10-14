@@ -154,6 +154,8 @@ export const en = {
     save: 'Save',
     pending: 'Saving...',
     close: 'Close',
+    addAnother: 'Add another',
+    added: (name: string): string => `${name} was added.`,
     refusals: chartRefusals(
       'account',
       accountNotSaved,
