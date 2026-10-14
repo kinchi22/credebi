@@ -190,11 +190,27 @@ export async function boxOf(locator: Locator, what: string): Promise<Box> {
   return box;
 }
 
-async function centreInViewport(page: Page, from: Point, to: Point): Promise<void> {
+const DND_KIT_DEFAULT_AUTO_SCROLL_EDGE_SHARE = 0.2;
+
+function viewportHeight(page: Page): number {
   const viewport = page.viewportSize();
   if (viewport === null) throw new Error('the page has no viewport to scroll');
-  const by = (from.y + to.y) / 2 - viewport.height / 2;
+  return viewport.height;
+}
+
+async function centreInViewport(page: Page, from: Point, to: Point): Promise<void> {
+  const by = (from.y + to.y) / 2 - viewportHeight(page) / 2;
   await page.evaluate(`window.scrollBy(0, ${String(by)})`);
+}
+
+function expectClearOfAutoScroll(page: Page, from: Point, to: Point): void {
+  const distance = Math.abs(to.y - from.y);
+  const limit = viewportHeight(page) * (1 - 2 * DND_KIT_DEFAULT_AUTO_SCROLL_EDGE_SHARE);
+  if (distance >= limit) {
+    throw new Error(
+      `the drag spans ${String(Math.round(distance))}px, and only a drag under ${String(Math.round(limit))}px keeps both ends out of dnd-kit's auto-scroll band at the viewport's edges`,
+    );
+  }
 }
 
 export async function dragTo(page: Page, from: Locator, target: Point): Promise<void> {
@@ -203,6 +219,7 @@ export async function dragTo(page: Page, from: Locator, target: Point): Promise<
   await from.hover();
   const start = centre(await boxOf(from, 'the grip being dragged'));
   const end = { x: target.x + start.x - measured.x, y: target.y + start.y - measured.y };
+  expectClearOfAutoScroll(page, start, end);
   await page.mouse.move(start.x, start.y);
   await page.mouse.down();
   const direction = end.y > start.y ? 1 : -1;
