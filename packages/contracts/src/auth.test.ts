@@ -24,13 +24,18 @@ describe('userIdSchema', () => {
 });
 
 describe('toIssuedSession', () => {
-  it('carries the token, and the expiry as an ISO string the schema accepts', () => {
+  it("carries the token, the expiry as an ISO string the schema accepts, and the User's Language", () => {
     const issued = toIssuedSession({
       token: 'token',
       expiresAt: new Date('2026-10-18T09:30:00.123+09:00'),
+      language: 'ko',
     });
 
-    expect(issued).toStrictEqual({ token: 'token', expiresAt: '2026-10-18T00:30:00.123Z' });
+    expect(issued).toStrictEqual({
+      token: 'token',
+      expiresAt: '2026-10-18T00:30:00.123Z',
+      language: 'ko',
+    });
     expect(issuedSessionSchema.parse(issued)).toEqual(issued);
   });
 });
@@ -69,7 +74,21 @@ describe('pendingSignInSchema', () => {
 describe('issuedSessionSchema', () => {
   it('refuses an empty token', () => {
     expect(
-      issuedSessionSchema.safeParse({ token: '', expiresAt: '2026-10-18T00:30:00.000Z' }).success,
+      issuedSessionSchema.safeParse({
+        token: '',
+        expiresAt: '2026-10-18T00:30:00.000Z',
+        language: 'en',
+      }).success,
+    ).toBe(false);
+  });
+
+  it.each([
+    ['no Language', undefined],
+    ['a Language the app does not have', 'fr'],
+  ])('refuses %s', (_case, language) => {
+    expect(
+      issuedSessionSchema.safeParse({ token: 't', expiresAt: '2026-10-18T00:30:00.000Z', language })
+        .success,
     ).toBe(false);
   });
 });
@@ -77,36 +96,50 @@ describe('issuedSessionSchema', () => {
 describe('finishGoogleSignInInputSchema', () => {
   const CALLBACK = 'https://app.test/auth/callback/google?state=s&code=c';
 
-  it('takes the callback URL, and the pending sign-in when there is one', () => {
+  it('takes the callback URL, the Language, and the pending sign-in when there is one', () => {
     const pending = { state: 's', codeVerifier: 'v' };
 
-    expect(finishGoogleSignInInputSchema.parse({ callbackUrl: CALLBACK, pending })).toEqual({
+    expect(
+      finishGoogleSignInInputSchema.parse({ callbackUrl: CALLBACK, pending, language: 'ja' }),
+    ).toEqual({ callbackUrl: CALLBACK, pending, language: 'ja' });
+    expect(finishGoogleSignInInputSchema.parse({ callbackUrl: CALLBACK, language: 'en' })).toEqual({
       callbackUrl: CALLBACK,
-      pending,
-    });
-    expect(finishGoogleSignInInputSchema.parse({ callbackUrl: CALLBACK })).toEqual({
-      callbackUrl: CALLBACK,
+      language: 'en',
     });
   });
 
   it('refuses a callback that is not a URL', () => {
-    expect(finishGoogleSignInInputSchema.safeParse({ callbackUrl: 'callback' }).success).toBe(false);
+    expect(
+      finishGoogleSignInInputSchema.safeParse({ callbackUrl: 'callback', language: 'en' }).success,
+    ).toBe(false);
+  });
+
+  it.each([undefined, 'fr'])('refuses %j as the Language', (language) => {
+    expect(finishGoogleSignInInputSchema.safeParse({ callbackUrl: CALLBACK, language }).success).toBe(
+      false,
+    );
   });
 });
 
 describe('testSignInInputSchema', () => {
-  it('takes the identifier as it was typed', () => {
-    expect(testSignInInputSchema.parse({ identifier: ' e2e-1 ' })).toEqual({ identifier: ' e2e-1 ' });
-  });
-
-  it('takes the day the Accounts start on as it was typed, for the use case to judge', () => {
-    expect(testSignInInputSchema.parse({ identifier: 'e2e-1', accountsStartOn: 'soon' })).toEqual({
-      identifier: 'e2e-1',
-      accountsStartOn: 'soon',
+  it('takes the identifier as it was typed, and the Language', () => {
+    expect(testSignInInputSchema.parse({ identifier: ' e2e-1 ', language: 'ko' })).toEqual({
+      identifier: ' e2e-1 ',
+      language: 'ko',
     });
   });
 
+  it('takes the day the Accounts start on as it was typed, for the use case to judge', () => {
+    expect(
+      testSignInInputSchema.parse({ identifier: 'e2e-1', language: 'en', accountsStartOn: 'soon' }),
+    ).toEqual({ identifier: 'e2e-1', language: 'en', accountsStartOn: 'soon' });
+  });
+
   it('refuses no identifier', () => {
-    expect(testSignInInputSchema.safeParse({}).success).toBe(false);
+    expect(testSignInInputSchema.safeParse({ language: 'en' }).success).toBe(false);
+  });
+
+  it.each([undefined, 'fr'])('refuses %j as the Language', (language) => {
+    expect(testSignInInputSchema.safeParse({ identifier: 'e2e-1', language }).success).toBe(false);
   });
 });

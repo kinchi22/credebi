@@ -32,7 +32,11 @@ export const authRouter = router({
     .input(finishGoogleSignInInputSchema)
     .output(issuedSessionSchema)
     .mutation(async ({ ctx, input }) => {
-      const result = await ctx.container.finishGoogleSignIn(new URL(input.callbackUrl), input.pending);
+      const result = await ctx.container.finishGoogleSignIn(
+        new URL(input.callbackUrl),
+        input.pending,
+        input.language,
+      );
       if (!result.ok) {
         throw toTrpcError(result.error);
       }
@@ -43,7 +47,11 @@ export const authRouter = router({
     .input(testSignInInputSchema)
     .output(issuedSessionSchema)
     .mutation(async ({ ctx, input }) => {
-      const result = await ctx.container.testSignIn(input.identifier, input.accountsStartOn);
+      const result = await ctx.container.testSignIn(
+        input.identifier,
+        input.language,
+        input.accountsStartOn,
+      );
       if (!result.ok) {
         throw toTrpcError(result.error);
       }

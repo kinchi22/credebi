@@ -67,6 +67,7 @@ import {
   newSessionToken,
 } from '@repo/core/server';
 import { v7 as uuidv7 } from 'uuid';
+import { startingAccountNames } from './catalogues';
 import { type Env, parseEnv } from './env';
 import { createLogger, stderr } from './logger';
 
@@ -110,6 +111,8 @@ export function createContainer({ databaseUrl, google, testSignIn }: Env): Conta
   const signIn = {
     users: createPostgresUserRepository(databaseUrl, logger),
     sessions,
+    settings,
+    startingAccountNames,
     newUserId: () => userIdSchema.parse(uuidv7()),
     newAccountId,
     newSessionToken,
