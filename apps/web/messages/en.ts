@@ -59,7 +59,7 @@ export const en = {
     title: 'Pipeline health',
     reachable: 'reachable',
     unreachable: 'unreachable',
-    checkedAt: 'checked at',
+    checkedAt: 'checked at {instant}',
   },
   refreshButton: {
     idle: 'Re-check',
@@ -155,7 +155,7 @@ export const en = {
     pending: 'Saving...',
     close: 'Close',
     addAnother: 'Add another',
-    added: (name: string): string => `${name} was added.`,
+    added: '{name} was added.',
     refusals: chartRefusals(
       'account',
       accountNotSaved,
@@ -212,16 +212,14 @@ export const en = {
       month: 'Month',
       relative: 'Relative',
     },
-    quarterPrefix: 'Q',
-    months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    quarter: 'Q{quarter}',
+    month:
+      '{month, plural, =1 {Jan} =2 {Feb} =3 {Mar} =4 {Apr} =5 {May} =6 {Jun} =7 {Jul} =8 {Aug} =9 {Sep} =10 {Oct} =11 {Nov} =12 {Dec} other {#}}',
+    periodOfYear: '{period} {year}',
     relative: {
-      last: 'Last ',
-      next: 'Next ',
-      around: '\u00B1',
-    },
-    monthUnit: {
-      one: 'month',
-      many: 'months',
+      last: 'Last {months, plural, one {# month} other {# months}}',
+      next: 'Next {months, plural, one {# month} other {# months}}',
+      around: '\u00B1{months, plural, one {# month} other {# months}}',
     },
   },
   entryForm: {

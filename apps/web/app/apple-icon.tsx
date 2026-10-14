@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server';
 import { type ImageResponse } from 'next/og';
 import { appIcon } from '../components/app-icon';
 
@@ -7,6 +8,7 @@ export const size = { width: SIZE, height: SIZE };
 
 export const contentType = 'image/png';
 
-export default function AppleIcon(): ImageResponse {
-  return appIcon({ size: SIZE, maskable: false });
+export default async function AppleIcon(): Promise<ImageResponse> {
+  const t = await getTranslations('app');
+  return appIcon({ size: SIZE, maskable: false }, t('name'));
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import {
   entryFormModeSchema,
   type DomainErrorCode,
@@ -9,7 +10,6 @@ import {
 import { useId, useState, useTransition, type ChangeEvent, type ReactNode } from 'react';
 import { PANEL_FRAME } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
-import { en } from '../messages/en';
 import { LEGEND } from './control-classes';
 import { SIDE_TONE } from './side-classes';
 import { DANGER_TEXT } from './text-classes';
@@ -65,6 +65,7 @@ function ModeDrawing({ mode }: { readonly mode: EntryFormMode }): ReactNode {
 }
 
 export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps): ReactNode {
+  const t = useTranslations();
   const [selected, setSelected] = useState(chosen);
   const [refused, setRefused] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -91,7 +92,7 @@ export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps
     <div className="flex flex-col gap-2">
       <fieldset className="m-0 flex flex-col gap-3 border-0 border-y border-border px-0 py-5 wide:flex-row wide:items-center wide:justify-between">
         <legend className={`float-left p-0 ${LEGEND}`}>
-          {en.settingsPage.entryFormMode}
+          {t('settingsPage.entryFormMode')}
         </legend>
         <div className={`grid auto-cols-fr grid-flow-col grid-rows-[auto_auto_auto] gap-y-2 self-stretch p-0.5 ${PANEL_FRAME} wide:max-w-2xl wide:flex-1 wide:self-auto`}>
           {entryFormModeSchema.options.map((mode) => (
@@ -115,10 +116,10 @@ export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps
                   id={`${id}-${mode}-name`}
                   className={selected === mode ? 'font-semibold' : undefined}
                 >
-                  {en.settingsPage.entryFormModes[mode]}
+                  {t(`settingsPage.entryFormModes.${mode}`)}
                 </span>
                 <span id={`${id}-${mode}-description`} className={typeClasses['body-dense']}>
-                  {en.settingsPage.entryFormModeDescriptions[mode]}
+                  {t(`settingsPage.entryFormModeDescriptions.${mode}`)}
                 </span>
               </span>
             </label>
@@ -127,7 +128,7 @@ export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps
       </fieldset>
       {refused ? (
         <p role="alert" className={DANGER_TEXT}>
-          {en.settingsPage.notSaved}
+          {t('settingsPage.notSaved')}
         </p>
       ) : null}
     </div>

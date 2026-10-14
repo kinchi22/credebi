@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import {
   ACCOUNT_FORM_FIELDS,
   type AccountGroupOutput,
@@ -19,7 +20,6 @@ import {
   type SubmitEvent,
   type TransitionStartFunction,
 } from 'react';
-import { en } from '../messages/en';
 import {
   CONFIRMATION_DIALOG,
   CONFIRMATION_PANEL,
@@ -98,14 +98,14 @@ const UNSAVED: ChartChange = { outcome: 'rejected', code: 'DEPENDENCY_UNAVAILABL
 
 const KINDS = {
   account: {
-    addTitle: en.accountDialog.addTitle,
-    editTitle: en.accountDialog.editTitle,
-    refusals: en.accountDialog.refusals,
+    addTitle: 'accountDialog.addTitle',
+    editTitle: 'accountDialog.editTitle',
+    refusals: 'accountDialog.refusals',
   },
   group: {
-    addTitle: en.accountDialog.addGroupTitle,
-    editTitle: en.accountDialog.editGroupTitle,
-    refusals: en.accountDialog.groupRefusals,
+    addTitle: 'accountDialog.addGroupTitle',
+    editTitle: 'accountDialog.editGroupTitle',
+    refusals: 'accountDialog.groupRefusals',
   },
 } as const;
 
@@ -131,19 +131,20 @@ function AccountFields({
   readonly accountType: AccountType;
   readonly groups: readonly AccountGroupOutput[];
 }): ReactNode {
+  const t = useTranslations();
   const groupId = useId();
 
   return (
     <>
       <div className={FIELD}>
-        <label htmlFor={groupId}>{en.accountDialog.group}</label>
+        <label htmlFor={groupId}>{t('accountDialog.group')}</label>
         <select
           id={groupId}
           name={ACCOUNT_FORM_FIELDS.group}
           defaultValue={defaults.groupId}
           className={`${CONTROL} max-w-full`}
         >
-          <option value="">{en.accountDialog.noGroup}</option>
+          <option value="">{t('accountDialog.noGroup')}</option>
           {groups
             .filter((group) => group.accountType === accountType)
             .map((group) => (
@@ -155,7 +156,7 @@ function AccountFields({
       </div>
       <div className="flex flex-wrap gap-3">
         <label className={`${FIELD} min-w-0 flex-1`}>
-          {en.accountDialog.activeFrom}
+          {t('accountDialog.activeFrom')}
           <input
             type="date"
             name={ACCOUNT_FORM_FIELDS.activeFrom}
@@ -165,7 +166,7 @@ function AccountFields({
           />
         </label>
         <label className={`${FIELD} min-w-0 flex-1`}>
-          {en.accountDialog.activeUntil}
+          {t('accountDialog.activeUntil')}
           <input
             type="date"
             name={ACCOUNT_FORM_FIELDS.activeUntil}
@@ -201,6 +202,7 @@ function AccountForm({
   readonly startTransition: TransitionStartFunction;
   readonly retakeSnapshot: () => void;
 }): ReactNode {
+  const t = useTranslations();
   const [status, setStatus] = useState<StatusLine>();
   const [addAnother, setAddAnother] = useState(false);
   const [kept, setKept] = useState<Kept>({ round: 0, fields: undefined });
@@ -251,15 +253,15 @@ function AccountForm({
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h2 id={titleId} className={typeClasses.h2}>
-            {adding ? kind.addTitle : kind.editTitle}
+            {t(adding ? kind.addTitle : kind.editTitle)}
           </h2>
-          <p className={MUTED_TEXT}>{en.accountTypes[target.accountType]}</p>
+          <p className={MUTED_TEXT}>{t(`accountTypes.${target.accountType}`)}</p>
         </div>
-        <CloseButton label={en.accountDialog.close} onClose={onClose} disabled={pending} />
+        <CloseButton label={t('accountDialog.close')} onClose={onClose} disabled={pending} />
       </div>
       <Fragment key={kept.round}>
         <label className={FIELD}>
-          {en.accountDialog.name}
+          {t('accountDialog.name')}
           <input
             name={ACCOUNT_FORM_FIELDS.name}
             required
@@ -269,7 +271,7 @@ function AccountForm({
           />
         </label>
         <div className={FIELD}>
-          <label htmlFor={descriptionId}>{en.accountDialog.description}</label>
+          <label htmlFor={descriptionId}>{t('accountDialog.description')}</label>
           <textarea
             id={descriptionId}
             name={ACCOUNT_FORM_FIELDS.description}
@@ -290,10 +292,10 @@ function AccountForm({
         <div role="status" className={`${MUTED_TEXT} not-empty:mb-4`}>
           {status?.shows === 'refusal' ? (
             <p role="alert" className={DANGER_TEXT}>
-              {kind.refusals[status.code]}
+              {t(`${kind.refusals}.${status.code}`)}
             </p>
           ) : null}
-          {status?.shows === 'added' ? <p>{en.accountDialog.added(status.name)}</p> : null}
+          {status?.shows === 'added' ? <p>{t('accountDialog.added', { name: status.name })}</p> : null}
         </div>
         <div className="flex items-center gap-3">
           {adding ? (
@@ -306,11 +308,11 @@ function AccountForm({
                   setAddAnother(event.currentTarget.checked);
                 }}
               />
-              {en.accountDialog.addAnother}
+              {t('accountDialog.addAnother')}
             </label>
           ) : null}
           <button type="submit" disabled={pending} className={`${PRIMARY_BUTTON} ml-auto`}>
-            {pending ? en.accountDialog.pending : en.accountDialog.save}
+            {pending ? t('accountDialog.pending') : t('accountDialog.save')}
           </button>
         </div>
       </div>
@@ -325,6 +327,7 @@ export function AccountDialog({
   today,
   actions,
 }: AccountDialogProps): ReactNode {
+  const t = useTranslations();
   const titleId = useId();
   const [pending, startTransition] = useTransition();
   const guard = useChangeGuard(dialog, pending);
@@ -354,7 +357,7 @@ export function AccountDialog({
       {target === undefined ? null : (
         <DiscardChanges
           dialog={guard.discard}
-          body={en.discardChanges[target.kind]}
+          body={t(`discardChanges.${target.kind}`)}
           onDiscard={guard.discardChanges}
         />
       )}

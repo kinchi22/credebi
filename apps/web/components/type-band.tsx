@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import { type AccountType } from '@repo/contracts';
 import {
   FallingLineIcon,
@@ -9,7 +10,6 @@ import {
 } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { type ReactNode } from 'react';
-import { en } from '../messages/en';
 
 const TYPE_ICON: Readonly<Record<AccountType, () => ReactNode>> = {
   asset: WalletIcon,
@@ -50,11 +50,12 @@ export type BandProps = {
 };
 
 export function Band({ accountType, id, className, children }: BandProps): ReactNode {
+  const t = useTranslations();
   const Icon = TYPE_ICON[accountType];
   return (
     <Strip
       icon={<Icon />}
-      name={en.accountTypes[accountType]}
+      name={t(`accountTypes.${accountType}`)}
       id={id}
       className={`bg-band ${className}`}
     >
@@ -69,10 +70,11 @@ export type SuggestedBandProps = {
 };
 
 export function SuggestedBand({ id, className }: SuggestedBandProps): ReactNode {
+  const t = useTranslations();
   return (
     <Strip
       icon={<SparkleIcon />}
-      name={en.accountSheet.suggested}
+      name={t('accountSheet.suggested')}
       id={id}
       className={`bg-band-suggested ${className}`}
     />

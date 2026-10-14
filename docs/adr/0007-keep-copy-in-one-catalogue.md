@@ -2,6 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-09-15
+**Amended:** 2026-10-14, adopting `next-intl` (ADR-0008)
 
 ## Problem
 
@@ -22,8 +23,8 @@ The app renders eight strings, in `apps/web/app/layout.tsx`,
 
 ## Decision
 
-Copy lives in `apps/web/messages/en.ts`: a plain `as const` object, read by
-import, grouped by the part of the UI that renders it, keys and values in
+Copy lives in `apps/web/messages/en.ts`: a plain `as const` object, read
+through `next-intl`, grouped by the part of the UI that renders it, keys and values in
 English. It is not exempt from `repo/english-only`.
 
 `repo/no-inline-copy` rejects copy written in `apps/web/app` or
@@ -44,13 +45,13 @@ started as `aria-hidden`, `className`, `data-*`, `dateTime`, `href`, `htmlFor`,
 `id`, `key`, `lang`, `role`, `tone` and `type`.
 
 `apps/web/messages` is an `eslint-plugin-boundaries` element of its own. Nothing
-else in the repo is imported by it, and only `app` and `components` import it.
+else in the repo is imported by it, and only `server` imports it, for the
+request config through which `next-intl` serves every catalogue.
 
 ## Consequences
 
-Each rendered string is one property read, and a missing key fails to compile.
-When a second locale is adopted, each import becomes a translation call and the
-catalogue carries over.
+Each rendered string is one translation call on a typed key, and a missing key
+fails to compile.
 
 The rule sees literals, not meaning:
 
@@ -68,9 +69,8 @@ The closed list costs churn in the other direction:
 - A string in `metadata` that is not copy, such as a URL, is reported and has no
   exemption. The first one needs one added.
 
-`healthPanel.checkedAt` is a prefix rendered before an instant. A plain string
-cannot express an argument, so a language that puts the instant first needs the
-key rewritten.
+Copy rendered around a value, such as `healthPanel.checkedAt` before an instant,
+is one message with an argument, so each language orders its own words.
 
 The boundaries line is enforced by `eslint-plugin-boundaries` alone.
 dependency-cruiser treats `apps/web` as one unit. Imports between files inside
@@ -80,7 +80,8 @@ dependency-cruiser treats `apps/web` as one unit. Imports between files inside
 
 **A translation library now, with `en` alone.** A dependency, a provider around
 client components and a request config, for a choice with one answer. The
-version picked today need not be the one adoption picks.
+version picked today need not be the one adoption picks. Adopted with ADR-0008,
+once a second Language was coming.
 
 **A hand-written `t()`.** A second API for the job a translation library does,
 with interpolation, plurals and key typing either reinvented or left for

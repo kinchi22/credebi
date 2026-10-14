@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import {
   ENTRY_FORM_FIELDS,
   type ChartOutput,
@@ -23,7 +24,6 @@ import {
   type ReactNode,
   type SubmitEvent,
 } from 'react';
-import { en } from '../messages/en';
 import { useBrowserToday } from './browser-today';
 import {
   CONTROL,
@@ -87,23 +87,34 @@ type ShellState = {
 
 const IDLE: ShellState = { result: { outcome: 'idle' }, resetKey: 0 };
 
-const refusalsWith = (invalid: string): Readonly<Record<DomainErrorCode, string>> => ({
-  UNBALANCED: en.entryForm.unbalanced,
-  INVALID_INPUT: invalid,
-  NOT_FOUND: invalid,
-  CONFLICT: en.entryForm.unavailable,
-  DEPENDENCY_UNAVAILABLE: en.entryForm.unavailable,
-  UNAUTHENTICATED: en.entryForm.signedOut,
-  NAME_TAKEN: invalid,
-  IN_USE: invalid,
-  TITLE_TOO_LONG: en.entryForm.titleTooLong,
-  MEMO_TOO_LONG: en.entryForm.memoTooLong,
-});
+type Translate = ReturnType<typeof useTranslations<never>>;
 
-const REFUSAL: Readonly<Record<EntryFormMode, Readonly<Record<DomainErrorCode, string>>>> = {
-  'two-line': refusalsWith(en.twoLineForm.invalid),
-  'multi-line': refusalsWith(en.multiLineForm.invalid),
+type EntryFormRefusal = 'unbalanced' | 'unavailable' | 'signedOut' | 'titleTooLong' | 'memoTooLong';
+
+const ENTRY_FORM_REFUSAL: Readonly<Record<DomainErrorCode, EntryFormRefusal | undefined>> = {
+  UNBALANCED: 'unbalanced',
+  INVALID_INPUT: undefined,
+  NOT_FOUND: undefined,
+  CONFLICT: 'unavailable',
+  DEPENDENCY_UNAVAILABLE: 'unavailable',
+  UNAUTHENTICATED: 'signedOut',
+  NAME_TAKEN: undefined,
+  IN_USE: undefined,
+  TITLE_TOO_LONG: 'titleTooLong',
+  MEMO_TOO_LONG: 'memoTooLong',
 };
+
+const INVALID = {
+  'two-line': 'twoLineForm.invalid',
+  'multi-line': 'multiLineForm.invalid',
+} as const satisfies Readonly<Record<EntryFormMode, string>>;
+
+const newEntryRefusal =
+  (t: Translate, mode: EntryFormMode) =>
+  (code: DomainErrorCode): string => {
+    const refusal = ENTRY_FORM_REFUSAL[code];
+    return refusal === undefined ? t(INVALID[mode]) : t(`entryForm.${refusal}`);
+  };
 
 type FormVariant = {
   readonly entry: PostedEntry | undefined;
@@ -111,7 +122,7 @@ type FormVariant = {
   readonly frame: string;
   readonly submit: string;
   readonly pending: string;
-  readonly refusals: Readonly<Record<DomainErrorCode, string>>;
+  readonly refusal: (code: DomainErrorCode) => string;
   readonly entryDate: string | undefined;
   readonly autoFocus: boolean;
   readonly onSaved: (form: HTMLFormElement | null) => void;
@@ -122,6 +133,7 @@ const resetForm = (form: HTMLFormElement | null): void => {
 };
 
 function variantFor(
+  t: Translate,
   mode: EntryFormMode,
   editing: EditedEntry | undefined,
   today: string | undefined,
@@ -131,9 +143,9 @@ function variantFor(
       entry: undefined,
       labelledBy: undefined,
       frame: PANEL,
-      submit: en.entryForm.submit,
-      pending: en.entryForm.pending,
-      refusals: REFUSAL[mode],
+      submit: t('entryForm.submit'),
+      pending: t('entryForm.pending'),
+      refusal: newEntryRefusal(t, mode),
       entryDate: today,
       autoFocus: false,
       onSaved: resetForm,
@@ -143,9 +155,9 @@ function variantFor(
     entry: editing.entry,
     labelledBy: editing.titleId,
     frame: '',
-    submit: en.editEntry.save,
-    pending: en.editEntry.pending,
-    refusals: en.editEntry.refusals,
+    submit: t('editEntry.save'),
+    pending: t('editEntry.pending'),
+    refusal: (code) => t(`editEntry.refusals.${code}`),
     entryDate: editing.entry.entryDate,
     autoFocus: true,
     onSaved: editing.onSaved,
@@ -213,6 +225,7 @@ export function EntryFormShell({
   mode,
   children,
 }: EntryFormShellProps): ReactNode {
+  const t = useTranslations();
   const [{ result: state, resetKey }, submitAction, pending] = useActionState(
     async (previous: ShellState, fields: FormData): Promise<ShellState> => {
       const result = await action(previous.result, fields);
@@ -224,7 +237,7 @@ export function EntryFormShell({
   const id = useId();
   const today = useBrowserToday();
 
-  const variant = variantFor(mode, editing, today);
+  const variant = variantFor(t, mode, editing, today);
   const [day, setDay] = useUntilReset(resetKey, variant.entryDate);
   const [typedTitle, setTypedTitle] = useUntilReset(resetKey, variant.entry?.title ?? '');
   const matchedTitle = titleMatching(titles, typedTitle);
@@ -257,13 +270,13 @@ export function EntryFormShell({
     <>
       {variant.labelledBy === undefined ? (
         <h2 id={`${id}-title`} className={PANEL_TITLE}>
-          {en.entryForm.title}
+          {t('entryForm.title')}
         </h2>
       ) : null}
 
       <div className="flex flex-wrap gap-3 wide:grid wide:grid-cols-[9.25rem_minmax(0,1fr)]">
         <div className={DENSE_FIELD}>
-          <label htmlFor={`${id}-date`} className={FIELD_LABEL}>{en.entryForm.date}</label>
+          <label htmlFor={`${id}-date`} className={FIELD_LABEL}>{t('entryForm.date')}</label>
           <input
             id={`${id}-date`}
             name={ENTRY_FORM_FIELDS.entryDate}
@@ -281,7 +294,7 @@ export function EntryFormShell({
           <TitleCombobox
             id={`${id}-entry-title`}
             name={ENTRY_FORM_FIELDS.title}
-            label={en.entryForm.entryTitle}
+            label={t('entryForm.entryTitle')}
             defaultValue={variant.entry?.title}
             titles={titles.map(({ title }) => title)}
             onChoose={chosenTitle(choice)}
@@ -293,7 +306,7 @@ export function EntryFormShell({
           {choice.notice}
         </div>
         <div className={`${DENSE_FIELD} basis-full wide:col-span-full`}>
-          <label htmlFor={`${id}-memo`} className={FIELD_LABEL}>{en.entryForm.memo}</label>
+          <label htmlFor={`${id}-memo`} className={FIELD_LABEL}>{t('entryForm.memo')}</label>
           <input
             id={`${id}-memo`}
             name={ENTRY_FORM_FIELDS.memo}
@@ -309,7 +322,7 @@ export function EntryFormShell({
   const refusal =
     state.outcome === 'rejected' ? (
       <p role="alert" className={FORM_REFUSAL}>
-        {variant.refusals[state.code]}
+        {variant.refusal(state.code)}
       </p>
     ) : null;
 

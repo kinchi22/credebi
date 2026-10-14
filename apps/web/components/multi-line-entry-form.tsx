@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import {
   ENTRY_FORM_FIELDS,
   entryFormModeSchema,
@@ -18,7 +19,6 @@ import { isZeroMoney } from '@repo/core/money';
 import { CloseIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useState, type ReactNode } from 'react';
-import { en } from '../messages/en';
 import { AccountPicker, AddAccountButton, useAccountSheet } from './account-picker';
 import { formatAmount } from './amount';
 import { BARE_ICON_BUTTON } from './control-classes';
@@ -59,20 +59,21 @@ type SideTotalProps = {
   readonly ruled: boolean;
 };
 
-const SIDE_TOTAL: Readonly<Record<Side, { readonly testId: string; readonly label: string }>> = {
-  debit: { testId: 'debit-total', label: en.multiLineForm.debitTotal },
-  credit: { testId: 'credit-total', label: en.multiLineForm.creditTotal },
+const SIDE_TOTAL_TEST_ID: Readonly<Record<Side, string>> = {
+  debit: 'debit-total',
+  credit: 'credit-total',
 };
 
 function SideTotal({ side, amount, ruled }: SideTotalProps): ReactNode {
+  const t = useTranslations();
   return (
     <p
       className={`${LINE_GRID} items-baseline border-t border-dashed border-border pt-1.5 pb-1 ${ruled ? '' : 'wide:border-t-0'} ${typeClasses['body-dense']}`}
     >
-      <span className="text-text-muted">{SIDE_TOTAL[side].label}</span>
+      <span className="text-text-muted">{t(`multiLineForm.${side}Total`)}</span>
       <span className={AMOUNT_COLUMN}>
         <span
-          data-testid={SIDE_TOTAL[side].testId}
+          data-testid={SIDE_TOTAL_TEST_ID[side]}
           className={`min-w-0 grow border border-transparent px-2 text-right ${typeClasses.figure}`}
         >
           {formatAmount(amount)}
@@ -90,13 +91,14 @@ type DifferenceRowProps = {
 };
 
 function DifferenceRow({ totals, refusal, submitButton }: DifferenceRowProps): ReactNode {
+  const t = useTranslations();
   return (
     <div className="flex flex-col gap-2 border-t-3 border-double border-text pt-2.5">
       <div className="flex items-center gap-3">
         {totals.ok ? (
           <p className="flex min-w-0 grow items-baseline gap-2.5">
             <span className={`${typeClasses.label} text-text-muted`}>
-              {en.multiLineForm.difference}
+              {t('multiLineForm.difference')}
             </span>
             <span
               data-testid="difference"
@@ -107,7 +109,7 @@ function DifferenceRow({ totals, refusal, submitButton }: DifferenceRowProps): R
           </p>
         ) : (
           <p className={`min-w-0 grow ${DANGER_TEXT} ${typeClasses['body-dense']}`}>
-            {en.multiLineForm.tooLarge}
+            {t('multiLineForm.tooLarge')}
           </p>
         )}
         {submitButton}
@@ -126,11 +128,12 @@ type LineFieldsProps = {
 };
 
 function LineFields({ id, line, active, onAmountChange, onRemove }: LineFieldsProps): ReactNode {
+  const t = useTranslations();
   const lineId = `${id}-${line.side}-${line.account}`;
 
   return (
     <fieldset
-      aria-label={lineName(line)}
+      aria-label={lineName(line, t(`sides.${line.side}`))}
       className={`${LINE_GRID} items-center py-1 ${typeClasses['body-dense']}`}
     >
       <input type="hidden" name={ENTRY_FORM_FIELDS.account} value={line.account} />
@@ -140,21 +143,24 @@ function LineFields({ id, line, active, onAmountChange, onRemove }: LineFieldsPr
           {line.accountName}
         </p>
         {active ? null : (
-          <NotActiveMark accountName={line.accountName} explanation={notActive.explanation} />
+          <NotActiveMark
+            accountName={line.accountName}
+            explanation={t('notActiveOnDay.multiLine.explanation')}
+          />
         )}
       </div>
       <div className={`${AMOUNT_COLUMN} items-center`}>
         <div className="min-w-0 grow">
           <AmountInput
             id={`${lineId}-amount`}
-            label={en.multiLineForm.amount}
+            label={t('multiLineForm.amount')}
             defaultValue={line.amount}
             onAmountChange={onAmountChange}
           />
         </div>
         <button
           type="button"
-          aria-label={en.multiLineForm.remove}
+          aria-label={t('multiLineForm.remove')}
           onClick={onRemove}
           className={`${REMOVE_COLUMN} h-control ${BARE_ICON_BUTTON}`}
         >
@@ -165,18 +171,17 @@ function LineFields({ id, line, active, onAmountChange, onRemove }: LineFieldsPr
   );
 }
 
-const { notActiveOnDay } = en;
-const notActive = notActiveOnDay.multiLine;
-
 type NotActiveRefusalProps = {
   readonly editing: boolean;
   readonly line: ChosenLine;
 };
 
 function NotActiveRefusal({ editing, line }: NotActiveRefusalProps): ReactNode {
+  const t = useTranslations();
   return (
     <p role="alert" className={FORM_REFUSAL}>
-      {editing ? notActiveOnDay.notSaved : notActiveOnDay.notAdded} {lineName(line)} {notActive.refusal}
+      {editing ? t('notActiveOnDay.notSaved') : t('notActiveOnDay.notAdded')}{' '}
+      {lineName(line, t(`sides.${line.side}`))} {t('notActiveOnDay.multiLine.refusal')}
     </p>
   );
 }
@@ -195,6 +200,7 @@ function MultiLineFields({
   refusal,
   submitButton,
 }: MultiLineFieldsProps): ReactNode {
+  const t = useTranslations();
   const [picked, setPicked] = useState<readonly ChosenLine[]>(() => linesOf(entry));
   const sheet = useAccountSheet();
   const offered = offeredOn(chart, day);
@@ -247,7 +253,7 @@ function MultiLineFields({
             return (
               <div key={side} className={`flex flex-col border-t-2 pt-2 ${SIDE_TONE[side].edge}`}>
                 <p aria-hidden className={`${typeClasses.label} pb-1 ${SIDE_TONE[side].text}`}>
-                  {en.sides[side]}
+                  {t(`sides.${side}`)}
                 </p>
                 <div className="flex flex-col">
                   {sideLines.map((line) => (

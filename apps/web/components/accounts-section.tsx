@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import {
   accountTypeSchema,
   groupsIn,
@@ -17,7 +18,6 @@ import {
 import { PANEL, PencilIcon, TrashIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useId, useOptimistic, useState, useTransition, type ReactNode } from 'react';
-import { en } from '../messages/en';
 import {
   AccountDialog,
   type ChartActions,
@@ -64,12 +64,13 @@ const BAND_BUTTON = 'text-accent-text-hover hover:underline';
 const UNMOVED: ChartChange = { outcome: 'rejected', code: 'DEPENDENCY_UNAVAILABLE' };
 
 function RowButtons({ held, onEdit, onDelete }: RowActions): ReactNode {
+  const t = useTranslations();
   return (
     <>
       <button
         type="button"
         disabled={held}
-        aria-label={en.accountsSection.edit}
+        aria-label={t('accountsSection.edit')}
         onClick={(event) => {
           onEdit(event.currentTarget);
         }}
@@ -80,7 +81,7 @@ function RowButtons({ held, onEdit, onDelete }: RowActions): ReactNode {
       <button
         type="button"
         disabled={held}
-        aria-label={en.accountsSection.delete}
+        aria-label={t('accountsSection.delete')}
         onClick={(event) => {
           onDelete(event.currentTarget);
         }}
@@ -108,6 +109,7 @@ function AccountRow({
   readonly today: string | undefined;
   readonly branch: Branch | undefined;
 }): ReactNode {
+  const t = useTranslations();
   return (
     <ChartRow
       node={{ kind: 'account', id: account.id }}
@@ -124,7 +126,7 @@ function AccountRow({
                 {account.name}
                 {startsLater(account, today) ? (
                   <span className={`ml-2 ${typeClasses.date} text-text-muted`}>
-                    {en.accountsSection.startsOn}{' '}
+                    {t('accountsSection.startsOn')}{' '}
                     <time dateTime={account.activeFrom}>{account.activeFrom}</time>
                   </span>
                 ) : null}
@@ -229,30 +231,31 @@ function SectionBand({
   readonly held: boolean;
   readonly open: Open;
 }): ReactNode {
+  const t = useTranslations();
   return (
     <Band accountType={accountType} id={id} className="px-3 py-2">
       <span className="flex gap-3">
         <button
           type="button"
           disabled={held}
-          aria-label={en.accountsSection.addAccount}
+          aria-label={t('accountsSection.addAccount')}
           onClick={(event) => {
             open({ kind: 'account', accountType, editing: undefined }, event.currentTarget);
           }}
           className={BAND_BUTTON}
         >
-          {en.accountsSection.addAccountText}
+          {t('accountsSection.addAccountText')}
         </button>
         <button
           type="button"
           disabled={held}
-          aria-label={en.accountsSection.addGroup}
+          aria-label={t('accountsSection.addGroup')}
           onClick={(event) => {
             open({ kind: 'group', accountType, editing: undefined }, event.currentTarget);
           }}
           className={BAND_BUTTON}
         >
-          {en.accountsSection.addGroupText}
+          {t('accountsSection.addGroupText')}
         </button>
       </span>
     </Band>
@@ -309,6 +312,7 @@ function TypeList({
 }
 
 export function AccountsSection({ chart, actions }: AccountsSectionProps): ReactNode {
+  const t = useTranslations();
   const titleId = useId();
   const bandId = useId();
   const today = useBrowserToday();
@@ -359,7 +363,7 @@ export function AccountsSection({ chart, actions }: AccountsSectionProps): React
     >
       <div className="flex items-center justify-between gap-3">
         <h3 id={titleId} className={LEGEND}>
-          {en.accountsSection.title}
+          {t('accountsSection.title')}
         </h3>
         <label className={`flex items-center gap-2 ${typeClasses['body-sm']} ${stillWhileHeld}`}>
           <input
@@ -370,12 +374,12 @@ export function AccountsSection({ chart, actions }: AccountsSectionProps): React
               setShowEnded(event.currentTarget.checked);
             }}
           />
-          {en.accountsSection.showEnded}
+          {t('accountsSection.showEnded')}
         </label>
       </div>
       {moveRefusal === undefined ? null : (
         <p role="alert" className={DANGER_TEXT}>
-          {en.accountsSection.moveRefusals[moveRefusal]}
+          {t(`accountsSection.moveRefusals.${moveRefusal}`)}
         </p>
       )}
       <ChartDrag chart={shown} held={held} onMove={move}>

@@ -1,7 +1,6 @@
 import { accountsIn, type AccountId, type ChartOutput, type Side } from '@repo/contracts';
 import { isActiveOn } from '@repo/core/accounts';
 import { draftLinesInOrder } from '@repo/core/entries';
-import { en } from '../messages/en';
 
 export type Offered = {
   readonly chart: ChartOutput;
@@ -35,7 +34,7 @@ export type NamedLine = AccountLine & {
   readonly accountName: string;
 };
 
-export const lineName = (line: NamedLine): string => `${en.sides[line.side]} ${line.accountName}`;
+export const lineName = (line: NamedLine, sideName: string): string => `${sideName} ${line.accountName}`;
 
 export const isLine =
   (side: Side, account: AccountId) =>

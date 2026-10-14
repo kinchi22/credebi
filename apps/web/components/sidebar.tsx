@@ -1,11 +1,11 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { ListIcon, Logo, MenuIcon, SearchIcon, SignOutIcon, SlidersIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { type ReactNode, type RefObject, useId, useRef } from 'react';
-import { en } from '../messages/en';
 import { ENTRY_SEARCH_PATH, SETTINGS_PATH, SIGNED_IN_HOME } from '../server/return-path';
 import { useModalDialog } from './modal-dialog';
 
@@ -20,9 +20,9 @@ type SidebarNavProps = SidebarProps & {
 };
 
 const LINKS = [
-  { href: SIGNED_IN_HOME, label: en.sidebar.entries, icon: <ListIcon /> },
-  { href: ENTRY_SEARCH_PATH, label: en.sidebar.entrySearch, icon: <SearchIcon size={18} /> },
-  { href: SETTINGS_PATH, label: en.sidebar.settings, icon: <SlidersIcon /> },
+  { href: SIGNED_IN_HOME, label: 'sidebar.entries', icon: <ListIcon /> },
+  { href: ENTRY_SEARCH_PATH, label: 'sidebar.entrySearch', icon: <SearchIcon size={18} /> },
+  { href: SETTINGS_PATH, label: 'sidebar.settings', icon: <SlidersIcon /> },
 ] as const;
 
 const LOGO_HEIGHT = 40;
@@ -39,17 +39,18 @@ const SIDEBAR = 'flex-col gap-7 bg-ground-dark px-3 pt-5 pb-4 text-text-on-dark'
 const WIDE_SIDEBAR = `hidden ${SIDEBAR} wide:sticky wide:top-0 wide:flex wide:h-screen wide:w-58 wide:shrink-0 wide:overflow-y-auto`;
 
 function SidebarNav({ signOut, className, focusTarget, onFollow }: SidebarNavProps): ReactNode {
+  const t = useTranslations();
   const pathname = usePathname();
 
   return (
     <nav
       ref={focusTarget}
       tabIndex={focusTarget === undefined ? undefined : -1}
-      aria-label={en.sidebar.ariaLabel}
+      aria-label={t('sidebar.ariaLabel')}
       className={className}
     >
       <span className="flex px-2">
-        <Logo variant="horizontal" tone="reverse" name={en.app.name} height={LOGO_HEIGHT} />
+        <Logo variant="horizontal" tone="reverse" name={t('app.name')} height={LOGO_HEIGHT} />
       </span>
       <ul className={`flex flex-col gap-0.5 ${typeClasses['body-sm']}`}>
         {LINKS.map((link) => {
@@ -65,7 +66,7 @@ function SidebarNav({ signOut, className, focusTarget, onFollow }: SidebarNavPro
                 }}
               >
                 <span className={current ? 'flex text-accent' : 'flex'}>{link.icon}</span>
-                {link.label}
+                {t(link.label)}
               </Link>
             </li>
           );
@@ -74,7 +75,7 @@ function SidebarNav({ signOut, className, focusTarget, onFollow }: SidebarNavPro
       <form action={signOut} className="mt-auto border-t border-ground-dark-raised pt-3">
         <button type="submit" className={QUIET_BUTTON}>
           <SignOutIcon />
-          {en.sidebar.signOut}
+          {t('sidebar.signOut')}
         </button>
       </form>
     </nav>
@@ -82,6 +83,7 @@ function SidebarNav({ signOut, className, focusTarget, onFollow }: SidebarNavPro
 }
 
 export function Sidebar({ signOut }: SidebarProps): ReactNode {
+  const t = useTranslations();
   const drawerId = useId();
   const drawer = useModalDialog();
   const drawerNav = useRef<HTMLElement>(null);
@@ -91,7 +93,7 @@ export function Sidebar({ signOut }: SidebarProps): ReactNode {
       <div className="flex h-14 items-center gap-2 bg-ground-dark px-4 wide:hidden">
         <button
           type="button"
-          aria-label={en.sidebar.menu}
+          aria-label={t('sidebar.menu')}
           aria-expanded={drawer.open}
           aria-controls={drawerId}
           onClick={(event) => {
@@ -103,7 +105,7 @@ export function Sidebar({ signOut }: SidebarProps): ReactNode {
           <MenuIcon />
         </button>
         <span className={drawer.open ? 'invisible' : undefined}>
-          <Logo variant="horizontal" tone="reverse" name={en.app.name} height={BAR_LOGO_HEIGHT} />
+          <Logo variant="horizontal" tone="reverse" name={t('app.name')} height={BAR_LOGO_HEIGHT} />
         </span>
       </div>
       <SidebarNav signOut={signOut} className={WIDE_SIDEBAR} />

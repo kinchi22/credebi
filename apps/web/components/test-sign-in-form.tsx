@@ -1,7 +1,7 @@
 import { TEST_SIGN_IN_FIELDS } from '@repo/contracts';
+import { getTranslations } from 'next-intl/server';
 import { type ReactNode } from 'react';
 import { typeClasses } from '@repo/ui/type-classes';
-import { en } from '../messages/en';
 import { BUTTON, CONTROL } from './control-classes';
 
 export type TestSignInFormProps = {
@@ -9,21 +9,22 @@ export type TestSignInFormProps = {
   readonly action: (form: FormData) => Promise<void>;
 };
 
-export function TestSignInForm({ returnTo, action }: TestSignInFormProps): ReactNode {
+export async function TestSignInForm({ returnTo, action }: TestSignInFormProps): Promise<ReactNode> {
+  const t = await getTranslations('testSignIn');
   return (
-    <form action={action} aria-label={en.testSignIn.title} className="flex flex-col gap-3">
-      <h2 className={`${typeClasses.label} text-text-muted`}>{en.testSignIn.title}</h2>
+    <form action={action} aria-label={t('title')} className="flex flex-col gap-3">
+      <h2 className={`${typeClasses.label} text-text-muted`}>{t('title')}</h2>
       <input type="hidden" name={TEST_SIGN_IN_FIELDS.returnTo} value={returnTo} />
       <label className={`flex flex-col gap-1 ${typeClasses['body-sm']}`}>
-        {en.testSignIn.identifier}
+        {t('identifier')}
         <input name={TEST_SIGN_IN_FIELDS.identifier} required className={CONTROL} />
       </label>
       <label className={`flex flex-col gap-1 ${typeClasses['body-sm']}`}>
-        {en.testSignIn.accountsStartOn}
+        {t('accountsStartOn')}
         <input type="date" name={TEST_SIGN_IN_FIELDS.accountsStartOn} className={CONTROL} />
       </label>
       <button type="submit" className={`self-start ${BUTTON}`}>
-        {en.testSignIn.submit}
+        {t('submit')}
       </button>
     </form>
   );

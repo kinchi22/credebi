@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import {
   accountsIn,
   entryFormModeSchema,
@@ -14,7 +15,6 @@ import {
 import { typeClasses } from '@repo/ui/type-classes';
 import Link from 'next/link';
 import { useState, type ReactNode } from 'react';
-import { en } from '../messages/en';
 import { SETTINGS_PATH } from '../server/return-path';
 import {
   AccountPicker,
@@ -39,9 +39,6 @@ import { FORM_REFUSAL, LINK } from './text-classes';
 import { suggestedOn } from './suggested-accounts';
 import { prefillFrom, type PrefilledLine } from './title-prefill';
 
-const { helpTip, needsMultiLineMode, notActiveOnDay } = en;
-const notActive = notActiveOnDay.twoLine;
-
 const NOTHING_CHOSEN: AccountChoice = { debit: undefined, credit: undefined };
 
 const accountById = (chart: ChartOutput, id: AccountId | undefined): AccountOutput | undefined =>
@@ -57,13 +54,14 @@ type NeedsMultiLineMarkProps = {
 };
 
 function NeedsMultiLineMark({ title }: NeedsMultiLineMarkProps): ReactNode {
+  const t = useTranslations();
   return (
-    <WarningWithHelpTip message={needsMultiLineMode.mark}>
-      {needsMultiLineMode.lastEntry} {title} {needsMultiLineMode.explanation}{' '}
+    <WarningWithHelpTip message={t('needsMultiLineMode.mark')}>
+      {t('needsMultiLineMode.lastEntry')} {title} {t('needsMultiLineMode.explanation')}{' '}
       <Link href={SETTINGS_PATH} className={LINK}>
-        {helpTip.settings}
+        {t('helpTip.settings')}
       </Link>{' '}
-      {needsMultiLineMode.afterSettings}
+      {t('needsMultiLineMode.afterSettings')}
     </WarningWithHelpTip>
   );
 }
@@ -101,6 +99,7 @@ function TwoLineFields({
   refusal,
   submitButton,
 }: TwoLineFieldsProps): ReactNode {
+  const t = useTranslations();
   const [picked, setPicked] = useState<AccountChoice>(() => choiceOf(chart, entry));
   const [amount, setAmount] = useState(entry === undefined ? '' : String(entry.total));
   const [needsMultiLine, setNeedsMultiLine] = useState<string>();
@@ -149,7 +148,7 @@ function TwoLineFields({
               <div
                 key={side}
                 role={line === undefined ? undefined : 'group'}
-                aria-label={line === undefined ? undefined : lineName(line)}
+                aria-label={line === undefined ? undefined : lineName(line, t(`sides.${line.side}`))}
               >
                 {offered.ids.size === 0 ? null : (
                   <ChooseAccountButton side={side} account={picked[side]} sheet={sheet} />
@@ -159,7 +158,7 @@ function TwoLineFields({
                   <UnderAccountName>
                     <NotActiveMark
                       accountName={line.accountName}
-                      explanation={notActive.explanation}
+                      explanation={t('notActiveOnDay.twoLine.explanation')}
                     />
                   </UnderAccountName>
                 ) : null}
@@ -171,7 +170,7 @@ function TwoLineFields({
           <div className="min-w-0 grow">
             <AmountInput
               id={`${id}-amount`}
-              label={en.twoLineForm.amount}
+              label={t('twoLineForm.amount')}
               value={amount}
               onAmountChange={setAmount}
             />
@@ -182,8 +181,8 @@ function TwoLineFields({
           refusal
         ) : (
           <p role="alert" className={FORM_REFUSAL}>
-            {entry === undefined ? notActiveOnDay.notAdded : notActiveOnDay.notSaved}{' '}
-            {hold.refused.accountName} {notActive.refusal}
+            {entry === undefined ? t('notActiveOnDay.notAdded') : t('notActiveOnDay.notSaved')}{' '}
+            {hold.refused.accountName} {t('notActiveOnDay.twoLine.refusal')}
           </p>
         )}
       </div>

@@ -124,10 +124,10 @@ const noInlineCopy = {
     messages: {
       inlineCopy:
         'User-facing copy {{text}} is written inline. Move it to apps/web/messages/en.ts ' +
-        'and import it from there.',
+        'and read it through next-intl.',
       inlineAttributeCopy:
         'User-facing copy {{text}} is written inline on `{{name}}`. Move it to ' +
-        'apps/web/messages/en.ts and import it from there. If `{{name}}` carries no copy, ' +
+        'apps/web/messages/en.ts and read it through next-intl. If `{{name}}` carries no copy, ' +
         'add it to MARKUP_ATTRIBUTES in packages/config/eslint/plugin.mjs.',
     },
   },

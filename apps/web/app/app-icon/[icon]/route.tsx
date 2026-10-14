@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server';
 import { type ImageResponse } from 'next/og';
 import { notFound } from 'next/navigation';
 import { APP_ICONS, appIcon, type AppIconName } from '../../../components/app-icon';
@@ -18,5 +19,6 @@ export async function GET(
   if (!isAppIcon(icon)) {
     notFound();
   }
-  return appIcon(APP_ICONS[icon]);
+  const t = await getTranslations('app');
+  return appIcon(APP_ICONS[icon], t('name'));
 }

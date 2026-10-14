@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import {
   ENTRY_FORM_FIELDS,
   accountsIn,
@@ -13,7 +14,6 @@ import { ChevronIcon, SearchIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import Link from 'next/link';
 import { Fragment, useId, useState, type ReactNode } from 'react';
-import { en } from '../messages/en';
 import { SETTINGS_PATH } from '../server/return-path';
 import { CONTROL, PRIMARY_BUTTON, SEARCH_ON_STRIP } from './control-classes';
 import { useHydrated } from './hydrated';
@@ -58,17 +58,19 @@ export type AccountSheet = Omit<ModalDialog, 'show'> & {
   readonly openOn: (side: Side, opener: HTMLElement | null) => void;
 };
 
+type MessageKey = Parameters<ReturnType<typeof useTranslations<never>>>[0];
+
 type PickControl = {
   readonly groupRole: 'radiogroup' | 'group';
   readonly inputType: 'radio' | 'checkbox';
-  readonly groupName: Readonly<Record<Side, string>>;
+  readonly groupName: Readonly<Record<Side, MessageKey>>;
   readonly fieldName: Readonly<Record<Side, string>> | undefined;
 };
 
 const PICK_ONE: PickControl = {
   groupRole: 'radiogroup',
   inputType: 'radio',
-  groupName: { debit: en.twoLineForm.debitAccount, credit: en.twoLineForm.creditAccount },
+  groupName: { debit: 'twoLineForm.debitAccount', credit: 'twoLineForm.creditAccount' },
   fieldName: {
     debit: ENTRY_FORM_FIELDS.debitAccount,
     credit: ENTRY_FORM_FIELDS.creditAccount,
@@ -79,8 +81,8 @@ const PICK_MANY: PickControl = {
   groupRole: 'group',
   inputType: 'checkbox',
   groupName: {
-    debit: en.multiLineForm.debitAccounts,
-    credit: en.multiLineForm.creditAccounts,
+    debit: 'multiLineForm.debitAccounts',
+    credit: 'multiLineForm.creditAccounts',
   },
   fieldName: undefined,
 };
@@ -123,6 +125,7 @@ type AddAccountButtonProps = {
 };
 
 export function AddAccountButton({ side, sheet }: AddAccountButtonProps): ReactNode {
+  const t = useTranslations();
   const hydrated = useHydrated();
 
   return (
@@ -137,7 +140,7 @@ export function AddAccountButton({ side, sheet }: AddAccountButtonProps): ReactN
       className={`inline-flex h-10 items-center gap-1 self-start ${typeClasses['body-sm']} font-semibold ${SIDE_TONE[side].text} disabled:opacity-50 wide:hidden`}
     >
       <span aria-hidden="true">+</span>
-      {en.accountSheet.add[side]}
+      {t(`accountSheet.add.${side}`)}
     </button>
   );
 }
@@ -149,12 +152,13 @@ type ChooseAccountButtonProps = {
 };
 
 export function ChooseAccountButton({ side, account, sheet }: ChooseAccountButtonProps): ReactNode {
+  const t = useTranslations();
   const hydrated = useHydrated();
 
   return (
     <button
       type="button"
-      aria-label={en.accountSheet.choose[side]}
+      aria-label={t(`accountSheet.choose.${side}`)}
       aria-expanded={sheet.open}
       aria-controls={sheet.id}
       disabled={!hydrated}
@@ -212,6 +216,7 @@ function AccountRowContent({
   account,
   placeholderInSideTone,
 }: AccountRowContentProps): ReactNode {
+  const t = useTranslations();
   const placeholderClass = placeholderInSideTone
     ? `font-semibold ${SIDE_TONE[side].text}`
     : 'text-text-muted';
@@ -219,10 +224,10 @@ function AccountRowContent({
   return (
     <>
       <span className={`${SIDE_NAME_COLUMN} ${typeClasses.label} leading-5 ${SIDE_TONE[side].text}`}>
-        {en.sides[side]}
+        {t(`sides.${side}`)}
       </span>
       <span className={`min-w-0 grow wrap-anywhere ${account === undefined ? placeholderClass : 'font-semibold'}`}>
-        {account === undefined ? en.entryForm.chooseAccount : account.name}
+        {account === undefined ? t('entryForm.chooseAccount') : account.name}
       </span>
     </>
   );
@@ -337,6 +342,7 @@ function SideChoices({
   suggested,
   look,
 }: SideChoicesProps): ReactNode {
+  const t = useTranslations();
   const typeId = useId();
 
   const choices = (
@@ -422,12 +428,12 @@ function SideChoices({
   return (
     <div
       role={control.groupRole}
-      aria-label={control.groupName[side]}
+      aria-label={t(control.groupName[side])}
       className={`flex min-w-0 flex-col gap-2 border-t-2 ${SIDE_TONE[side].edge} px-3 pt-2 pb-3`}
     >
       {look.sideNameShown ? (
         <p aria-hidden="true" className={`${typeClasses.label} ${SIDE_TONE[side].text}`}>
-          {en.sides[side]}
+          {t(`sides.${side}`)}
         </p>
       ) : null}
       {suggested.length === 0 ? null : (
@@ -463,11 +469,12 @@ type FindAnAccountProps = {
 };
 
 function FindAnAccount({ query, setQuery, className }: FindAnAccountProps): ReactNode {
+  const t = useTranslations();
   return (
     <input
       type="search"
-      aria-label={en.accountSheet.find}
-      placeholder={en.accountSheet.find}
+      aria-label={t('accountSheet.find')}
+      placeholder={t('accountSheet.find')}
       value={query}
       onChange={(event) => {
         setQuery(event.target.value);
@@ -487,9 +494,10 @@ type NoMatchProps = {
 };
 
 function NoMatch({ query, chart, matches }: NoMatchProps): ReactNode {
+  const t = useTranslations();
   return accountsIn(chart).some(matches) ? null : (
     <p className="px-4 py-3 text-text-muted">
-      {en.accountSheet.noMatch} &quot;{query.trim()}&quot;.
+      {t('accountSheet.noMatch')} &quot;{query.trim()}&quot;.
     </p>
   );
 }
@@ -504,6 +512,7 @@ function AccountColumns({
   onPick,
   suggested,
 }: AccountPickerProps): ReactNode {
+  const t = useTranslations();
   const [shown, setShown] = useState<Side>('debit');
   const [query, setQuery] = useState('');
   const matches = nameContains(query);
@@ -540,7 +549,7 @@ function AccountColumns({
           onShow={setShown}
           tabId={tabId}
           panelId={panelId}
-          label={(side) => en.sides[side]}
+          label={(side) => t(`sides.${side}`)}
           shownTone={sideTone}
         />
       </div>
@@ -584,6 +593,7 @@ function AccountSheetDialog({
   suggested,
   sheet,
 }: AccountPickerProps): ReactNode {
+  const t = useTranslations();
   const tabId = (side: Side): string => `${sheet.id}-${side}-tab`;
   const panelId = (side: Side): string => `${sheet.id}-${side}-panel`;
   const titleId = `${sheet.id}-title`;
@@ -613,13 +623,13 @@ function AccountSheetDialog({
       className="mx-0 mt-auto mb-0 h-[calc(100%-4rem)] max-h-none w-full max-w-none rounded-t-panel border-0 bg-ground p-0 text-text backdrop:bg-ground-dark/60"
     >
       <div className="flex h-full flex-col">
-        <SheetBar titleId={titleId} title={en.accountSheet.title}>
+        <SheetBar titleId={titleId} title={t('accountSheet.title')}>
           {multiple ? (
             <button type="button" onClick={sheet.close} className={PRIMARY_BUTTON}>
-              {en.accountSheet.done}
+              {t('accountSheet.done')}
             </button>
           ) : (
-            <CloseButton label={en.accountSheet.close} onClose={sheet.close} />
+            <CloseButton label={t('accountSheet.close')} onClose={sheet.close} />
           )}
         </SheetBar>
         <SheetTabs
@@ -628,7 +638,7 @@ function AccountSheetDialog({
           onShow={sheet.setSide}
           tabId={tabId}
           panelId={panelId}
-          label={(side) => en.sides[side]}
+          label={(side) => t(`sides.${side}`)}
         />
         <div className="shrink-0 border-b border-border bg-surface px-4 py-3">
           <FindAnAccount query={sheet.query} setQuery={sheet.setQuery} className={CONTROL} />
@@ -667,11 +677,12 @@ function AccountSheetDialog({
 }
 
 function NoActiveAccount(): ReactNode {
+  const t = useTranslations();
   return (
     <p className={`rounded-panel border border-border bg-ground px-4 py-3 ${typeClasses['body-dense']}`}>
-      {en.accountSheet.noActiveAccount}{' '}
+      {t('accountSheet.noActiveAccount')}{' '}
       <Link href={SETTINGS_PATH} className={LINK}>
-        {en.accountSheet.settingsLink}
+        {t('accountSheet.settingsLink')}
       </Link>
     </p>
   );

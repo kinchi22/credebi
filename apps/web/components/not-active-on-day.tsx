@@ -1,14 +1,12 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useState, type MouseEvent, type ReactNode } from 'react';
-import { en } from '../messages/en';
 import { SETTINGS_PATH } from '../server/return-path';
 import { WarningWithHelpTip } from './help-tip';
 import { isLine, lineHoldingSubmit, type AccountLine, type LinesOnDay } from './lines-on-day';
 import { LINK } from './text-classes';
-
-const { notActiveOnDay } = en;
 
 type NotActiveMarkProps = {
   readonly accountName: string;
@@ -16,11 +14,12 @@ type NotActiveMarkProps = {
 };
 
 export function NotActiveMark({ accountName, explanation }: NotActiveMarkProps): ReactNode {
+  const t = useTranslations();
   return (
-    <WarningWithHelpTip message={notActiveOnDay.mark}>
+    <WarningWithHelpTip message={t('notActiveOnDay.mark')}>
       {accountName} {explanation}{' '}
       <Link href={SETTINGS_PATH} className={LINK}>
-        {en.helpTip.settings}
+        {t('helpTip.settings')}
       </Link>
       .
     </WarningWithHelpTip>

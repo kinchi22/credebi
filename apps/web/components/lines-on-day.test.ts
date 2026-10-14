@@ -125,7 +125,7 @@ describe('linesOnDay', () => {
 
 describe('lineName', () => {
   it('names a line by its Side and its Account', () => {
-    expect(lineName({ side: 'credit', account: OLD_WALLET.id, accountName: 'Old wallet' })).toBe(
+    expect(lineName({ side: 'credit', account: OLD_WALLET.id, accountName: 'Old wallet' }, 'Credit')).toBe(
       'Credit Old wallet',
     );
   });
