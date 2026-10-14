@@ -2,32 +2,21 @@ import {
   domainError,
   err,
   type AccountGroupId,
-  type AccountId,
   type DomainError,
+  type Err,
   type Result,
 } from '@repo/contracts';
-import { findAccount, findGroup, type Account, type AccountGroup, type Chart } from './account';
+import { findGroup, type Account, type AccountGroup, type Chart } from './account';
 
-export type AccountNaming = 'unnamed' | 'hidden' | 'shown';
+export type AccountRemoval = 'refused' | 'deleted' | 'marked';
 
-export function removedAccount(
-  chart: Chart,
-  id: AccountId,
-  naming: AccountNaming,
-): Result<Account, DomainError> {
-  const account = findAccount(chart, id);
-  if (!account.ok) {
-    return account;
-  }
-  if (naming === 'shown') {
-    return err(
-      domainError(
-        'IN_USE',
-        `A shown Entry names Account "${account.value.name}", so it cannot be deleted; give it an end day instead.`,
-      ),
-    );
-  }
-  return account;
+export function accountInUse(account: Account): Err<DomainError> {
+  return err(
+    domainError(
+      'IN_USE',
+      `A shown Entry names Account "${account.name}", so it cannot be deleted; give it an end day instead.`,
+    ),
+  );
 }
 
 export function removedGroup(chart: Chart, id: AccountGroupId): Result<AccountGroup, DomainError> {

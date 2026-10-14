@@ -1,7 +1,7 @@
-import { ok, type AccountId, type UserId } from '@repo/contracts';
+import { domainError, err, ok, type AccountId, type UserId } from '@repo/contracts';
 import { type Account, type AccountGroup, type Chart } from '../domain/account';
 import { type ShownSpan } from '../domain/active-period';
-import { type AccountNaming } from '../domain/removal';
+import { type AccountRemoval } from '../domain/removal';
 import { type AccountRepository } from '../ports/account-repository';
 
 export type InMemoryAccounts = {
@@ -27,15 +27,15 @@ export function inMemoryAccounts(): InMemoryAccounts {
   const charts = new Map<UserId, Chart>();
   const hidden = new Set<AccountId>();
   const shown = new Map<AccountId, ShownSpan>();
-  const removed = new Map<AccountId, Date>();
+  const marks = new Map<AccountId, Date>();
   const chartOf = (userId: UserId): Chart => charts.get(userId) ?? EMPTY;
   const holds = (userId: UserId, id: AccountId): boolean =>
     chartOf(userId).accounts.some((account) => account.id === id);
-  const namingOf = (userId: UserId, id: AccountId): AccountNaming => {
-    if (holds(userId, id) && shown.has(id)) {
-      return 'shown';
+  const removal = (id: AccountId): AccountRemoval => {
+    if (shown.has(id)) {
+      return 'refused';
     }
-    return holds(userId, id) && hidden.has(id) ? 'hidden' : 'unnamed';
+    return hidden.has(id) ? 'marked' : 'deleted';
   };
   const change = (userId: UserId, changed: (chart: Chart) => Chart) => {
     charts.set(userId, changed(chartOf(userId)));
@@ -63,15 +63,20 @@ export function inMemoryAccounts(): InMemoryAccounts {
           accounts: placed.accounts.reduce(replaced, chart.accounts),
           groups: placed.groups.reduce(replaced, chart.groups),
         })),
-      readNaming: (userId, id) => Promise.resolve(ok(namingOf(userId, id))),
       readShownSpan: (userId, id) =>
         Promise.resolve(ok(holds(userId, id) ? (shown.get(id) ?? null) : null)),
-      deleteAccount: without,
-      markAccountRemoved: (userId, id, removedAt) => {
-        if (holds(userId, id)) {
-          removed.set(id, removedAt);
+      removeAccount: async (userId, id, removedAt) => {
+        if (!holds(userId, id)) {
+          return err(domainError('NOT_FOUND', `Account ${id} is not in the User's chart of accounts.`));
         }
-        return without(userId, id);
+        const removed = removal(id);
+        if (removed === 'marked') {
+          marks.set(id, removedAt);
+        }
+        if (removed !== 'refused') {
+          await without(userId, id);
+        }
+        return ok(removed);
       },
       deleteGroup: (userId, id) =>
         change(userId, (chart) => ({
@@ -92,6 +97,6 @@ export function inMemoryAccounts(): InMemoryAccounts {
         last: span === undefined || day > span.last ? day : span.last,
       });
     },
-    removedAt: (accountId) => removed.get(accountId),
+    removedAt: (accountId) => marks.get(accountId),
   };
 }

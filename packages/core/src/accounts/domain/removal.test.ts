@@ -6,7 +6,7 @@ import {
   type Result,
 } from '@repo/contracts';
 import { type Account, type AccountGroup, type Chart } from './account';
-import { removedAccount, removedGroup } from './removal';
+import { accountInUse, removedGroup } from './removal';
 
 const BANK: AccountGroup = {
   id: '01920000-0000-7000-8000-000000000b01' as AccountGroupId,
@@ -44,34 +44,19 @@ const ABC_BANK: Account = {
 
 const CHART: Chart = { accounts: [CASH, ABC_BANK], groups: [BANK, LOANS] };
 
-const ABSENT_ACCOUNT = '01920000-0000-7000-8000-000000000099' as AccountId;
 const ABSENT_GROUP = '01920000-0000-7000-8000-000000000b99' as AccountGroupId;
 
 const refusal = (result: Result<unknown, DomainError>): string =>
   result.ok ? 'accepted' : `${result.error.code}: ${result.error.message}`;
 
-describe('removedAccount', () => {
-  it('removes an Account no Entry line names, answering with it', () => {
-    expect(removedAccount(CHART, CASH.id, 'unnamed')).toEqual({ ok: true, value: CASH });
-    expect(removedAccount(CHART, ABC_BANK.id, 'unnamed')).toEqual({ ok: true, value: ABC_BANK });
-  });
-
-  it('removes an Account only hidden Reversal pairs name, answering with it', () => {
-    expect(removedAccount(CHART, CASH.id, 'hidden')).toEqual({ ok: true, value: CASH });
-  });
-
+describe('accountInUse', () => {
   it('refuses an Account a shown Entry names as in use, telling the User to end it instead', () => {
-    expect(refusal(removedAccount(CHART, CASH.id, 'shown'))).toBe(
+    expect(refusal(accountInUse(CASH))).toBe(
       'IN_USE: A shown Entry names Account "Cash", so it cannot be deleted; give it an end day instead.',
     );
-  });
-
-  it("refuses an Account outside the User's chart as not found, however it is named", () => {
-    const expected = `NOT_FOUND: Account ${ABSENT_ACCOUNT} is not in the User's chart of accounts.`;
-
-    expect(refusal(removedAccount(CHART, ABSENT_ACCOUNT, 'unnamed'))).toBe(expected);
-    expect(refusal(removedAccount(CHART, ABSENT_ACCOUNT, 'hidden'))).toBe(expected);
-    expect(refusal(removedAccount(CHART, ABSENT_ACCOUNT, 'shown'))).toBe(expected);
+    expect(refusal(accountInUse(ABC_BANK))).toBe(
+      'IN_USE: A shown Entry names Account "ABC Bank", so it cannot be deleted; give it an end day instead.',
+    );
   });
 });
 

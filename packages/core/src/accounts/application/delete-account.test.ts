@@ -182,11 +182,11 @@ describe('createDeleteAccount', () => {
     expect(await getChart(ADA)).toEqual(UNCHANGED);
   });
 
-  it('reports a failed answer to how Entries name the Account as its own result, and changes nothing', async () => {
+  it('reports a failed removal as its own result, rather than the Account it could not remove', async () => {
     const down = domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.');
     const { accounts, getChart } = useCases();
     const deleteAccount = createDeleteAccount({
-      accounts: { ...accounts, readNaming: () => Promise.resolve(err(down)) },
+      accounts: { ...accounts, removeAccount: () => Promise.resolve(err(down)) },
       now: () => NOW,
     });
 
@@ -194,27 +194,15 @@ describe('createDeleteAccount', () => {
     expect(await getChart(ADA)).toEqual(UNCHANGED);
   });
 
-  it('reports a failed delete as its own result, rather than the Account it could not delete', async () => {
-    const down = domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.');
-    const { accounts } = useCases();
-    const deleteAccount = createDeleteAccount({
-      accounts: { ...accounts, deleteAccount: () => Promise.resolve(err(down)) },
-      now: () => NOW,
-    });
-
-    expect(await deleteAccount(ADA, { id: PETTY_CASH.id })).toEqual(err(down));
-  });
-
-  it('reports a failed mark as removed as its own result, rather than the Account it could not remove', async () => {
-    const down = domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.');
-    const { accounts, getChart, hideInEntry } = useCases();
+  it('removes at the moment it removes, not the moment it was made', async () => {
+    const { accounts, hideInEntry, removedAt } = useCases();
     hideInEntry(PETTY_CASH.id);
-    const deleteAccount = createDeleteAccount({
-      accounts: { ...accounts, markAccountRemoved: () => Promise.resolve(err(down)) },
-      now: () => NOW,
-    });
+    let moment = new Date('2026-10-01T00:00:00Z');
+    const deleteAccount = createDeleteAccount({ accounts, now: () => moment });
+    moment = NOW;
 
-    expect(await deleteAccount(ADA, { id: PETTY_CASH.id })).toEqual(err(down));
-    expect(await getChart(ADA)).toEqual(UNCHANGED);
+    await deleteAccount(ADA, { id: PETTY_CASH.id });
+
+    expect(removedAt(PETTY_CASH.id)).toEqual(NOW);
   });
 });
