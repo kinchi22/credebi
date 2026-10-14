@@ -1,5 +1,7 @@
-import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync, chmodSync } from 'node:fs';
+import { spawn, spawnSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync, chmodSync, existsSync } from 'node:fs';
+import { createServer, type IncomingHttpHeaders } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -28,9 +30,72 @@ function repository() {
   return { directory, git, first };
 }
 
-afterEach(() => {
+const servers: (() => Promise<void>)[] = [];
+
+afterEach(async () => {
   for (const directory of directories.splice(0)) rmSync(directory, { recursive: true, force: true });
+  for (const close of servers.splice(0)) await close();
 });
+
+interface ReceivedRequest {
+  method: string;
+  path: string;
+  headers: IncomingHttpHeaders;
+  body: Record<string, unknown>;
+}
+
+async function fakeGitHub({ creationStatus = 201, statusStatus = 201 } = {}) {
+  const requests: ReceivedRequest[] = [];
+  const server = createServer((request, response) => {
+    let text = '';
+    request.on('data', (chunk: Buffer) => (text += chunk.toString()));
+    request.on('end', () => {
+      requests.push({ method: request.method ?? '', path: request.url ?? '', headers: request.headers, body: text ? (JSON.parse(text) as Record<string, unknown>) : {} });
+      const creating = request.url === '/repos/kinchi22/credebi/deployments';
+      response.writeHead(creating ? creationStatus : statusStatus, { 'content-type': 'application/json' });
+      response.end(JSON.stringify(creating ? (creationStatus === 201 ? { id: 4242 } : { message: 'Conflict' }) : { id: 1 }));
+    });
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  servers.push(() => new Promise((resolve) => server.close(() => { resolve(); })));
+  return { url: `http://127.0.0.1:${String((server.address() as AddressInfo).port)}`, requests };
+}
+
+function runTool(mode: string, environment: NodeJS.ProcessEnv) {
+  const script = path.resolve(import.meta.dirname, '../manual-preview.ts');
+  return new Promise<{ status: number | null; output: string }>((resolve) => {
+    const child = spawn(process.execPath, [script, mode], { env: environment });
+    let output = '';
+    child.stdout.on('data', (chunk: Buffer) => (output += chunk.toString()));
+    child.stderr.on('data', (chunk: Buffer) => (output += chunk.toString()));
+    child.on('close', (status) => { resolve({ status, output }); });
+  });
+}
+
+function scratchOutput() {
+  const directory = mkdtempSync(path.join(tmpdir(), 'manual-preview-record-'));
+  directories.push(directory);
+  return path.join(directory, 'output');
+}
+
+const approvedSha = 'b'.repeat(40);
+const runUrl = 'https://github.com/kinchi22/credebi/actions/runs/777';
+const vercelToken = 'vercel-secret-never-sent';
+
+function recordEnvironment(apiUrl: string, outputFile: string, extra: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
+  return {
+    PATH: process.env['PATH'],
+    GITHUB_API_URL: apiUrl,
+    GITHUB_SERVER_URL: 'https://github.com',
+    GITHUB_REPOSITORY: 'kinchi22/credebi',
+    GITHUB_RUN_ID: '777',
+    GITHUB_TOKEN: 'github-fixture-token',
+    GITHUB_OUTPUT: outputFile,
+    VERCEL_TOKEN: vercelToken,
+    APPROVED_SHA: approvedSha,
+    ...extra,
+  };
+}
 
 describe('manual Preview target resolution', () => {
   it('resolves repository branches and full SHAs, freezing a branch before it moves', () => {
@@ -95,16 +160,108 @@ describe('manual Preview deployment outcomes', () => {
   });
 });
 
+describe('manual Preview deployment record', () => {
+  it('creates the record for the approved SHA in Preview and marks it in progress, linked to the run, before Vercel deploys', async () => {
+    const github = await fakeGitHub();
+    const outputFile = scratchOutput();
+    const started = await runTool('record-start', recordEnvironment(github.url, outputFile));
+    expect(started.status).toBe(0);
+    expect(readFileSync(outputFile, 'utf8')).toBe('id=4242\n');
+    expect(github.requests.map((request) => `${request.method} ${request.path}`)).toEqual(['POST /repos/kinchi22/credebi/deployments', 'POST /repos/kinchi22/credebi/deployments/4242/statuses']);
+    expect(github.requests[0]?.body).toEqual({
+      ref: approvedSha,
+      environment: 'Preview',
+      auto_merge: false,
+      required_contexts: [],
+      production_environment: false,
+      transient_environment: false,
+      description: `Manual Preview of ${approvedSha}`,
+    });
+    expect(github.requests[1]?.body).toEqual({ state: 'in_progress', log_url: runUrl, auto_inactive: false });
+    for (const request of github.requests) expect(request.headers.authorization).toBe('Bearer github-fixture-token');
+    expect(JSON.stringify(github.requests)).not.toContain(vercelToken);
+    expect(started.output).not.toContain(vercelToken);
+  });
+
+  it('records a successful deployment with its Preview URL and makes earlier Preview records inactive', async () => {
+    const github = await fakeGitHub();
+    const outputFile = scratchOutput();
+    const finished = await runTool('record-finish', recordEnvironment(github.url, outputFile, { DEPLOYMENT_ID: '4242', DEPLOY_OUTCOME: 'success', PREVIEW_URL: 'https://credebi-example.vercel.app' }));
+    expect(finished.status).toBe(0);
+    expect(github.requests.map((request) => `${request.method} ${request.path}`)).toEqual(['POST /repos/kinchi22/credebi/deployments/4242/statuses']);
+    expect(github.requests[0]?.body).toEqual({ state: 'success', log_url: runUrl, environment_url: 'https://credebi-example.vercel.app', auto_inactive: true });
+    expect(JSON.stringify(github.requests)).not.toContain(vercelToken);
+    expect(finished.output).not.toContain(vercelToken);
+  });
+
+  it.each([
+    ['failure', 'https://credebi-example.vercel.app'],
+    ['cancelled', 'https://credebi-example.vercel.app'],
+    ['skipped', ''],
+    ['success', ''],
+    ['success', 'https://example.com'],
+    ['success', 'http://credebi-example.vercel.app'],
+    ['success', 'https://credebi-example.vercel.app/path'],
+  ])('records a %s deploy with URL %j as failure, never success', async (outcome, url) => {
+    const github = await fakeGitHub();
+    const finished = await runTool('record-finish', recordEnvironment(github.url, scratchOutput(), { DEPLOYMENT_ID: '4242', DEPLOY_OUTCOME: outcome, PREVIEW_URL: url }));
+    expect(finished.status).toBe(0);
+    expect(github.requests.map((request) => request.body)).toEqual([{ state: 'failure', log_url: runUrl, auto_inactive: false }]);
+  });
+
+  it('moves one record through in progress to its final state in order', async () => {
+    const github = await fakeGitHub();
+    const outputFile = scratchOutput();
+    expect((await runTool('record-start', recordEnvironment(github.url, outputFile))).status).toBe(0);
+    const id = /^id=(\d+)$/m.exec(readFileSync(outputFile, 'utf8'))?.[1];
+    expect((await runTool('record-finish', recordEnvironment(github.url, outputFile, { DEPLOYMENT_ID: id, DEPLOY_OUTCOME: 'success', PREVIEW_URL: 'https://credebi-example.vercel.app' }))).status).toBe(0);
+    expect(github.requests.map((request) => request.body['state'] ?? request.body['ref'])).toEqual([approvedSha, 'in_progress', 'success']);
+  });
+
+  it('fails without a status or an id when GitHub does not create the record', async () => {
+    const github = await fakeGitHub({ creationStatus: 409 });
+    const outputFile = scratchOutput();
+    const started = await runTool('record-start', recordEnvironment(github.url, outputFile));
+    expect(started.status).toBe(1);
+    expect(github.requests).toHaveLength(1);
+    expect(existsSync(outputFile)).toBe(false);
+  });
+
+  it('keeps the created record id for the final step when marking it in progress fails', async () => {
+    const github = await fakeGitHub({ statusStatus: 500 });
+    const outputFile = scratchOutput();
+    const started = await runTool('record-start', recordEnvironment(github.url, outputFile));
+    expect(started.status).toBe(1);
+    expect(github.requests).toHaveLength(2);
+    expect(readFileSync(outputFile, 'utf8')).toBe('id=4242\n');
+  });
+
+  it('refuses to record anything but a full approved SHA', async () => {
+    const github = await fakeGitHub();
+    const started = await runTool('record-start', recordEnvironment(github.url, scratchOutput(), { APPROVED_SHA: 'main' }));
+    expect(started.status).toBe(1);
+    expect(github.requests).toHaveLength(0);
+  });
+
+  it('fails the final step when there is no record to finish', async () => {
+    const github = await fakeGitHub();
+    const finished = await runTool('record-finish', recordEnvironment(github.url, scratchOutput(), { DEPLOYMENT_ID: '', DEPLOY_OUTCOME: 'failure' }));
+    expect(finished.status).toBe(1);
+    expect(github.requests).toHaveLength(0);
+  });
+});
+
 it('keeps approval and the token after resolution, uses the frozen checkout, and remains manual', () => {
   const workflow = readFileSync(path.resolve(import.meta.dirname, '../../.github/workflows/manual-preview.yml'), 'utf8');
   expect(workflow).toContain('workflow_dispatch:');
   expect(workflow).not.toMatch(/^ {2}(push|pull_request|workflow_call|schedule):/m);
-  expect(workflow).toContain("if: github.ref == 'refs/heads/main'");
   const resolve = workflow.slice(workflow.indexOf('  resolve:'), workflow.indexOf('  deploy:'));
+  expect(resolve).toMatch(/^ {2}resolve:\n {4}if: github\.ref == 'refs\/heads\/main'\n/);
   expect(resolve).not.toContain('VERCEL_TOKEN');
   const deploy = workflow.slice(workflow.indexOf('  deploy:'), workflow.indexOf('  summary:'));
   expect(deploy).toContain('needs: resolve');
-  expect(deploy).toContain('name: preview-deployment');
+  expect(deploy).toMatch(/environment:\n {6}name: Preview\n {6}deployment: false\n/);
+  expect(workflow).not.toContain('preview-deployment');
   expect(deploy).toContain('name: Deploy approved ${{ needs.resolve.outputs.sha }} to Preview');
   expect(deploy).toContain('ref: ${{ needs.resolve.outputs.sha }}');
   expect(deploy).toContain('path: source');
@@ -112,6 +269,22 @@ it('keeps approval and the token after resolution, uses the frozen checkout, and
   expect(deploy).toContain('VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}');
   expect(deploy).toContain('node tooling/tools/manual-preview.ts deploy');
   expect(workflow).toContain('if: always()');
+  expect(workflow.match(/deployments: write/g)).toHaveLength(1);
+  expect(deploy).toMatch(/permissions:\n {6}contents: read\n {6}deployments: write\n/);
+  const steps = deploy.split(/\n {6}- /);
+  const tokenSteps = steps.filter((step) => step.includes('VERCEL_TOKEN'));
+  expect(tokenSteps).toHaveLength(1);
+  expect(tokenSteps[0]).toContain('node tooling/tools/manual-preview.ts deploy');
+  expect(workflow.match(/VERCEL_TOKEN/g)).toHaveLength(2);
+  const recordStart = steps.findIndex((step) => step.includes('manual-preview.ts record-start'));
+  const vercel = steps.findIndex((step) => step.includes('manual-preview.ts deploy'));
+  const recordFinish = steps.findIndex((step) => step.includes('manual-preview.ts record-finish'));
+  expect(recordStart).toBeGreaterThan(0);
+  expect(recordStart).toBeLessThan(vercel);
+  expect(recordFinish).toBeGreaterThan(vercel);
+  expect(steps[recordFinish]).toMatch(/^name: [^\n]+\n {8}if: always\(\)\n/);
+  for (const step of [steps[recordStart], steps[recordFinish]]) expect(step).toContain('GITHUB_TOKEN: ${{ github.token }}');
+  expect(steps[vercel]).not.toContain('GITHUB_TOKEN');
   expect(workflow).not.toMatch(/--prod|promote|rollback|--force|--prebuilt/);
   const workflows = ['ci.yml', 'e2e-build.yml'];
   for (const name of workflows) expect(readFileSync(path.resolve(import.meta.dirname, '../../.github/workflows', name), 'utf8')).not.toContain('manual-preview');

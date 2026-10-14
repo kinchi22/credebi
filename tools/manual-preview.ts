@@ -43,11 +43,64 @@ export function deployPreview(sha: string, directory: string, executable = 'verc
   });
   if (deployment.status !== 0) throw new Error('Preview build or deployment failed; inspect the deployment logs in Vercel.');
   const value = deployment.stdout.trim();
-  const url = new URL(value);
-  if (url.protocol !== 'https:' || url.origin !== value || !url.hostname.endsWith('.vercel.app')) {
-    throw new Error('The deployment did not return a valid Preview URL.');
-  }
+  if (!isPreviewUrl(value)) throw new Error('The deployment did not return a valid Preview URL.');
   return value;
+}
+
+function isPreviewUrl(value: string): boolean {
+  if (!URL.canParse(value)) return false;
+  const url = new URL(value);
+  return url.protocol === 'https:' && url.origin === value && url.hostname.endsWith('.vercel.app');
+}
+
+async function postToGitHub(resource: string, body: Record<string, unknown>, environment: NodeJS.ProcessEnv): Promise<unknown> {
+  const response = await fetch(`${environment['GITHUB_API_URL'] ?? 'https://api.github.com'}/repos/${environment['GITHUB_REPOSITORY'] ?? ''}/${resource}`, {
+    method: 'POST',
+    headers: {
+      accept: 'application/vnd.github+json',
+      authorization: `Bearer ${environment['GITHUB_TOKEN'] ?? ''}`,
+      'content-type': 'application/json',
+      'x-github-api-version': '2022-11-28',
+    },
+    body: JSON.stringify(body),
+  });
+  if (response.status !== 201) throw new Error(`GitHub refused POST ${resource} with status ${String(response.status)}.`);
+  return response.json();
+}
+
+function runUrl(environment: NodeJS.ProcessEnv): string {
+  return `${environment['GITHUB_SERVER_URL'] ?? 'https://github.com'}/${environment['GITHUB_REPOSITORY'] ?? ''}/actions/runs/${environment['GITHUB_RUN_ID'] ?? ''}`;
+}
+
+export async function createPreviewRecord(sha: string, environment = process.env): Promise<string> {
+  if (!/^[a-f\d]{40}$/.test(sha)) throw new Error('Only a full approved commit SHA can be recorded.');
+  const created = await postToGitHub('deployments', {
+    ref: sha,
+    environment: 'Preview',
+    auto_merge: false,
+    required_contexts: [],
+    production_environment: false,
+    transient_environment: false,
+    description: `Manual Preview of ${sha}`,
+  }, environment);
+  const id = (created as { id?: unknown }).id;
+  if (typeof id !== 'number') throw new Error('GitHub returned no Preview deployment record.');
+  return String(id);
+}
+
+export async function markPreviewRecordInProgress(id: string, environment = process.env): Promise<void> {
+  await postToGitHub(`deployments/${id}/statuses`, { state: 'in_progress', log_url: runUrl(environment), auto_inactive: false }, environment);
+}
+
+export async function finishPreviewRecord(id: string, outcome: string, url: string, environment = process.env): Promise<void> {
+  if (!/^\d+$/.test(id)) throw new Error('There is no Preview deployment record to finish.');
+  const succeeded = outcome === 'success' && isPreviewUrl(url);
+  await postToGitHub(`deployments/${id}/statuses`, {
+    state: succeeded ? 'success' : 'failure',
+    log_url: runUrl(environment),
+    ...(succeeded ? { environment_url: url } : {}),
+    auto_inactive: succeeded,
+  }, environment);
 }
 
 export function renderPreviewSummary(target: string, sha: string, status: string, url?: string): string {
@@ -55,25 +108,38 @@ export function renderPreviewSummary(target: string, sha: string, status: string
   return `## Preview deployment\n\nRequested target: ${escapedTarget}\n\nResolved commit: ${sha || 'Unresolved'}\n\nStatus: ${status}\n\n${url ? `Preview URL: ${url}\n` : ''}`;
 }
 
+function writeStepOutput(line: string): void {
+  appendFileSync(process.env['GITHUB_OUTPUT'] ?? '/dev/stdout', `${line}\n`);
+}
+
+async function main(mode: string | undefined): Promise<void> {
+  const target = process.env['REQUESTED_TARGET'] ?? '';
+  const directory = process.env['SOURCE_DIRECTORY'] ?? '.';
+  if (mode === 'resolve') {
+    const sha = resolvePreviewTarget(target, directory);
+    writeStepOutput(`sha=${sha}`);
+    appendFileSync(process.env['GITHUB_STEP_SUMMARY'] ?? '/dev/stdout', `Resolved Preview commit: \`${sha}\`\n\nReview this SHA before approving the Preview environment.\n`);
+  } else if (mode === 'record-start') {
+    const id = await createPreviewRecord(process.env['APPROVED_SHA'] ?? '');
+    writeStepOutput(`id=${id}`);
+    await markPreviewRecordInProgress(id);
+  } else if (mode === 'deploy') {
+    const url = deployPreview(process.env['APPROVED_SHA'] ?? '', directory);
+    writeStepOutput(`url=${url}`);
+  } else if (mode === 'record-finish') {
+    await finishPreviewRecord(process.env['DEPLOYMENT_ID'] ?? '', process.env['DEPLOY_OUTCOME'] ?? '', process.env['PREVIEW_URL'] ?? '');
+  } else if (mode === 'summary') {
+    const status = process.env['RESOLUTION_RESULT'] === 'success' && process.env['DEPLOYMENT_RESULT'] === 'success' ? 'success' : 'failure';
+    appendFileSync(process.env['GITHUB_STEP_SUMMARY'] ?? '/dev/stdout', renderPreviewSummary(target, process.env['APPROVED_SHA'] ?? '', status, process.env['PREVIEW_URL']));
+    if (status !== 'success') process.exitCode = 1;
+  } else {
+    throw new Error('Choose resolve, record-start, deploy, record-finish or summary.');
+  }
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   try {
-    const mode = process.argv[2];
-    const target = process.env['REQUESTED_TARGET'] ?? '';
-    const directory = process.env['SOURCE_DIRECTORY'] ?? '.';
-    if (mode === 'resolve') {
-      const sha = resolvePreviewTarget(target, directory);
-      appendFileSync(process.env['GITHUB_OUTPUT'] ?? '/dev/stdout', `sha=${sha}\n`);
-      appendFileSync(process.env['GITHUB_STEP_SUMMARY'] ?? '/dev/stdout', `Resolved Preview commit: \`${sha}\`\n\nReview this SHA before approving the preview-deployment environment.\n`);
-    } else if (mode === 'deploy') {
-      const url = deployPreview(process.env['APPROVED_SHA'] ?? '', directory);
-      appendFileSync(process.env['GITHUB_OUTPUT'] ?? '/dev/stdout', `url=${url}\n`);
-    } else if (mode === 'summary') {
-      const status = process.env['RESOLUTION_RESULT'] === 'success' && process.env['DEPLOYMENT_RESULT'] === 'success' ? 'success' : 'failure';
-      appendFileSync(process.env['GITHUB_STEP_SUMMARY'] ?? '/dev/stdout', renderPreviewSummary(target, process.env['APPROVED_SHA'] ?? '', status, process.env['PREVIEW_URL']));
-      if (status !== 'success') process.exitCode = 1;
-    } else {
-      throw new Error('Choose resolve, deploy or summary.');
-    }
+    await main(process.argv[2]);
   } catch (error) {
     console.error(error instanceof Error ? error.message : 'Preview request failed.');
     process.exitCode = 1;
