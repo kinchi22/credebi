@@ -126,8 +126,10 @@ function AccountRow({
                 {account.name}
                 {startsLater(account, today) ? (
                   <span className={`ml-2 ${typeClasses.date} text-text-muted`}>
-                    {t('accountsSection.startsOn')}{' '}
-                    <time dateTime={account.activeFrom}>{account.activeFrom}</time>
+                    {t.rich('accountsSection.startsOn', {
+                      date: account.activeFrom,
+                      day: (chunks) => <time dateTime={account.activeFrom}>{chunks}</time>,
+                    })}
                   </span>
                 ) : null}
               </span>

@@ -34,8 +34,6 @@ export type NamedLine = AccountLine & {
   readonly accountName: string;
 };
 
-export const lineName = (line: NamedLine, sideName: string): string => `${sideName} ${line.accountName}`;
-
 export const isLine =
   (side: Side, account: AccountId) =>
   (line: AccountLine): boolean =>

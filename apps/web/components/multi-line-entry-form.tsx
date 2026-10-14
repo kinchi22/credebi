@@ -29,7 +29,7 @@ import {
   type EntryFormParts,
   type EntryFormProps,
 } from './entry-form';
-import { isLine, lineName, linesOnDay, offeredOn } from './lines-on-day';
+import { isLine, linesOnDay, offeredOn } from './lines-on-day';
 import { NotActiveMark, useNotActiveHold } from './not-active-on-day';
 import { SIDE_TONE, SIDES } from './side-classes';
 import { DANGER_TEXT, FORM_REFUSAL } from './text-classes';
@@ -133,7 +133,7 @@ function LineFields({ id, line, active, onAmountChange, onRemove }: LineFieldsPr
 
   return (
     <fieldset
-      aria-label={lineName(line, t(`sides.${line.side}`))}
+      aria-label={t('entryLine.name', { side: t(`sides.${line.side}`), account: line.accountName })}
       className={`${LINE_GRID} items-center py-1 ${typeClasses['body-dense']}`}
     >
       <input type="hidden" name={ENTRY_FORM_FIELDS.account} value={line.account} />
@@ -143,10 +143,7 @@ function LineFields({ id, line, active, onAmountChange, onRemove }: LineFieldsPr
           {line.accountName}
         </p>
         {active ? null : (
-          <NotActiveMark
-            accountName={line.accountName}
-            explanation={t('notActiveOnDay.multiLine.explanation')}
-          />
+          <NotActiveMark accountName={line.accountName} lineRemovable />
         )}
       </div>
       <div className={`${AMOUNT_COLUMN} items-center`}>
@@ -180,8 +177,10 @@ function NotActiveRefusal({ editing, line }: NotActiveRefusalProps): ReactNode {
   const t = useTranslations();
   return (
     <p role="alert" className={FORM_REFUSAL}>
-      {editing ? t('notActiveOnDay.notSaved') : t('notActiveOnDay.notAdded')}{' '}
-      {lineName(line, t(`sides.${line.side}`))} {t('notActiveOnDay.multiLine.refusal')}
+      {t(editing ? 'notActiveOnDay.multiLine.notSaved' : 'notActiveOnDay.multiLine.notAdded', {
+        side: t(`sides.${line.side}`),
+        account: line.accountName,
+      })}
     </p>
   );
 }

@@ -497,7 +497,7 @@ function NoMatch({ query, chart, matches }: NoMatchProps): ReactNode {
   const t = useTranslations();
   return accountsIn(chart).some(matches) ? null : (
     <p className="px-4 py-3 text-text-muted">
-      {t('accountSheet.noMatch')} &quot;{query.trim()}&quot;.
+      {t('accountSheet.noMatch', { query: query.trim() })}
     </p>
   );
 }

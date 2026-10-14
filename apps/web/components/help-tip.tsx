@@ -96,7 +96,7 @@ export function HelpTip({ message, children }: HelpTipProps): ReactNode {
       <button
         ref={button}
         type="button"
-        aria-label={`${t('helpTip.about')} ${message}`}
+        aria-label={t('helpTip.about', { subject: message })}
         aria-expanded={open}
         onClick={() => {
           apply('toggle');

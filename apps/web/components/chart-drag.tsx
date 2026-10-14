@@ -138,12 +138,15 @@ const ChartRows = createContext<ReadonlyMap<string, RowText>>(new Map());
 
 function placeText({ place, before }: ChartLanding, rows: ReadonlyMap<string, RowText>, t: Translate): string {
   const named = (id: string): string => rows.get(id)?.name ?? '';
-  const beforeText = before === null ? undefined : `${t('accountsSection.drag.before')} ${named(before)}`;
   if (place.groupId !== null) {
-    const into = `${t('accountsSection.drag.into')} ${named(place.groupId)}`;
-    return beforeText === undefined ? into : `${into}, ${beforeText}`;
+    const group = named(place.groupId);
+    return before === null
+      ? t('accountsSection.drag.into', { group })
+      : t('accountsSection.drag.intoBefore', { group, sibling: named(before) });
   }
-  return beforeText ?? `${t('accountsSection.drag.lastIn')} ${t(`accountTypes.${place.accountType}`)}`;
+  return before === null
+    ? t('accountsSection.drag.lastIn', { accountType: t(`accountTypes.${place.accountType}`) })
+    : t('accountsSection.drag.before', { sibling: named(before) });
 }
 
 type Landed = {
@@ -233,9 +236,9 @@ export function ChartDrag({
   const whereNow = (active: Active): string => {
     const { landing: now, over } = landed.current;
     if (now !== undefined) {
-      return `${nameOf(active)} ${t('accountsSection.drag.wouldGo')} ${placeText(now, rows, t)}`;
+      return t('accountsSection.drag.wouldGo', { name: nameOf(active), place: placeText(now, rows, t) });
     }
-    return `${nameOf(active)} ${over ? t('accountsSection.drag.stays') : t('accountsSection.drag.overNothing')}`;
+    return t(over ? 'accountsSection.drag.stays' : 'accountsSection.drag.overNothing', { name: nameOf(active) });
   };
 
   const announceChange = (active: Active): string | undefined => {
@@ -248,16 +251,16 @@ export function ChartDrag({
   };
 
   const announcements: Announcements = {
-    onDragStart: ({ active }) => `${t('accountsSection.drag.pickedUp')} ${nameOf(active)}`,
+    onDragStart: ({ active }) => t('accountsSection.drag.pickedUp', { name: nameOf(active) }),
     onDragMove: ({ active }) => announceChange(active),
     onDragOver: ({ active }) => announceChange(active),
     onDragEnd: ({ active }) => {
       const { landing: now } = landed.current;
       return now === undefined
-        ? `${nameOf(active)} ${t('accountsSection.drag.putBack')}`
-        : `${nameOf(active)} ${t('accountsSection.drag.went')} ${placeText(now, rows, t)}`;
+        ? t('accountsSection.drag.putBack', { name: nameOf(active) })
+        : t('accountsSection.drag.went', { name: nameOf(active), place: placeText(now, rows, t) });
     },
-    onDragCancel: ({ active }) => `${nameOf(active)} ${t('accountsSection.drag.putBack')}`,
+    onDragCancel: ({ active }) => t('accountsSection.drag.putBack', { name: nameOf(active) }),
   };
 
   const stop = (): void => {
@@ -415,7 +418,7 @@ export function ChartRow({
           type="button"
           tabIndex={-1}
           disabled={held}
-          aria-label={`${t('accountsSection.move')} ${name}`}
+          aria-label={t('accountsSection.move', { name })}
           className={`${BARE_ICON_BUTTON} shrink-0 cursor-grab touch-none active:cursor-grabbing`}
           {...listeners}
         >

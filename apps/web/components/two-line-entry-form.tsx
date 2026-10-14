@@ -33,7 +33,7 @@ import {
 } from './entry-form';
 import { linesOn } from './entry-lines';
 import { WarningWithHelpTip } from './help-tip';
-import { isLine, lineName, linesOnDay, offeredOn, type NamedLine } from './lines-on-day';
+import { isLine, linesOnDay, offeredOn, type NamedLine } from './lines-on-day';
 import { NotActiveMark, useNotActiveHold } from './not-active-on-day';
 import { FORM_REFUSAL, LINK } from './text-classes';
 import { suggestedOn } from './suggested-accounts';
@@ -57,11 +57,14 @@ function NeedsMultiLineMark({ title }: NeedsMultiLineMarkProps): ReactNode {
   const t = useTranslations();
   return (
     <WarningWithHelpTip message={t('needsMultiLineMode.mark')}>
-      {t('needsMultiLineMode.lastEntry')} {title} {t('needsMultiLineMode.explanation')}{' '}
-      <Link href={SETTINGS_PATH} className={LINK}>
-        {t('helpTip.settings')}
-      </Link>{' '}
-      {t('needsMultiLineMode.afterSettings')}
+      {t.rich('needsMultiLineMode.explanation', {
+        title,
+        settings: (chunks) => (
+          <Link href={SETTINGS_PATH} className={LINK}>
+            {chunks}
+          </Link>
+        ),
+      })}
     </WarningWithHelpTip>
   );
 }
@@ -148,7 +151,7 @@ function TwoLineFields({
               <div
                 key={side}
                 role={line === undefined ? undefined : 'group'}
-                aria-label={line === undefined ? undefined : lineName(line, t(`sides.${line.side}`))}
+                aria-label={line === undefined ? undefined : t('entryLine.name', { side: t(`sides.${line.side}`), account: line.accountName })}
               >
                 {offered.ids.size === 0 ? null : (
                   <ChooseAccountButton side={side} account={picked[side]} sheet={sheet} />
@@ -156,10 +159,7 @@ function TwoLineFields({
                 <AccountRow side={side} account={picked[side]} />
                 {line !== undefined && lines.notActive.some(isLine(line.side, line.account)) ? (
                   <UnderAccountName>
-                    <NotActiveMark
-                      accountName={line.accountName}
-                      explanation={t('notActiveOnDay.twoLine.explanation')}
-                    />
+                    <NotActiveMark accountName={line.accountName} lineRemovable={false} />
                   </UnderAccountName>
                 ) : null}
               </div>
@@ -181,8 +181,9 @@ function TwoLineFields({
           refusal
         ) : (
           <p role="alert" className={FORM_REFUSAL}>
-            {entry === undefined ? t('notActiveOnDay.notAdded') : t('notActiveOnDay.notSaved')}{' '}
-            {hold.refused.accountName} {t('notActiveOnDay.twoLine.refusal')}
+            {t(entry === undefined ? 'notActiveOnDay.twoLine.notAdded' : 'notActiveOnDay.twoLine.notSaved', {
+              account: hold.refused.accountName,
+            })}
           </p>
         )}
       </div>

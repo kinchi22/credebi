@@ -78,10 +78,11 @@ dependency-cruiser treats `apps/web` as one unit. Imports between files inside
 
 ## Rejected alternatives
 
-**A translation library now, with `en` alone.** A dependency, a provider around
-client components and a request config, for a choice with one answer. The
-version picked today need not be the one adoption picks. Adopted with ADR-0008,
-once a second Language was coming.
+**A translation library now, with `en` alone.** Rejected when this was decided,
+and adopted by the 2026-10-14 amendment, so no longer rejected. Then, it was a
+dependency, a provider around client components and a request config, for a
+choice with one answer. Once ADR-0008's trigger held, a second Language was
+coming, and `next-intl` was built in ahead of it.
 
 **A hand-written `t()`.** A second API for the job a translation library does,
 with interpolation, plurals and key typing either reinvented or left for

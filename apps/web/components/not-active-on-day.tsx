@@ -10,18 +10,24 @@ import { LINK } from './text-classes';
 
 type NotActiveMarkProps = {
   readonly accountName: string;
-  readonly explanation: string;
+  readonly lineRemovable: boolean;
 };
 
-export function NotActiveMark({ accountName, explanation }: NotActiveMarkProps): ReactNode {
+export function NotActiveMark({ accountName, lineRemovable }: NotActiveMarkProps): ReactNode {
   const t = useTranslations();
   return (
     <WarningWithHelpTip message={t('notActiveOnDay.mark')}>
-      {accountName} {explanation}{' '}
-      <Link href={SETTINGS_PATH} className={LINK}>
-        {t('helpTip.settings')}
-      </Link>
-      .
+      {t.rich(
+        lineRemovable ? 'notActiveOnDay.multiLine.explanation' : 'notActiveOnDay.twoLine.explanation',
+        {
+          account: accountName,
+          settings: (chunks) => (
+            <Link href={SETTINGS_PATH} className={LINK}>
+              {chunks}
+            </Link>
+          ),
+        },
+      )}
     </WarningWithHelpTip>
   );
 }
