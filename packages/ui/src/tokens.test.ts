@@ -5,6 +5,7 @@ import {
   CONTROL_EDGE_MINIMUM,
   controlEdgePairs,
   controlHeight,
+  fontDeclarations,
   fontFaces,
   palette,
   radii,
@@ -198,10 +199,14 @@ describe('the shapes', () => {
 });
 
 describe('themeDeclarations', () => {
-  it('sets IBM Plex Sans as the sans face and IBM Plex Mono as the mono face, from the fonts the app serves', () => {
+  it('sets IBM Plex Sans as the sans face and IBM Plex Mono as the mono face, from the fonts the app serves, falling back to system faces for Hangul, then kana', () => {
     const declarations = themeDeclarations();
-    expect(declarations['--font-sans']).toBe('var(--font-ibm-plex-sans)');
-    expect(declarations['--font-mono']).toBe('var(--font-ibm-plex-mono)');
+    expect(declarations['--font-sans']).toBe(
+      'var(--font-ibm-plex-sans), "Apple SD Gothic Neo", "Malgun Gothic", "Hiragino Sans", "Yu Gothic"',
+    );
+    expect(declarations['--font-mono']).toBe(
+      'var(--font-ibm-plex-mono), "Apple SD Gothic Neo", "Malgun Gothic", "Hiragino Sans", "Yu Gothic"',
+    );
   });
 
   it('declares each semantic colour at its palette value', () => {
@@ -324,5 +329,24 @@ describe('rgbChannels', () => {
 
   it('refuses a colour that is not six hex digits', () => {
     expect(() => rgbChannels('#FFF')).toThrow('#FFF');
+  });
+});
+
+describe('fontDeclarations', () => {
+  it('keeps IBM Plex first and puts the Japanese system faces before the Korean ones for Japanese', () => {
+    expect(fontDeclarations('ja')).toStrictEqual({
+      '--font-sans':
+        'var(--font-ibm-plex-sans), "Hiragino Sans", "Yu Gothic", "Apple SD Gothic Neo", "Malgun Gothic"',
+      '--font-mono':
+        'var(--font-ibm-plex-mono), "Hiragino Sans", "Yu Gothic", "Apple SD Gothic Neo", "Malgun Gothic"',
+    });
+  });
+
+  it('declares for Korean exactly the faces the theme declares', () => {
+    const declarations = themeDeclarations();
+    expect(fontDeclarations('ko')).toStrictEqual({
+      '--font-sans': declarations['--font-sans'],
+      '--font-mono': declarations['--font-mono'],
+    });
   });
 });

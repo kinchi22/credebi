@@ -36,8 +36,8 @@
   --color-google-green: #34A853;
   --color-google-yellow: #FBBC05;
   --color-google-red: #EA4335;
-  --font-sans: var(--font-ibm-plex-sans);
-  --font-mono: var(--font-ibm-plex-mono);
+  --font-sans: var(--font-ibm-plex-sans), "Apple SD Gothic Neo", "Malgun Gothic", "Hiragino Sans", "Yu Gothic";
+  --font-mono: var(--font-ibm-plex-mono), "Apple SD Gothic Neo", "Malgun Gothic", "Hiragino Sans", "Yu Gothic";
   --text-display: 32px;
   --text-display--line-height: 40px;
   --text-display--font-weight: 600;
@@ -83,6 +83,11 @@
 }
 
 @layer base {
+  :root:lang(ja) {
+    --font-sans: var(--font-ibm-plex-sans), "Hiragino Sans", "Yu Gothic", "Apple SD Gothic Neo", "Malgun Gothic";
+    --font-mono: var(--font-ibm-plex-mono), "Hiragino Sans", "Yu Gothic", "Apple SD Gothic Neo", "Malgun Gothic";
+  }
+
   :focus-visible {
     outline: 2px solid var(--color-focus);
     outline-offset: 2px;

@@ -122,10 +122,12 @@ export {
   toPostedEntry,
 } from './entries';
 
-export type { ChangeEntryFormModeInput, EntryFormMode, SettingsOutput } from './settings';
+export type { ChangeEntryFormModeInput, EntryFormMode, Language, SettingsOutput } from './settings';
 export {
+  DEFAULT_LANGUAGE,
   changeEntryFormModeInputSchema,
   entryFormModeSchema,
+  languageSchema,
   settingsSchema,
   toSettings,
 } from './settings';

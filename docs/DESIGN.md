@@ -368,6 +368,14 @@ Plex Mono 400 and 500 as Latin woff2 files through `next/font/local`, and the
 share image reads IBM Plex Sans Regular as TTF, as "Metadata files" in
 `docs/ARCHITECTURE.md` states.
 
+IBM Plex sets Latin text alone. Hangul and kana fall back to system faces named
+after IBM Plex in both stacks, `font-sans` and `font-mono`: Apple SD Gothic Neo
+and Malgun Gothic for Korean, Hiragino Sans and Yu Gothic for Japanese. No font
+file is added for them. Korean's faces come first, and on a page whose Language
+is Japanese the stylesheet puts Japanese's first, so a character both scripts
+share, such as a kanji, takes the Japanese form. `fontDeclarations` in the
+tokens module holds both orders.
+
 Text a User typed, such as a Title, a memo, an Account name, an Account group
 name or a description, wraps: it breaks inside a word only when the word cannot
 fit on a line of its own, as `wrap-anywhere` does, and it never overflows its
@@ -488,6 +496,20 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   element set in the `h2` step, centred), the failure line when sign-in failed,
   centred, the Google sign-in button, and, where test sign-in is offered, the
   `Test sign-in` form below a dashed `border` rule with 20px above it.
+- **Language switch.** The control on a signed-out page that changes the
+  Language, and on `/sign-in` alone, centred 16px below the Sign in card. It is
+  a bare button 36px tall in `body-sm` and `text-muted`, `text` under the
+  pointer: a 16px globe icon, never a flag, 6px before `Language` in the
+  page's Language, which is its accessible name. It opens a menu above it: a
+  `surface` fill, a `border` edge and the `control` radius, at least 160px wide,
+  with no shadow. The menu lists each Language in itself -- English, 한국어,
+  日本語 -- in that order whatever the page's Language, each a row 36px tall in
+  `body-sm`, tinted `surface-hover` under the pointer or focus. The current one
+  is semibold, with a 16px check in `accent-text` before it; the others keep
+  the check's space empty, so the names line up. Opening the menu focuses the
+  current Language; the arrow keys, Home and End move between them, Enter or a
+  click chooses one, and Escape or a click outside closes it. Choosing writes
+  the browser's Language and renders the page again in it.
 - **Quiet button on dark.** No fill and no border: `text-muted-on-dark` text,
   and under the pointer `text-on-dark` on a `ground-dark-hover` fill, with the
   `control` radius and the `focus-on-dark` ring. It is Sign out in the Sidebar:

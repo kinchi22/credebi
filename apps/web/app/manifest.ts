@@ -1,10 +1,11 @@
+import { DEFAULT_LANGUAGE } from '@repo/contracts';
 import { palette, semanticColors } from '@repo/ui/tokens';
 import { type MetadataRoute } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { APP_ICONS } from '../components/app-icon';
 
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
-  const t = await getTranslations('app');
+  const t = await getTranslations({ locale: DEFAULT_LANGUAGE, namespace: 'app' });
   return {
     name: t('name'),
     short_name: t('name'),

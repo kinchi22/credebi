@@ -1,6 +1,9 @@
 export { DEFAULT_SETTINGS } from './domain/settings';
 export type { Settings } from './domain/settings';
 
+export { resolveLanguage } from './domain/language';
+export type { LanguageSources } from './domain/language';
+
 export { createGetSettings } from './application/get-settings';
 export type { GetSettings, GetSettingsDependencies } from './application/get-settings';
 

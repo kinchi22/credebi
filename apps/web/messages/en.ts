@@ -52,6 +52,14 @@ export const en = {
     titleTemplate: `%s \u00B7 ${productName}`,
     description: 'Double-entry bookkeeping.',
   },
+  language: {
+    label: 'Language',
+    names: {
+      en: 'English',
+      ko: '\uD55C\uAD6D\uC5B4',
+      ja: '\u65E5\u672C\u8A9E',
+    },
+  },
   notFoundPage: {
     title: 'Page not found',
   },
@@ -366,3 +374,9 @@ export const en = {
     credit: 'Credit',
   },
 } as const;
+
+type CopyOf<Messages> = {
+  readonly [Key in keyof Messages]: Messages[Key] extends string ? string : CopyOf<Messages[Key]>;
+};
+
+export type Catalogue = CopyOf<typeof en>;

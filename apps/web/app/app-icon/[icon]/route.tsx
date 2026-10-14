@@ -1,3 +1,4 @@
+import { DEFAULT_LANGUAGE } from '@repo/contracts';
 import { getTranslations } from 'next-intl/server';
 import { type ImageResponse } from 'next/og';
 import { notFound } from 'next/navigation';
@@ -19,6 +20,6 @@ export async function GET(
   if (!isAppIcon(icon)) {
     notFound();
   }
-  const t = await getTranslations('app');
+  const t = await getTranslations({ locale: DEFAULT_LANGUAGE, namespace: 'app' });
   return appIcon(APP_ICONS[icon], t('name'));
 }

@@ -39,6 +39,7 @@ export function createBaseConfig({ tsconfigRootDir, tokens }) {
     {
       name: 'repo/english-only',
       files: ['**/*'],
+      ignores: ['apps/web/messages/ko.ts', 'apps/web/messages/ja.ts'],
       plugins: { repo: repoPlugin },
       rules: {
         'repo/no-non-ascii': 'error',
