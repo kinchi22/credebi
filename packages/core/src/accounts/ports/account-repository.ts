@@ -7,6 +7,7 @@ import {
 } from '@repo/contracts';
 import { type Account, type AccountGroup, type Chart } from '../domain/account';
 import { type ShownSpan } from '../domain/active-period';
+import { type AccountRemoval } from '../domain/removal';
 
 export type AccountRepository = {
   readonly readChart: (userId: UserId) => Promise<Result<Chart, DomainError>>;
@@ -15,11 +16,14 @@ export type AccountRepository = {
   readonly addGroup: (userId: UserId, group: AccountGroup) => Promise<Result<void, DomainError>>;
   readonly updateGroup: (userId: UserId, group: AccountGroup) => Promise<Result<void, DomainError>>;
   readonly placeNodes: (userId: UserId, placed: Chart) => Promise<Result<void, DomainError>>;
-  readonly isAccountNamed: (userId: UserId, id: AccountId) => Promise<Result<boolean, DomainError>>;
   readonly readShownSpan: (
     userId: UserId,
     id: AccountId,
   ) => Promise<Result<ShownSpan | null, DomainError>>;
-  readonly deleteAccount: (userId: UserId, id: AccountId) => Promise<Result<void, DomainError>>;
+  readonly removeAccount: (
+    userId: UserId,
+    id: AccountId,
+    removedAt: Date,
+  ) => Promise<Result<AccountRemoval, DomainError>>;
   readonly deleteGroup: (userId: UserId, id: AccountGroupId) => Promise<Result<void, DomainError>>;
 };

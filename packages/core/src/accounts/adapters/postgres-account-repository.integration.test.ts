@@ -102,6 +102,32 @@ async function storeEntry(
   return id;
 }
 
+const MOMENT = new Date('2026-10-14T02:00:00.000Z');
+
+async function storedRemovals(): Promise<{ id: string; removedAt: Date | null }[]> {
+  const rows = await database.execute<{ id: string; removed_at: Date | string | null }>(
+    sql`select id, removed_at from accounts order by id`,
+  );
+  return rows.rows.map((row) => ({
+    id: row.id,
+    removedAt: row.removed_at === null ? null : new Date(row.removed_at),
+  }));
+}
+
+async function untilWaitingOnLock(): Promise<void> {
+  for (let attempt = 0; attempt < 200; attempt += 1) {
+    const waiting = await database.execute<{ count: number }>(
+      sql`select count(*)::int as count from pg_stat_activity
+          where wait_event_type = 'Lock' and query ilike '%for update%'`,
+    );
+    if ((waiting.rows[0]?.count ?? 0) > 0) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error('The removal never waited on the Account row.');
+}
+
 beforeEach(async () => {
   await database.execute(sql`truncate table users cascade`);
   for (const [id, email] of [
@@ -150,6 +176,17 @@ describe('createPostgresAccountRepository', () => {
 
     expect(isErr(read) && read.error.code).toBe('DEPENDENCY_UNAVAILABLE');
     expect(logged).toEqual([{ event: 'accounts.stored_account_invalid', accountId: odd.id }]);
+  });
+
+  it('reports a stored Account with no position rather than answering with it', async () => {
+    const unplaced = account(1, 'asset', 0, 'Unplaced');
+    await store(ADA, unplaced);
+    await database.execute(sql`update accounts set position = null where id = ${unplaced.id}`);
+
+    const read = await repository.readChart(ADA);
+
+    expect(isErr(read) && read.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+    expect(logged).toEqual([{ event: 'accounts.stored_account_unplaced', accountId: unplaced.id }]);
   });
 
   it('reports an unreachable database as a result, never by throwing', async () => {
@@ -403,31 +440,158 @@ describe('createPostgresAccountRepository', () => {
     expect(logged.map((fields) => fields['event'])).toEqual(['accounts.place_failed']);
   });
 
-  it('answers whether an Entry line names an Account, and never for another User', async () => {
+  it('removes an Account by how Entry lines name it: refused while a shown Entry does, marked while only a hidden pair does, else deleted', async () => {
     const cash = account(1, 'asset', 0, 'Cash');
     const sales = account(2, 'revenue', 0, 'Sales');
     const wallet = account(3, 'asset', 1, 'Wallet');
-    for (const stored of [cash, sales, wallet]) {
+    const float = account(4, 'asset', 2, 'Float');
+    for (const stored of [cash, sales, wallet, float]) {
       await store(ADA, stored);
     }
     await storeEntry(ADA, 100, [cash, sales]);
+    const deleted = await storeEntry(ADA, 101, [cash, float]);
+    await storeEntry(ADA, 102, [float, cash], deleted);
 
-    expect(await repository.isAccountNamed(ADA, cash.id)).toEqual(ok(true));
-    expect(await repository.isAccountNamed(ADA, sales.id)).toEqual(ok(true));
-    expect(await repository.isAccountNamed(ADA, wallet.id)).toEqual(ok(false));
-    expect(await repository.isAccountNamed(GRACE, cash.id)).toEqual(ok(false));
+    expect(await repository.removeAccount(ADA, cash.id, MOMENT)).toEqual(ok('refused'));
+    expect(await repository.removeAccount(ADA, float.id, MOMENT)).toEqual(ok('marked'));
+    expect(await repository.removeAccount(ADA, wallet.id, MOMENT)).toEqual(ok('deleted'));
+
+    expect(await repository.readChart(ADA)).toEqual(ok(chartOf(cash, sales)));
+    expect(await storedRemovals()).toEqual([
+      { id: cash.id, removedAt: null },
+      { id: sales.id, removedAt: null },
+      { id: float.id, removedAt: MOMENT },
+    ]);
+    expect(logged).toEqual([]);
   });
 
-  it('counts an Account named only by an Entry and the Reversal that hides it', async () => {
+  it('marks an Account removed once a Correction moved the only shown Entry naming it to another Account', async () => {
     const cash = account(1, 'asset', 0, 'Cash');
-    const sales = account(2, 'revenue', 0, 'Sales');
-    await store(ADA, cash);
-    await store(ADA, sales);
-    const reversed = await storeEntry(ADA, 100, [cash, sales]);
-    await storeEntry(ADA, 101, [sales, cash], reversed);
+    const float = account(2, 'asset', 1, 'Float');
+    const expenses = account(3, 'expense', 0, 'Expenses');
+    for (const stored of [cash, float, expenses]) {
+      await store(ADA, stored);
+    }
+    const corrected = await storeEntry(ADA, 100, [expenses, float]);
+    await storeEntry(ADA, 101, [float, expenses], corrected);
+    await storeEntry(ADA, 102, [expenses, cash]);
 
-    expect(await repository.isAccountNamed(ADA, cash.id)).toEqual(ok(true));
-    expect(await repository.isAccountNamed(ADA, sales.id)).toEqual(ok(true));
+    expect(await repository.removeAccount(ADA, float.id, MOMENT)).toEqual(ok('marked'));
+    expect(await repository.removeAccount(ADA, cash.id, MOMENT)).toEqual(ok('refused'));
+  });
+
+  it('clears the Account group and position of an Account it marks removed, and keeps its row for the hidden pair naming it', async () => {
+    const bank = group(10, 'asset', 1, 'Bank');
+    const sales = account(1, 'revenue', 0, 'Sales');
+    const float = { ...account(2, 'asset', 0, 'Float'), groupId: bank.id };
+    await storeGroup(ADA, bank);
+    await store(ADA, sales);
+    await store(ADA, float);
+    const deleted = await storeEntry(ADA, 100, [float, sales]);
+    await storeEntry(ADA, 101, [sales, float], deleted);
+
+    await repository.removeAccount(ADA, float.id, MOMENT);
+
+    const rows = await database.execute<{ group_id: string | null; position: number | null }>(
+      sql`select group_id, position from accounts where id = ${float.id}`,
+    );
+    expect(rows.rows).toEqual([{ group_id: null, position: null }]);
+    expect(await repository.deleteGroup(ADA, bank.id)).toEqual(ok(undefined));
+  });
+
+  it("refuses to remove another User's Account, or one already removed, as not found, and leaves it", async () => {
+    const safe = account(1, 'asset', 0, 'Safe');
+    const sales = account(2, 'revenue', 0, 'Sales');
+    const float = account(3, 'asset', 1, 'Float');
+    await store(GRACE, safe);
+    await store(ADA, sales);
+    await store(ADA, float);
+    const deleted = await storeEntry(ADA, 100, [float, sales]);
+    await storeEntry(ADA, 101, [sales, float], deleted);
+    await repository.removeAccount(ADA, float.id, MOMENT);
+
+    const others = await repository.removeAccount(ADA, safe.id, MOMENT);
+    const again = await repository.removeAccount(ADA, float.id, new Date('2026-10-15T02:00:00.000Z'));
+
+    expect(isErr(others) && others.error.code).toBe('NOT_FOUND');
+    expect(isErr(again) && again.error.code).toBe('NOT_FOUND');
+    expect(await repository.readChart(GRACE)).toEqual(ok(chartOf(safe)));
+    expect(await storedRemovals()).toEqual([
+      { id: safe.id, removedAt: null },
+      { id: sales.id, removedAt: null },
+      { id: float.id, removedAt: MOMENT },
+    ]);
+  });
+
+  it('waits for an Entry write that holds the Account, then refuses the removal once that Entry is shown', async () => {
+    const sales = account(1, 'revenue', 0, 'Sales');
+    const float = account(2, 'asset', 1, 'Float');
+    await store(ADA, sales);
+    await store(ADA, float);
+    const deleted = await storeEntry(ADA, 100, [float, sales]);
+    await storeEntry(ADA, 101, [sales, float], deleted);
+    const writer = createDatabase(databaseUrl);
+    let removal: ReturnType<typeof repository.removeAccount> | undefined;
+
+    await writer.database.transaction(async (transaction) => {
+      await transaction.execute(
+        sql`insert into entries (id, user_id, entry_date, memo, created_at)
+            values ('01920000-0000-7000-8000-000000000102', ${ADA}, '2026-09-15', 'Racing', now())`,
+      );
+      await transaction.execute(
+        sql`insert into entry_lines (entry_id, line_number, account_id, side, amount)
+            values ('01920000-0000-7000-8000-000000000102', 1, ${float.id}, 'debit', 1000),
+                   ('01920000-0000-7000-8000-000000000102', 2, ${sales.id}, 'credit', 1000)`,
+      );
+      removal = repository.removeAccount(ADA, float.id, MOMENT);
+      await untilWaitingOnLock();
+    });
+    await writer.close();
+
+    expect(await removal).toEqual(ok('refused'));
+    expect(await repository.readChart(ADA)).toEqual(ok(chartOf(sales, float)));
+  });
+
+  it("frees a removed Account's name for a new Account, ignoring case, while an Account not removed keeps its own", async () => {
+    const sales = account(1, 'revenue', 0, 'Sales');
+    const float = account(2, 'asset', 0, 'Float');
+    await store(ADA, sales);
+    await store(ADA, float);
+    const deleted = await storeEntry(ADA, 100, [float, sales]);
+    await storeEntry(ADA, 101, [sales, float], deleted);
+    await repository.removeAccount(ADA, float.id, MOMENT);
+    const reused = account(3, 'asset', 0, 'FLOAT');
+    const clash = account(4, 'asset', 1, 'float');
+
+    expect(await repository.addAccount(ADA, reused)).toEqual(ok(undefined));
+    const taken = await repository.addAccount(ADA, clash);
+
+    expect(isErr(taken) && taken.error.code).toBe('NAME_TAKEN');
+    expect(await repository.readChart(ADA)).toEqual(ok(chartOf(sales, reused)));
+  });
+
+  it('never saves or places a removed Account, so a stale chart cannot put it back in an Account group', async () => {
+    const bank = group(10, 'asset', 1, 'Bank');
+    const sales = account(1, 'revenue', 0, 'Sales');
+    const float = account(2, 'asset', 0, 'Float');
+    await storeGroup(ADA, bank);
+    await store(ADA, sales);
+    await store(ADA, float);
+    const deleted = await storeEntry(ADA, 100, [float, sales]);
+    await storeEntry(ADA, 101, [sales, float], deleted);
+    await repository.removeAccount(ADA, float.id, MOMENT);
+    const stale = { ...float, groupId: bank.id, position: 3 };
+
+    const updated = await repository.updateAccount(ADA, stale);
+    const placed = await repository.placeNodes(ADA, { accounts: [stale], groups: [] });
+
+    expect(isErr(updated) && updated.error.code).toBe('NOT_FOUND');
+    expect(isErr(placed) && placed.error.code).toBe('NOT_FOUND');
+    const rows = await database.execute<{ group_id: string | null; position: number | null }>(
+      sql`select group_id, position from accounts where id = ${float.id}`,
+    );
+    expect(rows.rows).toEqual([{ group_id: null, position: null }]);
+    expect(await repository.deleteGroup(ADA, bank.id)).toEqual(ok(undefined));
   });
 
   it('reads the first and last day a shown Entry names an Account on, leaving out a Reversal and the Entry it reverses', async () => {
@@ -457,37 +621,6 @@ describe('createPostgresAccountRepository', () => {
     expect(logged.map((fields) => fields['event'])).toEqual(['accounts.shown_span_read_failed']);
   });
 
-  it('deletes an Account no Entry line names, and only its own User\'s', async () => {
-    const cash = account(1, 'asset', 0, 'Cash');
-    const wallet = account(2, 'asset', 1, 'Wallet');
-    const safe = account(3, 'asset', 0, 'Safe');
-    await store(ADA, cash);
-    await store(ADA, wallet);
-    await store(GRACE, safe);
-
-    expect(await repository.deleteAccount(ADA, wallet.id)).toEqual(ok(undefined));
-    const others = await repository.deleteAccount(ADA, safe.id);
-
-    expect(isErr(others) && others.error.code).toBe('NOT_FOUND');
-    expect(await repository.readChart(ADA)).toEqual(ok(chartOf(cash)));
-    expect(await repository.readChart(GRACE)).toEqual(ok(chartOf(safe)));
-  });
-
-  it('refuses to delete an Account an Entry line names as in use, a hidden Reversal pair included, and keeps it', async () => {
-    const cash = account(1, 'asset', 0, 'Cash');
-    const sales = account(2, 'revenue', 0, 'Sales');
-    await store(ADA, cash);
-    await store(ADA, sales);
-    const reversed = await storeEntry(ADA, 100, [cash, sales]);
-    await storeEntry(ADA, 101, [sales, cash], reversed);
-
-    const deleted = await repository.deleteAccount(ADA, cash.id);
-
-    expect(isErr(deleted) && deleted.error.code).toBe('IN_USE');
-    expect(await repository.readChart(ADA)).toEqual(ok(chartOf(cash, sales)));
-    expect(logged).toEqual([]);
-  });
-
   it('deletes an empty Account group, refuses one that holds an Account as in use, and never deletes another User\'s', async () => {
     const loans = group(10, 'liability', 0, 'Loans');
     const cards = group(11, 'liability', 1, 'Cards');
@@ -509,20 +642,17 @@ describe('createPostgresAccountRepository', () => {
     expect(logged).toEqual([]);
   });
 
-  it('reports an unreachable database on a delete, or on asking whether an Account is named, as a result', async () => {
+  it('reports an unreachable database on removing an Account or deleting an Account group as a result', async () => {
     const wallet = account(1, 'asset', 0, 'Wallet');
     const bank = group(10, 'asset', 0, 'Bank');
 
-    const named = await dead.isAccountNamed(ADA, wallet.id);
-    const deleted = await dead.deleteAccount(ADA, wallet.id);
+    const removed = await dead.removeAccount(ADA, wallet.id, MOMENT);
     const deletedGroup = await dead.deleteGroup(ADA, bank.id);
 
-    expect(isErr(named) && named.error.code).toBe('DEPENDENCY_UNAVAILABLE');
-    expect(isErr(deleted) && deleted.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+    expect(isErr(removed) && removed.error.code).toBe('DEPENDENCY_UNAVAILABLE');
     expect(isErr(deletedGroup) && deletedGroup.error.code).toBe('DEPENDENCY_UNAVAILABLE');
     expect(logged.map((fields) => fields['event'])).toEqual([
-      'accounts.named_read_failed',
-      'accounts.delete_failed',
+      'accounts.remove_failed',
       'accounts.delete_group_failed',
     ]);
   });

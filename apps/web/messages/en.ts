@@ -174,7 +174,7 @@ export const en = {
     cancel: 'Cancel',
     refusals: deleteRefusals(
       'account',
-      'The account was not deleted, because an entry names it -- an entry you deleted or edited included, since the books keep those too. To stop using it, give it an end day in Active until instead.',
+      'The account was not deleted, because a shown entry names it. To stop using it, give it an end day in Active until instead.',
     ),
     groupRefusals: deleteRefusals(
       'group',

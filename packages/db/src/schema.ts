@@ -105,9 +105,10 @@ export const accounts = pgTable(
     groupId: uuid('group_id'),
     name: text('name').notNull(),
     description: text('description'),
-    position: integer('position').notNull(),
+    position: integer('position'),
     activeFrom: date('active_from').notNull(),
     activeUntil: date('active_until'),
+    removedAt: timestamp('removed_at', { withTimezone: true }),
   },
   (table) => [
     foreignKey({
@@ -115,7 +116,9 @@ export const accounts = pgTable(
       columns: [table.groupId, table.userId, table.accountType],
       foreignColumns: [accountGroups.id, accountGroups.userId, accountGroups.accountType],
     }),
-    uniqueIndex('accounts_user_id_name_idx').on(table.userId, sql`lower(${table.name})`),
+    uniqueIndex('accounts_user_id_name_idx')
+      .on(table.userId, sql`lower(${table.name})`)
+      .where(sql`${table.removedAt} is null`),
     index('accounts_group_id_idx').on(table.groupId),
   ],
 );

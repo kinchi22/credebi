@@ -1,6 +1,7 @@
-import { ok, type AccountId, type UserId } from '@repo/contracts';
+import { domainError, err, ok, type AccountId, type UserId } from '@repo/contracts';
 import { type Account, type AccountGroup, type Chart } from '../domain/account';
 import { type ShownSpan } from '../domain/active-period';
+import { type AccountRemoval } from '../domain/removal';
 import { type AccountRepository } from '../ports/account-repository';
 
 export type InMemoryAccounts = {
@@ -10,8 +11,9 @@ export type InMemoryAccounts = {
     accounts: readonly Account[],
     groups?: readonly AccountGroup[],
   ) => void;
-  readonly nameInEntry: (accountId: AccountId) => void;
+  readonly hideInEntry: (accountId: AccountId) => void;
   readonly showInEntry: (accountId: AccountId, day: string) => void;
+  readonly removedAt: (accountId: AccountId) => Date | undefined;
 };
 
 const EMPTY: Chart = { accounts: [], groups: [] };
@@ -23,13 +25,27 @@ const replaced = <Node extends { readonly id: string }>(
 
 export function inMemoryAccounts(): InMemoryAccounts {
   const charts = new Map<UserId, Chart>();
-  const named = new Set<AccountId>();
+  const hidden = new Set<AccountId>();
   const shown = new Map<AccountId, ShownSpan>();
+  const marks = new Map<AccountId, Date>();
   const chartOf = (userId: UserId): Chart => charts.get(userId) ?? EMPTY;
+  const holds = (userId: UserId, id: AccountId): boolean =>
+    chartOf(userId).accounts.some((account) => account.id === id);
+  const removal = (id: AccountId): AccountRemoval => {
+    if (shown.has(id)) {
+      return 'refused';
+    }
+    return hidden.has(id) ? 'marked' : 'deleted';
+  };
   const change = (userId: UserId, changed: (chart: Chart) => Chart) => {
     charts.set(userId, changed(chartOf(userId)));
     return Promise.resolve(ok(undefined));
   };
+  const without = (userId: UserId, id: AccountId) =>
+    change(userId, (chart) => ({
+      ...chart,
+      accounts: chart.accounts.filter((account) => account.id !== id),
+    }));
 
   return {
     accounts: {
@@ -47,23 +63,21 @@ export function inMemoryAccounts(): InMemoryAccounts {
           accounts: placed.accounts.reduce(replaced, chart.accounts),
           groups: placed.groups.reduce(replaced, chart.groups),
         })),
-      isAccountNamed: (userId, id) =>
-        Promise.resolve(
-          ok(named.has(id) && chartOf(userId).accounts.some((account) => account.id === id)),
-        ),
       readShownSpan: (userId, id) =>
-        Promise.resolve(
-          ok(
-            chartOf(userId).accounts.some((account) => account.id === id)
-              ? (shown.get(id) ?? null)
-              : null,
-          ),
-        ),
-      deleteAccount: (userId, id) =>
-        change(userId, (chart) => ({
-          ...chart,
-          accounts: chart.accounts.filter((account) => account.id !== id),
-        })),
+        Promise.resolve(ok(holds(userId, id) ? (shown.get(id) ?? null) : null)),
+      removeAccount: async (userId, id, removedAt) => {
+        if (!holds(userId, id)) {
+          return err(domainError('NOT_FOUND', `Account ${id} is not in the User's chart of accounts.`));
+        }
+        const removed = removal(id);
+        if (removed === 'marked') {
+          marks.set(id, removedAt);
+        }
+        if (removed !== 'refused') {
+          await without(userId, id);
+        }
+        return ok(removed);
+      },
       deleteGroup: (userId, id) =>
         change(userId, (chart) => ({
           ...chart,
@@ -73,16 +87,16 @@ export function inMemoryAccounts(): InMemoryAccounts {
     hold: (userId, accounts, groups = []) => {
       charts.set(userId, { accounts, groups });
     },
-    nameInEntry: (accountId) => {
-      named.add(accountId);
+    hideInEntry: (accountId) => {
+      hidden.add(accountId);
     },
     showInEntry: (accountId, day) => {
-      named.add(accountId);
       const span = shown.get(accountId);
       shown.set(accountId, {
         first: span === undefined || day < span.first ? day : span.first,
         last: span === undefined || day > span.last ? day : span.last,
       });
     },
+    removedAt: (accountId) => marks.get(accountId),
   };
 }
