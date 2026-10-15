@@ -2,16 +2,20 @@ import { type Catalogue } from './en';
 
 const productName = 'Credebi';
 const accountNotSaved =
-  '계정을 저장하지 않았습니다. 이름은 1~40자, 설명은 200자 이내여야 하며, 사용 종료일은 사용 시작일보다 앞설 수 없습니다.';
+  '저장하지 못했습니다. 이름은 1~40자, 설명은 200자 이내여야 하며, 사용 종료일은 사용 시작일보다 앞설 수 없습니다.';
 const groupNotSaved =
-  '그룹을 저장하지 않았습니다. 이름은 1~40자, 설명은 200자 이내여야 합니다.';
+  '저장하지 못했습니다. 이름은 1~40자, 설명은 200자 이내여야 합니다.';
 
 const notMoved =
-  '이동을 되돌렸습니다. 계정은 같은 계정 유형 안에서만 옮길 수 있고, 그룹은 다른 그룹 안으로 옮길 수 없습니다.';
-const unmoved = '지금은 이동을 저장할 수 없어 되돌렸습니다. 다시 시도해 주세요.';
+  '이동하지 못했습니다. 계정은 같은 계정 유형 안에서만 옮길 수 있고, 그룹은 다른 그룹 안으로 옮길 수 없습니다.';
+const unmoved = '이동에 실패했습니다. 잠시 후 다시 시도해 주세요.';
 const signedOutOfChart = '로그아웃되었습니다. 계정을 변경하려면 다시 로그인하세요.';
 
 const NODE = { account: '계정', group: '그룹' } as const;
+
+function nodeNotFound(node: keyof typeof NODE) {
+  return `이 ${NODE[node]}은 존재하지 않습니다. 페이지를 새로 고쳐 주세요.`;
+}
 
 function chartRefusals(
   node: keyof typeof NODE,
@@ -19,14 +23,14 @@ function chartRefusals(
   nameTaken: string,
   inUse: string = notSaved,
 ) {
-  const unsaved = `지금은 ${NODE[node]}을 저장할 수 없어 아무것도 바뀌지 않았습니다. 다시 시도해 주세요.`;
+  const unsaved = `${NODE[node]}의 저장에 실패했습니다. 다시 시도해 주세요.`;
   return {
     INVALID_INPUT: notSaved,
     NAME_TAKEN: nameTaken,
     IN_USE: inUse,
     TITLE_TOO_LONG: notSaved,
     MEMO_TOO_LONG: notSaved,
-    NOT_FOUND: `이 ${NODE[node]}은 존재하지 않습니다. 페이지를 새로 고쳐 주세요.`,
+    NOT_FOUND: nodeNotFound(node),
     CONFLICT: unsaved,
     DEPENDENCY_UNAVAILABLE: unsaved,
     UNBALANCED: notSaved,
@@ -35,8 +39,8 @@ function chartRefusals(
 }
 
 function deleteRefusals(node: keyof typeof NODE, inUse: string) {
-  const reload = `이 ${NODE[node]}을 삭제할 수 없습니다. 페이지를 새로 고친 뒤 다시 시도해 주세요.`;
-  const undeleted = `지금은 ${NODE[node]}을 삭제할 수 없습니다. 다시 시도해 주세요.`;
+  const reload = `${NODE[node]}의 삭제에 실패했습니다. 페이지를 새로 고친 뒤 다시 시도해 주세요.`;
+  const undeleted = `${NODE[node]}의 삭제에 실패했습니다. 다시 시도해 주세요.`;
   return {
     INVALID_INPUT: reload,
     NAME_TAKEN: reload,
@@ -44,7 +48,7 @@ function deleteRefusals(node: keyof typeof NODE, inUse: string) {
     IN_USE: inUse,
     TITLE_TOO_LONG: reload,
     MEMO_TOO_LONG: reload,
-    NOT_FOUND: `이 ${NODE[node]}은 존재하지 않습니다. 페이지를 새로 고쳐 주세요.`,
+    NOT_FOUND: nodeNotFound(node),
     CONFLICT: undeleted,
     DEPENDENCY_UNAVAILABLE: undeleted,
     UNAUTHENTICATED: signedOutOfChart,
@@ -122,8 +126,8 @@ export const ko = {
       'two-line': '차변 계정과 대변 계정 하나씩, 하나의 금액을 공유합니다.',
       'multi-line': '차변과 대변이 여러 행을 가지며 각 행에 금액을 설정합니다.',
     },
-    notSaved: '선택을 저장하지 못했습니다. 다시 시도해 주세요.',
-    languageNotSaved: '선택을 저장하지 못했습니다. 다시 시도해 주세요.',
+    notSaved: '저장에 실패했습니다. 다시 시도해 주세요.',
+    languageNotSaved: '저장에 실패했습니다. 다시 시도해 주세요.',
   },
   accountsSection: {
     title: '계정',
@@ -182,8 +186,8 @@ export const ko = {
     refusals: chartRefusals(
       'account',
       accountNotSaved,
-      '계정을 저장하지 않았습니다. 같은 이름의 계정이 이미 있으니 다른 이름을 정하세요.',
-      '계정을 저장하지 않았습니다. 이 사용 기간 밖의 날짜에 이 계정을 쓴 거래가 있습니다. 그 날짜가 사용 시작일과 사용 종료일 사이에 들도록 하세요.',
+      '저장에 실패했습니다. 같은 이름의 계정이 이미 있으니 다른 이름을 정하세요.',
+      '저장에 실패했습니다. 이 사용 기간 밖의 날짜에 이 계정을 쓴 거래가 있습니다. 그 날짜가 사용 시작일과 사용 종료일 사이에 들도록 하세요.',
     ),
     groupRefusals: chartRefusals(
       'group',
@@ -199,11 +203,11 @@ export const ko = {
     cancel: '취소',
     refusals: deleteRefusals(
       'account',
-      '표시된 거래가 이 계정을 쓰고 있어 삭제하지 않았습니다. 더 쓰지 않으려면 대신 사용 종료일을 정하세요.',
+      '등록된 거래에서 이 계정을 사용하고 있어 삭제하지 못했습니다. 더 사용하지 않으려면 대신 사용 종료일을 정하세요.',
     ),
     groupRefusals: deleteRefusals(
       'group',
-      '그룹에 아직 계정이 있어 삭제하지 않았습니다. 계정을 먼저 그룹 밖으로 옮기거나 삭제하세요.',
+      '그룹에 아직 계정이 있어 삭제하지 못했습니다. 계정을 먼저 그룹 밖으로 옮기거나 삭제하세요.',
     ),
   },
   entrySearchPage: {
@@ -220,10 +224,10 @@ export const ko = {
     submit: '검색',
     results: '결과',
     searching: '지난 한 달을 검색하는 중...',
-    unavailable: '지금은 검색할 수 없습니다. 검색을 눌러 다시 시도해 주세요.',
+    unavailable: '지금은 검색할 수 없습니다. 잠시 후 다시 시도해 주세요.',
     nothingMatched: '조건에 맞는 거래가 없습니다.',
     refused:
-      '검색하지 않았습니다. 날짜 범위(각 날짜는 달력의 하루이며, 시작일은 종료일보다 늦을 수 없습니다), 계정이 목록에 있는 것인지, 제목과 메모가 허용된 길이를 넘지 않는지 확인하세요.',
+      '날짜 범위의 시작일은 종료일보다 늦을 수 없습니다. 계정이 목록에 있는 것인지, 제목과 메모가 허용된 길이를 넘지 않는지 확인하세요.',
   },
   datePresets: {
     title: '기간 프리셋',
