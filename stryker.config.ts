@@ -12,6 +12,7 @@ export default {
     'packages/contracts/src/**/*.ts',
     'apps/web/server/**/*.ts',
     'packages/ui/src/**/*.ts',
+    'apps/web/components/typed-text.ts',
     '!apps/web/server/{container,context,trpc,root-router}.ts',
     '!apps/web/server/routers/**',
     '!**/*.test.ts',
