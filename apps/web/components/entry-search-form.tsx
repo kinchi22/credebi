@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import {
   SEARCH_CRITERIA_FIELDS,
   accountsIn,
@@ -12,7 +13,6 @@ import { type DayRange } from '@repo/core/entries';
 import { PANEL, PANEL_TITLE } from '@repo/ui';
 import { useId, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
-import { en } from '../messages/en';
 import { ENTRY_SEARCH_PATH } from '../server/return-path';
 import { useBrowserToday } from './browser-today';
 import { CONTROL, DATE_CONTROL, FIELD, PRIMARY_BUTTON } from './control-classes';
@@ -36,6 +36,7 @@ function keepingADay(set: (day: string) => void): (event: ChangeEvent<HTMLInputE
 }
 
 export function EntrySearchForm({ criteria, chart, titles }: EntrySearchFormProps): ReactNode {
+  const t = useTranslations();
   const id = useId();
   const [from, setFrom] = useState(criteria.from ?? '');
   const [to, setTo] = useState(criteria.to ?? '');
@@ -63,12 +64,12 @@ export function EntrySearchForm({ criteria, chart, titles }: EntrySearchFormProp
         id={`${id}-title`}
         className={`w-full ${PANEL_TITLE}`}
       >
-        {en.entrySearch.title}
+        {t('entrySearch.title')}
       </h2>
 
       <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-end gap-3 wide:contents">
         <div className={FIELD}>
-          <label htmlFor={`${id}-from`}>{en.entrySearch.from}</label>
+          <label htmlFor={`${id}-from`}>{t('entrySearch.from')}</label>
           <input
             id={`${id}-from`}
             name={SEARCH_CRITERIA_FIELDS.from}
@@ -80,7 +81,7 @@ export function EntrySearchForm({ criteria, chart, titles }: EntrySearchFormProp
           />
         </div>
         <div className={FIELD}>
-          <label htmlFor={`${id}-to`}>{en.entrySearch.to}</label>
+          <label htmlFor={`${id}-to`}>{t('entrySearch.to')}</label>
           <input
             id={`${id}-to`}
             name={SEARCH_CRITERIA_FIELDS.to}
@@ -95,14 +96,14 @@ export function EntrySearchForm({ criteria, chart, titles }: EntrySearchFormProp
       </div>
 
       <div className={`${FIELD} max-w-full min-w-0`}>
-        <label htmlFor={`${id}-account`}>{en.entrySearch.account}</label>
+        <label htmlFor={`${id}-account`}>{t('entrySearch.account')}</label>
         <select
           id={`${id}-account`}
           name={SEARCH_CRITERIA_FIELDS.account}
           defaultValue={criteria.account ?? ''}
           className={`${CONTROL} max-w-full`}
         >
-          <option value="">{en.entrySearch.anyAccount}</option>
+          <option value="">{t('entrySearch.anyAccount')}</option>
           {accounts.map((account) => (
             <option key={account.id} value={account.id}>
               {account.name}
@@ -114,7 +115,7 @@ export function EntrySearchForm({ criteria, chart, titles }: EntrySearchFormProp
       <TitleCombobox
         id={`${id}-title-criterion`}
         name={SEARCH_CRITERIA_FIELDS.title}
-        label={en.entrySearch.entryTitle}
+        label={t('entrySearch.entryTitle')}
         defaultValue={criteria.title}
         titles={titles.map(({ title }) => title)}
         dense={false}
@@ -122,7 +123,7 @@ export function EntrySearchForm({ criteria, chart, titles }: EntrySearchFormProp
       />
 
       <div className={`${FIELD} grow`}>
-        <label htmlFor={`${id}-memo`}>{en.entrySearch.memo}</label>
+        <label htmlFor={`${id}-memo`}>{t('entrySearch.memo')}</label>
         <input
           id={`${id}-memo`}
           name={SEARCH_CRITERIA_FIELDS.memo}
@@ -136,7 +137,7 @@ export function EntrySearchForm({ criteria, chart, titles }: EntrySearchFormProp
         type="submit"
         className={PRIMARY_BUTTON}
       >
-        {en.entrySearch.submit}
+        {t('entrySearch.submit')}
       </button>
 
       <DatePresets today={today} onChoose={searchPreset} />

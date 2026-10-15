@@ -15,6 +15,7 @@ import {
   createDeleteAccountGroup,
   createBeginGoogleSignIn,
   createChangeEntryFormMode,
+  createChangeLanguage,
   createDeleteEntry,
   createEditAccount,
   createEditAccountGroup,
@@ -36,6 +37,7 @@ import {
   type DeleteAccountGroup,
   type BeginGoogleSignIn,
   type ChangeEntryFormMode,
+  type ChangeLanguage,
   type DeleteEntry,
   type EditAccount,
   type EditAccountGroup,
@@ -65,6 +67,7 @@ import {
   newSessionToken,
 } from '@repo/core/server';
 import { v7 as uuidv7 } from 'uuid';
+import { startingAccountNames } from './catalogues';
 import { type Env, parseEnv } from './env';
 import { createLogger, stderr } from './logger';
 
@@ -85,6 +88,7 @@ export type Container = {
   readonly moveChartNode: MoveChartNode;
   readonly getSettings: GetSettings;
   readonly changeEntryFormMode: ChangeEntryFormMode;
+  readonly changeLanguage: ChangeLanguage;
   readonly resolveSession: ResolveSession;
   readonly beginGoogleSignIn: BeginGoogleSignIn;
   readonly finishGoogleSignIn: FinishGoogleSignIn;
@@ -107,6 +111,8 @@ export function createContainer({ databaseUrl, google, testSignIn }: Env): Conta
   const signIn = {
     users: createPostgresUserRepository(databaseUrl, logger),
     sessions,
+    settings,
+    startingAccountNames,
     newUserId: () => userIdSchema.parse(uuidv7()),
     newAccountId,
     newSessionToken,
@@ -153,6 +159,7 @@ export function createContainer({ databaseUrl, google, testSignIn }: Env): Conta
     moveChartNode: createMoveChartNode({ accounts }),
     getSettings: createGetSettings({ settings }),
     changeEntryFormMode: createChangeEntryFormMode({ settings }),
+    changeLanguage: createChangeLanguage({ settings }),
     resolveSession: createResolveSession({ sessions, hashSessionToken, now: () => new Date() }),
     beginGoogleSignIn: createBeginGoogleSignIn({ google: googleSignIn }),
     finishGoogleSignIn: createFinishGoogleSignIn({ ...signIn, google: googleSignIn }),

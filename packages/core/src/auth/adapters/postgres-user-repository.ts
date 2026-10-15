@@ -4,6 +4,7 @@ import { createDatabase, schema } from '@repo/db';
 import { type Account } from '../../accounts/domain/account';
 import { describeError } from '../../logging/domain/describe-error';
 import { type Logger } from '../../logging/ports/logger';
+import { type Settings } from '../../settings/domain/settings';
 import { type Identity, type Profile, type User } from '../domain/user';
 import { type UserRepository } from '../ports/user-repository';
 import { databaseFailure, UNIQUE_VIOLATION } from './database-failure';
@@ -46,6 +47,7 @@ export function createPostgresUserRepository(
       user: User,
       identity: Identity,
       chart: readonly Account[],
+      settings: Settings,
     ): Promise<Result<void, DomainError>> => {
       try {
         await database.transaction(async (transaction) => {
@@ -55,6 +57,7 @@ export function createPostgresUserRepository(
             providerSubject: identity.subject,
             userId: user.id,
           });
+          await transaction.insert(schema.userSettings).values({ userId: user.id, ...settings });
           if (chart.length > 0) {
             await transaction
               .insert(schema.accounts)

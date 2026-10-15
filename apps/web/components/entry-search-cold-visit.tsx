@@ -1,8 +1,8 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { defaultSearchRange, type DayRange } from '@repo/core/entries';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { en } from '../messages/en';
 import { type EntrySearchAnswer } from '../server/entry-search';
 import { useBrowserToday } from './browser-today';
 import { type DeleteEntryAction } from './delete-entry';
@@ -30,13 +30,14 @@ function ColdVisitOutcome({
   readonly answer: ColdVisitAnswer | undefined;
   readonly controls: EntryControls;
 }): ReactNode {
+  const t = useTranslations();
   if (answer === undefined) {
     return <EntrySearchPending />;
   }
   if (answer === UNAVAILABLE) {
     return (
       <p role="alert" className={DANGER_TEXT}>
-        {en.entrySearch.unavailable}
+        {t('entrySearch.unavailable')}
       </p>
     );
   }

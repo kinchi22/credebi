@@ -1,15 +1,16 @@
 # ADR-0008: Localize without a locale in the URL
 
-**Status:** Deferred
+**Status:** Accepted
 **Date:** 2026-09-15
 **Amended:** 2026-10-13, PR #422
 **Trigger:** Feature #239, which ships `ko` and `ja`.
+**Adopted:** 2026-10-15, PR #453
 
 ## Problem
 
 The brief lets product copy be localized, and requires message keys and the
-default catalogue to be English. Only English ships, and ADR-0007 keeps its copy
-in one catalogue.
+default catalogue to be English. When this was decided only English shipped, and
+ADR-0007 kept its copy in one catalogue.
 
 Where the Language lives is expensive to change once pages exist, and unless it
 is decided first, the first page that needs one decides it. Locale routing in
@@ -20,8 +21,7 @@ launch breaks every link anyone has shared.
 
 ## Decision
 
-When the trigger holds, localization is built as follows. None of it is in
-force before then.
+Localization is built as follows.
 
 - **Languages.** `en`, the default, `ko` and `ja`.
 - **Resolution.** The first of these that names a supported Language: the
@@ -42,27 +42,29 @@ force before then.
   the Language as above, server components call `getTranslations`, client
   components `useTranslations`. When this was decided, `next-intl` 4.14.3 listed
   `next ^16` among its peer dependencies and the repo ran Next 16.3.1. Adoption
-  re-checks the version and proposes the dependency first, as `AGENTS.md`
-  requires of any new one.
+  took the range `^4.14.9`, whose peers cover Next 16 and React 19, proposed
+  and approved during refinement of #239 as `AGENTS.md` requires of any new
+  dependency.
 - **Catalogues.** `apps/web/messages/{locale}.ts`, one per Language, with the
-  keys of `en.ts`. The adopting change adds each non-English catalogue by its
-  exact path to the ignores of `repo/english-only` in
-  `packages/config/eslint/base.mjs`, and nothing broader.
+  keys of `en.ts`. Each non-English catalogue is in the ignores of
+  `repo/english-only` in `packages/config/eslint/base.mjs` by its exact path,
+  and nothing broader is.
 
 ## Consequences
 
-Adoption turns each import of `en` into a translation call. `en.ts` carries
-over, apart from the keys that need an argument (ADR-0007).
+Each rendered string is a translation call. `en.ts` carried over from before
+adoption, apart from the keys that needed an argument (ADR-0007).
 
 `next-intl`'s examples load a catalogue with `import()`. Dynamic imports are
-forbidden everywhere (ADR-0002), so adoption imports every catalogue statically
-into one map, and the server bundle carries every Language.
+forbidden everywhere (ADR-0002), so every catalogue is imported statically into
+one map, and the server bundle carries every Language.
 
 A user's five starting Accounts are named in their Language when the user is
 created, from the catalogue, and are then the user's own: changing the Language
-never renames them. Source is English-only, so core holds no names but `en`'s;
-the server reads the others from the catalogue, so `apps/web/server` imports it
-too, and ADR-0007's boundary line changes with adoption.
+never renames them. Core holds no starting names: every Language's, `en`
+included, comes from the catalogue through a function from a Language to the
+five names, which the composition root hands sign-in. So `apps/web/server`
+imports the catalogue too, and ADR-0007's boundary line says so.
 
 Without a Language in the URL:
 
@@ -100,6 +102,7 @@ first answer the user's own.
 for one value, which can disagree about where the value lives, the cookie or the
 setting.
 
-**Catalogues nobody fluent has read.** A generated `ja` catalogue could exist
-today. It could say something different from the English, and nothing here
-would notice.
+**Catalogues nobody fluent has read.** A generated `ja` catalogue could have
+shipped before `ko`. It could say something different from the English, and
+nothing here would notice. Both ship once the owner, fluent in both, has read
+them.

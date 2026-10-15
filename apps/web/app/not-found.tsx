@@ -1,14 +1,18 @@
+import { typeClasses } from '@repo/ui/type-classes';
+import { type Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 import { type ReactNode } from 'react';
-import { en } from '../messages/en';
 
-export const metadata = {
-  title: en.notFoundPage.title,
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('notFoundPage');
+  return { title: t('title') };
+}
 
-export default function NotFoundPage(): ReactNode {
+export default async function NotFoundPage(): Promise<ReactNode> {
+  const t = await getTranslations('notFoundPage');
   return (
     <main className="mx-auto flex max-w-md flex-col gap-4 p-4 wide:p-8">
-      <h1 className="text-h1">{en.notFoundPage.title}</h1>
+      <h1 className={typeClasses.h1}>{t('title')}</h1>
     </main>
   );
 }

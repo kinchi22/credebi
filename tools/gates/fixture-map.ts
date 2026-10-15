@@ -27,6 +27,7 @@ export const LINT_FIXTURES: readonly LintFixture[] = [
   ['apps/web/server/routers/fat-handler.ts', 'max-lines-per-function'],
   ['apps/web/server/routers/branchy-handler.ts', 'complexity'],
   ['apps/web/messages/imports-server.ts', 'boundaries/dependencies'],
+  ['apps/web/components/imports-catalogue.ts', 'boundaries/dependencies'],
   ['apps/web/components/inline-text.tsx', 'repo/no-inline-copy'],
   ['apps/web/components/inline-attribute.tsx', 'repo/no-inline-copy'],
   ['apps/web/app/inline-expression.tsx', 'repo/no-inline-copy'],

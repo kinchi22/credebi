@@ -11,6 +11,7 @@ import {
 import { createDatabase } from '@repo/db';
 import { startingChart, type Account } from '../../accounts/domain/account';
 import { type LogFields, type Logger } from '../../logging/ports/logger';
+import { DEFAULT_SETTINGS, type Settings } from '../../settings/domain/settings';
 import { type Identity, type User } from '../domain/user';
 import { createPostgresUserRepository } from './postgres-user-repository';
 
@@ -84,6 +85,13 @@ async function storedAccounts(): Promise<readonly Record<string, unknown>[]> {
   return result.rows;
 }
 
+async function storedSettings(): Promise<readonly Record<string, unknown>[]> {
+  const result = await database.execute(
+    sql`select user_id, entry_form_mode, language from user_settings order by user_id`,
+  );
+  return result.rows;
+}
+
 async function countUsers(): Promise<number> {
   const result = await database.execute<{ count: number }>(
     sql`select count(*)::int as count from users`,
@@ -93,7 +101,7 @@ async function countUsers(): Promise<number> {
 
 describe('createPostgresUserRepository', () => {
   it('finds a User by the Identity they were added with, as they were added', async () => {
-    expect(isOk(await repository.add(ADA, GOOGLE_ADA, []))).toBe(true);
+    expect(isOk(await repository.add(ADA, GOOGLE_ADA, [], DEFAULT_SETTINGS))).toBe(true);
 
     expect(await found(GOOGLE_ADA)).toEqual(ADA);
     expect(logged).toEqual([]);
@@ -101,31 +109,31 @@ describe('createPostgresUserRepository', () => {
 
   it('keeps a User with no name', async () => {
     const nameless = { ...ADA, name: null };
-    await repository.add(nameless, GOOGLE_ADA, []);
+    await repository.add(nameless, GOOGLE_ADA, [], DEFAULT_SETTINGS);
 
     expect(await found(GOOGLE_ADA)).toEqual(nameless);
   });
 
   it('finds nobody by an Identity nobody has', async () => {
-    await repository.add(ADA, GOOGLE_ADA, []);
+    await repository.add(ADA, GOOGLE_ADA, [], DEFAULT_SETTINGS);
 
     expect(await found({ provider: 'google', subject: 'google-grace' })).toBeUndefined();
   });
 
   it('keys an Identity by its provider too, so the same subject elsewhere is someone else', async () => {
-    await repository.add(ADA, GOOGLE_ADA, []);
+    await repository.add(ADA, GOOGLE_ADA, [], DEFAULT_SETTINGS);
 
     expect(await found({ provider: 'test', subject: 'google-ada' })).toBeUndefined();
   });
 
   it('refuses an Identity that already has a User as a conflict, and stores nobody', async () => {
-    await repository.add(ADA, GOOGLE_ADA, []);
+    await repository.add(ADA, GOOGLE_ADA, [], DEFAULT_SETTINGS);
     const second: User = {
       ...ADA,
       id: '01920000-0000-7000-8000-000000000002' as UserId,
     };
 
-    const result = await repository.add(second, GOOGLE_ADA, []);
+    const result = await repository.add(second, GOOGLE_ADA, [], DEFAULT_SETTINGS);
 
     expect(isErr(result) && result.error.code).toBe('CONFLICT');
     expect(await countUsers()).toBe(1);
@@ -134,7 +142,7 @@ describe('createPostgresUserRepository', () => {
   });
 
   it('stores a new User together with its chart of accounts', async () => {
-    expect(isOk(await repository.add(ADA, GOOGLE_ADA, [CASH, EXPENSES]))).toBe(true);
+    expect(isOk(await repository.add(ADA, GOOGLE_ADA, [CASH, EXPENSES], DEFAULT_SETTINGS))).toBe(true);
 
     expect(await storedAccounts()).toEqual(
       [CASH, EXPENSES].map((account) => ({
@@ -151,14 +159,34 @@ describe('createPostgresUserRepository', () => {
     );
   });
 
+  it.each(['en', 'ko', 'ja'] as const)(
+    'stores a new User together with their Settings, %s as their Language',
+    async (language) => {
+      const settings: Settings = { entryFormMode: 'multi-line', language };
+
+      expect(isOk(await repository.add(ADA, GOOGLE_ADA, [CASH], settings))).toBe(true);
+
+      expect(await storedSettings()).toEqual([
+        { user_id: ADA.id, entry_form_mode: 'multi-line', language },
+      ]);
+    },
+  );
+
   it('stores the five starting Accounts active from a day before the User was created', async () => {
     let issued = 0;
-    const chart = startingChart('2000-01-01', () => {
+    const names = {
+      asset: 'Cash',
+      liability: 'Accounts payable',
+      equity: 'Capital',
+      revenue: 'Sales',
+      expense: 'Expenses',
+    };
+    const chart = startingChart('2000-01-01', names, () => {
       issued += 1;
       return `01920000-0000-7000-8000-00000000c00${String(issued)}` as AccountId;
     });
 
-    expect(isOk(await repository.add(ADA, GOOGLE_ADA, chart))).toBe(true);
+    expect(isOk(await repository.add(ADA, GOOGLE_ADA, chart, DEFAULT_SETTINGS))).toBe(true);
 
     expect((await storedAccounts()).map((row) => [row['name'], row['active_from']])).toEqual([
       ['Cash', '2000-01-01'],
@@ -170,23 +198,27 @@ describe('createPostgresUserRepository', () => {
   });
 
   it('stores neither the User nor its chart when either cannot be stored', async () => {
-    await repository.add(ADA, GOOGLE_ADA, [CASH]);
+    await repository.add(ADA, GOOGLE_ADA, [CASH], DEFAULT_SETTINGS);
     const second: User = { ...ADA, id: '01920000-0000-7000-8000-000000000002' as UserId };
     const third: User = { ...ADA, id: '01920000-0000-7000-8000-000000000003' as UserId };
 
-    const conflicting = await repository.add(second, GOOGLE_ADA, [EXPENSES]);
-    const clashing = await repository.add(third, { provider: 'google', subject: 'google-third' }, [
-      CASH,
-    ]);
+    const conflicting = await repository.add(second, GOOGLE_ADA, [EXPENSES], DEFAULT_SETTINGS);
+    const clashing = await repository.add(
+      third,
+      { provider: 'google', subject: 'google-third' },
+      [CASH],
+      DEFAULT_SETTINGS,
+    );
 
     expect(isErr(conflicting) && conflicting.error.code).toBe('CONFLICT');
     expect(isErr(clashing)).toBe(true);
     expect(await countUsers()).toBe(1);
     expect((await storedAccounts()).map((row) => row['id'])).toEqual([CASH.id]);
+    expect(await storedSettings()).toEqual([{ user_id: ADA.id, entry_form_mode: 'two-line', language: 'en' }]);
   });
 
   it('records the email and name of the latest sign-in', async () => {
-    await repository.add(ADA, GOOGLE_ADA, []);
+    await repository.add(ADA, GOOGLE_ADA, [], DEFAULT_SETTINGS);
 
     const result = await repository.updateProfile(ADA.id, {
       email: 'ada@lovelace.test',
@@ -203,7 +235,7 @@ describe('createPostgresUserRepository', () => {
 
   it('reports an unreachable database as a result on every path, never by throwing', async () => {
     const find = await dead.findByIdentity(GOOGLE_ADA);
-    const add = await dead.add(ADA, GOOGLE_ADA, []);
+    const add = await dead.add(ADA, GOOGLE_ADA, [], DEFAULT_SETTINGS);
     const update = await dead.updateProfile(ADA.id, {
       email: 'ada@example.com',
       name: null,

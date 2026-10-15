@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import {
   closestCenter,
   DndContext,
@@ -34,7 +35,6 @@ import { GripIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { createContext, useContext, useId, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { en } from '../messages/en';
 import { aimedAt, measuredHits, measuredOf, type ChartDrop, type ChartDropTarget } from './chart-drop';
 import { BARE_ICON_BUTTON } from './control-classes';
 import { useHydrated } from './hydrated';
@@ -127,7 +127,7 @@ const dropOf = ({ over, collisions }: DragState): ChartDrop | undefined => {
   return target === undefined || measured === undefined ? undefined : { target, ...measured };
 };
 
-const { drag } = en.accountsSection;
+type Translate = ReturnType<typeof useTranslations<never>>;
 
 type RowText = { readonly name: string; readonly description: string | null };
 
@@ -136,14 +136,17 @@ const rowsIn = (chart: readonly ChartNodeOutput[]): ReadonlyMap<string, RowText>
 
 const ChartRows = createContext<ReadonlyMap<string, RowText>>(new Map());
 
-function placeText({ place, before }: ChartLanding, rows: ReadonlyMap<string, RowText>): string {
+function placeText({ place, before }: ChartLanding, rows: ReadonlyMap<string, RowText>, t: Translate): string {
   const named = (id: string): string => rows.get(id)?.name ?? '';
-  const beforeText = before === null ? undefined : `${drag.before} ${named(before)}`;
   if (place.groupId !== null) {
-    const into = `${drag.into} ${named(place.groupId)}`;
-    return beforeText === undefined ? into : `${into}, ${beforeText}`;
+    const group = named(place.groupId);
+    return before === null
+      ? t('accountsSection.drag.into', { group })
+      : t('accountsSection.drag.intoBefore', { group, sibling: named(before) });
   }
-  return beforeText ?? `${drag.lastIn} ${en.accountTypes[place.accountType]}`;
+  return before === null
+    ? t('accountsSection.drag.lastIn', { accountType: t(`accountTypes.${place.accountType}`) })
+    : t('accountsSection.drag.before', { sibling: named(before) });
 }
 
 type Landed = {
@@ -206,6 +209,7 @@ export function ChartDrag({
   readonly onMove: (move: MoveChartNodeInput) => void;
   readonly children: ReactNode;
 }): ReactNode {
+  const t = useTranslations();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   const hydrated = useHydrated();
   const [moving, setMoving] = useState<NodeData>();
@@ -232,9 +236,9 @@ export function ChartDrag({
   const whereNow = (active: Active): string => {
     const { landing: now, over } = landed.current;
     if (now !== undefined) {
-      return `${nameOf(active)} ${drag.wouldGo} ${placeText(now, rows)}`;
+      return t('accountsSection.drag.wouldGo', { name: nameOf(active), place: placeText(now, rows, t) });
     }
-    return `${nameOf(active)} ${over ? drag.stays : drag.overNothing}`;
+    return t(over ? 'accountsSection.drag.stays' : 'accountsSection.drag.overNothing', { name: nameOf(active) });
   };
 
   const announceChange = (active: Active): string | undefined => {
@@ -247,16 +251,16 @@ export function ChartDrag({
   };
 
   const announcements: Announcements = {
-    onDragStart: ({ active }) => `${drag.pickedUp} ${nameOf(active)}`,
+    onDragStart: ({ active }) => t('accountsSection.drag.pickedUp', { name: nameOf(active) }),
     onDragMove: ({ active }) => announceChange(active),
     onDragOver: ({ active }) => announceChange(active),
     onDragEnd: ({ active }) => {
       const { landing: now } = landed.current;
       return now === undefined
-        ? `${nameOf(active)} ${drag.putBack}`
-        : `${nameOf(active)} ${drag.went} ${placeText(now, rows)}`;
+        ? t('accountsSection.drag.putBack', { name: nameOf(active) })
+        : t('accountsSection.drag.went', { name: nameOf(active), place: placeText(now, rows, t) });
     },
-    onDragCancel: ({ active }) => `${nameOf(active)} ${drag.putBack}`,
+    onDragCancel: ({ active }) => t('accountsSection.drag.putBack', { name: nameOf(active) }),
   };
 
   const stop = (): void => {
@@ -270,7 +274,7 @@ export function ChartDrag({
     <DndContext
       sensors={sensors}
       collisionDetection={collide}
-      accessibility={{ announcements, screenReaderInstructions: { draggable: drag.instructions } }}
+      accessibility={{ announcements, screenReaderInstructions: { draggable: t('accountsSection.drag.instructions') } }}
       onDragStart={({ active }) => {
         landed.current = UNLANDED;
         announced.current = undefined;
@@ -376,6 +380,7 @@ export function ChartRow({
   readonly className?: string;
   readonly children: (grip: ReactNode) => ReactNode;
 }): ReactNode {
+  const t = useTranslations();
   const ids = useContext(ListIds);
   const name = useContext(ChartRows).get(node.id)?.name ?? '';
   const next = ids[ids.indexOf(node.id) + 1] ?? null;
@@ -413,7 +418,7 @@ export function ChartRow({
           type="button"
           tabIndex={-1}
           disabled={held}
-          aria-label={`${en.accountsSection.move} ${name}`}
+          aria-label={t('accountsSection.move', { name })}
           className={`${BARE_ICON_BUTTON} shrink-0 cursor-grab touch-none active:cursor-grabbing`}
           {...listeners}
         >

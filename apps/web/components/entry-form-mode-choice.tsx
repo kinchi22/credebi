@@ -1,31 +1,28 @@
 'use client';
 
-import {
-  entryFormModeSchema,
-  type DomainErrorCode,
-  type EntryFormMode,
-  type Side,
-} from '@repo/contracts';
-import { useId, useState, useTransition, type ChangeEvent, type ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
+import { entryFormModeSchema, type EntryFormMode, type Side } from '@repo/contracts';
+import { useId, type ChangeEvent, type ReactNode } from 'react';
 import { PANEL_FRAME } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
-import { en } from '../messages/en';
-import { LEGEND } from './control-classes';
+import {
+  CHOSEN_SEGMENT,
+  LEGEND,
+  SEGMENT,
+  SEGMENT_RADIO,
+  SETTINGS_ROW,
+  UNCHOSEN_SEGMENT,
+} from './control-classes';
+import { useSavedChoice, type SettingChange } from './saved-choice';
 import { SIDE_TONE } from './side-classes';
 import { DANGER_TEXT } from './text-classes';
 
-export type EntryFormModeChange =
-  | { readonly outcome: 'saved' }
-  | { readonly outcome: 'rejected'; readonly code: DomainErrorCode };
-
 export type EntryFormModeChoiceProps = {
   readonly chosen: EntryFormMode;
-  readonly action: (entryFormMode: string) => Promise<EntryFormModeChange>;
+  readonly action: (entryFormMode: string) => Promise<SettingChange>;
 };
 
 type Bar = { readonly side: Side; readonly width: number };
-
-const CHOSEN_SEGMENT = 'bg-accent/15 text-text ring-[1.5px] ring-accent-text ring-inset';
 
 const BAR_HEIGHT = 4;
 const BAR_PITCH = 9;
@@ -65,33 +62,19 @@ function ModeDrawing({ mode }: { readonly mode: EntryFormMode }): ReactNode {
 }
 
 export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps): ReactNode {
-  const [selected, setSelected] = useState(chosen);
-  const [refused, setRefused] = useState(false);
-  const [pending, startTransition] = useTransition();
+  const t = useTranslations();
+  const { selected, refused, pending, choose } = useSavedChoice(chosen, action);
   const id = useId();
 
   const change = (event: ChangeEvent<HTMLInputElement>): void => {
-    const next = entryFormModeSchema.parse(event.currentTarget.value);
-    const previous = selected;
-    setSelected(next);
-    setRefused(false);
-    startTransition(async () => {
-      const outcome = await action(next).then(
-        (result) => result.outcome,
-        (): EntryFormModeChange['outcome'] => 'rejected',
-      );
-      if (outcome === 'rejected') {
-        setSelected(previous);
-        setRefused(true);
-      }
-    });
+    choose(entryFormModeSchema.parse(event.currentTarget.value));
   };
 
   return (
     <div className="flex flex-col gap-2">
-      <fieldset className="m-0 flex flex-col gap-3 border-0 border-y border-border px-0 py-5 wide:flex-row wide:items-center wide:justify-between">
+      <fieldset className={`${SETTINGS_ROW} border-t`}>
         <legend className={`float-left p-0 ${LEGEND}`}>
-          {en.settingsPage.entryFormMode}
+          {t('settingsPage.entryFormMode')}
         </legend>
         <div className={`grid auto-cols-fr grid-flow-col grid-rows-[auto_auto_auto] gap-y-2 self-stretch p-0.5 ${PANEL_FRAME} wide:max-w-2xl wide:flex-1 wide:self-auto`}>
           {entryFormModeSchema.options.map((mode) => (
@@ -105,20 +88,20 @@ export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps
                 onChange={change}
                 aria-labelledby={`${id}-${mode}-name`}
                 aria-describedby={`${id}-${mode}-description`}
-                className="peer absolute inset-0 m-0 appearance-none opacity-0"
+                className={SEGMENT_RADIO}
               />
               <span
-                className={`row-span-3 grid grid-rows-subgrid rounded-control px-3 py-2 ${selected === mode ? CHOSEN_SEGMENT : 'text-text-muted'} peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus peer-disabled:opacity-50`}
+                className={`row-span-3 grid grid-rows-subgrid ${SEGMENT} ${selected === mode ? CHOSEN_SEGMENT : UNCHOSEN_SEGMENT}`}
               >
                 <ModeDrawing mode={mode} />
                 <span
                   id={`${id}-${mode}-name`}
                   className={selected === mode ? 'font-semibold' : undefined}
                 >
-                  {en.settingsPage.entryFormModes[mode]}
+                  {t(`settingsPage.entryFormModes.${mode}`)}
                 </span>
                 <span id={`${id}-${mode}-description`} className={typeClasses['body-dense']}>
-                  {en.settingsPage.entryFormModeDescriptions[mode]}
+                  {t(`settingsPage.entryFormModeDescriptions.${mode}`)}
                 </span>
               </span>
             </label>
@@ -127,7 +110,7 @@ export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps
       </fieldset>
       {refused ? (
         <p role="alert" className={DANGER_TEXT}>
-          {en.settingsPage.notSaved}
+          {t('settingsPage.notSaved')}
         </p>
       ) : null}
     </div>

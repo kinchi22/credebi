@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import {
   RELATIVE_DIRECTIONS,
   currentPeriod,
@@ -22,15 +23,14 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react';
-import { en } from '../messages/en';
 import { BUTTON, ICON_CONTROL } from './control-classes';
 import { useModalDialog } from './modal-dialog';
 import { CloseButton } from './close-button';
 import { SheetBar, SheetTabs } from './sheet';
 
-type Category = keyof typeof en.datePresets.categories;
+const CATEGORIES = ['year', 'quarter', 'month', 'relative'] as const;
 
-const CATEGORIES: readonly Category[] = ['year', 'quarter', 'month', 'relative'];
+type Category = (typeof CATEGORIES)[number];
 
 export type DatePresetsProps = {
   readonly today: string | undefined;
@@ -117,16 +117,17 @@ function YearChoices({ today, layout, onChoose }: ChoicesProps): ReactNode {
 }
 
 function QuarterChoices({ today, layout, onChoose }: ChoicesProps): ReactNode {
+  const t = useTranslations('datePresets');
   const current = currentPeriod(today);
   return quarterPresets(today).map((row) => (
     <YearRow key={row.year} current={row.year === current.year} layout={layout}>
       <span className={layout.rowYear}>{row.year}</span>
       {row.presets.map((preset) => {
-        const quarter = `${en.datePresets.quarterPrefix}${String(preset.quarter)}`;
+        const quarter = t('quarter', { quarter: String(preset.quarter) });
         return (
           <Choice
             key={preset.quarter}
-            name={`${quarter} ${String(preset.year)}`}
+            name={t('periodOfYear', { period: quarter, year: String(preset.year) })}
             range={preset.range}
             current={preset.year === current.year && preset.quarter === current.quarter}
             onChoose={onChoose}
@@ -140,16 +141,17 @@ function QuarterChoices({ today, layout, onChoose }: ChoicesProps): ReactNode {
 }
 
 function MonthChoices({ today, layout, onChoose }: ChoicesProps): ReactNode {
+  const t = useTranslations('datePresets');
   const current = currentPeriod(today);
   return monthPresets(today).map((row) => (
     <YearRow key={row.year} current={row.year === current.year} layout={layout}>
       <span className={layout.rowYear}>{row.year}</span>
       {row.presets.map((preset) => {
-        const month = en.datePresets.months[preset.month - 1] ?? String(preset.month);
+        const month = t('month', { month: preset.month });
         return (
           <Choice
             key={preset.month}
-            name={`${month} ${String(preset.year)}`}
+            name={t('periodOfYear', { period: month, year: String(preset.year) })}
             range={preset.range}
             current={preset.year === current.year && preset.month === current.month}
             onChoose={onChoose}
@@ -162,13 +164,11 @@ function MonthChoices({ today, layout, onChoose }: ChoicesProps): ReactNode {
   ));
 }
 
-const relativeName = (preset: RelativePreset): string => {
-  const unit = preset.months === 1 ? en.datePresets.monthUnit.one : en.datePresets.monthUnit.many;
-  return `${en.datePresets.relative[preset.direction]}${String(preset.months)} ${unit}`;
-};
-
 function RelativeChoices({ today, onChoose }: ChoicesProps): ReactNode {
+  const t = useTranslations('datePresets');
   const presets = relativePresets(today);
+  const relativeName = (preset: RelativePreset): string =>
+    t(`relative.${preset.direction}`, { months: preset.months });
   return (
     <div className="flex gap-3">
       {RELATIVE_DIRECTIONS.map((direction) => (
@@ -235,6 +235,7 @@ type CategoryMenuProps = {
 };
 
 function CategoryMenu({ category, open, onOpen, onClose, children }: CategoryMenuProps): ReactNode {
+  const t = useTranslations('datePresets');
   const panelId = useId();
   const trigger = useRef<HTMLButtonElement>(null);
 
@@ -267,7 +268,7 @@ function CategoryMenu({ category, open, onOpen, onClose, children }: CategoryMen
         onClick={onOpen}
         className={`${BUTTON} inline-flex items-center gap-2 ${open ? 'bg-ground' : ''}`}
       >
-        {en.datePresets.categories[category]}
+        {t(`categories.${category}`)}
         <span aria-hidden="true" className="mb-0.5 size-1.5 rotate-45 border-r-2 border-b-2 border-current" />
       </button>
       {open ? <ChoicesPanel id={panelId}>{children}</ChoicesPanel> : null}
@@ -276,6 +277,7 @@ function CategoryMenu({ category, open, onOpen, onClose, children }: CategoryMen
 }
 
 export function DatePresets({ today, onChoose }: DatePresetsProps): ReactNode {
+  const t = useTranslations('datePresets');
   const [open, setOpen] = useState<Category>();
 
   const choose = (range: DayRange): void => {
@@ -286,7 +288,7 @@ export function DatePresets({ today, onChoose }: DatePresetsProps): ReactNode {
   return (
     <div
       role="group"
-      aria-label={en.datePresets.title}
+      aria-label={t('title')}
       className="hidden w-full items-center gap-2 border-t border-border pt-3 wide:flex"
     >
       {CATEGORIES.map((category) => {
@@ -334,6 +336,7 @@ function SheetPanel({ id, labelledBy, children }: SheetPanelProps): ReactNode {
 }
 
 export function DatePresetsSheet({ today, onChoose }: DatePresetsProps): ReactNode {
+  const t = useTranslations('datePresets');
   const id = useId();
   const [shown, setShown] = useState<Category>('relative');
   const sheet = useModalDialog();
@@ -351,7 +354,7 @@ export function DatePresetsSheet({ today, onChoose }: DatePresetsProps): ReactNo
     <>
       <button
         type="button"
-        aria-label={en.datePresets.choosePeriod}
+        aria-label={t('choosePeriod')}
         aria-expanded={sheet.open}
         aria-controls={id}
         disabled={today === undefined}
@@ -370,8 +373,8 @@ export function DatePresetsSheet({ today, onChoose }: DatePresetsProps): ReactNo
       >
         {sheet.open && today !== undefined ? (
           <div className="flex h-full flex-col">
-            <SheetBar titleId={titleId} title={en.datePresets.choosePeriod}>
-              <CloseButton label={en.datePresets.close} onClose={sheet.close} />
+            <SheetBar titleId={titleId} title={t('choosePeriod')}>
+              <CloseButton label={t('close')} onClose={sheet.close} />
             </SheetBar>
             <SheetTabs
               tabs={CATEGORIES}
@@ -379,7 +382,7 @@ export function DatePresetsSheet({ today, onChoose }: DatePresetsProps): ReactNo
               onShow={setShown}
               tabId={tabId}
               panelId={() => `${id}-panel`}
-              label={(category) => en.datePresets.categories[category]}
+              label={(category) => t(`categories.${category}`)}
             />
             <SheetPanel key={shown} id={`${id}-panel`} labelledBy={tabId(shown)}>
               <Choices today={today} layout={SHEET_LAYOUT} onChoose={choose} />

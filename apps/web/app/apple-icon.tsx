@@ -1,5 +1,6 @@
 import { type ImageResponse } from 'next/og';
 import { appIcon } from '../components/app-icon';
+import { getPrerenderedAppCopy } from '../server/i18n-request';
 
 const SIZE = 180;
 
@@ -7,6 +8,7 @@ export const size = { width: SIZE, height: SIZE };
 
 export const contentType = 'image/png';
 
-export default function AppleIcon(): ImageResponse {
-  return appIcon({ size: SIZE, maskable: false });
+export default async function AppleIcon(): Promise<ImageResponse> {
+  const t = await getPrerenderedAppCopy();
+  return appIcon({ size: SIZE, maskable: false }, t('name'));
 }

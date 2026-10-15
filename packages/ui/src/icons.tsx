@@ -197,6 +197,24 @@ export function MenuIcon(): ReactNode {
   );
 }
 
+export function GlobeIcon(): ReactNode {
+  return (
+    <StrokeIcon size={16}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18" />
+      <path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18z" />
+    </StrokeIcon>
+  );
+}
+
+export function CheckIcon(): ReactNode {
+  return (
+    <StrokeIcon size={16}>
+      <path d="M5 12.5l4.5 4.5L19 7.5" />
+    </StrokeIcon>
+  );
+}
+
 export function GoogleMark(): ReactNode {
   return (
     <svg width={18} height={18} viewBox="0 0 48 48" aria-hidden="true" className="shrink-0">

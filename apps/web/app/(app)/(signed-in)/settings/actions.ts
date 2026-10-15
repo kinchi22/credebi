@@ -5,6 +5,7 @@ import {
   accountIdSchema,
   accountTypeSchema,
   changeEntryFormModeInputSchema,
+  changeLanguageInputSchema,
   moveChartNodeInputSchema,
   parseAccountForm,
   parseAccountGroupForm,
@@ -13,11 +14,13 @@ import {
   type Result,
 } from '@repo/contracts';
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
 import { type ChartChange } from '../../../../components/account-dialog';
 import { type ChartDeletionOutcome } from '../../../../components/delete-account-dialog';
-import { type EntryFormModeChange } from '../../../../components/entry-form-mode-choice';
+import { type SettingChange } from '../../../../components/saved-choice';
 import { createContext } from '../../../../server/context';
 import { fromTrpcError } from '../../../../server/domain-error';
+import { LANGUAGE_COOKIE, LANGUAGE_COOKIE_OPTIONS } from '../../../../server/language-cookie';
 import {
   ENTRY_SEARCH_PATH,
   SETTINGS_PATH,
@@ -25,7 +28,7 @@ import {
 } from '../../../../server/return-path';
 import { createCaller } from '../../../../server/root-router';
 
-export async function changeEntryFormMode(entryFormMode: string): Promise<EntryFormModeChange> {
+export async function changeEntryFormMode(entryFormMode: string): Promise<SettingChange> {
   const input = changeEntryFormModeInputSchema.safeParse({ entryFormMode });
   if (!input.success) {
     return { outcome: 'rejected', code: 'INVALID_INPUT' };
@@ -38,6 +41,23 @@ export async function changeEntryFormMode(entryFormMode: string): Promise<EntryF
   }
 
   revalidatePath(SETTINGS_PATH);
+  return { outcome: 'saved' };
+}
+
+export async function changeLanguage(language: string): Promise<SettingChange> {
+  const input = changeLanguageInputSchema.safeParse({ language });
+  if (!input.success) {
+    return { outcome: 'rejected', code: 'INVALID_INPUT' };
+  }
+
+  try {
+    await createCaller(await createContext()).settings.changeLanguage(input.data);
+  } catch (thrown) {
+    return { outcome: 'rejected', code: fromTrpcError(thrown).code };
+  }
+
+  (await cookies()).set(LANGUAGE_COOKIE, input.data.language, LANGUAGE_COOKIE_OPTIONS);
+  revalidatePath('/', 'layout');
   return { outcome: 'saved' };
 }
 

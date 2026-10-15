@@ -3,6 +3,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { isErr, isOk, type DomainError, type Result, type UserId } from '@repo/contracts';
 import { createDatabase } from '@repo/db';
 import { type LogFields, type Logger } from '../../logging/ports/logger';
+import { DEFAULT_SETTINGS } from '../../settings/domain/settings';
 import { type Session, type SessionTokenHash, type StoredSession } from '../domain/session';
 import { type User } from '../domain/user';
 import { createPostgresSessionRepository } from './postgres-session-repository';
@@ -44,7 +45,7 @@ const SMOKE_USER_ID = '01920000-0000-7000-8000-00000000000a' as UserId;
 
 beforeEach(async () => {
   await database.execute(sql`truncate table users cascade`);
-  await users.add(ADA, { provider: 'google', subject: 'google-ada' }, []);
+  await users.add(ADA, { provider: 'google', subject: 'google-ada' }, [], DEFAULT_SETTINGS);
   await database.execute(
     sql`insert into users (id, email, created_at) values (${SMOKE_USER_ID}, 'smoke@test.invalid', now())`,
   );

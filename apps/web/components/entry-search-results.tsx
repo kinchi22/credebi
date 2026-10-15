@@ -1,7 +1,7 @@
+import { useTranslations } from 'next-intl';
 import { type PostedEntry } from '@repo/contracts';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useId, type ReactNode } from 'react';
-import { en } from '../messages/en';
 import { type EntrySearchAnswer } from '../server/entry-search';
 import { EntryList, type EntryControls } from './entry-list';
 import { DANGER_TEXT, MUTED_TEXT } from './text-classes';
@@ -12,6 +12,7 @@ type ResultsRegionProps = {
 };
 
 function ResultsRegion({ busy, children }: ResultsRegionProps): ReactNode {
+  const t = useTranslations();
   const titleId = useId();
 
   return (
@@ -20,7 +21,7 @@ function ResultsRegion({ busy, children }: ResultsRegionProps): ReactNode {
         id={titleId}
         className={`${typeClasses.label} text-text-muted`}
       >
-        {en.entrySearch.results}
+        {t('entrySearch.results')}
       </h2>
       {children}
     </section>
@@ -33,10 +34,11 @@ export type EntrySearchResultsProps = {
 };
 
 export function EntrySearchResults({ entries, controls }: EntrySearchResultsProps): ReactNode {
+  const t = useTranslations();
   return (
     <ResultsRegion busy={false}>
       {entries.length === 0 ? (
-        <p className={MUTED_TEXT}>{en.entrySearch.nothingMatched}</p>
+        <p className={MUTED_TEXT}>{t('entrySearch.nothingMatched')}</p>
       ) : (
         <EntryList entries={entries} controls={controls} />
       )}
@@ -45,10 +47,11 @@ export function EntrySearchResults({ entries, controls }: EntrySearchResultsProp
 }
 
 export function EntrySearchPending(): ReactNode {
+  const t = useTranslations();
   return (
     <ResultsRegion busy>
       <p role="status" className={MUTED_TEXT}>
-        {en.entrySearch.searching}
+        {t('entrySearch.searching')}
       </p>
     </ResultsRegion>
   );
@@ -60,9 +63,10 @@ export type EntrySearchOutcomeProps = {
 };
 
 export function EntrySearchOutcome({ answer, controls }: EntrySearchOutcomeProps): ReactNode {
+  const t = useTranslations();
   return answer.outcome === 'refused' ? (
     <p role="alert" className={DANGER_TEXT}>
-      {en.entrySearch.refused}
+      {t('entrySearch.refused')}
     </p>
   ) : (
     <EntrySearchResults entries={answer.entries} controls={controls} />

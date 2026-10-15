@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import {
   type ChartOutput,
   type EntryFormMode,
@@ -8,7 +9,6 @@ import {
 import { Panel, PANEL_BLEED } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { type ReactNode } from 'react';
-import { en } from '../messages/en';
 import { formatAmount } from './amount';
 import { DeleteEntry, type DeleteEntryAction } from './delete-entry';
 import { EditEntry, type EditEntryAction } from './edit-entry';
@@ -69,6 +69,7 @@ const STACKED: Layout = {
 const SIDE_HEADING = `${typeClasses.label} leading-5`;
 
 function SideHeadings({ layout, named }: { readonly layout: Layout; readonly named: boolean }): ReactNode {
+  const t = useTranslations();
   return (
     <div role={named ? 'row' : undefined} aria-hidden={named ? undefined : true} className="contents">
       {SIDES.map((side) => (
@@ -77,7 +78,7 @@ function SideHeadings({ layout, named }: { readonly layout: Layout; readonly nam
           role={named ? 'columnheader' : undefined}
           className={`${layout.heading[side]} ${SIDE_HEADING} ${SIDE_TONE[side].edge} ${SIDE_TONE[side].text}`}
         >
-          {en.sides[side]}
+          {t(`sides.${side}`)}
         </span>
       ))}
     </div>
@@ -118,6 +119,7 @@ function ListedEntry({
   readonly headsColumns: boolean;
   readonly controls: EntryControls;
 }): ReactNode {
+  const t = useTranslations();
   const layout = hasOneLinePerSide(entry) ? COMPACT : STACKED;
   return (
     <div
@@ -140,7 +142,7 @@ function ListedEntry({
               <span className="min-w-0 wrap-anywhere text-text-muted">{entry.memo}</span>
             </span>{' '}
             <span className="shrink-0">
-              <span className="sr-only">{en.entryList.total} </span>
+              <span className="sr-only">{t('entryList.total')} </span>
               <span data-testid="entry-total" className={`${typeClasses.figure} font-medium`}>
                 {formatAmount(entry.total)}
               </span>
@@ -167,12 +169,13 @@ function ListedEntry({
 }
 
 export function EntryList({ entries, controls }: EntryListProps): ReactNode {
+  const t = useTranslations();
   return (
-    <Panel title={en.entryList.title} titleHidden>
+    <Panel title={t('entryList.title')} titleHidden>
       {entries.length === 0 ? (
-        <p className={MUTED_TEXT}>{en.entryList.empty}</p>
+        <p className={MUTED_TEXT}>{t('entryList.empty')}</p>
       ) : (
-        <div role="table" aria-label={en.entryList.title}>
+        <div role="table" aria-label={t('entryList.title')}>
           {entries.map((entry, index) => (
             <ListedEntry
               key={entry.id}

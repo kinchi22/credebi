@@ -64,6 +64,13 @@
       "when": 1791942763246,
       "tag": "0008_accounts_removed_at",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791968028124,
+      "tag": "0009_user_settings_language",
+      "breakpoints": true
     }
   ]
 }

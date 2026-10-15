@@ -1,8 +1,8 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useId, type ReactNode } from 'react';
-import { en } from '../messages/en';
 import {
   BUTTON,
   CONFIRMATION_DIALOG,
@@ -18,6 +18,7 @@ export type DiscardChangesProps = {
 };
 
 export function DiscardChanges({ dialog, body, onDiscard }: DiscardChangesProps): ReactNode {
+  const t = useTranslations();
   const titleId = useId();
 
   return (
@@ -37,17 +38,17 @@ export function DiscardChanges({ dialog, body, onDiscard }: DiscardChangesProps)
       {dialog.open ? (
         <div className={CONFIRMATION_PANEL}>
           <h2 id={titleId} className={typeClasses.h2}>
-            {en.discardChanges.title}
+            {t('discardChanges.title')}
           </h2>
           <p className={`border-y border-border py-2 ${typeClasses['body-sm']}`}>
             {body}
           </p>
           <div className="flex justify-end gap-3">
             <button type="button" autoFocus onClick={dialog.close} className={BUTTON}>
-              {en.discardChanges.keep}
+              {t('discardChanges.keep')}
             </button>
             <button type="button" onClick={onDiscard} className={DANGER_BUTTON}>
-              {en.discardChanges.confirm}
+              {t('discardChanges.confirm')}
             </button>
           </div>
         </div>

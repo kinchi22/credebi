@@ -182,22 +182,49 @@ type Box = { readonly x: number; readonly y: number; readonly width: number; rea
 
 const centre = (box: Box): Point => ({ x: box.x + box.width / 2, y: box.y + box.height / 2 });
 
-const bottom = (box: Box): number => box.y + box.height;
+export const bottom = (box: Box): number => box.y + box.height;
 
-async function boxOf(locator: Locator, what: string): Promise<Box> {
+export async function boxOf(locator: Locator, what: string): Promise<Box> {
   const box = await locator.boundingBox();
   if (box === null) throw new Error(`${what} is not on screen`);
   return box;
 }
 
+const DND_KIT_DEFAULT_AUTO_SCROLL_EDGE_SHARE = 0.2;
+
+function viewportHeight(page: Page): number {
+  const viewport = page.viewportSize();
+  if (viewport === null) throw new Error('the page has no viewport to scroll');
+  return viewport.height;
+}
+
+async function centreInViewport(page: Page, from: Point, to: Point): Promise<void> {
+  const by = (from.y + to.y) / 2 - viewportHeight(page) / 2;
+  await page.evaluate(`window.scrollBy(0, ${String(by)})`);
+}
+
+function expectClearOfAutoScroll(page: Page, from: Point, to: Point): void {
+  const distance = Math.abs(to.y - from.y);
+  const limit = viewportHeight(page) * (1 - 2 * DND_KIT_DEFAULT_AUTO_SCROLL_EDGE_SHARE);
+  if (distance >= limit) {
+    throw new Error(
+      `the drag spans ${String(Math.round(distance))}px, and only a drag under ${String(Math.round(limit))}px keeps both ends out of dnd-kit's auto-scroll band at the viewport's edges`,
+    );
+  }
+}
+
 export async function dragTo(page: Page, from: Locator, target: Point): Promise<void> {
+  const measured = centre(await boxOf(from, 'the grip being dragged'));
+  await centreInViewport(page, measured, target);
   await from.hover();
   const start = centre(await boxOf(from, 'the grip being dragged'));
+  const end = { x: target.x + start.x - measured.x, y: target.y + start.y - measured.y };
+  expectClearOfAutoScroll(page, start, end);
   await page.mouse.move(start.x, start.y);
   await page.mouse.down();
-  const direction = target.y > start.y ? 1 : -1;
+  const direction = end.y > start.y ? 1 : -1;
   await page.mouse.move(start.x, start.y + direction * 8, { steps: 4 });
-  await page.mouse.move(target.x, target.y, { steps: 24 });
+  await page.mouse.move(end.x, end.y, { steps: 24 });
   await page.mouse.up();
 }
 

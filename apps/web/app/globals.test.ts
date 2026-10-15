@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { themeDeclarations } from '@repo/ui/tokens';
+import { fontDeclarations, themeDeclarations } from '@repo/ui/tokens';
 import { describe, expect, it } from 'vitest';
 
 const stylesheet = readFileSync(new URL('./globals.css', import.meta.url), 'utf8');
@@ -60,6 +60,18 @@ describe('the global stylesheet', () => {
       'input:is([type="radio"], [type="checkbox"]):enabled',
       'label:has(input:is([type="radio"], [type="checkbox"]):enabled)',
     ]);
+  });
+
+  it('puts the Japanese system faces first on a page in Japanese, as the tokens module orders them', () => {
+    const block = /:root:lang\(ja\)\s*\{([^}]*)\}/u.exec(stylesheet)?.[1] ?? '';
+    const declarations = Object.fromEntries(
+      block
+        .split('\n')
+        .map((line) => DECLARATION.exec(line))
+        .filter((match) => match !== null)
+        .map((match): [string, string] => [match[1] ?? '', match[2] ?? '']),
+    );
+    expect(declarations).toEqual(fontDeclarations('ja'));
   });
 
   it('imports Tailwind', () => {

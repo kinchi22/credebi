@@ -1,10 +1,11 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { HelpIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { en } from '../messages/en';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { BARE_ICON_BUTTON } from './control-classes';
+import { useDismissOutside } from './dismiss-outside';
 import {
   helpTipAfter,
   helpTipMaxWidth,
@@ -22,6 +23,7 @@ type HelpTipProps = {
 };
 
 export function HelpTip({ message, children }: HelpTipProps): ReactNode {
+  const t = useTranslations();
   const [state, setState] = useState<HelpTipState>('closed');
   const root = useRef<HTMLSpanElement>(null);
   const button = useRef<HTMLButtonElement>(null);
@@ -52,15 +54,15 @@ export function HelpTip({ message, children }: HelpTipProps): ReactNode {
     setState((current) => helpTipAfter(current, event));
   };
 
+  const close = useCallback((): void => {
+    setState('closed');
+  }, []);
+  useDismissOutside(open, root, close);
+
   useEffect(() => {
     if (!open) {
       return undefined;
     }
-    const dismissOutside = (event: PointerEvent): void => {
-      if (event.target instanceof Node && root.current?.contains(event.target) !== true) {
-        setState('closed');
-      }
-    };
     const dismissOnEscape = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape') {
         return;
@@ -73,10 +75,8 @@ export function HelpTip({ message, children }: HelpTipProps): ReactNode {
         button.current?.focus();
       }
     };
-    document.addEventListener('pointerdown', dismissOutside, true);
     window.addEventListener('keydown', dismissOnEscape, true);
     return () => {
-      document.removeEventListener('pointerdown', dismissOutside, true);
       window.removeEventListener('keydown', dismissOnEscape, true);
     };
   }, [open]);
@@ -95,7 +95,7 @@ export function HelpTip({ message, children }: HelpTipProps): ReactNode {
       <button
         ref={button}
         type="button"
-        aria-label={`${en.helpTip.about} ${message}`}
+        aria-label={t('helpTip.about', { subject: message })}
         aria-expanded={open}
         onClick={() => {
           apply('toggle');

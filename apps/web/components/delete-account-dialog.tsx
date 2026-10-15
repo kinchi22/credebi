@@ -1,9 +1,9 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { type AccountType, type DomainErrorCode } from '@repo/contracts';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useId, useState, useTransition, type ReactNode, type TransitionStartFunction } from 'react';
-import { en } from '../messages/en';
 import { BUTTON, CONFIRMATION_PANEL, DANGER_BUTTON } from './control-classes';
 import { type ModalDialog } from './modal-dialog';
 import { PendingDialog } from './pending-dialog';
@@ -37,12 +37,12 @@ const UNDELETED: ChartDeletionOutcome = { outcome: 'rejected', code: 'DEPENDENCY
 
 const KINDS = {
   account: {
-    title: en.deleteAccountDialog.title,
-    refusals: en.deleteAccountDialog.refusals,
+    title: 'deleteAccountDialog.title',
+    refusals: 'deleteAccountDialog.refusals',
   },
   group: {
-    title: en.deleteAccountDialog.groupTitle,
-    refusals: en.deleteAccountDialog.groupRefusals,
+    title: 'deleteAccountDialog.groupTitle',
+    refusals: 'deleteAccountDialog.groupRefusals',
   },
 } as const;
 
@@ -61,6 +61,7 @@ function DeletePanel({
   readonly pending: boolean;
   readonly startTransition: TransitionStartFunction;
 }): ReactNode {
+  const t = useTranslations();
   const [refusal, setRefusal] = useState<DomainErrorCode>();
   const kind = KINDS[target.kind];
   const remove = target.kind === 'account' ? actions.deleteAccount : actions.deleteAccountGroup;
@@ -83,24 +84,24 @@ function DeletePanel({
     <div className={CONFIRMATION_PANEL}>
       <div className="flex flex-col gap-1">
         <h2 id={titleId} className={typeClasses.h2}>
-          {kind.title}
+          {t(kind.title)}
         </h2>
-        <p className={MUTED_TEXT}>{en.accountTypes[target.accountType]}</p>
+        <p className={MUTED_TEXT}>{t(`accountTypes.${target.accountType}`)}</p>
       </div>
       <p className={`border-y border-border py-2 font-semibold wrap-anywhere ${typeClasses['body-sm']}`}>
         {target.name}
       </p>
       {refusal === undefined ? null : (
         <p role="alert" className={DANGER_TEXT}>
-          {kind.refusals[refusal]}
+          {t(`${kind.refusals}.${refusal}`)}
         </p>
       )}
       <div className="flex justify-end gap-3">
         <button type="button" autoFocus onClick={onDone} disabled={pending} className={BUTTON}>
-          {en.deleteAccountDialog.cancel}
+          {t('deleteAccountDialog.cancel')}
         </button>
         <button type="button" onClick={confirm} disabled={pending} className={DANGER_BUTTON}>
-          {pending ? en.deleteAccountDialog.pending : en.deleteAccountDialog.confirm}
+          {pending ? t('deleteAccountDialog.pending') : t('deleteAccountDialog.confirm')}
         </button>
       </div>
     </div>

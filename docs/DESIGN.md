@@ -368,6 +368,14 @@ Plex Mono 400 and 500 as Latin woff2 files through `next/font/local`, and the
 share image reads IBM Plex Sans Regular as TTF, as "Metadata files" in
 `docs/ARCHITECTURE.md` states.
 
+IBM Plex sets Latin text alone. Hangul and kana fall back to system faces named
+after IBM Plex in both stacks, `font-sans` and `font-mono`: Apple SD Gothic Neo
+and Malgun Gothic for Korean, Hiragino Sans and Yu Gothic for Japanese. No font
+file is added for them. Korean's faces come first, and on a page whose Language
+is Japanese the stylesheet puts Japanese's first, so a character both scripts
+share, such as a kanji, takes the Japanese form. `fontDeclarations` in the
+tokens module holds both orders.
+
 Text a User typed, such as a Title, a memo, an Account name, an Account group
 name or a description, wraps: it breaks inside a word only when the word cannot
 fit on a line of its own, as `wrap-anywhere` does, and it never overflows its
@@ -488,6 +496,19 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   element set in the `h2` step, centred), the failure line when sign-in failed,
   centred, the Google sign-in button, and, where test sign-in is offered, the
   `Test sign-in` form below a dashed `border` rule with 20px above it.
+- **Language switch.** On `/sign-in` alone, centred 16px below the Sign in
+  card. It is a bare button 36px tall in `body-sm` and `text-muted`, `text` under the
+  pointer: a 16px globe icon, never a flag, 6px before `Language` in the
+  page's Language, which is its accessible name. It opens a menu above it: a
+  `surface` fill, a `border` edge and the `control` radius, at least 160px wide,
+  with no shadow. The menu lists each Language in itself -- English, 한국어,
+  日本語 -- in that order whatever the page's Language, each a row 36px tall in
+  `body-sm`, tinted `surface-hover` under the pointer or focus. The current one
+  is semibold, with a 16px check in `accent-text` before it; the others keep
+  the check's space empty, so the names line up. Opening the menu focuses the
+  current Language; the arrow keys, Home and End move between them, Enter or a
+  click chooses one, and Escape or a click outside closes it. Choosing writes
+  the browser's Language and renders the page again in it.
 - **Quiet button on dark.** No fill and no border: `text-muted-on-dark` text,
   and under the pointer `text-on-dark` on a `ground-dark-hover` fill, with the
   `control` radius and the `focus-on-dark` ring. It is Sign out in the Sidebar:
@@ -512,9 +533,14 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   4px bars with round ends, 72px wide at most: Two-line is two equal bars, one `debit`
   over one `credit`; Multi-line is four of varying length, two `debit` then two
   `credit`.
-  Choosing a mode saves it silently, as the Accounts section saves: no
-  confirmation shows. A refused save puts the earlier mode back and shows the
-  refusal in `danger` below the strip.
+  It is also the Language in Settings, in the row below the Entry form mode:
+  three equal segments, each the Language's name in itself -- English, 한국어,
+  日本語 -- centred, in that order whatever the page's Language, with no
+  drawing and no description. Choosing a Language renders the page in it at
+  once.
+  Choosing a mode or a Language saves it silently, as the Accounts section
+  saves: no confirmation shows. A refused save puts the earlier choice back and
+  shows the refusal in `danger` below the strip.
 - **Settings row.** Settings' rows sit on the page ground, not in a panel:
   each setting is a row between
   `border` hairlines, padded 20px above and below, its name on the left and its

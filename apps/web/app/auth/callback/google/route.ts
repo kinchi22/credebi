@@ -2,6 +2,8 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createContext } from '../../../../server/context';
 import { fromTrpcError } from '../../../../server/domain-error';
+import { requestLanguage } from '../../../../server/i18n-request';
+import { LANGUAGE_COOKIE, LANGUAGE_COOKIE_OPTIONS } from '../../../../server/language-cookie';
 import { SIGNED_IN_HOME, returnPath } from '../../../../server/return-path';
 import { createCaller } from '../../../../server/root-router';
 import {
@@ -22,8 +24,10 @@ export async function GET(request: Request): Promise<never> {
     const session = await caller.auth.finishGoogleSignIn({
       callbackUrl: request.url,
       pending: kept?.pending,
+      language: await requestLanguage(),
     });
     cookieStore.set(SESSION_COOKIE, session.token, SESSION_COOKIE_OPTIONS);
+    cookieStore.set(LANGUAGE_COOKIE, session.language, LANGUAGE_COOKIE_OPTIONS);
   } catch (thrown) {
     fromTrpcError(thrown);
     redirect('/sign-in?error=google');

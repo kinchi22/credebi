@@ -1,6 +1,9 @@
 export { DEFAULT_SETTINGS } from './domain/settings';
 export type { Settings } from './domain/settings';
 
+export { resolveLanguage } from './domain/language';
+export type { LanguageSources } from './domain/language';
+
 export { createGetSettings } from './application/get-settings';
 export type { GetSettings, GetSettingsDependencies } from './application/get-settings';
 
@@ -9,5 +12,8 @@ export type {
   ChangeEntryFormMode,
   ChangeEntryFormModeDependencies,
 } from './application/change-entry-form-mode';
+
+export { createChangeLanguage } from './application/change-language';
+export type { ChangeLanguage, ChangeLanguageDependencies } from './application/change-language';
 
 export type { SettingsRepository } from './ports/settings-repository';

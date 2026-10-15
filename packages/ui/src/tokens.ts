@@ -137,6 +137,13 @@ export const fontFaces = {
   mono: 'IBM Plex Mono',
 } as const satisfies Record<string, FontFamily>;
 
+export type ScriptLanguage = 'ko' | 'ja';
+
+const scriptFaces: Readonly<Record<ScriptLanguage, readonly string[]>> = {
+  ko: ['Apple SD Gothic Neo', 'Malgun Gothic'],
+  ja: ['Hiragino Sans', 'Yu Gothic'],
+};
+
 export type TypeStepName =
   | 'display'
   | 'h1'
@@ -308,6 +315,23 @@ function shadowValue({ tint, layers }: Shadow): string {
 const fontVariable = (family: FontFamily): string =>
   `--font-${family.toLowerCase().replaceAll(' ', '-')}`;
 
+const SCRIPT_ORDER: Readonly<Record<ScriptLanguage, readonly ScriptLanguage[]>> = {
+  ko: ['ko', 'ja'],
+  ja: ['ja', 'ko'],
+};
+
+export function fontDeclarations(first: ScriptLanguage): Readonly<Record<string, string>> {
+  const fallbacks = SCRIPT_ORDER[first].flatMap((language) =>
+    scriptFaces[language].map((family) => `"${family}"`),
+  );
+  return Object.fromEntries(
+    Object.entries(fontFaces).map(([role, family]): [string, string] => [
+      `--font-${role}`,
+      [`var(${fontVariable(family)})`, ...fallbacks].join(', '),
+    ]),
+  );
+}
+
 function typeDeclarations(name: string, step: TypeStep): Record<string, string> {
   const declarations: Record<string, string> = {
     [`--text-${name}`]: `${String(step.fontSize)}px`,
@@ -324,10 +348,7 @@ export function themeDeclarations(): Readonly<Record<string, string>> {
   const colors = Object.entries(semanticColors).map(
     ([role, color]): [string, string] => [`--color-${role}`, palette[color]],
   );
-  const faces = Object.entries(fontFaces).map(([role, family]): [string, string] => [
-    `--font-${role}`,
-    `var(${fontVariable(family)})`,
-  ]);
+  const faces = Object.entries(fontDeclarations('ko'));
   const type = Object.entries(typeScale).flatMap(([name, step]) =>
     Object.entries(typeDeclarations(name, step)),
   );
