@@ -51,13 +51,13 @@ function deleteRefusals(node: keyof typeof NODE, inUse: string) {
   } as const;
 }
 
-const entryNotDeleted = '이 분개를 삭제할 수 없습니다. 페이지를 새로 고친 뒤 다시 시도하세요.';
+const entryNotDeleted = '이 거래를 삭제할 수 없습니다. 페이지를 새로 고친 뒤 다시 시도하세요.';
 const entryChangedElsewhere =
-  '이 분개는 다른 곳(다른 탭일 수 있습니다)에서 변경되었습니다. 페이지를 새로 고치세요.';
-const entryGone = '이 분개는 더 이상 없습니다. 페이지를 새로 고치세요.';
+  '이 거래는 다른 곳(다른 탭일 수 있습니다)에서 변경되었습니다. 페이지를 새로 고치세요.';
+const entryGone = '이 거래는 더 이상 없습니다. 페이지를 새로 고치세요.';
 const unbalanced = '차변과 대변의 합계가 같아야 합니다. 각 변의 금액을 확인하세요.';
 const entryNotSavedCheck =
-  '분개를 저장하지 않았습니다. 날짜, 제목, 메모, 계정, 금액을 확인하세요.';
+  '거래를 저장하지 않았습니다. 날짜, 제목, 메모, 계정, 금액을 확인하세요.';
 
 export const ko = {
   app: {
@@ -87,7 +87,7 @@ export const ko = {
     pending: '확인 중...',
   },
   home: {
-    entriesLink: '분개',
+    entriesLink: '거래 입력',
   },
   signInPage: {
     title: '로그인',
@@ -103,26 +103,26 @@ export const ko = {
   sidebar: {
     ariaLabel: '사이드바',
     menu: '메뉴',
-    entries: '분개',
-    entrySearch: '분개 검색',
+    entries: '거래 입력',
+    entrySearch: '거래 검색',
     settings: '설정',
     signOut: '로그아웃',
   },
   entriesPage: {
-    title: '분개',
+    title: '거래 입력',
   },
   settingsPage: {
     title: '설정',
-    entryFormMode: '분개 입력 방식',
+    entryFormMode: '거래 입력 방식',
     entryFormModes: {
       'two-line': '2행 방식',
       'multi-line': '다행 방식',
     },
     entryFormModeDescriptions: {
       'two-line': '차변 계정 하나, 대변 계정 하나, 금액 하나.',
-      'multi-line': '분개 행 두 개 이상, 행마다 차변 또는 대변.',
+      'multi-line': '거래 행 두 개 이상, 행마다 차변 또는 대변.',
     },
-    notSaved: '선택을 저장하지 않아 분개 입력 방식은 그대로입니다. 다시 시도하세요.',
+    notSaved: '선택을 저장하지 않아 거래 입력 방식은 그대로입니다. 다시 시도하세요.',
     languageNotSaved: '선택을 저장하지 않아 언어는 그대로입니다. 다시 시도하세요.',
   },
   accountsSection: {
@@ -183,7 +183,7 @@ export const ko = {
       'account',
       accountNotSaved,
       '계정을 저장하지 않았습니다. 같은 이름의 계정이 이미 있으니 다른 이름을 정하세요.',
-      '계정을 저장하지 않았습니다. 이 사용 기간 밖의 날짜에 이 계정을 쓴 분개가 있습니다. 그 날짜가 사용 시작일과 사용 종료일 사이에 들도록 하세요.',
+      '계정을 저장하지 않았습니다. 이 사용 기간 밖의 날짜에 이 계정을 쓴 거래가 있습니다. 그 날짜가 사용 시작일과 사용 종료일 사이에 들도록 하세요.',
     ),
     groupRefusals: chartRefusals(
       'group',
@@ -199,7 +199,7 @@ export const ko = {
     cancel: '취소',
     refusals: deleteRefusals(
       'account',
-      '표시된 분개가 이 계정을 쓰고 있어 삭제하지 않았습니다. 더 쓰지 않으려면 대신 사용 종료일을 정하세요.',
+      '표시된 거래가 이 계정을 쓰고 있어 삭제하지 않았습니다. 더 쓰지 않으려면 대신 사용 종료일을 정하세요.',
     ),
     groupRefusals: deleteRefusals(
       'group',
@@ -207,10 +207,10 @@ export const ko = {
     ),
   },
   entrySearchPage: {
-    heading: '분개 검색',
+    heading: '거래 검색',
   },
   entrySearch: {
-    title: '분개 검색',
+    title: '거래 검색',
     from: '시작',
     to: '끝',
     account: '계정',
@@ -221,7 +221,7 @@ export const ko = {
     results: '결과',
     searching: '지난 한 달을 검색하는 중...',
     unavailable: '지금은 검색할 수 없습니다. 검색을 눌러 다시 시도하세요.',
-    nothingMatched: '조건에 맞는 분개가 없습니다.',
+    nothingMatched: '조건에 맞는 거래가 없습니다.',
     refused:
       '검색하지 않았습니다. 날짜 범위(각 날짜는 달력의 하루이며, 시작은 끝보다 늦을 수 없습니다), 계정이 목록에 있는 것인지, 제목과 메모가 허용된 길이를 넘지 않는지 확인하세요.',
   },
@@ -245,30 +245,30 @@ export const ko = {
     },
   },
   entryForm: {
-    title: '새 분개',
+    title: '새 거래',
     date: '날짜',
     entryTitle: '제목',
     memo: '메모',
-    chooseAccount: '계정 선택',
-    submit: '분개 추가',
+    chooseAccount: '계정을 선택해주세요',
+    submit: '거래 추가',
     pending: '추가 중...',
     unbalanced,
-    unavailable: '지금은 분개를 저장할 수 없습니다. 다시 시도하세요.',
-    signedOut: '로그아웃되었습니다. 분개를 추가하려면 다시 로그인하세요.',
-    titleTooLong: '분개를 추가하지 않았습니다. 제목은 40자 이내여야 합니다.',
-    memoTooLong: '분개를 추가하지 않았습니다. 메모는 200자 이내여야 합니다.',
+    unavailable: '지금은 거래를 저장할 수 없습니다. 다시 시도하세요.',
+    signedOut: '로그아웃되었습니다. 거래를 추가하려면 다시 로그인하세요.',
+    titleTooLong: '거래를 추가하지 않았습니다. 제목은 40자 이내여야 합니다.',
+    memoTooLong: '거래를 추가하지 않았습니다. 메모는 200자 이내여야 합니다.',
   },
   twoLineForm: {
     debitAccount: '차변 계정',
     creditAccount: '대변 계정',
     amount: '금액',
-    invalid: '분개를 추가하지 않았습니다. 날짜, 제목, 메모, 두 계정, 금액을 확인하세요.',
+    invalid: '거래를 추가하지 않았습니다. 날짜, 제목, 메모, 두 계정, 금액을 확인하세요.',
   },
   multiLineForm: {
     debitAccounts: '차변 계정',
     creditAccounts: '대변 계정',
     amount: '금액',
-    invalid: '분개를 추가하지 않았습니다. 날짜, 제목, 메모, 각 행을 확인하세요.',
+    invalid: '거래를 추가하지 않았습니다. 날짜, 제목, 메모, 각 행을 확인하세요.',
     remove: '삭제',
     debitTotal: '차변 합계',
     creditTotal: '대변 합계',
@@ -279,17 +279,17 @@ export const ko = {
     mark: '이 날짜에 사용하지 않는 계정',
     multiLine: {
       notAdded:
-        '분개를 추가하지 않았습니다. {side} {account}은(는) 이 날짜에 사용하지 않는 계정입니다. 그 행을 지우거나, 그 계정을 사용하는 날짜를 고르세요.',
+        '거래를 추가하지 않았습니다. {side} {account}은(는) 이 날짜에 사용하지 않는 계정입니다. 그 행을 지우거나, 그 계정을 사용하는 날짜를 고르세요.',
       notSaved:
-        '분개를 저장하지 않았습니다. {side} {account}은(는) 이 날짜에 사용하지 않는 계정입니다. 그 행을 지우거나, 그 계정을 사용하는 날짜를 고르세요.',
+        '거래를 저장하지 않았습니다. {side} {account}은(는) 이 날짜에 사용하지 않는 계정입니다. 그 행을 지우거나, 그 계정을 사용하는 날짜를 고르세요.',
       explanation:
         '{account}은(는) 사용 기간 안에서만 쓸 수 있습니다. 날짜를 바꾸거나, 행을 지우거나, <settings>설정</settings>에서 기간을 바꾸세요.',
     },
     twoLine: {
       notAdded:
-        '분개를 추가하지 않았습니다. {account}은(는) 이 날짜에 사용하지 않는 계정입니다. 다른 계정을 고르거나, 그 계정을 사용하는 날짜를 고르세요.',
+        '거래를 추가하지 않았습니다. {account}은(는) 이 날짜에 사용하지 않는 계정입니다. 다른 계정을 고르거나, 그 계정을 사용하는 날짜를 고르세요.',
       notSaved:
-        '분개를 저장하지 않았습니다. {account}은(는) 이 날짜에 사용하지 않는 계정입니다. 다른 계정을 고르거나, 그 계정을 사용하는 날짜를 고르세요.',
+        '거래를 저장하지 않았습니다. {account}은(는) 이 날짜에 사용하지 않는 계정입니다. 다른 계정을 고르거나, 그 계정을 사용하는 날짜를 고르세요.',
       explanation:
         '{account}은(는) 사용 기간 안에서만 쓸 수 있습니다. 날짜를 바꾸거나, 다른 계정을 고르거나, <settings>설정</settings>에서 기간을 바꾸세요.',
     },
@@ -297,7 +297,7 @@ export const ko = {
   needsMultiLineMode: {
     mark: '다행 방식 필요',
     explanation:
-      '제목이 {title}인 최근 분개는 한 변에 행이 둘 이상이라 아무것도 채우지 않았습니다. 차변 계정과 대변 계정을 골라 직접 작성하거나, <settings>설정</settings>에서 분개 입력 방식을 바꿔 모든 행을 채우세요.',
+      '제목이 {title}인 최근 거래는 한 변에 행이 둘 이상이라 아무것도 채우지 않았습니다. 차변 계정과 대변 계정을 골라 직접 작성하거나, <settings>설정</settings>에서 거래 입력 방식을 바꿔 모든 행을 채우세요.',
   },
   helpTip: {
     about: '{subject} 설명',
@@ -306,7 +306,7 @@ export const ko = {
     title: '계정 선택',
     done: '완료',
     close: '닫기',
-    find: '계정 찾기',
+    find: '계정 검색',
     noMatch: '"{query}"에 맞는 계정이 없습니다.',
     suggested: '추천',
     noActiveAccount: '이 날짜에 사용하는 계정이 없습니다.',
@@ -321,33 +321,33 @@ export const ko = {
     },
   },
   entryList: {
-    title: '분개',
-    empty: '아직 분개가 없습니다.',
+    title: '거래 입력',
+    empty: '아직 거래가 없습니다.',
     total: '합계',
   },
   editEntry: {
-    open: '편집',
-    title: '분개 편집',
+    open: '수정',
+    title: '거래 수정',
     close: '닫기',
     save: '저장',
     pending: '저장 중...',
     refusals: {
       INVALID_INPUT:
-        '분개를 저장하지 않았습니다. 날짜, 제목, 메모, 계정(각각 분개 날짜에 사용하는 계정이어야 합니다), 금액을 확인하세요.',
+        '거래를 저장하지 않았습니다. 날짜, 제목, 메모, 계정(각각 거래 날짜에 사용하는 계정이어야 합니다), 금액을 확인하세요.',
       UNBALANCED: unbalanced,
       NOT_FOUND: entryGone,
       CONFLICT: entryChangedElsewhere,
-      DEPENDENCY_UNAVAILABLE: '지금은 분개를 저장할 수 없습니다. 다시 시도하세요.',
-      UNAUTHENTICATED: '로그아웃되었습니다. 분개를 편집하려면 다시 로그인하세요.',
+      DEPENDENCY_UNAVAILABLE: '지금은 거래를 저장할 수 없습니다. 다시 시도하세요.',
+      UNAUTHENTICATED: '로그아웃되었습니다. 거래를 수정하려면 다시 로그인하세요.',
       NAME_TAKEN: entryNotSavedCheck,
       IN_USE: entryNotSavedCheck,
-      TITLE_TOO_LONG: '분개를 저장하지 않았습니다. 제목은 40자 이내여야 합니다.',
-      MEMO_TOO_LONG: '분개를 저장하지 않았습니다. 메모는 200자 이내여야 합니다.',
+      TITLE_TOO_LONG: '거래를 저장하지 않았습니다. 제목은 40자 이내여야 합니다.',
+      MEMO_TOO_LONG: '거래를 저장하지 않았습니다. 메모는 200자 이내여야 합니다.',
     },
   },
   discardChanges: {
     title: '변경 내용 버리기',
-    entry: '이 분개의 변경 내용을 저장하지 않았으며, 버리면 사라집니다.',
+    entry: '이 거래의 변경 내용을 저장하지 않았으며, 버리면 사라집니다.',
     account: '이 계정의 변경 내용을 저장하지 않았으며, 버리면 사라집니다.',
     group: '이 그룹의 변경 내용을 저장하지 않았으며, 버리면 사라집니다.',
     keep: '계속 편집',
@@ -355,7 +355,7 @@ export const ko = {
   },
   deleteEntry: {
     open: '삭제',
-    title: '분개 삭제',
+    title: '거래 삭제',
     confirm: '삭제',
     pending: '삭제 중...',
     cancel: '취소',
@@ -363,9 +363,9 @@ export const ko = {
       INVALID_INPUT: entryNotDeleted,
       NOT_FOUND: entryGone,
       CONFLICT: entryChangedElsewhere,
-      DEPENDENCY_UNAVAILABLE: '지금은 분개를 삭제할 수 없습니다. 다시 시도하세요.',
+      DEPENDENCY_UNAVAILABLE: '지금은 거래를 삭제할 수 없습니다. 다시 시도하세요.',
       UNBALANCED: entryNotDeleted,
-      UNAUTHENTICATED: '로그아웃되었습니다. 분개를 삭제하려면 다시 로그인하세요.',
+      UNAUTHENTICATED: '로그아웃되었습니다. 거래를 삭제하려면 다시 로그인하세요.',
       NAME_TAKEN: entryNotDeleted,
       IN_USE: entryNotDeleted,
       TITLE_TOO_LONG: entryNotDeleted,
@@ -382,7 +382,7 @@ export const ko = {
   accountTypes: {
     asset: '자산',
     liability: '부채',
-    equity: '자본',
+    equity: '순자산',
     revenue: '수익',
     expense: '비용',
   },
