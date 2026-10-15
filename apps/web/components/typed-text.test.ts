@@ -148,7 +148,7 @@ describe('matchesTyped in Korean', () => {
     expect(matchesTyped(GAPS, GAP)).toBe(true);
   });
 
-  it('matches across a syllable boundary, as accepted', () => {
+  it('matches a typed final consonant to the initial of the syllable after it', () => {
     expect(matchesTyped(ANI, AN)).toBe(true);
     expect(matchesTyped(GAGE, GAK)).toBe(true);
   });
