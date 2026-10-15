@@ -40,7 +40,6 @@ export default async function SettingsPage(): Promise<ReactNode> {
     <>
       <h1 className={PAGE_HEADING}>{t('settingsPage.title')}</h1>
       <EntryFormModeChoice chosen={settings.entryFormMode} action={changeEntryFormMode} />
-      <LanguageChoice chosen={settings.language} action={changeLanguage} />
       <AccountsSection
         chart={chart}
         actions={{
@@ -53,6 +52,7 @@ export default async function SettingsPage(): Promise<ReactNode> {
           moveChartNode,
         }}
       />
+      <LanguageChoice chosen={settings.language} action={changeLanguage} />
     </>
   );
 }
