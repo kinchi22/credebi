@@ -8,7 +8,7 @@ const groupNotSaved =
 
 const notMoved =
   '이동을 되돌렸습니다. 계정은 같은 계정 유형 안에서만 옮길 수 있고, 그룹은 다른 그룹 안으로 옮길 수 없습니다.';
-const unmoved = '지금은 이동을 저장할 수 없어 되돌렸습니다. 다시 시도하세요.';
+const unmoved = '지금은 이동을 저장할 수 없어 되돌렸습니다. 다시 시도해 주세요.';
 const signedOutOfChart = '로그아웃되었습니다. 계정을 변경하려면 다시 로그인하세요.';
 
 const NODE = { account: '계정', group: '그룹' } as const;
@@ -19,14 +19,14 @@ function chartRefusals(
   nameTaken: string,
   inUse: string = notSaved,
 ) {
-  const unsaved = `지금은 ${NODE[node]}을 저장할 수 없어 아무것도 바뀌지 않았습니다. 다시 시도하세요.`;
+  const unsaved = `지금은 ${NODE[node]}을 저장할 수 없어 아무것도 바뀌지 않았습니다. 다시 시도해 주세요.`;
   return {
     INVALID_INPUT: notSaved,
     NAME_TAKEN: nameTaken,
     IN_USE: inUse,
     TITLE_TOO_LONG: notSaved,
     MEMO_TOO_LONG: notSaved,
-    NOT_FOUND: `이 ${NODE[node]}은 더 이상 없습니다. 페이지를 새로 고치세요.`,
+    NOT_FOUND: `이 ${NODE[node]}은 존재하지 않습니다. 페이지를 새로 고쳐 주세요.`,
     CONFLICT: unsaved,
     DEPENDENCY_UNAVAILABLE: unsaved,
     UNBALANCED: notSaved,
@@ -35,8 +35,8 @@ function chartRefusals(
 }
 
 function deleteRefusals(node: keyof typeof NODE, inUse: string) {
-  const reload = `이 ${NODE[node]}을 삭제할 수 없습니다. 페이지를 새로 고친 뒤 다시 시도하세요.`;
-  const undeleted = `지금은 ${NODE[node]}을 삭제할 수 없어 아무것도 바뀌지 않았습니다. 다시 시도하세요.`;
+  const reload = `이 ${NODE[node]}을 삭제할 수 없습니다. 페이지를 새로 고친 뒤 다시 시도해 주세요.`;
+  const undeleted = `지금은 ${NODE[node]}을 삭제할 수 없습니다. 다시 시도해 주세요.`;
   return {
     INVALID_INPUT: reload,
     NAME_TAKEN: reload,
@@ -44,20 +44,20 @@ function deleteRefusals(node: keyof typeof NODE, inUse: string) {
     IN_USE: inUse,
     TITLE_TOO_LONG: reload,
     MEMO_TOO_LONG: reload,
-    NOT_FOUND: `이 ${NODE[node]}은 더 이상 없습니다. 페이지를 새로 고치세요.`,
+    NOT_FOUND: `이 ${NODE[node]}은 존재하지 않습니다. 페이지를 새로 고쳐 주세요.`,
     CONFLICT: undeleted,
     DEPENDENCY_UNAVAILABLE: undeleted,
     UNAUTHENTICATED: signedOutOfChart,
   } as const;
 }
 
-const entryNotDeleted = '이 거래를 삭제할 수 없습니다. 페이지를 새로 고친 뒤 다시 시도하세요.';
+const entryNotDeleted = '이 거래를 삭제할 수 없습니다. 페이지를 새로 고친 뒤 다시 시도해 주세요.';
 const entryChangedElsewhere =
-  '이 거래는 다른 곳(다른 탭일 수 있습니다)에서 변경되었습니다. 페이지를 새로 고치세요.';
-const entryGone = '이 거래는 더 이상 없습니다. 페이지를 새로 고치세요.';
+  '이 거래는 다른 곳에서 변경되었습니다. 페이지를 새로 고쳐 주세요.';
+const entryGone = '이 거래는 존재하지 않습니다. 페이지를 새로 고쳐 주세요.';
 const unbalanced = '차변과 대변의 합계가 같아야 합니다. 각 변의 금액을 확인하세요.';
 const entryNotSavedCheck =
-  '거래를 저장하지 않았습니다. 날짜, 제목, 메모, 계정, 금액을 확인하세요.';
+  '거래를 저장하지 못했습니다. 날짜, 제목, 메모, 계정, 금액을 확인하세요.';
 
 export const ko = {
   app: {
@@ -92,7 +92,7 @@ export const ko = {
   signInPage: {
     title: '로그인',
     google: 'Google로 로그인',
-    failed: '로그인하지 못했습니다. 다시 시도하세요.',
+    failed: '로그인하지 못했습니다. 다시 시도해 주세요.',
   },
   testSignIn: {
     title: '테스트 로그인',
@@ -119,11 +119,11 @@ export const ko = {
       'multi-line': '다행 방식',
     },
     entryFormModeDescriptions: {
-      'two-line': '차변 계정 하나, 대변 계정 하나, 금액 하나.',
-      'multi-line': '거래 행 두 개 이상, 행마다 차변 또는 대변.',
+      'two-line': '차변 계정과 대변 계정 하나씩, 하나의 금액을 공유합니다.',
+      'multi-line': '차변과 대변이 여러 행을 가지며 각 행에 금액을 설정합니다.',
     },
-    notSaved: '선택을 저장하지 않아 거래 입력 방식은 그대로입니다. 다시 시도하세요.',
-    languageNotSaved: '선택을 저장하지 않아 언어는 그대로입니다. 다시 시도하세요.',
+    notSaved: '선택을 저장하지 못했습니다. 다시 시도해 주세요.',
+    languageNotSaved: '선택을 저장하지 못했습니다. 다시 시도해 주세요.',
   },
   accountsSection: {
     title: '계정',
@@ -132,7 +132,7 @@ export const ko = {
     addAccountText: '+ 계정',
     addGroup: '그룹 추가',
     addGroupText: '+ 그룹',
-    edit: '편집',
+    edit: '수정',
     delete: '삭제',
     move: '{name} 이동',
     startsOn: '<day>{date}</day> 시작',
@@ -143,14 +143,14 @@ export const ko = {
       TITLE_TOO_LONG: notMoved,
       MEMO_TOO_LONG: notMoved,
       UNBALANCED: notMoved,
-      NOT_FOUND: '계정이나 그룹이 더 이상 없어 이동을 되돌렸습니다. 페이지를 새로 고치세요.',
+      NOT_FOUND: '계정이나 그룹이 더 이상 없어 이동을 되돌렸습니다. 페이지를 새로 고쳐 주세요.',
       CONFLICT: unmoved,
       DEPENDENCY_UNAVAILABLE: unmoved,
       UNAUTHENTICATED: signedOutOfChart,
     },
     drag: {
       instructions:
-        '포인터로 손잡이를 끌어 계정이나 그룹을 옮깁니다. 계정 편집의 그룹 항목으로도 계정을 옮길 수 있습니다.',
+        '포인터로 손잡이를 끌어 계정이나 그룹을 옮깁니다. 계정 수정의 그룹 항목으로도 계정을 옮길 수 있습니다.',
       pickedUp: '{name}을(를) 집었습니다',
       wouldGo: '{name}이(가) {place} 놓입니다',
       went: '{name}을(를) {place} 옮겼습니다',
@@ -165,9 +165,9 @@ export const ko = {
   },
   accountDialog: {
     addTitle: '계정 추가',
-    editTitle: '계정 편집',
+    editTitle: '계정 수정',
     addGroupTitle: '그룹 추가',
-    editGroupTitle: '그룹 편집',
+    editGroupTitle: '그룹 수정',
     name: '이름',
     description: '설명',
     group: '그룹',
@@ -211,8 +211,8 @@ export const ko = {
   },
   entrySearch: {
     title: '거래 검색',
-    from: '시작',
-    to: '끝',
+    from: '시작일',
+    to: '종료일',
     account: '계정',
     anyAccount: '모든 계정',
     entryTitle: '제목',
@@ -220,10 +220,10 @@ export const ko = {
     submit: '검색',
     results: '결과',
     searching: '지난 한 달을 검색하는 중...',
-    unavailable: '지금은 검색할 수 없습니다. 검색을 눌러 다시 시도하세요.',
+    unavailable: '지금은 검색할 수 없습니다. 검색을 눌러 다시 시도해 주세요.',
     nothingMatched: '조건에 맞는 거래가 없습니다.',
     refused:
-      '검색하지 않았습니다. 날짜 범위(각 날짜는 달력의 하루이며, 시작은 끝보다 늦을 수 없습니다), 계정이 목록에 있는 것인지, 제목과 메모가 허용된 길이를 넘지 않는지 확인하세요.',
+      '검색하지 않았습니다. 날짜 범위(각 날짜는 달력의 하루이며, 시작일은 종료일보다 늦을 수 없습니다), 계정이 목록에 있는 것인지, 제목과 메모가 허용된 길이를 넘지 않는지 확인하세요.',
   },
   datePresets: {
     title: '기간 프리셋',
@@ -253,22 +253,22 @@ export const ko = {
     submit: '거래 추가',
     pending: '추가 중...',
     unbalanced,
-    unavailable: '지금은 거래를 저장할 수 없습니다. 다시 시도하세요.',
+    unavailable: '지금은 거래를 저장할 수 없습니다. 다시 시도해 주세요.',
     signedOut: '로그아웃되었습니다. 거래를 추가하려면 다시 로그인하세요.',
-    titleTooLong: '거래를 추가하지 않았습니다. 제목은 40자 이내여야 합니다.',
-    memoTooLong: '거래를 추가하지 않았습니다. 메모는 200자 이내여야 합니다.',
+    titleTooLong: '거래를 추가하지 못했습니다. 제목은 40자 이내여야 합니다.',
+    memoTooLong: '거래를 추가하지 못했습니다. 메모는 200자 이내여야 합니다.',
   },
   twoLineForm: {
     debitAccount: '차변 계정',
     creditAccount: '대변 계정',
     amount: '금액',
-    invalid: '거래를 추가하지 않았습니다. 날짜, 제목, 메모, 두 계정, 금액을 확인하세요.',
+    invalid: '거래를 추가하지 못했습니다. 날짜, 제목, 메모, 두 계정, 금액을 확인하세요.',
   },
   multiLineForm: {
     debitAccounts: '차변 계정',
     creditAccounts: '대변 계정',
     amount: '금액',
-    invalid: '거래를 추가하지 않았습니다. 날짜, 제목, 메모, 각 행을 확인하세요.',
+    invalid: '거래를 추가하지 못했습니다. 날짜, 제목, 메모, 각 행을 확인하세요.',
     remove: '삭제',
     debitTotal: '차변 합계',
     creditTotal: '대변 합계',
@@ -276,20 +276,20 @@ export const ko = {
     tooLarge: '이 금액들의 합이 한 금액에 담을 수 있는 한도를 넘습니다.',
   },
   notActiveOnDay: {
-    mark: '이 날짜에 사용하지 않는 계정',
+    mark: '이 날짜에 활성화되지 않은 계정',
     multiLine: {
       notAdded:
-        '거래를 추가하지 않았습니다. {side} {account}은(는) 이 날짜에 사용하지 않는 계정입니다. 그 행을 지우거나, 그 계정을 사용하는 날짜를 고르세요.',
+        '거래를 추가하지 못했습니다. {side} {account}은(는) 이 날짜에 활성화되지 않은 계정입니다. 그 행을 지우거나, 그 계정이 활성화되어 있는 날짜를 고르세요.',
       notSaved:
-        '거래를 저장하지 않았습니다. {side} {account}은(는) 이 날짜에 사용하지 않는 계정입니다. 그 행을 지우거나, 그 계정을 사용하는 날짜를 고르세요.',
+        '거래를 저장하지 못했습니다. {side} {account}은(는) 이 날짜에 활성화되지 않은 계정입니다. 그 행을 지우거나, 그 계정이 활성화되어 있는 날짜를 고르세요.',
       explanation:
         '{account}은(는) 사용 기간 안에서만 쓸 수 있습니다. 날짜를 바꾸거나, 행을 지우거나, <settings>설정</settings>에서 기간을 바꾸세요.',
     },
     twoLine: {
       notAdded:
-        '거래를 추가하지 않았습니다. {account}은(는) 이 날짜에 사용하지 않는 계정입니다. 다른 계정을 고르거나, 그 계정을 사용하는 날짜를 고르세요.',
+        '거래를 추가하지 못했습니다. {account}은(는) 이 날짜에 활성화되지 않은 계정입니다. 다른 계정을 고르거나, 그 계정이 활성화되어 있는 날짜를 고르세요.',
       notSaved:
-        '거래를 저장하지 않았습니다. {account}은(는) 이 날짜에 사용하지 않는 계정입니다. 다른 계정을 고르거나, 그 계정을 사용하는 날짜를 고르세요.',
+        '거래를 저장하지 못했습니다. {account}은(는) 이 날짜에 활성화되지 않은 계정입니다. 다른 계정을 고르거나, 그 계정이 활성화되어 있는 날짜를 고르세요.',
       explanation:
         '{account}은(는) 사용 기간 안에서만 쓸 수 있습니다. 날짜를 바꾸거나, 다른 계정을 고르거나, <settings>설정</settings>에서 기간을 바꾸세요.',
     },
@@ -297,7 +297,7 @@ export const ko = {
   needsMultiLineMode: {
     mark: '다행 방식 필요',
     explanation:
-      '제목이 {title}인 최근 거래는 한 변에 행이 둘 이상이라 아무것도 채우지 않았습니다. 차변 계정과 대변 계정을 골라 직접 작성하거나, <settings>설정</settings>에서 거래 입력 방식을 바꿔 모든 행을 채우세요.',
+      '제목이 {title}인 최근 거래는 한 변에 행이 둘 이상이라 아무것도 채우지 못했습니다. 차변 계정과 대변 계정을 골라 직접 작성하거나, <settings>설정</settings>에서 거래 입력 방식을 바꿔 모든 행을 채우세요.',
   },
   helpTip: {
     about: '{subject} 설명',
@@ -321,7 +321,7 @@ export const ko = {
     },
   },
   entryList: {
-    title: '거래 입력',
+    title: '거래 내역',
     empty: '아직 거래가 없습니다.',
     total: '합계',
   },
@@ -333,16 +333,16 @@ export const ko = {
     pending: '저장 중...',
     refusals: {
       INVALID_INPUT:
-        '거래를 저장하지 않았습니다. 날짜, 제목, 메모, 계정(각각 거래 날짜에 사용하는 계정이어야 합니다), 금액을 확인하세요.',
+        '거래를 저장하지 못했습니다. 날짜, 제목, 메모, 계정(각각 거래 날짜에 활성화된 계정이어야 합니다), 금액을 확인하세요.',
       UNBALANCED: unbalanced,
       NOT_FOUND: entryGone,
       CONFLICT: entryChangedElsewhere,
-      DEPENDENCY_UNAVAILABLE: '지금은 거래를 저장할 수 없습니다. 다시 시도하세요.',
+      DEPENDENCY_UNAVAILABLE: '지금은 거래를 저장할 수 없습니다. 다시 시도해 주세요.',
       UNAUTHENTICATED: '로그아웃되었습니다. 거래를 수정하려면 다시 로그인하세요.',
       NAME_TAKEN: entryNotSavedCheck,
       IN_USE: entryNotSavedCheck,
-      TITLE_TOO_LONG: '거래를 저장하지 않았습니다. 제목은 40자 이내여야 합니다.',
-      MEMO_TOO_LONG: '거래를 저장하지 않았습니다. 메모는 200자 이내여야 합니다.',
+      TITLE_TOO_LONG: '거래를 저장하지 못했습니다. 제목은 40자 이내여야 합니다.',
+      MEMO_TOO_LONG: '거래를 저장하지 못했습니다. 메모는 200자 이내여야 합니다.',
     },
   },
   discardChanges: {
@@ -350,7 +350,7 @@ export const ko = {
     entry: '이 거래의 변경 내용을 저장하지 않았으며, 버리면 사라집니다.',
     account: '이 계정의 변경 내용을 저장하지 않았으며, 버리면 사라집니다.',
     group: '이 그룹의 변경 내용을 저장하지 않았으며, 버리면 사라집니다.',
-    keep: '계속 편집',
+    keep: '계속 수정',
     confirm: '버리기',
   },
   deleteEntry: {
@@ -363,7 +363,7 @@ export const ko = {
       INVALID_INPUT: entryNotDeleted,
       NOT_FOUND: entryGone,
       CONFLICT: entryChangedElsewhere,
-      DEPENDENCY_UNAVAILABLE: '지금은 거래를 삭제할 수 없습니다. 다시 시도하세요.',
+      DEPENDENCY_UNAVAILABLE: '지금은 거래를 삭제할 수 없습니다. 다시 시도해 주세요.',
       UNBALANCED: entryNotDeleted,
       UNAUTHENTICATED: '로그아웃되었습니다. 거래를 삭제하려면 다시 로그인하세요.',
       NAME_TAKEN: entryNotDeleted,
