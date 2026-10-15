@@ -2,16 +2,20 @@ import { type Catalogue } from './en';
 
 const productName = 'Credebi';
 const accountNotSaved =
-  '勘定科目は保存されませんでした。名前は1〜40文字、説明は200文字以内で、使用終了日を使用開始日より前にはできません。';
+  '保存に失敗しました。名前は1〜40文字、説明は200文字以内で、使用終了日を使用開始日より前にはできません。';
 const groupNotSaved =
-  'グループは保存されませんでした。名前は1〜40文字、説明は200文字以内です。';
+  '保存に失敗しました。名前は1〜40文字、説明は200文字以内です。';
 
 const notMoved =
-  '移動を元に戻しました。勘定科目は同じ勘定区分の中でのみ移動でき、グループを別のグループの中に入れることはできません。';
-const unmoved = '今は移動を保存できなかったため、元に戻しました。もう一度お試しください。';
+  '移動できませんでした。勘定科目は同じ勘定区分の中でのみ移動でき、グループを別のグループの中に入れることはできません。';
+const unmoved = '移動に失敗しました。しばらくしてからもう一度お試しください。';
 const signedOutOfChart = 'ログアウトしています。勘定科目を変更するには、もう一度ログインしてください。';
 
 const NODE = { account: '勘定科目', group: 'グループ' } as const;
+
+function nodeNotFound(node: keyof typeof NODE) {
+  return `この${NODE[node]}は存在しません。ページを再読み込みしてください。`;
+}
 
 function chartRefusals(
   node: keyof typeof NODE,
@@ -19,14 +23,14 @@ function chartRefusals(
   nameTaken: string,
   inUse: string = notSaved,
 ) {
-  const unsaved = `今は${NODE[node]}を保存できなかったため、何も変更されていません。もう一度お試しください。`;
+  const unsaved = `${NODE[node]}の保存に失敗しました。もう一度お試しください。`;
   return {
     INVALID_INPUT: notSaved,
     NAME_TAKEN: nameTaken,
     IN_USE: inUse,
     TITLE_TOO_LONG: notSaved,
     MEMO_TOO_LONG: notSaved,
-    NOT_FOUND: `この${NODE[node]}はもうありません。ページを再読み込みしてください。`,
+    NOT_FOUND: nodeNotFound(node),
     CONFLICT: unsaved,
     DEPENDENCY_UNAVAILABLE: unsaved,
     UNBALANCED: notSaved,
@@ -35,8 +39,8 @@ function chartRefusals(
 }
 
 function deleteRefusals(node: keyof typeof NODE, inUse: string) {
-  const reload = `この${NODE[node]}を削除できませんでした。ページを再読み込みして、もう一度お試しください。`;
-  const undeleted = `今は${NODE[node]}を削除できなかったため、何も変更されていません。もう一度お試しください。`;
+  const reload = `${NODE[node]}の削除に失敗しました。ページを再読み込みして、もう一度お試しください。`;
+  const undeleted = `${NODE[node]}の削除に失敗しました。もう一度お試しください。`;
   return {
     INVALID_INPUT: reload,
     NAME_TAKEN: reload,
@@ -44,7 +48,7 @@ function deleteRefusals(node: keyof typeof NODE, inUse: string) {
     IN_USE: inUse,
     TITLE_TOO_LONG: reload,
     MEMO_TOO_LONG: reload,
-    NOT_FOUND: `この${NODE[node]}はもうありません。ページを再読み込みしてください。`,
+    NOT_FOUND: nodeNotFound(node),
     CONFLICT: undeleted,
     DEPENDENCY_UNAVAILABLE: undeleted,
     UNAUTHENTICATED: signedOutOfChart,
@@ -52,13 +56,13 @@ function deleteRefusals(node: keyof typeof NODE, inUse: string) {
 }
 
 const entryNotDeleted =
-  'この仕訳を削除できませんでした。ページを再読み込みして、もう一度お試しください。';
+  'この取引を削除できませんでした。ページを再読み込みして、もう一度お試しください。';
 const entryChangedElsewhere =
-  'この仕訳は別の場所（別のタブかもしれません）で変更されました。ページを再読み込みしてください。';
-const entryGone = 'この仕訳はもうありません。ページを再読み込みしてください。';
+  'この取引は別の場所で変更されました。ページを再読み込みしてください。';
+const entryGone = 'この取引は存在しません。ページを再読み込みしてください。';
 const unbalanced = '借方と貸方の合計を一致させてください。それぞれの金額を確認してください。';
 const entryNotSavedCheck =
-  '仕訳は保存されませんでした。日付、タイトル、メモ、勘定科目、金額を確認してください。';
+  '取引の保存に失敗しました。日付、タイトル、メモ、勘定科目、金額を確認してください。';
 
 export const ja = {
   app: {
@@ -88,7 +92,7 @@ export const ja = {
     pending: '確認中...',
   },
   home: {
-    entriesLink: '仕訳',
+    entriesLink: '取引入力',
   },
   signInPage: {
     title: 'ログイン',
@@ -104,27 +108,27 @@ export const ja = {
   sidebar: {
     ariaLabel: 'サイドバー',
     menu: 'メニュー',
-    entries: '仕訳',
-    entrySearch: '仕訳検索',
+    entries: '取引入力',
+    entrySearch: '取引検索',
     settings: '設定',
     signOut: 'ログアウト',
   },
   entriesPage: {
-    title: '仕訳',
+    title: '取引入力',
   },
   settingsPage: {
     title: '設定',
-    entryFormMode: '仕訳の入力方式',
+    entryFormMode: '取引の入力方式',
     entryFormModes: {
       'two-line': '2行方式',
       'multi-line': '複数行方式',
     },
     entryFormModeDescriptions: {
-      'two-line': '借方の勘定科目が1つ、貸方の勘定科目が1つ、金額が1つ。',
-      'multi-line': '仕訳の行が2つ以上、各行が借方か貸方。',
+      'two-line': '借方と貸方の勘定科目を1つずつ選び、1つの金額を共有します。',
+      'multi-line': '借方と貸方に複数の行を持ち、行ごとに金額を設定します。',
     },
-    notSaved: '選択は保存されなかったため、仕訳の入力方式は変わっていません。もう一度お試しください。',
-    languageNotSaved: '選択は保存されなかったため、言語は変わっていません。もう一度お試しください。',
+    notSaved: '保存に失敗しました。もう一度お試しください。',
+    languageNotSaved: '保存に失敗しました。もう一度お試しください。',
   },
   accountsSection: {
     title: '勘定科目',
@@ -184,13 +188,13 @@ export const ja = {
     refusals: chartRefusals(
       'account',
       accountNotSaved,
-      '勘定科目は保存されませんでした。同じ名前の勘定科目がすでにあります。別の名前にしてください。',
-      '勘定科目は保存されませんでした。この使用期間の外の日付に、この勘定科目を使った仕訳があります。その日付が使用開始日と使用終了日の間に入るようにしてください。',
+      '保存に失敗しました。同じ名前の勘定科目がすでにあります。別の名前にしてください。',
+      '保存に失敗しました。この使用期間の外の日付に、この勘定科目を使った取引があります。その日付が使用開始日と使用終了日の間に入るようにしてください。',
     ),
     groupRefusals: chartRefusals(
       'group',
       groupNotSaved,
-      'グループは保存されませんでした。この勘定区分に同じ名前のグループがすでにあります。別の名前にしてください。',
+      '保存に失敗しました。この勘定区分に同じ名前のグループがすでにあります。別の名前にしてください。',
     ),
   },
   deleteAccountDialog: {
@@ -201,20 +205,20 @@ export const ja = {
     cancel: 'キャンセル',
     refusals: deleteRefusals(
       'account',
-      '表示中の仕訳がこの勘定科目を使っているため、削除しませんでした。使うのをやめるには、代わりに使用終了日を設定してください。',
+      '登録済みの取引がこの勘定科目を使っているため、削除できませんでした。使うのをやめるには、代わりに使用終了日を設定してください。',
     ),
     groupRefusals: deleteRefusals(
       'group',
-      'グループにまだ勘定科目があるため、削除しませんでした。先に勘定科目をグループの外に移動するか、削除してください。',
+      'グループにまだ勘定科目があるため、削除できませんでした。先に勘定科目をグループの外に移動するか、削除してください。',
     ),
   },
   entrySearchPage: {
-    heading: '仕訳検索',
+    heading: '取引検索',
   },
   entrySearch: {
-    title: '仕訳を検索',
-    from: '開始',
-    to: '終了',
+    title: '取引検索',
+    from: '開始日',
+    to: '終了日',
     account: '勘定科目',
     anyAccount: 'すべての勘定科目',
     entryTitle: 'タイトル',
@@ -222,10 +226,10 @@ export const ja = {
     submit: '検索',
     results: '結果',
     searching: '過去1か月を検索中...',
-    unavailable: '今は検索できませんでした。検索を押して、もう一度お試しください。',
-    nothingMatched: '条件に合う仕訳はありません。',
+    unavailable: '今は検索できません。しばらくしてからもう一度お試しください。',
+    nothingMatched: '条件に合う取引はありません。',
     refused:
-      '検索しませんでした。日付の範囲（各日付は暦の1日で、開始を終了より後にはできません）、勘定科目が一覧にあるものか、タイトルとメモが上限の長さを超えていないかを確認してください。',
+      '日付の範囲の開始日を終了日より後にはできません。勘定科目が一覧にあるものか、タイトルとメモが上限の長さを超えていないかを確認してください。',
   },
   datePresets: {
     title: '期間のプリセット',
@@ -247,30 +251,30 @@ export const ja = {
     },
   },
   entryForm: {
-    title: '新しい仕訳',
+    title: '新しい取引',
     date: '日付',
     entryTitle: 'タイトル',
     memo: 'メモ',
-    chooseAccount: '勘定科目を選択',
-    submit: '仕訳を追加',
+    chooseAccount: '勘定科目を選択してください',
+    submit: '取引を追加',
     pending: '追加中...',
     unbalanced,
-    unavailable: '今は仕訳を保存できませんでした。もう一度お試しください。',
-    signedOut: 'ログアウトしています。仕訳を追加するには、もう一度ログインしてください。',
-    titleTooLong: '仕訳は追加されませんでした。タイトルは40文字以内です。',
-    memoTooLong: '仕訳は追加されませんでした。メモは200文字以内です。',
+    unavailable: '今は取引を保存できませんでした。もう一度お試しください。',
+    signedOut: 'ログアウトしています。取引を追加するには、もう一度ログインしてください。',
+    titleTooLong: '取引の追加に失敗しました。タイトルは40文字以内です。',
+    memoTooLong: '取引の追加に失敗しました。メモは200文字以内です。',
   },
   twoLineForm: {
     debitAccount: '借方の勘定科目',
     creditAccount: '貸方の勘定科目',
     amount: '金額',
-    invalid: '仕訳は追加されませんでした。日付、タイトル、メモ、両方の勘定科目、金額を確認してください。',
+    invalid: '取引の追加に失敗しました。日付、タイトル、メモ、両方の勘定科目、金額を確認してください。',
   },
   multiLineForm: {
     debitAccounts: '借方の勘定科目',
     creditAccounts: '貸方の勘定科目',
     amount: '金額',
-    invalid: '仕訳は追加されませんでした。日付、タイトル、メモ、各行を確認してください。',
+    invalid: '取引の追加に失敗しました。日付、タイトル、メモ、各行を確認してください。',
     remove: '削除',
     debitTotal: '借方合計',
     creditTotal: '貸方合計',
@@ -278,20 +282,20 @@ export const ja = {
     tooLarge: 'これらの金額の合計が、1つの金額で扱える上限を超えています。',
   },
   notActiveOnDay: {
-    mark: 'この日は使用期間外',
+    mark: 'この日に有効ではない勘定科目',
     multiLine: {
       notAdded:
-        '仕訳は追加されませんでした。{side}の{account}はこの日には使用期間外です。その行を削除するか、その勘定科目を使用できる日を選んでください。',
+        '取引の追加に失敗しました。{side}の{account}はこの日に有効ではありません。その行を削除するか、その勘定科目が有効な日を選んでください。',
       notSaved:
-        '仕訳は保存されませんでした。{side}の{account}はこの日には使用期間外です。その行を削除するか、その勘定科目を使用できる日を選んでください。',
+        '取引の保存に失敗しました。{side}の{account}はこの日に有効ではありません。その行を削除するか、その勘定科目が有効な日を選んでください。',
       explanation:
         '{account}は使用期間内でのみ使えます。日付を変えるか、行を削除するか、<settings>設定</settings>で期間を変更してください。',
     },
     twoLine: {
       notAdded:
-        '仕訳は追加されませんでした。{account}はこの日には使用期間外です。別の勘定科目を選ぶか、その勘定科目を使用できる日を選んでください。',
+        '取引の追加に失敗しました。{account}はこの日に有効ではありません。別の勘定科目を選ぶか、その勘定科目が有効な日を選んでください。',
       notSaved:
-        '仕訳は保存されませんでした。{account}はこの日には使用期間外です。別の勘定科目を選ぶか、その勘定科目を使用できる日を選んでください。',
+        '取引の保存に失敗しました。{account}はこの日に有効ではありません。別の勘定科目を選ぶか、その勘定科目が有効な日を選んでください。',
       explanation:
         '{account}は使用期間内でのみ使えます。日付を変えるか、別の勘定科目を選ぶか、<settings>設定</settings>で期間を変更してください。',
     },
@@ -299,7 +303,7 @@ export const ja = {
   needsMultiLineMode: {
     mark: '複数行方式が必要',
     explanation:
-      'タイトルが{title}の直近の仕訳は、借方か貸方に2行以上あるため、何も入力しませんでした。借方と貸方の勘定科目を選んでこの仕訳を自分で書くか、<settings>設定</settings>で仕訳の入力方式を変えてすべての行を入力してください。',
+      'タイトルが{title}の直近の取引は、借方か貸方に2行以上あるため、何も入力できませんでした。借方と貸方の勘定科目を選んでこの取引を自分で書くか、<settings>設定</settings>で取引の入力方式を変えてすべての行を入力してください。',
   },
   helpTip: {
     about: '{subject}について',
@@ -308,7 +312,7 @@ export const ja = {
     title: '勘定科目を選択',
     done: '完了',
     close: '閉じる',
-    find: '勘定科目を探す',
+    find: '勘定科目を検索',
     noMatch: '「{query}」に合う勘定科目はありません。',
     suggested: 'おすすめ',
     noActiveAccount: 'この日に使用できる勘定科目はありません。',
@@ -323,33 +327,33 @@ export const ja = {
     },
   },
   entryList: {
-    title: '仕訳',
-    empty: '仕訳はまだありません。',
+    title: '取引履歴',
+    empty: '取引はまだありません。',
     total: '合計',
   },
   editEntry: {
     open: '編集',
-    title: '仕訳を編集',
+    title: '取引を編集',
     close: '閉じる',
     save: '保存',
     pending: '保存中...',
     refusals: {
       INVALID_INPUT:
-        '仕訳は保存されませんでした。日付、タイトル、メモ、勘定科目（それぞれ仕訳の日に使用期間内であること）、金額を確認してください。',
+        '取引の保存に失敗しました。日付、タイトル、メモ、勘定科目（それぞれ取引の日に有効であること）、金額を確認してください。',
       UNBALANCED: unbalanced,
       NOT_FOUND: entryGone,
       CONFLICT: entryChangedElsewhere,
-      DEPENDENCY_UNAVAILABLE: '今は仕訳を保存できませんでした。もう一度お試しください。',
-      UNAUTHENTICATED: 'ログアウトしています。仕訳を編集するには、もう一度ログインしてください。',
+      DEPENDENCY_UNAVAILABLE: '今は取引を保存できませんでした。もう一度お試しください。',
+      UNAUTHENTICATED: 'ログアウトしています。取引を編集するには、もう一度ログインしてください。',
       NAME_TAKEN: entryNotSavedCheck,
       IN_USE: entryNotSavedCheck,
-      TITLE_TOO_LONG: '仕訳は保存されませんでした。タイトルは40文字以内です。',
-      MEMO_TOO_LONG: '仕訳は保存されませんでした。メモは200文字以内です。',
+      TITLE_TOO_LONG: '取引の保存に失敗しました。タイトルは40文字以内です。',
+      MEMO_TOO_LONG: '取引の保存に失敗しました。メモは200文字以内です。',
     },
   },
   discardChanges: {
     title: '変更を破棄',
-    entry: 'この仕訳への変更は保存されておらず、失われます。',
+    entry: 'この取引への変更は保存されておらず、失われます。',
     account: 'この勘定科目への変更は保存されておらず、失われます。',
     group: 'このグループへの変更は保存されておらず、失われます。',
     keep: '編集を続ける',
@@ -357,7 +361,7 @@ export const ja = {
   },
   deleteEntry: {
     open: '削除',
-    title: '仕訳を削除',
+    title: '取引を削除',
     confirm: '削除',
     pending: '削除中...',
     cancel: 'キャンセル',
@@ -365,9 +369,9 @@ export const ja = {
       INVALID_INPUT: entryNotDeleted,
       NOT_FOUND: entryGone,
       CONFLICT: entryChangedElsewhere,
-      DEPENDENCY_UNAVAILABLE: '今は仕訳を削除できませんでした。もう一度お試しください。',
+      DEPENDENCY_UNAVAILABLE: '今は取引を削除できませんでした。もう一度お試しください。',
       UNBALANCED: entryNotDeleted,
-      UNAUTHENTICATED: 'ログアウトしています。仕訳を削除するには、もう一度ログインしてください。',
+      UNAUTHENTICATED: 'ログアウトしています。取引を削除するには、もう一度ログインしてください。',
       NAME_TAKEN: entryNotDeleted,
       IN_USE: entryNotDeleted,
       TITLE_TOO_LONG: entryNotDeleted,
