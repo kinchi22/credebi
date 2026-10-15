@@ -105,6 +105,10 @@ const ATM_FULL_WIDTH_LOWER = '\uFF41\uFF54\uFF4D';
 
 const DIGITS_FULL_WIDTH = '\uFF11\uFF12';
 
+const STAR_BUCKS_WIDE_SPACED = '\uC2A4\uD0C0\u3000\uBC85\uC2A4';
+
+const STAR_BUCKS_WIDE_SPACED_INITIALS = '\u3145\u314C\u3000\u3142\u3145';
+
 const SUTABA_SEU = '\u30B9\u30BF\u30D0 \uC2A4\uD0C0';
 
 describe('matchesTyped', () => {
@@ -231,11 +235,19 @@ describe('matchesTyped in Japanese and across width', () => {
     expect(matchesTyped(AA_KATAKANA, AA_HIRAGANA)).toBe(false);
   });
 
-  it('keeps matching Korean initials and syllables after folding width and kana', () => {
-    expect(matchesTyped(STARBUCKS, STARBUCKS_INITIALS)).toBe(true);
-    expect(matchesTyped(STARBUCKS, SEU_TIEUT)).toBe(true);
-    expect(matchesTyped(SAMSUNG, SAMSEO)).toBe(true);
+  it('matches a name mixing kana and Hangul by its Korean initials or by its kana', () => {
     expect(matchesTyped(SUTABA_SEU, STAR_INITIALS)).toBe(true);
     expect(matchesTyped(SUTABA_SEU, SUTABA_IN_HIRAGANA)).toBe(true);
+  });
+
+  it('keeps a syllable being composed matching in a name that also holds kana', () => {
+    expect(matchesTyped(SUTABA_SEU, SEU_TIEUT)).toBe(true);
+  });
+
+  it('counts a full-width space typed between initials as a space', () => {
+    expect(matchesTyped(STAR_BUCKS_SPACED, STAR_BUCKS_WIDE_SPACED_INITIALS)).toBe(true);
+    expect(matchesTyped(STAR_BUCKS_WIDE_SPACED, STAR_BUCKS_WIDE_SPACED_INITIALS)).toBe(true);
+    expect(matchesTyped(STAR_BUCKS_WIDE_SPACED, STAR_BUCKS_SPACED_INITIALS)).toBe(true);
+    expect(matchesTyped(STARBUCKS, STAR_BUCKS_WIDE_SPACED_INITIALS)).toBe(false);
   });
 });
