@@ -192,7 +192,7 @@ export const ko = {
     groupRefusals: chartRefusals(
       'group',
       groupNotSaved,
-      '그룹을 저장하지 않았습니다. 이 계정 유형에 같은 이름의 그룹이 이미 있으니 다른 이름을 정하세요.',
+      '저장에 실패했습니다. 이 계정 유형에 같은 이름의 그룹이 이미 있으니 다른 이름을 정하세요.',
     ),
   },
   deleteAccountDialog: {
