@@ -73,6 +73,40 @@ const M_CHUL = 'm \uCD9C';
 
 const ATM_WITHDRAWAL_UNSPACED = 'ATM\uCD9C\uAE08';
 
+const SUTABA = '\u30B9\u30BF\u30D0';
+
+const SUTABA_IN_HIRAGANA = '\u3059\u305F\u3070';
+
+const SUTABA_HALF_WIDTH = '\uFF7D\uFF80\uFF8A\uFF9E';
+
+const SUSHI_IN_HIRAGANA = '\u3059\u3057';
+
+const SUSHI_IN_KATAKANA = '\u30B9\u30B7';
+
+const KA_HIRAGANA = '\u304B';
+
+const GA_HIRAGANA = '\u304C';
+
+const GA_KATAKANA = '\u30AC';
+
+const TSU_HIRAGANA = '\u3064';
+
+const SMALL_TSU_KATAKANA = '\u30C3';
+
+const KITTO_KATAKANA = '\u30AD\u30C3\u30C8';
+
+const AA_KATAKANA = '\u30A2\u30FC';
+
+const AA_HIRAGANA = '\u3042\u3042';
+
+const ATM_FULL_WIDTH = '\uFF21\uFF34\uFF2D';
+
+const ATM_FULL_WIDTH_LOWER = '\uFF41\uFF54\uFF4D';
+
+const DIGITS_FULL_WIDTH = '\uFF11\uFF12';
+
+const SUTABA_SEU = '\u30B9\u30BF\u30D0 \uC2A4\uD0C0';
+
 describe('matchesTyped', () => {
   it('matches a name containing the typed text anywhere, ignoring case', () => {
     expect(matchesTyped('Starbucks', 'bucks')).toBe(true);
@@ -162,5 +196,46 @@ describe('matchesTyped in Korean', () => {
     expect(matchesTyped(ATM_WITHDRAWAL, 'atm')).toBe(true);
     expect(matchesTyped(ATM_WITHDRAWAL, M_CHUL)).toBe(true);
     expect(matchesTyped(ATM_WITHDRAWAL_UNSPACED, M_CHUL)).toBe(false);
+  });
+});
+
+describe('matchesTyped in Japanese and across width', () => {
+  it('matches hiragana typed against a name in katakana, and katakana against hiragana', () => {
+    expect(matchesTyped(SUTABA, SUTABA_IN_HIRAGANA)).toBe(true);
+    expect(matchesTyped(SUSHI_IN_HIRAGANA, SUSHI_IN_KATAKANA)).toBe(true);
+    expect(matchesTyped(SUTABA, SUSHI_IN_HIRAGANA)).toBe(false);
+  });
+
+  it('matches half-width katakana to full-width katakana and to hiragana', () => {
+    expect(matchesTyped(SUTABA, SUTABA_HALF_WIDTH)).toBe(true);
+    expect(matchesTyped(SUTABA_HALF_WIDTH, SUTABA_IN_HIRAGANA)).toBe(true);
+  });
+
+  it('matches full-width Latin letters and digits to their ordinary forms, ignoring case', () => {
+    expect(matchesTyped('ATM', ATM_FULL_WIDTH)).toBe(true);
+    expect(matchesTyped('atm', ATM_FULL_WIDTH)).toBe(true);
+    expect(matchesTyped(ATM_FULL_WIDTH, 'atm')).toBe(true);
+    expect(matchesTyped('ATM', ATM_FULL_WIDTH_LOWER)).toBe(true);
+    expect(matchesTyped('Rent 12', DIGITS_FULL_WIDTH)).toBe(true);
+  });
+
+  it('keeps a voiced kana distinct from its unvoiced one', () => {
+    expect(matchesTyped(GA_HIRAGANA, KA_HIRAGANA)).toBe(false);
+    expect(matchesTyped(GA_KATAKANA, KA_HIRAGANA)).toBe(false);
+    expect(matchesTyped(GA_KATAKANA, GA_HIRAGANA)).toBe(true);
+  });
+
+  it('keeps small kana and the long-vowel mark as they are', () => {
+    expect(matchesTyped(KITTO_KATAKANA, TSU_HIRAGANA)).toBe(false);
+    expect(matchesTyped(KITTO_KATAKANA, SMALL_TSU_KATAKANA)).toBe(true);
+    expect(matchesTyped(AA_KATAKANA, AA_HIRAGANA)).toBe(false);
+  });
+
+  it('keeps matching Korean initials and syllables after folding width and kana', () => {
+    expect(matchesTyped(STARBUCKS, STARBUCKS_INITIALS)).toBe(true);
+    expect(matchesTyped(STARBUCKS, SEU_TIEUT)).toBe(true);
+    expect(matchesTyped(SAMSUNG, SAMSEO)).toBe(true);
+    expect(matchesTyped(SUTABA_SEU, STAR_INITIALS)).toBe(true);
+    expect(matchesTyped(SUTABA_SEU, SUTABA_IN_HIRAGANA)).toBe(true);
   });
 });
