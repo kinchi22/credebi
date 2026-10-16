@@ -24,7 +24,7 @@ import {
   type RefObject,
 } from 'react';
 import { BUTTON, ICON_CONTROL } from './control-classes';
-import { useModalDialog } from './modal-dialog';
+import { useModalDialog } from './use-modal-dialog';
 import { CloseButton } from './close-button';
 import { SheetBar, SheetTabs } from './sheet';
 

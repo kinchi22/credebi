@@ -2,7 +2,7 @@
 
 import { type ReactNode } from 'react';
 import { CONFIRMATION_DIALOG } from './control-classes';
-import { type ModalDialog } from './modal-dialog';
+import { type ModalDialog } from './use-modal-dialog';
 
 export type PendingDialogProps = {
   readonly dialog: ModalDialog;

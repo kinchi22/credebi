@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { type ReactNode, type RefObject, useId, useRef } from 'react';
 import { ENTRY_SEARCH_PATH, SETTINGS_PATH, SIGNED_IN_HOME } from '../server/return-path';
-import { useModalDialog } from './modal-dialog';
+import { useModalDialog } from './use-modal-dialog';
 
 export type SidebarProps = {
   readonly signOut: () => Promise<void>;

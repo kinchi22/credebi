@@ -42,25 +42,47 @@ line-coverage tool and no `@vitest/coverage-v8`.
 packages/core/src/*/{domain,application}/**/*.ts
 packages/contracts/src/**/*.ts
 apps/web/server/**/*.ts
+packages/ui/src/**/*.ts
+apps/web/components/**/*.ts
 !apps/web/server/{container,context,trpc,root-router}.ts
 !apps/web/server/routers/**
+!apps/web/components/**/use-*.ts
+!apps/web/components/**/*-classes.ts
 !**/*.test.ts
 ```
 
-A new feature's `domain/` and `application/`, a new file in `contracts`, and a
-testable new file under `apps/web/server` are therefore measured the moment they
-exist, with no edit to the config. A glob that has to be widened by hand is a
+A new feature's `domain/` and `application/`, a new file in `contracts`, a
+testable new file under `apps/web/server`, and a new `.ts` module in
+`packages/ui/src` or `apps/web/components` are therefore measured the moment
+they exist, with no edit to the config. `.tsx` stays outside in both
+directories: the unit environment is `node`, with no DOM. A glob that has to be widened by hand is a
 glob that silently stops covering things, which is the failure ADR-0003 exists
 about.
 
 `packages/contracts` joins whole, not file by file. Cherry-picking `health.ts`
 would leave the same silent gap for the next contract that carries behaviour.
 
-Every exclusion is a file no unit test can import, rather than a file whose tests
-are missing: each reaches `apps/web/server/container.ts`, which imports
-`server-only`, whose `exports` resolve outside the `react-server` condition to a
-module whose entire body is a `throw`. So the answer to a broken threshold is a
-test. Adding a name to that list is not available as a quiet answer: the config is
+Every exclusion is a file no unit test can usefully run, rather than a file whose
+tests are missing, and each is one of three kinds:
+
+- A file no unit test can import. Each reaches `apps/web/server/container.ts`,
+  which imports `server-only`, whose `exports` resolve outside the
+  `react-server` condition to a module whose entire body is a `throw`.
+- A hook shell, `use-*.ts` under `apps/web/components`, whose whole body runs
+  inside a React render. It holds a React hook and no logic: logic a hook needs
+  that a unit test can run in `node` moves into a measured module beside it, as
+  the scrim press lives in `modal-dialog.ts` and the local day in
+  `browser-today.ts`. What is left is glue that the E2E suite judges.
+- A class-string module, `*-classes.ts` under `apps/web/components`, whose only
+  content is Tailwind classes. A test of it would restate the strings.
+
+Both new kinds are named by a pattern, never by a file, and both are scoped to
+`apps/web/components`: `packages/ui/src/type-classes.ts` derives its classes
+from the tokens, has a test, and stays measured. Nothing proves that a
+`use-*.ts` holds no logic or that a `*-classes.ts` holds only classes; like the
+first kind, each is closed by the owner's review rather than by a gate.
+
+So the answer to a broken threshold is a test. Adding a name to that list is not available as a quiet answer: the config is
 an owned path in `.github/CODEOWNERS`, so a pull request that edits it pulls the
 owner in as reviewer, on a milestone branch too, where nothing else does.
 
@@ -92,6 +114,13 @@ two files, 53 mutants and 96.23. Stryker's `Found N of M` line is quoted above f
 the baseline and not here, because `M` counts whatever sits in the working tree and
 moves on its own.
 
+Widening to `apps/web/components`, measured on `7675e2c` with the hook shells
+renamed: 13 files and 389 mutants join, every one killed, and the whole surface
+goes from 76 files, 2,500 mutants and 97.92 to 89 files, 2,889 mutants and
+**98.20**. Before the hooks were split out and the untested modules given tests,
+the directory's `.ts` files scored 61.46 over 615 mutants, most of the zero being
+hook glue and class strings.
+
 One fact about the runner that shapes where a test has to live: Stryker sandboxes
 the repository and symlinks `node_modules`, so a workspace import of
 `@repo/contracts` resolves to the original, unmutated package. A mutant in
@@ -103,7 +132,7 @@ while being executed by every other suite in the repository.
 
 ## Consequences
 
-Four things are permanently outside every automated coverage gate, covered by the
+These are permanently outside every automated coverage gate, covered by the
 E2E suite and by nothing else. Stated plainly, because this is the gap that the
 widening does not close:
 
@@ -111,7 +140,10 @@ widening does not close:
 - `apps/web/server/container.ts`, `context.ts`, `trpc.ts`, `root-router.ts`
 - `apps/web/app/**`, including Server Actions, which reach the composition root
   the same way
-- `packages/ui`, which is presentational, and `packages/db`, which is a schema
+- the `.tsx` components of `packages/ui` and `apps/web/components`, which are
+  presentational; their `.ts` modules are measured
+- the hook shells and class-string modules of `apps/web/components`
+- `packages/db`, which is a schema
 
 `tools/**` is outside too, and for a different reason: the gates' own tests run
 under `vitest.gates.config.ts`, Stryker runs the unit config, so mutating
@@ -131,7 +163,8 @@ for no behaviour. The threshold has room for them at 97.67. If copy ever becomes
 behaviour, which is what step 7's i18n catalogue would do, that changes.
 
 An exclusion is still an escape hatch, and what closes it is a person rather than
-a gate: nothing proves an excluded file is genuinely unimportable. The owner
+a gate: nothing proves an excluded file is genuinely unimportable, that a hook
+shell holds no logic, or that a class-string module holds only classes. The owner
 reviews the list, and `fixtures/mutation/` proves only that the threshold itself
 is alive.
 

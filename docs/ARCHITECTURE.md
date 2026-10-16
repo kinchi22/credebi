@@ -160,6 +160,7 @@ Raise the TypeScript major only together with `typescript-eslint`.
 | Authorization        | Checked at the use case entry point. Controllers pass the auth context, which `sessionProcedure` resolves from the `session` cookie; a use case given none answers `UNAUTHENTICATED`, 401. Every repository method over user data takes the `userId`, and another User's row is `NOT_FOUND`. ADR-0021. |
 | Signed-in pages      | The `(signed-in)` layout checks the session before it renders anything and sends a signed-out request to sign-in, so neither a visit nor a client-side navigation paints the signed-in app. A layout is given no path, so the proxy forwards the request's path and query in `x-requested-path` and the layout builds the return path from it with `signInPathFor`. Each page keeps `orSignIn` around the calls it makes. ADR-0021. |
 | Structure            | Feature-first: layers inside features, not features inside layers.     |
+| Hooks                | A React hook in `apps/web/components/` lives in a `use-*.ts` module that holds the hook and no logic; logic it needs moves to a measured module beside it. ADR-0004. |
 | Migrations           | Generated SQL committed with the schema change, on the milestone that needs it, and backwards compatible with Current Production. Applied from CI after the owner approves, and before the Production deployment carrying it can be promoted. CI asks for that approval only when a file under `packages/db/drizzle/` changed since the last commit the production database was migrated at. ADR-0024. |
 | Dynamic imports      | Forbidden everywhere, the composition root included. ADR-0002.         |
 | Client writes        | Server Actions in `apps/web/app/**/actions.ts`, invoking `createCaller`. |
@@ -181,6 +182,7 @@ Raise the TypeScript major only together with `typescript-eslint`.
 | `adapters/**`                | `*.integration.test.ts` against a real Postgres. Unmeasured: the mutation runner does not run that suite. |
 | `packages/contracts`         | Unit tests, pure. Measured since ADR-0004.             |
 | `packages/ui`                | Its pure `.ts` modules, such as the design tokens: unit tests, measured. Its `.tsx` components: Playwright, where the app renders them. |
+| `apps/web/components`        | Its `.ts` modules: unit tests, measured, except hook shells (`use-*.ts`) and class-string modules (`*-classes.ts`). Those and its `.tsx` components: Playwright. |
 | `apps/web/server`            | The half a unit test can import -- `catalogues.ts`, `domain-error.ts`, `env.ts`, `logger.ts`, `request-error.ts`, `return-path.ts`, `session-cookie.ts` and `sign-in-redirect.ts` today -- unit tested and measured. |
 | the composition root, `routers/**`, `app/**` | Playwright, against a production build in CI (`E2E build`), on a Postgres service container migrated before the suite. Nothing else reaches them. |
 
@@ -189,11 +191,12 @@ there is no line-coverage gate and no `@vitest/coverage-v8`. `stryker.config.ts`
 states the measured surface as patterns rather than a list, so a new file in a
 measured directory is measured by existing. A file nobody tests scores 0, and the
 break threshold of 90 is over the whole surface, so what fails is a named file
-rather than a percentage. Measured today: 36 files, 944 mutants, score 98.73.
+rather than a percentage. Measured today: 89 files, 2,889 mutants, score 98.20.
 
-The exclusions in that config name files no unit test can import, not files whose
-tests are missing: each reaches the composition root, and that imports
-`server-only`. So the rows above that say Playwright are outside every automated
+The exclusions in that config name files no unit test can usefully run, not files
+whose tests are missing: under `apps/web/server` each reaches the composition
+root, and that imports `server-only`; under `apps/web/components` they are hook
+shells and class-string modules, named by pattern. So the rows above that say Playwright are outside every automated
 coverage gate, and `tools/**` is outside too, for a different reason -- its tests
 run under `vitest.gates.config.ts` or the browser suite in
 `vitest.e2e-liveness.config.ts`, and the mutation runner runs the unit config.

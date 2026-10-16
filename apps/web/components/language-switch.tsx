@@ -15,7 +15,7 @@ import {
   type ReactNode,
 } from 'react';
 import { BARE_ICON_BUTTON } from './control-classes';
-import { useDismissOutside } from './dismiss-outside';
+import { useDismissOutside } from './use-dismiss-outside';
 import { DOWN_STEPS } from './roving-focus';
 
 export type LanguageSwitchProps = {

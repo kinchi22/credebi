@@ -9,13 +9,13 @@ import {
 } from '@repo/contracts';
 import { PencilIcon } from '@repo/ui';
 import { useId, type ReactNode } from 'react';
-import { useChangeGuard } from './change-guard';
+import { useChangeGuard } from './use-change-guard';
 import { CloseButton } from './close-button';
 import { ROW_ICON_BUTTON } from './control-classes';
 import { DiscardChanges } from './discard-changes';
 import { type EntryFormProps, type EntryFormState } from './entry-form';
 import { hasOneLinePerSide } from './entry-lines';
-import { useModalDialog } from './modal-dialog';
+import { useModalDialog } from './use-modal-dialog';
 import { MultiLineEntryForm } from './multi-line-entry-form';
 import { SheetBar } from './sheet';
 import { TwoLineEntryForm } from './two-line-entry-form';

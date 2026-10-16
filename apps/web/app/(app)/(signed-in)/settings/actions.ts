@@ -17,7 +17,7 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { type ChartChange } from '../../../../components/account-dialog';
 import { type ChartDeletionOutcome } from '../../../../components/delete-account-dialog';
-import { type SettingChange } from '../../../../components/saved-choice';
+import { type SettingChange } from '../../../../components/use-saved-choice';
 import { createContext } from '../../../../server/context';
 import { fromTrpcError } from '../../../../server/domain-error';
 import { LANGUAGE_COOKIE, LANGUAGE_COOKIE_OPTIONS } from '../../../../server/language-cookie';
