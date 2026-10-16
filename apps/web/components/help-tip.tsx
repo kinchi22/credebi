@@ -5,7 +5,7 @@ import { HelpIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { BARE_ICON_BUTTON } from './control-classes';
-import { useDismissOutside } from './dismiss-outside';
+import { useDismissOutside } from './use-dismiss-outside';
 import {
   helpTipAfter,
   helpTipMaxWidth,

@@ -1,6 +1,4 @@
-import { sideSchema, type Side } from '@repo/contracts';
-
-export const SIDES: readonly Side[] = sideSchema.options;
+import { type Side } from '@repo/contracts';
 
 type SideTone = { readonly text: string; readonly edge: string; readonly fill: string };
 

@@ -5,7 +5,7 @@ import {
   type MouseEvent,
   type SyntheticEvent,
 } from 'react';
-import { useModalDialog, type ModalDialog } from './modal-dialog';
+import { useModalDialog, type ModalDialog } from './use-modal-dialog';
 
 export type ChangeGuard = {
   readonly discard: ModalDialog;

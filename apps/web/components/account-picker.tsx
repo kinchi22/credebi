@@ -16,8 +16,8 @@ import Link from 'next/link';
 import { Fragment, useId, useState, type ReactNode } from 'react';
 import { SETTINGS_PATH } from '../server/return-path';
 import { CONTROL, PRIMARY_BUTTON, SEARCH_ON_STRIP } from './control-classes';
-import { useHydrated } from './hydrated';
-import { useModalDialog, type ModalDialog } from './modal-dialog';
+import { useHydrated } from './use-hydrated';
+import { useModalDialog, type ModalDialog } from './use-modal-dialog';
 import {
   branchesOf,
   nameContains,
@@ -30,12 +30,13 @@ import {
 } from './chart-tree';
 import { CloseButton } from './close-button';
 import { SheetBar, SheetTabs } from './sheet';
-import { SIDE_TONE, SIDES } from './side-classes';
+import { SIDES } from './entry-lines';
+import { SIDE_TONE } from './side-classes';
 import { NOTHING_SUGGESTED, type Suggested } from './suggested-accounts';
 import { LINK } from './text-classes';
 import { GroupFolder, TreeBranch } from './tree-branch';
 import { Band, SuggestedBand } from './type-band';
-import { useWide } from './wide';
+import { useWide } from './use-wide';
 
 export type AccountChoice = Readonly<Record<Side, AccountOutput | undefined>>;
 

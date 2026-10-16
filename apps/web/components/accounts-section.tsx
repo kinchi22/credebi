@@ -26,14 +26,14 @@ import {
 } from './account-dialog';
 import { branchesOf, shownInSection, type Branch, type SectionFilter } from './chart-tree';
 import { ChartDrag, ChartList, ChartRow, EndZone, GroupHeading } from './chart-drag';
-import { useBrowserToday } from './browser-today';
+import { useBrowserToday } from './use-browser-today';
 import {
   DeleteAccountDialog,
   type ChartDeletions,
   type DeleteAccountTarget,
 } from './delete-account-dialog';
 import { LEGEND, ROW_ICON_BUTTON } from './control-classes';
-import { useModalDialog } from './modal-dialog';
+import { useModalDialog } from './use-modal-dialog';
 import { DANGER_TEXT } from './text-classes';
 import { GroupFolder, TreeBranch } from './tree-branch';
 import { Band } from './type-band';

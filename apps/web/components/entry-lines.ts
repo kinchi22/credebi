@@ -1,5 +1,6 @@
-import { type Side } from '@repo/contracts';
-import { SIDES } from './side-classes';
+import { sideSchema, type Side } from '@repo/contracts';
+
+export const SIDES: readonly Side[] = sideSchema.options;
 
 type SidedLine = {
   readonly side: Side;

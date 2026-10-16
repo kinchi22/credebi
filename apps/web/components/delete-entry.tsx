@@ -12,7 +12,7 @@ import {
   DANGER_BUTTON,
   ROW_ICON_BUTTON,
 } from './control-classes';
-import { useModalDialog } from './modal-dialog';
+import { useModalDialog } from './use-modal-dialog';
 import { PendingDialog } from './pending-dialog';
 import { DANGER_TEXT } from './text-classes';
 

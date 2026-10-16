@@ -24,7 +24,7 @@ import {
   type ReactNode,
   type SubmitEvent,
 } from 'react';
-import { useBrowserToday } from './browser-today';
+import { useBrowserToday } from './use-browser-today';
 import {
   CONTROL,
   DATE_CONTROL,

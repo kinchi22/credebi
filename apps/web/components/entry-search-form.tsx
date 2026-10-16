@@ -14,7 +14,7 @@ import { PANEL, PANEL_TITLE } from '@repo/ui';
 import { useId, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import { ENTRY_SEARCH_PATH } from '../server/return-path';
-import { useBrowserToday } from './browser-today';
+import { useBrowserToday } from './use-browser-today';
 import { CONTROL, DATE_CONTROL, FIELD, PRIMARY_BUTTON } from './control-classes';
 import { DatePresets, DatePresetsSheet } from './date-presets';
 import { TitleCombobox } from './title-combobox';

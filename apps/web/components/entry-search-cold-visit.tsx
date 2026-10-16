@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 import { defaultSearchRange, type DayRange } from '@repo/core/entries';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { type EntrySearchAnswer } from '../server/entry-search';
-import { useBrowserToday } from './browser-today';
+import { useBrowserToday } from './use-browser-today';
 import { type DeleteEntryAction } from './delete-entry';
 import { type EditEntryAction } from './edit-entry';
 import { type EntryControls } from './entry-list';

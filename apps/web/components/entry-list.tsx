@@ -12,8 +12,8 @@ import { type ReactNode } from 'react';
 import { formatAmount } from './amount';
 import { DeleteEntry, type DeleteEntryAction } from './delete-entry';
 import { EditEntry, type EditEntryAction } from './edit-entry';
-import { hasOneLinePerSide, linesOn } from './entry-lines';
-import { SIDE_TONE, SIDES } from './side-classes';
+import { hasOneLinePerSide, linesOn, SIDES } from './entry-lines';
+import { SIDE_TONE } from './side-classes';
 import { MUTED_TEXT } from './text-classes';
 
 export type EntryControls = {

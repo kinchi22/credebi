@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { scrimPress, type ScrimPress } from './modal-dialog';
+import { scrimPress, type ScrimPress } from './scrim-press';
 
 const dialog = new EventTarget();
 const field = new EventTarget();

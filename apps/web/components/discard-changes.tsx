@@ -9,7 +9,7 @@ import {
   CONFIRMATION_PANEL,
   DANGER_BUTTON,
 } from './control-classes';
-import { type ModalDialog } from './modal-dialog';
+import { type ModalDialog } from './use-modal-dialog';
 
 export type DiscardChangesProps = {
   readonly dialog: ModalDialog;

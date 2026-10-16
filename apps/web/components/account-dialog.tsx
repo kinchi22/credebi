@@ -28,10 +28,10 @@ import {
   FIELD,
   PRIMARY_BUTTON,
 } from './control-classes';
-import { useChangeGuard } from './change-guard';
+import { useChangeGuard } from './use-change-guard';
 import { CloseButton } from './close-button';
 import { DiscardChanges } from './discard-changes';
-import { type ModalDialog } from './modal-dialog';
+import { type ModalDialog } from './use-modal-dialog';
 import { MUTED_TEXT, DANGER_TEXT } from './text-classes';
 
 export type ChartChange =

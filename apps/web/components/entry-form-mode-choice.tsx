@@ -13,7 +13,7 @@ import {
   SETTINGS_ROW,
   UNCHOSEN_SEGMENT,
 } from './control-classes';
-import { useSavedChoice, type SettingChange } from './saved-choice';
+import { useSavedChoice, type SettingChange } from './use-saved-choice';
 import { SIDE_TONE } from './side-classes';
 import { DANGER_TEXT } from './text-classes';
 

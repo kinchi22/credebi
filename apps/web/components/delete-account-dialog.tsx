@@ -5,7 +5,7 @@ import { type AccountType, type DomainErrorCode } from '@repo/contracts';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useId, useState, useTransition, type ReactNode, type TransitionStartFunction } from 'react';
 import { BUTTON, CONFIRMATION_PANEL, DANGER_BUTTON } from './control-classes';
-import { type ModalDialog } from './modal-dialog';
+import { type ModalDialog } from './use-modal-dialog';
 import { PendingDialog } from './pending-dialog';
 import { DANGER_TEXT, MUTED_TEXT } from './text-classes';
 

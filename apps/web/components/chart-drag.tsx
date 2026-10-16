@@ -37,7 +37,7 @@ import { createContext, useContext, useId, useRef, useState, type ReactNode } fr
 import { createPortal } from 'react-dom';
 import { aimedAt, measuredHits, measuredOf, type ChartDrop, type ChartDropTarget } from './chart-drop';
 import { BARE_ICON_BUTTON } from './control-classes';
-import { useHydrated } from './hydrated';
+import { useHydrated } from './use-hydrated';
 
 type NodeData = {
   readonly node: ChartNodeRef;

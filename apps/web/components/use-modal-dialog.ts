@@ -7,7 +7,8 @@ import {
   type PointerEvent,
   type RefObject,
 } from 'react';
-import { WIDE_QUERY } from './wide';
+import { scrimPress } from './scrim-press';
+import { WIDE_QUERY } from './use-wide';
 
 export type ModalDialog = {
   readonly open: boolean;
@@ -22,32 +23,6 @@ export type ModalDialog = {
     readonly onPointerUp: (event: PointerEvent<HTMLDialogElement>) => void;
   };
 };
-
-export type ScrimPress = {
-  readonly began: (target: EventTarget | null) => void;
-  readonly ended: (target: EventTarget | null) => void;
-  readonly clicked: (target: EventTarget | null, dialog: EventTarget) => boolean;
-};
-
-export function scrimPress(): ScrimPress {
-  let pressedOn: EventTarget | null = null;
-  let releasedOn: EventTarget | null = null;
-  return {
-    began: (target) => {
-      pressedOn = target;
-      releasedOn = null;
-    },
-    ended: (target) => {
-      releasedOn = target;
-    },
-    clicked: (target, dialog) => {
-      const clicked = pressedOn === dialog && releasedOn === dialog && target === dialog;
-      pressedOn = null;
-      releasedOn = null;
-      return clicked;
-    },
-  };
-}
 
 export type ModalDialogOptions = {
   readonly closesWhenWide: boolean;
