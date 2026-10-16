@@ -5,10 +5,10 @@ import { formatAmount } from './amount';
 describe('formatAmount', () => {
   it('groups the thousands of an amount with commas', () => {
     expect(formatAmount(1234567 as Money)).toBe('1,234,567');
+    expect(formatAmount(4500 as Money)).toBe('4,500');
   });
 
   it('shows an amount under a thousand as it is', () => {
-    expect(formatAmount(4500 as Money)).toBe('4,500');
     expect(formatAmount(999 as Money)).toBe('999');
     expect(formatAmount(0 as Money)).toBe('0');
   });

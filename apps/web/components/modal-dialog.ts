@@ -24,8 +24,8 @@ export type ModalDialog = {
 };
 
 export type ScrimPress = {
-  readonly began: (target: EventTarget | null, dialog: EventTarget) => void;
-  readonly ended: (target: EventTarget | null, dialog: EventTarget) => void;
+  readonly began: (target: EventTarget | null) => void;
+  readonly ended: (target: EventTarget | null) => void;
   readonly clicked: (target: EventTarget | null, dialog: EventTarget) => boolean;
 };
 
@@ -111,10 +111,10 @@ export function useModalDialog({ closesWhenWide }: ModalDialogOptions = SHEET): 
         if (dialog.current?.open !== true) close();
       },
       onPointerDown: (event) => {
-        press.began(event.target, event.currentTarget);
+        press.began(event.target);
       },
       onPointerUp: (event) => {
-        press.ended(event.target, event.currentTarget);
+        press.ended(event.target);
       },
     },
   };
