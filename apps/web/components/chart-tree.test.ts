@@ -153,6 +153,14 @@ describe('ruledRunsOf', () => {
     ).toEqual({ above: false, below: true });
   });
 
+  it('counts ungrouped Accounts as shown when only some of them are', () => {
+    expect(
+      rulesOf([CARDS, ungrouped(account('d001', 'Cash'), account('d002', 'Receivable')), PETTY], (shown) =>
+        shown.name !== 'Cash',
+      )[2],
+    ).toEqual({ above: true, below: false });
+  });
+
   it('draws no rule for a group that is the only run of its type', () => {
     expect(rulesOf([BANK_RUN], () => true)).toEqual([{ above: false, below: false }]);
   });

@@ -121,4 +121,16 @@ describe('prefillFrom', () => {
       ],
     });
   });
+
+  it('fills a line whose Account is no longer in the chart with no name', () => {
+    expect(
+      prefillFrom(EMPTY_TWO_LINE, [source('debit', 'c009', 700), source('credit', 'c001', 700)], CHART),
+    ).toEqual({
+      outcome: 'filled',
+      lines: [
+        { side: 'debit', account: id('c009'), accountName: '', amount: '700' },
+        { side: 'credit', account: CASH.id, accountName: 'Cash', amount: '700' },
+      ],
+    });
+  });
 });
