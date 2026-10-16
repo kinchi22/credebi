@@ -3,7 +3,8 @@
 **Status:** Accepted
 **Date:** 2026-09-13
 **Amended:** 2026-09-24, PR #116
-**Amended:** 2026-10-16, PR #481
+**Amended:** 2026-10-16, PR #481, which widens the decision to
+`apps/web/components`; amended rather than superseded by the owner's choice
 
 ## Problem
 
@@ -56,9 +57,9 @@ A new feature's `domain/` and `application/`, a new file in `contracts`, a
 testable new file under `apps/web/server`, and a new `.ts` module in
 `packages/ui/src` or `apps/web/components` are therefore measured the moment
 they exist, with no edit to the config. `.tsx` stays outside in both
-directories: the unit environment is `node`, with no DOM. A glob that has to be widened by hand is a
-glob that silently stops covering things, which is the failure ADR-0003 exists
-about.
+directories: the unit environment is `node`, with no DOM. A glob that has to
+be widened by hand is a glob that silently stops covering things, which is the
+failure ADR-0003 exists about.
 
 `packages/contracts` joins whole, not file by file. Cherry-picking `health.ts`
 would leave the same silent gap for the next contract that carries behaviour.
@@ -70,22 +71,23 @@ tests are missing, and each is one of three kinds:
   which imports `server-only`, whose `exports` resolve outside the
   `react-server` condition to a module whose entire body is a `throw`.
 - A hook shell, `use-*.ts` under `apps/web/components`, whose whole body runs
-  inside a React render. It holds a React hook and no logic: logic a hook needs
-  that a unit test can run in `node` moves into a measured module beside it, as
-  the scrim press lives in `modal-dialog.ts` and the local day in
-  `browser-today.ts`. What is left is glue that the E2E suite judges.
-- A class-string module, `*-classes.ts` under `apps/web/components`, whose only
-  content is Tailwind classes. A test of it would restate the strings.
+  inside a React render. A hook in a `.ts` module of `apps/web/components`
+  lives in a `use-*.ts` module holding no logic a `node` unit test could run;
+  such logic moves to a measured module, as the scrim press lives in
+  `scrim-press.ts` and the local day in `local-day.ts`. What is left is glue
+  that the E2E suite judges. A hook local to a `.tsx` component is outside the
+  rule, as `.tsx` is outside the surface.
+- A class-string module, `*-classes.ts` under `apps/web/components`, whose
+  only content is Tailwind classes. A test of it would restate the strings.
 
 Both new kinds are named by a pattern, never by a file, and both are scoped to
 `apps/web/components`: `packages/ui/src/type-classes.ts` derives its classes
-from the tokens, has a test, and stays measured. Nothing proves that a
-`use-*.ts` holds no logic or that a `*-classes.ts` holds only classes; like the
-first kind, each is closed by the owner's review rather than by a gate.
+from the tokens, has a test, and stays measured.
 
-So the answer to a broken threshold is a test. Adding a name to that list is not available as a quiet answer: the config is
-an owned path in `.github/CODEOWNERS`, so a pull request that edits it pulls the
-owner in as reviewer, on a milestone branch too, where nothing else does.
+So the answer to a broken threshold is a test. Adding a name to that list is
+not available as a quiet answer: the config is an owned path in
+`.github/CODEOWNERS`, so a pull request that edits it pulls the owner in as
+reviewer, on a milestone branch too, where nothing else does.
 
 What enforces that is the rulesets rather than `CODEOWNERS` on its own, which only
 requests a reviewer: both set `require_code_owner_review` -- `main` alongside one
@@ -117,10 +119,11 @@ moves on its own.
 
 Widening to `apps/web/components`, measured on `7675e2c` with the hook shells
 renamed: 13 files and 389 mutants join, every one killed, and the whole surface
-goes from 76 files, 2,500 mutants and 97.92 to 89 files, 2,889 mutants and
-**98.20**. Before the hooks were split out and the untested modules given tests,
-the directory's `.ts` files scored 61.46 over 615 mutants, most of the zero being
-hook glue and class strings.
+measures 89 files, 2,889 mutants and **98.20**. The surface before the widening,
+76 files, 2,500 mutants and 97.92, is derived from that run minus the components
+files, not measured separately. Before the hooks were split out and the untested
+modules given tests, the directory's `.ts` files scored 61.46 over 615 mutants,
+most of the zero being hook glue and class strings.
 
 One fact about the runner that shapes where a test has to live: Stryker sandboxes
 the repository and symlinks `node_modules`, so a workspace import of

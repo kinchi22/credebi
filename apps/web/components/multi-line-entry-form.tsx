@@ -31,7 +31,8 @@ import {
 } from './entry-form';
 import { isLine, linesOnDay, offeredOn } from './lines-on-day';
 import { NotActiveMark, useNotActiveHold } from './not-active-on-day';
-import { SIDE_TONE, SIDES } from './side-classes';
+import { SIDES } from './entry-lines';
+import { SIDE_TONE } from './side-classes';
 import { DANGER_TEXT, FORM_REFUSAL } from './text-classes';
 import { suggestedOn } from './suggested-accounts';
 import { prefillFrom } from './title-prefill';

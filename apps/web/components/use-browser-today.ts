@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { localDayOf } from './browser-today';
+import { localDayOf } from './local-day';
 import { subscribeToNothing } from './use-hydrated';
 
 const todayInTheBrowser = (): string => localDayOf(new Date());

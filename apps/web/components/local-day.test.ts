@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { localDayOf } from './browser-today';
+import { localDayOf } from './local-day';
 
 describe('localDayOf', () => {
   it('writes the day as year, month and day', () => {

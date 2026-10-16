@@ -30,7 +30,8 @@ import {
 } from './chart-tree';
 import { CloseButton } from './close-button';
 import { SheetBar, SheetTabs } from './sheet';
-import { SIDE_TONE, SIDES } from './side-classes';
+import { SIDES } from './entry-lines';
+import { SIDE_TONE } from './side-classes';
 import { NOTHING_SUGGESTED, type Suggested } from './suggested-accounts';
 import { LINK } from './text-classes';
 import { GroupFolder, TreeBranch } from './tree-branch';

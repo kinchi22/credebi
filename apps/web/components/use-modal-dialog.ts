@@ -7,7 +7,7 @@ import {
   type PointerEvent,
   type RefObject,
 } from 'react';
-import { scrimPress } from './modal-dialog';
+import { scrimPress } from './scrim-press';
 import { WIDE_QUERY } from './use-wide';
 
 export type ModalDialog = {
