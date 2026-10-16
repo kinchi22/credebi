@@ -3,10 +3,10 @@ import { subscribeToNothing } from './hydrated';
 
 const twoDigits = (value: number): string => String(value).padStart(2, '0');
 
-function todayInTheBrowser(): string {
-  const now = new Date();
-  return `${String(now.getFullYear()).padStart(4, '0')}-${twoDigits(now.getMonth() + 1)}-${twoDigits(now.getDate())}`;
-}
+export const localDayOf = (date: Date): string =>
+  `${String(date.getFullYear()).padStart(4, '0')}-${twoDigits(date.getMonth() + 1)}-${twoDigits(date.getDate())}`;
+
+const todayInTheBrowser = (): string => localDayOf(new Date());
 
 const todayUnknownOnTheServer = (): undefined => undefined;
 

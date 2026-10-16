@@ -31,6 +31,30 @@ describe('scrimPress', () => {
     expect(scrimPress().clicked(dialog, dialog)).toBe(false);
   });
 
+  it('does not count a click on the scrim after a press that was never released', () => {
+    const scrim = scrimPress();
+    scrim.began(dialog, dialog);
+    expect(scrim.clicked(dialog, dialog)).toBe(false);
+  });
+
+  it('does not count a release on the scrim with no press before it', () => {
+    const scrim = scrimPress();
+    scrim.ended(dialog, dialog);
+    expect(scrim.clicked(dialog, dialog)).toBe(false);
+  });
+
+  it('does not count a click inside the dialog after a press on the scrim', () => {
+    expect(press(scrimPress(), dialog, dialog, field)).toBe(false);
+  });
+
+  it('forgets the release of an earlier press that brought no click', () => {
+    const scrim = scrimPress();
+    scrim.began(dialog, dialog);
+    scrim.ended(dialog, dialog);
+    scrim.began(dialog, dialog);
+    expect(scrim.clicked(dialog, dialog)).toBe(false);
+  });
+
   it('judges each press on its own', () => {
     const scrim = scrimPress();
     expect(press(scrim, dialog, dialog, dialog)).toBe(true);

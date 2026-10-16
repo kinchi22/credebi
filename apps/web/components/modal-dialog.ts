@@ -30,20 +30,20 @@ export type ScrimPress = {
 };
 
 export function scrimPress(): ScrimPress {
-  let beganOnScrim = false;
-  let endedOnScrim = false;
+  let pressedOn: EventTarget | null = null;
+  let releasedOn: EventTarget | null = null;
   return {
-    began: (target, dialog) => {
-      beganOnScrim = target === dialog;
-      endedOnScrim = false;
+    began: (target) => {
+      pressedOn = target;
+      releasedOn = null;
     },
-    ended: (target, dialog) => {
-      endedOnScrim = target === dialog;
+    ended: (target) => {
+      releasedOn = target;
     },
     clicked: (target, dialog) => {
-      const clicked = beganOnScrim && endedOnScrim && target === dialog;
-      beganOnScrim = false;
-      endedOnScrim = false;
+      const clicked = pressedOn === dialog && releasedOn === dialog && target === dialog;
+      pressedOn = null;
+      releasedOn = null;
       return clicked;
     },
   };

@@ -111,11 +111,17 @@ const STAR_BUCKS_WIDE_SPACED_INITIALS = '\u3145\u314C\u3000\u3142\u3145';
 
 const SUTABA_SEU = '\u30B9\u30BF\u30D0 \uC2A4\uD0C0';
 
+const ISTANBUL_DOTTED = '\u0130stanbul';
+
 describe('matchesTyped', () => {
   it('matches a name containing the typed text anywhere, ignoring case', () => {
     expect(matchesTyped('Starbucks', 'bucks')).toBe(true);
     expect(matchesTyped('Starbucks', 'AR')).toBe(true);
     expect(matchesTyped('starbucks', 'STAR')).toBe(true);
+  });
+
+  it('matches a capital letter by the lower case it folds to', () => {
+    expect(matchesTyped(ISTANBUL_DOTTED, 'i')).toBe(true);
   });
 
   it('matches no name the typed text is not part of', () => {
