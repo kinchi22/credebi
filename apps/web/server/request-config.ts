@@ -9,11 +9,11 @@ export const configForLanguage = (language: Language): RequestConfig => ({
   messages: CATALOGUES[language] as typeof en,
 });
 
-export const requestConfig = (sources: LanguageSources): RequestConfig =>
+export const configForSources = (sources: LanguageSources): RequestConfig =>
   configForLanguage(resolveLanguage(sources));
 
 export const configForRequest = async (
   locale: Language | undefined,
   sources: () => Promise<LanguageSources>,
 ): Promise<RequestConfig> =>
-  locale === undefined ? requestConfig(await sources()) : configForLanguage(locale);
+  locale === undefined ? configForSources(await sources()) : configForLanguage(locale);
