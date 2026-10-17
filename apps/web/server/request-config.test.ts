@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { configForLanguage, requestConfig } from './i18n-request';
+import { configForLanguage, configForRequest, requestConfig } from './request-config';
 
 describe('the request config', () => {
   it('serves English, with the English catalogue, to a request that names no Language', () => {
@@ -25,6 +25,26 @@ describe('the request config', () => {
 
   it('serves a Language named outright, with its catalogue, whatever the request holds', () => {
     const config = configForLanguage('ko');
+
+    expect(config.locale).toBe('ko');
+    expect(config.messages).toMatchObject({ language: { label: '\uC5B8\uC5B4' } });
+  });
+});
+
+describe('the config for a request', () => {
+  it('serves the Language a render names, whatever the request holds', async () => {
+    const config = await configForRequest('ja', () =>
+      Promise.resolve({ cookie: 'ko', acceptLanguage: 'ko' }),
+    );
+
+    expect(config.locale).toBe('ja');
+    expect(config.messages).toMatchObject({ language: { label: '\u8A00\u8A9E' } });
+  });
+
+  it('serves the Language the request holds when the render names none', async () => {
+    const config = await configForRequest(undefined, () =>
+      Promise.resolve({ acceptLanguage: 'ko-KR,ko;q=0.9' }),
+    );
 
     expect(config.locale).toBe('ko');
     expect(config.messages).toMatchObject({ language: { label: '\uC5B8\uC5B4' } });
