@@ -5,7 +5,7 @@
 **Amended:** 2026-09-24, PR #116
 **Amended:** 2026-10-16, PR #481, which widens the decision to
 `apps/web/components`; amended rather than superseded by the owner's choice
-**Amended:** 2026-10-17, #482, which excludes request shells under
+**Amended:** 2026-10-17, PR #483, which excludes request shells under
 `apps/web/server`; amended rather than superseded by the owner's choice
 
 ## Problem
