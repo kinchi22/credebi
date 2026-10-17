@@ -90,9 +90,10 @@ tests are missing, and each is one of four kinds:
   `i18n-request.ts` resolves its config through `configForRequest` in
   `request-config.ts`, which takes the request's sources as a plain function.
 
-Both new kinds are named by a pattern, never by a file, and both are scoped to
-`apps/web/components`: `packages/ui/src/type-classes.ts` derives its classes
-from the tokens, has a test, and stays measured.
+The last three kinds are named by a pattern, never by a file. The hook shell
+and the class-string module are scoped to `apps/web/components`:
+`packages/ui/src/type-classes.ts` derives its classes from the tokens, has a
+test, and stays measured. The request shell is scoped to `apps/web/server`.
 
 So the answer to a broken threshold is a test. Adding a name to that list is
 not available as a quiet answer: the config is an owned path in
