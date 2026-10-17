@@ -5,6 +5,8 @@
 **Amended:** 2026-09-24, PR #116
 **Amended:** 2026-10-16, PR #481, which widens the decision to
 `apps/web/components`; amended rather than superseded by the owner's choice
+**Amended:** 2026-10-17, PR #483, which excludes request shells under
+`apps/web/server`; amended rather than superseded by the owner's choice
 
 ## Problem
 
@@ -48,6 +50,7 @@ packages/ui/src/**/*.ts
 apps/web/components/**/*.ts
 !apps/web/server/{container,context,trpc,root-router}.ts
 !apps/web/server/routers/**
+!apps/web/server/**/*-request.ts
 !apps/web/components/**/use-*.ts
 !apps/web/components/**/*-classes.ts
 !**/*.test.ts
@@ -65,7 +68,7 @@ failure ADR-0003 exists about.
 would leave the same silent gap for the next contract that carries behaviour.
 
 Every exclusion is a file no unit test can usefully run, rather than a file whose
-tests are missing, and each is one of three kinds:
+tests are missing, and each is one of four kinds:
 
 - A file no unit test can import. Each reaches `apps/web/server/container.ts`,
   which imports `server-only`, whose `exports` resolve outside the
@@ -79,10 +82,18 @@ tests are missing, and each is one of three kinds:
   rule, as `.tsx` is outside the surface.
 - A class-string module, `*-classes.ts` under `apps/web/components`, whose
   only content is Tailwind classes. A test of it would restate the strings.
+- A request shell, `*-request.ts` under `apps/web/server`, every export of
+  which reads `next/headers` or calls `next-intl/server`. Under `node`,
+  `next-intl/server` outside `react-server` resolves to stubs that throw,
+  `getRequestConfig` included, and `cookies()` and `headers()` throw outside a
+  request. The shell's logic lives in a measured module it calls, as
+  `i18n-request.ts` resolves its config through `configForRequest` in
+  `request-config.ts`, which takes the request's sources as a plain function.
 
-Both new kinds are named by a pattern, never by a file, and both are scoped to
-`apps/web/components`: `packages/ui/src/type-classes.ts` derives its classes
-from the tokens, has a test, and stays measured.
+The last three kinds are named by a pattern, never by a file. The hook shell
+and the class-string module are scoped to `apps/web/components`:
+`packages/ui/src/type-classes.ts` derives its classes from the tokens, has a
+test, and stays measured. The request shell is scoped to `apps/web/server`.
 
 So the answer to a broken threshold is a test. Adding a name to that list is
 not available as a quiet answer: the config is an owned path in
@@ -125,6 +136,12 @@ files, not measured separately. Before the hooks were split out and the untested
 modules given tests, the directory's `.ts` files scored 61.46 over 615 mutants,
 most of the zero being hook glue and class strings.
 
+Excluding the request shell, measured on `2e5aca8` with the shell's logic
+moved to `request-config.ts`: `i18n-request.ts` scored 15.79 over 19 mutants
+before, its 16 unkilled all in what is now the shell, and `request-config.ts`
+scores 100 over 7. The whole surface measures 89 files, 2,877 mutants and
+**98.75**.
+
 One fact about the runner that shapes where a test has to live: Stryker sandboxes
 the repository and symlinks `node_modules`, so a workspace import of
 `@repo/contracts` resolves to the original, unmutated package. A mutant in
@@ -147,6 +164,9 @@ widening does not close:
 - the `.tsx` components of `packages/ui` and `apps/web/components`, which are
   presentational; their `.ts` modules are measured
 - the hook shells and class-string modules of `apps/web/components`
+- the request shells of `apps/web/server`: `i18n-request.ts`, whose
+  `Accept-Language` read `e2e/language.spec.ts` judges and whose prerendered
+  app copy `e2e/brand.spec.ts` judges through the manifest's name
 - `packages/db`, which is a schema
 
 `tools/**` is outside too, and for a different reason: the gates' own tests run
@@ -168,9 +188,9 @@ behaviour, which is what step 7's i18n catalogue would do, that changes.
 
 An exclusion is still an escape hatch, and what closes it is a person rather than
 a gate: nothing proves an excluded file is genuinely unimportable, that a hook
-shell holds no logic, or that a class-string module holds only classes. The owner
-reviews the list, and `fixtures/mutation/` proves only that the threshold itself
-is alive.
+shell or a request shell holds no logic, or that a class-string module holds
+only classes. The owner reviews the list, and `fixtures/mutation/` proves only
+that the threshold itself is alive.
 
 One of the five is unimportable for a reason that could change without anyone
 touching it. `trpc.ts` reaches the composition root through

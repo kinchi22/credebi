@@ -15,6 +15,7 @@ export default {
     'apps/web/components/**/*.ts',
     '!apps/web/server/{container,context,trpc,root-router}.ts',
     '!apps/web/server/routers/**',
+    '!apps/web/server/**/*-request.ts',
     '!apps/web/components/**/use-*.ts',
     '!apps/web/components/**/*-classes.ts',
     '!**/*.test.ts',
