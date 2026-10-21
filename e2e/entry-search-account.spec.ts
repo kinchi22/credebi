@@ -48,7 +48,7 @@ const REFUSAL = 'Choose an account from the list, or clear the field to search e
 
 const PETTY_CASH = 'Petty cash';
 
-const LONG_NAME = 'Savings wallet kept for the yearly holiday and every birthday present in the family';
+const LONG_NAME = 'Wallet saved for holidays and birthdays';
 
 const SEU = '\uC2A4';
 
@@ -78,10 +78,13 @@ const clearButton = (page: Page): Locator =>
 const noAccountMatches = (page: Page): Locator => page.getByText(NO_ACCOUNT_MATCHES, { exact: true });
 
 const validationMessage = async (field: Locator): Promise<string> =>
-  String(await field.evaluate('(input) => input.validationMessage'));
+  field.evaluate((input: { readonly validationMessage: string }) => input.validationMessage);
 
-const selection = async (field: Locator): Promise<unknown> =>
-  field.evaluate('(input) => [input.selectionStart, input.selectionEnd]');
+const selection = async (field: Locator): Promise<readonly (number | null)[]> =>
+  field.evaluate((input: { readonly selectionStart: number | null; readonly selectionEnd: number | null }) => [
+    input.selectionStart,
+    input.selectionEnd,
+  ]);
 
 async function openSearch(page: Page): Promise<Locator> {
   await page.goto(SEARCH);
