@@ -117,7 +117,7 @@ export const lineGroup = (form: Locator, side: Side, account: LineAccount): Loca
 export const lineAmount = (form: Locator, side: Side, account: LineAccount): Locator =>
   lineGroup(form, side, account).getByLabel('Amount');
 
-const escaped = (name: string): string => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+export const escaped = (name: string): string => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 export const lineGroups = (form: Locator, ...added: readonly AddedAccount[]): Locator =>
   form.getByRole('group', {

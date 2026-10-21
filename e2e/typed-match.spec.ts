@@ -16,17 +16,8 @@ import { EARLIEST, fromField, LATEST, toField } from './entry-search';
 import { addAccount, BOOKS_OPEN } from './accounts';
 import { ENTRY_SEARCH_PATH as SEARCH } from './routes';
 import { signIn } from './session';
+import { SHINHAN_CARD, STARBUCKS, STARBUCKS_INITIALS, SUTABA, SUTABA_IN_HIRAGANA } from './typed-text';
 import { PHONE } from './viewport';
-
-const STARBUCKS = '\uC2A4\uD0C0\uBC85\uC2A4';
-
-const SHINHAN_CARD = '\uC2E0\uD55C\uCE74\uB4DC';
-
-const STARBUCKS_INITIALS = '\u3145\u314C\u3142\u3145';
-
-const SUTABA = '\u30B9\u30BF\u30D0';
-
-const SUTABA_IN_HIRAGANA = '\u3059\u305F\u3070';
 
 const SUSHI = '\u3059\u3057';
 

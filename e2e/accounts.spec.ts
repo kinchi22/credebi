@@ -45,7 +45,8 @@ import {
   ACCOUNTS,
   AMOUNT,
   type Account,
-  entryForm, entrySearchForm, listedEntry, postEntries } from './entries';
+  entryForm, listedEntry, postEntries } from './entries';
+import { accountField, offeredAccount, offeredAccountName, offeredAccounts } from './entry-search';
 import { ENTRY_SEARCH_PATH } from './routes';
 import { signIn } from './session';
 import { expectWithinPhone, PHONE } from './viewport';
@@ -347,10 +348,10 @@ test('lists an ended Account, last, in the Account filter of Entry search', asyn
   });
 
   await page.goto(ENTRY_SEARCH_PATH);
-  const filter = entrySearchForm(page).getByLabel('Account', { exact: true });
-  await expect(filter.getByRole('option', { name: 'Old wallet', exact: true })).toHaveCount(1);
-  await expect(filter.getByRole('option', { name: 'Cash', exact: true })).toHaveCount(1);
-  await expect(filter.getByRole('option').last()).toHaveText('Old wallet');
+  await accountField(page).click();
+  await expect(offeredAccount(page, 'Old wallet', 'Assets')).toHaveCount(1);
+  await expect(offeredAccount(page, 'Cash', 'Assets')).toHaveCount(1);
+  await expect(offeredAccounts(page).last()).toHaveAccessibleName(offeredAccountName('Old wallet', 'Assets'));
 });
 
 test('adds, edits and deletes an Account and an Account group in the Accounts section at 390px', async ({ page }) => {
