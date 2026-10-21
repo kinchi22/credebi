@@ -53,6 +53,9 @@ export async function chooseAccount(page: Page, name: string): Promise<void> {
   await expect(accountList(page)).toBeHidden();
 }
 
+export const searchButton = (page: Page): Locator =>
+  entrySearchForm(page).getByRole('button', { name: 'Search', exact: true });
+
 type Criteria = {
   readonly from?: string;
   readonly to?: string;
@@ -77,5 +80,5 @@ export async function search(page: Page, criteria: Criteria): Promise<void> {
     await form.getByLabel('Memo', { exact: true }).fill(criteria.memo);
   }
 
-  await form.getByRole('button', { name: 'Search' }).click();
+  await searchButton(page).click();
 }

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { addAccount, BOOKS_OPEN, bottom, boxOf, dayInBrowser } from './accounts';
-import { AMOUNT, entrySearchForm, type LineAccount, postEntries, type TwoLineEntry } from './entries';
+import { addAccount, BOOKS_OPEN, bottom, boxOf, dayInBrowser, OLD_WALLET } from './accounts';
+import { AMOUNT, entrySearchForm, type LineAccount, nameOf, postEntries, type TwoLineEntry } from './entries';
 import {
   accountField,
   accountList,
@@ -14,11 +14,22 @@ import {
   offeredAccount,
   offeredAccounts,
   resultFor,
+  searchButton,
   toField,
 } from './entry-search';
 import { expectSettingsPageIn, languageChoice } from './language';
 import { ENTRY_SEARCH_PATH as SEARCH, ENTRY_SEARCH_WITH_QUERY, ENTRY_SEARCH_WITHOUT_QUERY } from './routes';
 import { signIn } from './session';
+import {
+  finishComposing,
+  HANGUL,
+  SHINHAN_CARD,
+  STARBUCKS,
+  STARBUCKS_INITIALS,
+  startComposing,
+  SUTABA,
+  SUTABA_IN_HIRAGANA,
+} from './typed-text';
 import { expectWithinPhone, PHONE } from './viewport';
 
 const STARTING: readonly OfferedAccount[] = [
@@ -37,23 +48,11 @@ const REFUSAL = 'Choose an account from the list, or clear the field to search e
 
 const PETTY_CASH = 'Petty cash';
 
-const OLD_WALLET = 'Old wallet';
-
 const LONG_NAME = 'Savings wallet kept for the yearly holiday and every birthday present in the family';
-
-const STARBUCKS = '\uC2A4\uD0C0\uBC85\uC2A4';
-
-const SHINHAN_CARD = '\uC2E0\uD55C\uCE74\uB4DC';
-
-const STARBUCKS_INITIALS = '\u3145\u314C\u3142\u3145';
 
 const SEU = '\uC2A4';
 
 const TIEUT = '\u314C';
-
-const SUTABA = '\u30B9\u30BF\u30D0';
-
-const SUTABA_IN_HIRAGANA = '\u3059\u305F\u3070';
 
 const KOREAN_SEARCH_FORM = '\uAC70\uB798 \uAC80\uC0C9';
 
@@ -65,16 +64,13 @@ const KOREAN_ASSETS = '\uC790\uC0B0';
 
 const DAY = '2026-06-15';
 
-const credited = (memo: string, creditAccount: LineAccount, day = DAY): TwoLineEntry => ({
+const paidFrom = (memo: string, creditAccount: LineAccount, day = DAY): TwoLineEntry => ({
   day,
   memo,
   debitAccount: 'Expenses',
   creditAccount,
   amount: AMOUNT,
 });
-
-const searchButton = (page: Page): Locator =>
-  entrySearchForm(page).getByRole('button', { name: 'Search', exact: true });
 
 const clearButton = (page: Page): Locator =>
   entrySearchForm(page).getByRole('button', { name: /clear/i });
@@ -83,6 +79,9 @@ const noAccountMatches = (page: Page): Locator => page.getByText(NO_ACCOUNT_MATC
 
 const validationMessage = async (field: Locator): Promise<string> =>
   String(await field.evaluate('(input) => input.validationMessage'));
+
+const selection = async (field: Locator): Promise<unknown> =>
+  field.evaluate('(input) => [input.selectionStart, input.selectionEnd]');
 
 async function openSearch(page: Page): Promise<Locator> {
   await page.goto(SEARCH);
@@ -102,7 +101,7 @@ async function expectListed(page: Page, listed: readonly string[], unlisted: rea
   for (const memo of unlisted) await expect(resultFor(page, memo)).toHaveCount(0);
 }
 
-async function expectRefused(page: Page, field: Locator, typed: string): Promise<void> {
+async function expectAccountRefused(page: Page, field: Locator, typed: string): Promise<void> {
   await expect(field).toBeFocused();
   await expect(field).toHaveValue(typed);
   await expect.poll(() => validationMessage(field)).toBe(REFUSAL);
@@ -160,11 +159,10 @@ test('narrows the Accounts by Korean initials, by a syllable still being compose
   await expectOfferedAccounts(page, [[STARBUCKS, 'Expenses']]);
 
   await field.fill(SEU);
-  const cdp = await page.context().newCDPSession(page);
-  await cdp.send('Input.imeSetComposition', { text: TIEUT, selectionStart: 1, selectionEnd: 1 });
+  const cdp = await startComposing(page, TIEUT);
   await expect(field).toHaveValue(`${SEU}${TIEUT}`);
   await expectOfferedAccounts(page, [[STARBUCKS, 'Expenses']]);
-  await cdp.send('Input.insertText', { text: TIEUT });
+  await finishComposing(cdp, TIEUT);
   await expect(field).toHaveValue(`${SEU}${TIEUT}`);
   await expectOfferedAccounts(page, [[STARBUCKS, 'Expenses']]);
 
@@ -181,21 +179,21 @@ test('lists an ended Account after the rest, and searches by it once it is chose
   await page.goto('/settings');
   const inUse = await dayInBrowser(page, -10);
   await addAccount(page, 'Assets', {
-    name: OLD_WALLET,
+    name: nameOf(OLD_WALLET),
     activeFrom: await dayInBrowser(page, -30),
     activeUntil: await dayInBrowser(page, -1),
   });
   await postEntries(page, [
-    credited(fromTheWallet, { added: OLD_WALLET }, inUse),
-    credited(fromCash, 'Cash', inUse),
+    paidFrom(fromTheWallet, OLD_WALLET, inUse),
+    paidFrom(fromCash, 'Cash', inUse),
   ]);
 
   const field = await openSearch(page);
   await field.click();
-  await expectOfferedAccounts(page, [...STARTING, [OLD_WALLET, 'Assets']]);
+  await expectOfferedAccounts(page, [...STARTING, [nameOf(OLD_WALLET), 'Assets']]);
 
-  await offeredAccount(page, OLD_WALLET, 'Assets').click();
-  await expect(field).toHaveValue(OLD_WALLET);
+  await offeredAccount(page, nameOf(OLD_WALLET), 'Assets').click();
+  await expect(field).toHaveValue(nameOf(OLD_WALLET));
   await searchButton(page).click();
   await expectListed(page, [fromTheWallet], [fromCash]);
 });
@@ -206,7 +204,7 @@ test('chooses an Account by click, or by the arrow keys and Enter, fills the fie
   const paid = `Paid ${run}`;
   const owed = `Owed ${run}`;
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await postEntries(page, [credited(paid, 'Cash'), credited(owed, 'Accounts payable')]);
+  await postEntries(page, [paidFrom(paid, 'Cash'), paidFrom(owed, 'Accounts payable')]);
 
   const field = await openSearch(page);
   await field.click();
@@ -233,7 +231,7 @@ test('searches every Account once the clear button is pressed, or the field is e
   const paid = `Paid ${run}`;
   const owed = `Owed ${run}`;
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await postEntries(page, [credited(paid, 'Cash'), credited(owed, 'Accounts payable')]);
+  await postEntries(page, [paidFrom(paid, 'Cash'), paidFrom(owed, 'Accounts payable')]);
 
   const field = await openSearch(page);
   await chooseAccount(page, 'Cash');
@@ -267,9 +265,9 @@ test('takes text that is an Account name, ignoring case, as that Account even wh
   const owed = `Owed ${run}`;
   await signInWithPettyCash(page);
   await postEntries(page, [
-    credited(paid, 'Cash'),
-    credited(petty, { added: PETTY_CASH }),
-    credited(owed, 'Accounts payable'),
+    paidFrom(paid, 'Cash'),
+    paidFrom(petty, { added: PETTY_CASH }),
+    paidFrom(owed, 'Accounts payable'),
   ]);
 
   const field = await openSearch(page);
@@ -301,11 +299,11 @@ test('refuses to search by text that matches no Account, or several and none exa
   await field.press('Tab');
   await expect(field).toHaveValue(typo);
   await searchButton(page).click();
-  await expectRefused(page, field, typo);
+  await expectAccountRefused(page, field, typo);
 
   await typeAccount(field, 'ca');
   await searchButton(page).click();
-  await expectRefused(page, field, 'ca');
+  await expectAccountRefused(page, field, 'ca');
 });
 
 test('refuses in the Language the app is shown in, and names each Account with its Account type in that Language', async ({ page }) => {
@@ -323,7 +321,7 @@ test('refuses in the Language the app is shown in, and names each Account with i
   await field.fill(`absent ${randomUUID()}`);
   await form.getByRole('button', { name: KOREAN_SEARCH, exact: true }).click();
   await expect(field).toBeFocused();
-  await expect.poll(() => validationMessage(field)).not.toBe('');
+  await expect.poll(() => validationMessage(field)).toMatch(HANGUL);
   expect(await validationMessage(field)).not.toBe(REFUSAL);
   await expect(page).toHaveURL(ENTRY_SEARCH_WITHOUT_QUERY);
 });
@@ -359,6 +357,8 @@ test('selects the chosen Account name when the field is opened, so typing replac
   await expect(field).not.toBeFocused();
 
   await field.click();
+  await expect(field).toHaveValue('Cash');
+  await expect.poll(() => selection(field)).toEqual([0, 'Cash'.length]);
   await page.keyboard.type('Sal');
   await expect(field).toHaveValue('Sal');
   await expectOfferedAccounts(page, [['Sales', 'Revenue']]);
@@ -374,8 +374,7 @@ test('chooses no Account, keeps the list open and searches nothing when Enter or
   await field.press('ArrowDown');
   await expect(payable).toHaveAttribute('aria-selected', 'true');
 
-  const cdp = await page.context().newCDPSession(page);
-  await cdp.send('Input.imeSetComposition', { text: 'o', selectionStart: 1, selectionEnd: 1 });
+  const cdp = await startComposing(page, 'o');
   await expect(field).toHaveValue('Acco');
 
   for (const key of ['Enter', 'Escape']) {
@@ -385,7 +384,7 @@ test('chooses no Account, keeps the list open and searches nothing when Enter or
     await expect(page).toHaveURL(ENTRY_SEARCH_WITHOUT_QUERY);
   }
 
-  await cdp.send('Input.insertText', { text: 'o' });
+  await finishComposing(cdp, 'o');
   await expect(field).toHaveValue('Acco');
   await expectOfferedAccounts(page, [['Accounts payable', 'Liabilities']]);
   await expect(page).toHaveURL(ENTRY_SEARCH_WITHOUT_QUERY);
@@ -397,7 +396,7 @@ test('keeps the chosen Account in the URL by its id, and fills the field with it
   const paid = `Paid ${run}`;
   const owed = `Owed ${run}`;
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await postEntries(page, [credited(paid, 'Cash'), credited(owed, 'Accounts payable')]);
+  await postEntries(page, [paidFrom(paid, 'Cash'), paidFrom(owed, 'Accounts payable')]);
 
   await openSearch(page);
   await chooseAccount(page, 'Cash');
@@ -428,7 +427,7 @@ test('opens the list at 390px just below the Account field and as wide as it, wr
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await page.goto('/settings');
   await addAccount(page, 'Assets', { name: LONG_NAME, activeFrom: BOOKS_OPEN });
-  await postEntries(page, [credited(saved, { added: LONG_NAME }), credited(paid, 'Cash')]);
+  await postEntries(page, [paidFrom(saved, { added: LONG_NAME }), paidFrom(paid, 'Cash')]);
 
   await page.setViewportSize(PHONE);
   const field = await openSearch(page);
