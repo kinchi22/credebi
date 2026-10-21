@@ -12,12 +12,19 @@ export type ComboboxProps<Option> = {
   readonly offered: readonly Option[];
   readonly keyOf: (option: Option) => string;
   readonly renderOption: (option: Option) => ReactNode;
+  readonly nameOption?: (option: Option) => string;
   readonly onType: (text: string) => void;
   readonly onChoose: (option: Option) => void;
+  readonly placeholder?: string;
+  readonly className?: string;
+  readonly empty?: ReactNode;
+  readonly onOpenByClick?: (input: HTMLInputElement) => void;
+  readonly onEscapeClosed?: () => void;
 };
 
 const LIST =
   'absolute inset-x-0 top-full z-10 mt-1 max-h-60 overflow-y-auto rounded-control border border-border bg-surface py-1';
+const EMPTY = 'px-2 py-1.5 text-text-muted';
 const OPTION =
   'px-2 py-1.5 wrap-anywhere text-text hover:bg-surface-hover aria-selected:bg-surface-hover';
 
@@ -34,8 +41,14 @@ export function Combobox<Option>({
   offered,
   keyOf,
   renderOption,
+  nameOption,
   onType,
   onChoose,
+  placeholder,
+  className = '',
+  empty,
+  onOpenByClick,
+  onEscapeClosed,
 }: ComboboxProps<Option>): ReactNode {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState<string>();
@@ -43,7 +56,7 @@ export function Combobox<Option>({
   const list = useRef<HTMLUListElement>(null);
 
   const listId = `${id}-options`;
-  const shown = open && offered.length > 0;
+  const shown = open && (offered.length > 0 || empty !== undefined);
   const activeAt = shown && active !== undefined ? offered.findIndex((option) => keyOf(option) === active) : -1;
   const activeOption = activeAt === -1 ? undefined : offered[activeAt];
   const optionId = (index: number): string => `${listId}-${String(index)}`;
@@ -98,6 +111,8 @@ export function Combobox<Option>({
           event.preventDefault();
           event.stopPropagation();
           close();
+        } else {
+          onEscapeClosed?.();
         }
         return;
       default:
@@ -118,6 +133,7 @@ export function Combobox<Option>({
         aria-controls={listId}
         aria-activedescendant={activeAt === -1 ? undefined : optionId(activeAt)}
         value={value}
+        placeholder={placeholder}
         onChange={(event) => {
           onType(event.target.value);
           setOpen(true);
@@ -125,7 +141,10 @@ export function Combobox<Option>({
             setActive(undefined);
           }
         }}
-        onClick={() => {
+        onClick={(event) => {
+          if (!open) {
+            onOpenByClick?.(event.currentTarget);
+          }
           setOpen(true);
         }}
         onBlur={close}
@@ -136,7 +155,7 @@ export function Combobox<Option>({
         onCompositionEnd={() => {
           composing.current = false;
         }}
-        className={CONTROL}
+        className={`${CONTROL} ${className}`}
       />
       <ul
         ref={list}
@@ -155,6 +174,7 @@ export function Combobox<Option>({
             id={optionId(index)}
             role="option"
             aria-selected={index === activeAt}
+            aria-label={nameOption?.(option)}
             onClick={() => {
               choose(option);
             }}
@@ -163,6 +183,11 @@ export function Combobox<Option>({
             {renderOption(option)}
           </li>
         ))}
+        {offered.length === 0 && empty !== undefined ? (
+          <li role="presentation" className={EMPTY}>
+            {empty}
+          </li>
+        ) : null}
       </ul>
     </>
   );

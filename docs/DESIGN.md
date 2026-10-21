@@ -379,9 +379,10 @@ tokens module holds both orders.
 Text a User typed, such as a Title, a memo, an Account name, an Account group
 name or a description, wraps: it breaks inside a word only when the word cannot
 fit on a line of its own, as `wrap-anywhere` does, and it never overflows its
-box or is cut. A closed select is the one exception: it is no wider than its
-field and shows one line, cutting a long name at its edge, while its open list
-is the browser's own.
+box or is cut. A closed select, which only the Group of Add account and Edit
+account still is, is the one exception: it is no wider than its field and shows
+one line, cutting a long name at its edge, while its open list is the browser's
+own.
 
 ## Layout
 
@@ -705,6 +706,21 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   Title matches. Enter and Escape pressed while an input method is composing
   finish the text and nothing else, in Edit entry too, whose dialog they never
   close.
+- **Account combobox.** Entry search's Account criterion is a combobox that
+  takes an Account and nothing else, sharing the Title combobox's keys and its
+  list's look, at every width. Clicked, typed in or opened with the arrow keys,
+  it lists the Accounts whose names hold the typed text by Typed match, every
+  one while the field is empty, flat in the Chart of accounts' order with ended
+  Accounts last. Each option leads with its Account type's 16px icon, the one
+  its Band shows, and is named its Account name then its Account type's name.
+  When nothing matches, the list says `No account matches` in `text-muted`.
+  Choosing fills the field with the name and submits the Account's id. The
+  field showing a chosen Account leads with its icon, inset 8px, and while an
+  Account is chosen a bare Icon button holding the close icon, named `Clear
+  account`, sits at its right end and returns it to empty. Empty, the field
+  reads `Any account`. Clicking it open with an Account shown selects the name.
+  Escape closes the list keeping the text, and with the list closed puts back
+  the last chosen Account's name, or empties the field.
 - **Entry form dividers.** In both Entry form modes a 2px rule in the Side's
   colour sits above each Side: above its row, padded 12px above and below, in
   Two-line mode, above its block
