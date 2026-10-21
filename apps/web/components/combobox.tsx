@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useRef, useState, type KeyboardEvent, type ReactNode, type Ref } from 'react';
 import { duringComposition } from './composition';
 import { CONTROL } from './control-classes';
 
@@ -12,13 +12,14 @@ export type ComboboxProps<Option> = {
   readonly offered: readonly Option[];
   readonly keyOf: (option: Option) => string;
   readonly renderOption: (option: Option) => ReactNode;
-  readonly nameOption?: (option: Option) => string;
+  readonly optionLabel?: (option: Option) => string;
   readonly onType: (text: string) => void;
   readonly onChoose: (option: Option) => void;
   readonly placeholder?: string;
   readonly className?: string;
-  readonly empty?: ReactNode;
-  readonly onOpenByClick?: (input: HTMLInputElement) => void;
+  readonly emptyMessage?: ReactNode;
+  readonly inputRef?: Ref<HTMLInputElement>;
+  readonly onOpen?: (input: HTMLInputElement) => void;
   readonly onEscapeClosed?: () => void;
 };
 
@@ -29,6 +30,9 @@ const OPTION =
   'px-2 py-1.5 wrap-anywhere text-text hover:bg-surface-hover aria-selected:bg-surface-hover';
 
 const step = (count: number, at: number, by: 1 | -1): number => {
+  if (count === 0) {
+    return -1;
+  }
   const next = at === -1 ? (by === 1 ? 0 : count - 1) : at + by;
   return (next + count) % count;
 };
@@ -41,13 +45,14 @@ export function Combobox<Option>({
   offered,
   keyOf,
   renderOption,
-  nameOption,
+  optionLabel,
   onType,
   onChoose,
   placeholder,
   className = '',
-  empty,
-  onOpenByClick,
+  emptyMessage,
+  inputRef,
+  onOpen,
   onEscapeClosed,
 }: ComboboxProps<Option>): ReactNode {
   const [open, setOpen] = useState(false);
@@ -56,7 +61,7 @@ export function Combobox<Option>({
   const list = useRef<HTMLUListElement>(null);
 
   const listId = `${id}-options`;
-  const shown = open && (offered.length > 0 || empty !== undefined);
+  const shown = open && (offered.length > 0 || emptyMessage !== undefined);
   const activeAt = shown && active !== undefined ? offered.findIndex((option) => keyOf(option) === active) : -1;
   const activeOption = activeAt === -1 ? undefined : offered[activeAt];
   const optionId = (index: number): string => `${listId}-${String(index)}`;
@@ -71,8 +76,15 @@ export function Combobox<Option>({
     onChoose(option);
   };
 
-  const moveTo = (index: number): void => {
+  const openFrom = (input: HTMLInputElement): void => {
+    if (!open) {
+      onOpen?.(input);
+    }
     setOpen(true);
+  };
+
+  const moveTo = (input: HTMLInputElement, index: number): void => {
+    openFrom(input);
     const option = offered[index];
     setActive(option === undefined ? undefined : keyOf(option));
     if (option !== undefined) {
@@ -94,11 +106,11 @@ export function Combobox<Option>({
     switch (event.key) {
       case 'ArrowDown':
         event.preventDefault();
-        moveTo(shown ? step(offered.length, activeAt, 1) : 0);
+        moveTo(event.currentTarget, shown ? step(offered.length, activeAt, 1) : 0);
         return;
       case 'ArrowUp':
         event.preventDefault();
-        moveTo(shown ? step(offered.length, activeAt, -1) : offered.length - 1);
+        moveTo(event.currentTarget, shown ? step(offered.length, activeAt, -1) : offered.length - 1);
         return;
       case 'Enter':
         if (activeOption !== undefined) {
@@ -111,8 +123,10 @@ export function Combobox<Option>({
           event.preventDefault();
           event.stopPropagation();
           close();
-        } else {
-          onEscapeClosed?.();
+        } else if (onEscapeClosed !== undefined) {
+          event.preventDefault();
+          event.stopPropagation();
+          onEscapeClosed();
         }
         return;
       default:
@@ -123,6 +137,7 @@ export function Combobox<Option>({
   return (
     <>
       <input
+        ref={inputRef}
         id={id}
         name={name}
         type="text"
@@ -142,10 +157,7 @@ export function Combobox<Option>({
           }
         }}
         onClick={(event) => {
-          if (!open) {
-            onOpenByClick?.(event.currentTarget);
-          }
-          setOpen(true);
+          openFrom(event.currentTarget);
         }}
         onBlur={close}
         onKeyDown={onKeyDown}
@@ -174,7 +186,7 @@ export function Combobox<Option>({
             id={optionId(index)}
             role="option"
             aria-selected={index === activeAt}
-            aria-label={nameOption?.(option)}
+            aria-label={optionLabel?.(option)}
             onClick={() => {
               choose(option);
             }}
@@ -183,9 +195,9 @@ export function Combobox<Option>({
             {renderOption(option)}
           </li>
         ))}
-        {offered.length === 0 && empty !== undefined ? (
+        {offered.length === 0 && emptyMessage !== undefined ? (
           <li role="presentation" className={EMPTY}>
-            {empty}
+            {emptyMessage}
           </li>
         ) : null}
       </ul>

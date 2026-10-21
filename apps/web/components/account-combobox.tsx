@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { type AccountOutput } from '@repo/contracts';
 import { CloseIcon } from '@repo/ui';
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { nameContains } from './chart-tree';
 import { Combobox } from './combobox';
 import { BARE_ICON_BUTTON, FIELD } from './control-classes';
@@ -24,6 +24,7 @@ export function AccountCombobox({ id, name, label, accounts, defaultValue }: Acc
   const tTypes = useTranslations('accountTypes');
   const [chosen, setChosen] = useState(() => accounts.find((account) => account.id === defaultValue));
   const [text, setText] = useState(chosen?.name ?? '');
+  const input = useRef<HTMLInputElement>(null);
   const labelId = `${id}-label`;
   const showsChosen = chosen !== undefined && text === chosen.name;
 
@@ -49,7 +50,7 @@ export function AccountCombobox({ id, name, label, accounts, defaultValue }: Acc
           value={text}
           offered={accounts.filter(nameContains(text))}
           keyOf={keyOf}
-          nameOption={(account) =>
+          optionLabel={(account) =>
             t('accountOption', { name: account.name, type: tTypes(account.accountType) })
           }
           renderOption={(account) => (
@@ -61,17 +62,18 @@ export function AccountCombobox({ id, name, label, accounts, defaultValue }: Acc
             </span>
           )}
           placeholder={t('anyAccount')}
-          empty={t('noAccountMatches')}
+          emptyMessage={t('noAccountMatches')}
           className={`w-full ${showsChosen ? 'pl-8' : ''} ${chosen === undefined ? '' : 'pr-9'}`}
           onType={setText}
           onChoose={choose}
-          onOpenByClick={(input) => {
+          inputRef={input}
+          onOpen={(field) => {
             if (showsChosen) {
-              input.select();
+              field.select();
             }
           }}
           onEscapeClosed={() => {
-            setText(chosen?.name ?? '');
+            choose(chosen);
           }}
         />
         {chosen === undefined ? null : (
@@ -80,7 +82,7 @@ export function AccountCombobox({ id, name, label, accounts, defaultValue }: Acc
             aria-label={t('clearAccount')}
             onClick={() => {
               choose(undefined);
-              document.getElementById(id)?.focus();
+              input.current?.focus();
             }}
             className={`absolute inset-y-0 right-0 w-9 ${BARE_ICON_BUTTON}`}
           >

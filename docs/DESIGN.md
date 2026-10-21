@@ -718,7 +718,7 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   field showing a chosen Account leads with its icon, inset 8px, and while an
   Account is chosen a bare Icon button holding the close icon, named `Clear
   account`, sits at its right end and returns it to empty. Empty, the field
-  reads `Any account`. Clicking it open with an Account shown selects the name.
+  reads `Any account`. Opening it with an Account shown selects the name.
   Escape closes the list keeping the text, and with the list closed puts back
   the last chosen Account's name, or empties the field.
 - **Entry form dividers.** In both Entry form modes a 2px rule in the Side's
