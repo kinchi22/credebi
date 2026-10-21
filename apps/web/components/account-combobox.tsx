@@ -3,10 +3,11 @@
 import { useTranslations } from 'next-intl';
 import { type AccountOutput } from '@repo/contracts';
 import { CloseIcon } from '@repo/ui';
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { nameContains } from './chart-tree';
 import { Combobox } from './combobox';
 import { BARE_ICON_BUTTON, FIELD } from './control-classes';
+import { settleAccount } from './settle-account';
 import { TypeIcon } from './type-band';
 
 export type AccountComboboxProps = {
@@ -27,11 +28,31 @@ export function AccountCombobox({ id, name, label, accounts, defaultValue }: Acc
   const input = useRef<HTMLInputElement>(null);
   const labelId = `${id}-label`;
   const showsChosen = chosen !== undefined && text === chosen.name;
+  const settled = settleAccount(text, accounts);
+  const refusal = settled.outcome === 'refused' ? t('accountNotChosen') : '';
 
   const choose = (account: AccountOutput | undefined): void => {
     setChosen(account);
     setText(account?.name ?? '');
   };
+
+  const settle = (): void => {
+    if (settled.outcome !== 'refused') {
+      choose(settled.outcome === 'account' ? settled.account : undefined);
+    }
+  };
+
+  useEffect(() => {
+    input.current?.setCustomValidity(refusal);
+  }, [refusal]);
+
+  useEffect(() => {
+    const form = input.current?.form;
+    form?.addEventListener('submit', settle);
+    return () => {
+      form?.removeEventListener('submit', settle);
+    };
+  });
 
   return (
     <div className={`${FIELD} max-w-full min-w-0`}>
@@ -75,6 +96,7 @@ export function AccountCombobox({ id, name, label, accounts, defaultValue }: Acc
           onEscapeClosed={() => {
             choose(chosen);
           }}
+          onLeave={settle}
         />
         {chosen === undefined ? null : (
           <button
@@ -90,7 +112,7 @@ export function AccountCombobox({ id, name, label, accounts, defaultValue }: Acc
           </button>
         )}
       </div>
-      <input type="hidden" name={name} value={chosen?.id ?? ''} />
+      <input type="hidden" name={name} value={settled.outcome === 'account' ? settled.account.id : ''} />
     </div>
   );
 }

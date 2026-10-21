@@ -720,7 +720,14 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   account`, sits at its right end and returns it to empty. Empty, the field
   reads `Any account`. Opening it with an Account shown selects the name.
   Escape closes the list keeping the text, and with the list closed puts back
-  the last chosen Account's name, or empties the field.
+  the last chosen Account's name, or empties the field. Typed text settles when
+  the field loses focus and when the form is submitted: empty or only spaces,
+  it is Any account; an Account's exact name, ignoring case, is that Account
+  even when other names contain it; otherwise text Typed match finds in exactly
+  one name is that Account. A settled Account fills the field with its full
+  name. Any other text stays as typed, and the browser refuses the search,
+  focusing the field and showing `Choose an account from the list, or clear the
+  field to search every account.`, with no inline error.
 - **Entry form dividers.** In both Entry form modes a 2px rule in the Side's
   colour sits above each Side: above its row, padded 12px above and below, in
   Two-line mode, above its block

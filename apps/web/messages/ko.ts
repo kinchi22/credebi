@@ -222,6 +222,7 @@ export const ko = {
     accountOption: '{name}, {type}',
     noAccountMatches: '일치하는 계정이 없습니다',
     clearAccount: '계정 지우기',
+    accountNotChosen: '목록에서 계정을 선택하거나, 모든 계정을 검색하려면 입력란을 비우세요.',
     entryTitle: '제목',
     memo: '메모',
     submit: '검색',

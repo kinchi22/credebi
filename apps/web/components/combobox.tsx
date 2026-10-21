@@ -21,6 +21,7 @@ export type ComboboxProps<Option> = {
   readonly inputRef?: Ref<HTMLInputElement>;
   readonly onOpen?: (input: HTMLInputElement) => void;
   readonly onEscapeClosed?: () => void;
+  readonly onLeave?: () => void;
 };
 
 const LIST =
@@ -54,6 +55,7 @@ export function Combobox<Option>({
   inputRef,
   onOpen,
   onEscapeClosed,
+  onLeave,
 }: ComboboxProps<Option>): ReactNode {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState<string>();
@@ -159,7 +161,10 @@ export function Combobox<Option>({
         onClick={(event) => {
           openFrom(event.currentTarget);
         }}
-        onBlur={close}
+        onBlur={() => {
+          close();
+          onLeave?.();
+        }}
         onKeyDown={onKeyDown}
         onCompositionStart={() => {
           composing.current = true;

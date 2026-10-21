@@ -205,6 +205,7 @@ export const en = {
     accountOption: '{name}, {type}',
     noAccountMatches: 'No account matches',
     clearAccount: 'Clear account',
+    accountNotChosen: 'Choose an account from the list, or clear the field to search every account.',
     entryTitle: 'Title',
     memo: 'Memo',
     submit: 'Search',

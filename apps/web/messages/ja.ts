@@ -224,6 +224,7 @@ export const ja = {
     accountOption: '{name}、{type}',
     noAccountMatches: '一致する勘定科目がありません',
     clearAccount: '勘定科目をクリア',
+    accountNotChosen: '一覧から勘定科目を選ぶか、すべての勘定科目を検索するには欄を空にしてください。',
     entryTitle: 'タイトル',
     memo: 'メモ',
     submit: '検索',
