@@ -587,10 +587,12 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   `Show ended accounts` are at 60% opacity, every button, grip and the toggle
   is disabled, nothing can be dragged, and the section is `aria-busy`.
 - **Entry search form.** After From and To come Account, Title and Memo, in
-  that order, then the submit. Title and Memo grow to share the row's spare
-  width. Title is the search form's field size, `body-sm` with a plain label,
-  as its neighbours are, and offers the same Title suggestions as the entry
-  form.
+  that order, then the submit. Account is as wide as a closed select of its
+  choices would be, sized by the widest of `Any account` and the Account
+  names, and never wider than the row. Title and Memo grow to share the row's
+  spare width. Title is the search form's field size, `body-sm` with a plain
+  label, as its neighbours are, and offers the same Title suggestions as the
+  entry form.
 - **Date presets.** A row of secondary buttons, `Year`, `Quarter`, `Month`
   and `Relative`, below a `border` hairline at the foot of the Entry search
   form, from `wide` up. Each opens its choices on hover in a `surface` panel

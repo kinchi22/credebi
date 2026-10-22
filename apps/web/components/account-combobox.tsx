@@ -6,7 +6,7 @@ import { CloseIcon } from '@repo/ui';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { nameContains } from './chart-tree';
 import { Combobox } from './combobox';
-import { BARE_ICON_BUTTON, FIELD } from './control-classes';
+import { BARE_ICON_BUTTON, CONTROL, FIELD } from './control-classes';
 import { settleAccount } from './settle-account';
 import { TypeIcon } from './type-band';
 
@@ -84,7 +84,7 @@ export function AccountCombobox({ id, name, label, accounts, defaultValue }: Acc
           )}
           placeholder={t('anyAccount')}
           emptyMessage={t('noAccountMatches')}
-          className={`w-full ${showsChosen ? 'pl-8' : ''} ${chosen === undefined ? '' : 'pr-9'}`}
+          className={`w-0 min-w-full ${showsChosen ? 'pl-8' : ''} ${chosen === undefined ? '' : 'pr-9'}`}
           onType={setText}
           onChoose={choose}
           inputRef={input}
@@ -111,6 +111,12 @@ export function AccountCombobox({ id, name, label, accounts, defaultValue }: Acc
             <CloseIcon />
           </button>
         )}
+        <select aria-hidden tabIndex={-1} className={`${CONTROL} invisible block max-h-0 max-w-full border-y-0`}>
+          <option>{t('anyAccount')}</option>
+          {accounts.map((account) => (
+            <option key={account.id}>{account.name}</option>
+          ))}
+        </select>
       </div>
       <input type="hidden" name={name} value={settled.outcome === 'account' ? settled.account.id : ''} />
     </div>
