@@ -21,7 +21,6 @@ import {
   accountTick,
   AMOUNT,
   deleteListed,
-  entrySearchForm,
   expectSuggested,
   listedEntry,
   nameOf,
@@ -34,7 +33,7 @@ import {
   type AddedAccount,
   type TwoLineEntry,
 } from './entries';
-import { results, search } from './entry-search';
+import { accountField, offeredAccount, results, search } from './entry-search';
 import { ENTRY_SEARCH_PATH, ENTRY_SEARCH_WITH_QUERY } from './routes';
 import { signIn } from './session';
 import { expectWithinPhone, PHONE } from './viewport';
@@ -148,9 +147,9 @@ test('removes an Account whose only Entry was deleted from the Accounts section,
   }
 
   await page.goto(ENTRY_SEARCH_PATH);
-  const filter = entrySearchForm(page).getByLabel('Account', { exact: true });
-  await expect(filter.getByRole('option', { name: 'Cash', exact: true })).toHaveCount(1);
-  await expect(filter.getByRole('option', { name: nameOf(PETTY_CASH), exact: true })).toHaveCount(0);
+  await accountField(page).click();
+  await expect(offeredAccount(page, 'Cash', 'Assets')).toHaveCount(1);
+  await expect(offeredAccount(page, nameOf(PETTY_CASH), 'Assets')).toHaveCount(0);
 });
 
 test('removes an Account named only by a deleted Entry from the Suggested accounts of that Entry\'s Title', async ({ page }) => {

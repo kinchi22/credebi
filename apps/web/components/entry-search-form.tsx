@@ -17,6 +17,7 @@ import { ENTRY_SEARCH_PATH } from '../server/return-path';
 import { useBrowserToday } from './use-browser-today';
 import { CONTROL, DATE_CONTROL, FIELD, PRIMARY_BUTTON } from './control-classes';
 import { DatePresets, DatePresetsSheet } from './date-presets';
+import { AccountCombobox } from './account-combobox';
 import { TitleCombobox } from './title-combobox';
 
 export type EntrySearchFormProps = {
@@ -95,22 +96,13 @@ export function EntrySearchForm({ criteria, chart, titles }: EntrySearchFormProp
         <DatePresetsSheet today={today} onChoose={searchPreset} />
       </div>
 
-      <div className={`${FIELD} max-w-full min-w-0`}>
-        <label htmlFor={`${id}-account`}>{t('entrySearch.account')}</label>
-        <select
-          id={`${id}-account`}
-          name={SEARCH_CRITERIA_FIELDS.account}
-          defaultValue={criteria.account ?? ''}
-          className={`${CONTROL} max-w-full`}
-        >
-          <option value="">{t('entrySearch.anyAccount')}</option>
-          {accounts.map((account) => (
-            <option key={account.id} value={account.id}>
-              {account.name}
-            </option>
-          ))}
-        </select>
-      </div>
+      <AccountCombobox
+        id={`${id}-account`}
+        name={SEARCH_CRITERIA_FIELDS.account}
+        label={t('entrySearch.account')}
+        accounts={accounts}
+        defaultValue={criteria.account}
+      />
 
       <TitleCombobox
         id={`${id}-title-criterion`}

@@ -19,6 +19,15 @@ const TYPE_ICON: Readonly<Record<AccountType, () => ReactNode>> = {
   expense: FallingLineIcon,
 };
 
+export type TypeIconProps = {
+  readonly accountType: AccountType;
+};
+
+export function TypeIcon({ accountType }: TypeIconProps): ReactNode {
+  const Icon = TYPE_ICON[accountType];
+  return <Icon />;
+}
+
 type StripProps = {
   readonly icon: ReactNode;
   readonly name: string;
@@ -51,10 +60,9 @@ export type BandProps = {
 
 export function Band({ accountType, id, className, children }: BandProps): ReactNode {
   const t = useTranslations();
-  const Icon = TYPE_ICON[accountType];
   return (
     <Strip
-      icon={<Icon />}
+      icon={<TypeIcon accountType={accountType} />}
       name={t(`accountTypes.${accountType}`)}
       id={id}
       className={`bg-band ${className}`}

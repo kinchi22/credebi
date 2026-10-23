@@ -9,7 +9,7 @@ import {
   TWELVE_THOUSAND_FIVE_HUNDRED,
   type TwoLineEntry,
 } from './entries';
-import { fromField, resultFor, results, search, toField } from './entry-search';
+import { accountField, fromField, resultFor, results, search, toField } from './entry-search';
 import { ENTRY_SEARCH_PATH as SEARCH, ENTRY_SEARCH_WITH_QUERY, ENTRY_SEARCH_WITHOUT_QUERY } from './routes';
 import { BOOKS_OPEN } from './accounts';
 import { signIn, signInForSmoke } from './session';
@@ -479,7 +479,7 @@ test('keeps the criteria it searched with filled into the form', async ({ page }
 
   const form = entrySearchForm(page);
   await expectRange(page, '2026-06-01', '2026-06-30');
-  await expect(form.getByLabel('Account', { exact: true }).locator('option:checked')).toHaveText('Cash');
+  await expect(accountField(page)).toHaveValue('Cash');
   await expect(form.getByLabel('Memo', { exact: true })).toHaveValue('stationery');
 });
 
