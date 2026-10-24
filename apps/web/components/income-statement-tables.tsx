@@ -12,18 +12,26 @@ const CAPTION = `mb-2 text-left ${PANEL_TITLE}`;
 const ROW = 'border-b border-border last:border-b-0';
 const LABEL = 'py-2 pr-3 text-left font-normal wrap-anywhere';
 const AMOUNT = `py-2 text-right whitespace-nowrap ${typeClasses.figure}`;
+const GROUP_LABEL = `${LABEL} font-medium`;
+const GROUPED_LABEL = `${LABEL} pl-4`;
 const TOTAL_ROW = 'border-t-2 border-border font-semibold';
 
 type AmountRowProps = {
   readonly label: string;
   readonly amount: Money;
   readonly className?: string;
+  readonly labelClassName?: string;
 };
 
-function AmountRow({ label, amount, className = ROW }: AmountRowProps): ReactNode {
+function AmountRow({
+  label,
+  amount,
+  className = ROW,
+  labelClassName = LABEL,
+}: AmountRowProps): ReactNode {
   return (
     <tr className={className}>
-      <th scope="row" className={LABEL}>
+      <th scope="row" className={labelClassName}>
         {label}
       </th>
       <td className={AMOUNT}>{formatAmount(amount)}</td>
@@ -47,9 +55,19 @@ function SectionTable({ caption, totalLabel, section }: SectionTableProps): Reac
             row.kind === 'account'
               ? [<AmountRow key={row.account} label={row.name} amount={row.total} />]
               : [
-                  <AmountRow key={row.group} label={row.name} amount={row.total} />,
+                  <AmountRow
+                    key={row.group}
+                    label={row.name}
+                    amount={row.total}
+                    labelClassName={GROUP_LABEL}
+                  />,
                   ...row.accounts.map((account) => (
-                    <AmountRow key={account.account} label={account.name} amount={account.total} />
+                    <AmountRow
+                      key={account.account}
+                      label={account.name}
+                      amount={account.total}
+                      labelClassName={GROUPED_LABEL}
+                    />
                   )),
                 ],
           )}
