@@ -15,6 +15,8 @@ export type {
   AccountSums,
   IncomeStatement,
   StatementAccount,
+  StatementGroup,
+  StatementRow,
   StatementSection,
 } from './domain/income-statement';
 export {

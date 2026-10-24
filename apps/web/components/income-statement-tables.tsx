@@ -10,20 +10,30 @@ import { DANGER_TEXT } from './text-classes';
 const TABLE = `w-full border-collapse ${typeClasses['body-sm']}`;
 const CAPTION = `mb-2 text-left ${PANEL_TITLE}`;
 const ROW = 'border-b border-border last:border-b-0';
-const LABEL = 'py-2 pr-3 text-left font-normal wrap-anywhere';
+const LABEL = 'py-2 pr-3 text-left wrap-anywhere';
 const AMOUNT = `py-2 text-right whitespace-nowrap ${typeClasses.figure}`;
 const TOTAL_ROW = 'border-t-2 border-border font-semibold';
+
+type AmountRowVariant = 'account' | 'group' | 'grouped' | 'total';
+
+const ROW_CLASSES: Readonly<Record<AmountRowVariant, { readonly row: string; readonly label: string }>> = {
+  account: { row: ROW, label: `${LABEL} font-normal` },
+  group: { row: ROW, label: `${LABEL} font-medium` },
+  grouped: { row: ROW, label: `${LABEL} pl-4 font-normal` },
+  total: { row: TOTAL_ROW, label: `${LABEL} font-semibold` },
+};
 
 type AmountRowProps = {
   readonly label: string;
   readonly amount: Money;
-  readonly className?: string;
+  readonly variant?: AmountRowVariant;
 };
 
-function AmountRow({ label, amount, className = ROW }: AmountRowProps): ReactNode {
+function AmountRow({ label, amount, variant = 'account' }: AmountRowProps): ReactNode {
+  const classes = ROW_CLASSES[variant];
   return (
-    <tr className={className}>
-      <th scope="row" className={LABEL}>
+    <tr className={classes.row}>
+      <th scope="row" className={classes.label}>
         {label}
       </th>
       <td className={AMOUNT}>{formatAmount(amount)}</td>
@@ -43,12 +53,29 @@ function SectionTable({ caption, totalLabel, section }: SectionTableProps): Reac
       <table className={TABLE}>
         <caption className={CAPTION}>{caption}</caption>
         <tbody>
-          {section.rows.map((row) => (
-            <AmountRow key={row.account} label={row.name} amount={row.total} />
-          ))}
+          {section.rows.flatMap((row) =>
+            row.kind === 'account'
+              ? [<AmountRow key={row.account} label={row.name} amount={row.total} />]
+              : [
+                  <AmountRow
+                    key={row.group}
+                    label={row.name}
+                    amount={row.total}
+                    variant="group"
+                  />,
+                  ...row.accounts.map((account) => (
+                    <AmountRow
+                      key={account.account}
+                      label={account.name}
+                      amount={account.total}
+                      variant="grouped"
+                    />
+                  )),
+                ],
+          )}
         </tbody>
         <tfoot>
-          <AmountRow label={totalLabel} amount={section.total} className={TOTAL_ROW} />
+          <AmountRow label={totalLabel} amount={section.total} variant="total" />
         </tfoot>
       </table>
     </div>
@@ -72,7 +99,7 @@ export function IncomeStatementTables({ statement }: IncomeStatementTablesProps)
           <tbody>
             <AmountRow label={t('totalRevenue')} amount={statement.revenue.total} />
             <AmountRow label={t('totalExpense')} amount={statement.expense.total} />
-            <AmountRow label={t('difference')} amount={statement.difference} className={TOTAL_ROW} />
+            <AmountRow label={t('difference')} amount={statement.difference} variant="total" />
           </tbody>
         </table>
       </div>

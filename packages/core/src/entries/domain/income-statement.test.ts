@@ -35,6 +35,21 @@ const CAPITAL = account(3, 'equity', 'Capital');
 const SALES = account(4, 'revenue', 'Sales');
 const EXPENSES = account(5, 'expense', 'Expenses');
 
+const group = (
+  n: number,
+  accountType: AccountType,
+  name: string,
+  position: number,
+): AccountGroup => ({
+  id: `01920000-0000-7000-8000-0000000000${String(n).padStart(2, '0')}` as AccountGroupId,
+  accountType,
+  name,
+  description: null,
+  position,
+});
+
+const FOOD = group(1, 'expense', 'Food', 9);
+
 const STARTING: Chart = { accounts: [CASH, PAYABLE, CAPITAL, SALES, EXPENSES], groups: [] };
 
 const sums = (of: Account, debit: number, credit: number): AccountSums => ({
@@ -63,6 +78,16 @@ const row = (of: Account, total: number) => ({
 const namesIn = (built: IncomeStatement | undefined) => ({
   revenue: built?.revenue.rows.map(({ name }) => name),
   expense: built?.expense.rows.map(({ name }) => name),
+});
+
+const outline = (rows: IncomeStatement['revenue']['rows'] | undefined) =>
+  rows?.flatMap((listed) =>
+    listed.kind === 'group' ? [listed.name, listed.accounts.map(({ name }) => name)] : [listed.name],
+  );
+
+const rowsIn = (built: IncomeStatement | undefined) => ({
+  revenue: outline(built?.revenue.rows),
+  expense: outline(built?.expense.rows),
 });
 
 describe('incomeStatement', () => {
@@ -170,39 +195,116 @@ describe('incomeStatement', () => {
     });
   });
 
-  it('lists the Accounts in Chart of accounts order, the Accounts of a group at the group\'s place', () => {
-    const food = {
-      id: '01920000-0000-7000-8000-0000000000f1' as AccountGroupId,
-      accountType: 'expense',
-      name: 'Food',
-      description: null,
-      position: 1,
-    } satisfies AccountGroup;
+  it('puts each Account of a group under it, in the group\'s order, with the group\'s subtotal', () => {
+    const groceries = account(6, 'expense', 'Groceries', { groupId: FOOD.id, position: 1 });
+    const dining = account(7, 'expense', 'Dining', { groupId: FOOD.id, position: 0 });
+    const built = statementOf(
+      { accounts: [...STARTING.accounts, groceries, dining], groups: [FOOD] },
+      [sums(EXPENSES, 1000, 0), sums(groceries, 2500, 500), sums(dining, 3000, 0)],
+    );
+
+    expect(built?.expense).toEqual({
+      total: 6000,
+      rows: [
+        row(EXPENSES, 1000),
+        {
+          kind: 'group',
+          group: FOOD.id,
+          name: 'Food',
+          total: 5000,
+          accounts: [row(dining, 3000), row(groceries, 2000)],
+        },
+      ],
+    });
+    expect(built?.difference).toBe(-6000);
+  });
+
+  it('subtotals a group whose Accounts come out at zero or below zero', () => {
+    const refunds = account(6, 'expense', 'Refunds', { groupId: FOOD.id });
+    const idle = account(7, 'expense', 'Idle', { groupId: FOOD.id });
+    const built = statementOf(
+      { accounts: [...STARTING.accounts, refunds, idle], groups: [FOOD] },
+      [sums(refunds, 0, 800)],
+    );
+
+    expect(built?.expense.rows[1]).toMatchObject({ kind: 'group', total: -800 });
+    expect(built?.expense.total).toBe(-800);
+  });
+
+  it('keeps Chart of accounts order across groups and Accounts directly under their Account type', () => {
+    const transport = group(2, 'expense', 'Transport', 3);
+    const salary = group(3, 'revenue', 'Salary', 0);
     const rent = account(6, 'expense', 'Rent', { position: 2 });
-    const groceries = account(7, 'expense', 'Groceries', { groupId: food.id, position: 1 });
-    const dining = account(8, 'expense', 'Dining', { groupId: food.id, position: 0 });
-    const expenses = { ...EXPENSES, position: 0 };
+    const groceries = account(7, 'expense', 'Groceries', { groupId: FOOD.id, position: 0 });
+    const bus = account(8, 'expense', 'Bus', { groupId: transport.id, position: 0 });
+    const basePay = account(9, 'revenue', 'Base pay', { groupId: salary.id, position: 0 });
     const built = statementOf(
       {
-        accounts: [CASH, SALES, rent, groceries, dining, expenses],
-        groups: [food],
+        accounts: [CASH, { ...SALES, position: 1 }, basePay, rent, bus, groceries, { ...EXPENSES, position: 0 }],
+        groups: [transport, salary, { ...FOOD, position: 1 }],
       },
       [],
     );
 
-    expect(namesIn(built).expense).toEqual(['Expenses', 'Dining', 'Groceries', 'Rent']);
+    expect(rowsIn(built)).toEqual({
+      revenue: ['Salary', ['Base pay'], 'Sales'],
+      expense: ['Expenses', 'Food', ['Groceries'], 'Rent', 'Transport', ['Bus']],
+    });
+  });
+
+  it('leaves out a group with no Account, and one whose every Account is out of the range', () => {
+    const empty = group(2, 'expense', 'Empty', 8);
+    const retired = group(3, 'expense', 'Retired', 9);
+    const oldClub = account(6, 'expense', 'Old club', {
+      groupId: retired.id,
+      activeUntil: '2026-05-31',
+    });
+    const built = statementOf(
+      { accounts: [...STARTING.accounts, oldClub], groups: [empty, retired] },
+      [],
+    );
+
+    expect(rowsIn(built).expense).toEqual(['Expenses']);
+  });
+
+  it('lists a group whose only Account is out of the range when the sums name that Account', () => {
+    const retired = group(2, 'expense', 'Retired', 9);
+    const oldClub = account(6, 'expense', 'Old club', {
+      groupId: retired.id,
+      activeUntil: '2026-05-31',
+    });
+    const built = statementOf(
+      { accounts: [...STARTING.accounts, oldClub], groups: [retired] },
+      [sums(oldClub, 400, 0)],
+    );
+
+    expect(built?.expense.rows[1]).toEqual({
+      kind: 'group',
+      group: retired.id,
+      name: 'Retired',
+      total: 400,
+      accounts: [row(oldClub, 400)],
+    });
   });
 
   it('refuses sums whose totals come out beyond what an amount can hold', () => {
     const big = Number.MAX_SAFE_INTEGER;
     const other = account(6, 'revenue', 'Other sales');
     const twoAccounts = { ...STARTING, accounts: [...STARTING.accounts, other] };
+    const grouped = { ...SALES, groupId: FOOD.id };
+    const otherGrouped = { ...other, groupId: FOOD.id };
+    const salaryGroup = { ...FOOD, accountType: 'revenue' } satisfies AccountGroup;
+    const oneGroup = {
+      accounts: [CASH, EXPENSES, grouped, otherGrouped],
+      groups: [salaryGroup],
+    };
 
     for (const [chart, named] of [
       [STARTING, [sums(SALES, -1, big)]],
       [STARTING, [sums(EXPENSES, big, -1)]],
       [twoAccounts, [sums(SALES, 0, big), sums(other, 0, big)]],
       [STARTING, [sums(SALES, 0, big), sums(EXPENSES, 0, big)]],
+      [oneGroup, [sums(grouped, 0, big), sums(otherGrouped, 0, big)]],
     ] as const) {
       const built = incomeStatement(chart, JUNE, named);
 
