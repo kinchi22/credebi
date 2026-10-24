@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { addAccount, addGroup, BOOKS_OPEN, dayInBrowser } from './accounts';
+import { type AccountType, addAccount, addGroup, BOOKS_OPEN, bottom, type Box, boxOf, dayInBrowser } from './accounts';
 import { choosePreset, fixToday } from './date-presets';
 import {
   deleteListed,
@@ -20,6 +20,8 @@ import {
   type Statement,
   showStatement,
   statementTable,
+  type StatementRow,
+  type StatementTable,
   statementTables,
 } from './income-statement';
 import {
@@ -35,7 +37,7 @@ import { CATALOGUE, documentLanguage, signUpAfterChoosing } from './language';
 import { freshIdentifier, signIn, signInForSmoke, submitTestSignIn } from './session';
 import { SIGNED_IN_PAGES, sidebar } from './sidebar';
 import { HANGUL } from './typed-text';
-import { expectWithinPhone, PHONE } from './viewport';
+import { expectWithinPhone, PHONE, WIDE_BELOW_SPLIT } from './viewport';
 
 const TODAY = '2026-09-15';
 
@@ -94,6 +96,61 @@ const spentOnly = (amount: string): Statement => ({
 });
 
 const rangeInUrl = (page: Page): Record<string, string> => Object.fromEntries(queryOf(page));
+
+type SectionTable = Exclude<StatementTable, 'Totals'>;
+
+const OTHER_SECTION: Record<SectionTable, SectionTable> = { Expenses: 'Revenue', Revenue: 'Expenses' };
+
+const THREE_EXPENSES = ['Rent', 'Travel', 'Utilities'] as const;
+
+const zeroRows = (first: string, names: readonly string[]): StatementRow[] =>
+  [first, ...names].map((name) => [name, '0'] as const);
+
+async function addAccounts(page: Page, type: AccountType, names: readonly string[]): Promise<void> {
+  for (const name of names) {
+    await addAccount(page, type, { name, activeFrom: BOOKS_OPEN });
+  }
+}
+
+async function showJuneAt1280(page: Page): Promise<void> {
+  await page.setViewportSize(WIDE);
+  await page.goto(STATEMENT);
+  await showStatement(page, JUNE_FIRST, JUNE_LAST);
+}
+
+async function boxesOf(page: Page): Promise<Record<StatementTable, Box>> {
+  await expect(statementTables(page)).toHaveCount(3);
+  return {
+    Revenue: await boxOf(statementTable(page, 'Revenue'), 'the Revenue table'),
+    Expenses: await boxOf(statementTable(page, 'Expenses'), 'the Expenses table'),
+    Totals: await boxOf(statementTable(page, 'Totals'), 'the Totals table'),
+  };
+}
+
+async function expectTwoColumnsWithTotalsUnder(page: Page, section: SectionTable): Promise<Record<StatementTable, Box>> {
+  const boxes = await boxesOf(page);
+  const { Expenses: expenses, Revenue: revenue, Totals: totals } = boxes;
+  const under = boxes[section];
+  expect(expenses.x + expenses.width).toBeLessThanOrEqual(revenue.x);
+  expect(revenue.y).toBeCloseTo(expenses.y, 0);
+  expect(totals.x).toBeCloseTo(under.x, 0);
+  expect(totals.x + totals.width).toBeCloseTo(under.x + under.width, 0);
+  expect(totals.y).toBeGreaterThanOrEqual(bottom(under));
+  return boxes;
+}
+
+async function expectTotalsDirectlyBelowShorter(page: Page, shorter: SectionTable): Promise<void> {
+  const boxes = await expectTwoColumnsWithTotalsUnder(page, shorter);
+  expect(boxes.Totals.y).toBeLessThan(bottom(boxes[OTHER_SECTION[shorter]]));
+}
+
+async function expectOneColumn(page: Page): Promise<void> {
+  const { Revenue: revenue, Expenses: expenses, Totals: totals } = await boxesOf(page);
+  expect(expenses.x).toBeCloseTo(revenue.x, 0);
+  expect(totals.x).toBeCloseTo(revenue.x, 0);
+  expect(expenses.y).toBeGreaterThanOrEqual(bottom(revenue));
+  expect(totals.y).toBeGreaterThanOrEqual(bottom(expenses));
+}
 
 test('opens with no query on the calendar month holding the browser\'s day, filled into From and To, and counts only its Entries', async ({ page }) => {
   test.slow();
@@ -487,6 +544,78 @@ test('shows each Account with one amount within the screen at 390px', async ({ p
   });
   for (const table of ['Revenue', 'Expenses', 'Totals'] as const) {
     await expectWithinPhone(page, statementTable(page, table));
+  }
+});
+
+test('puts Expenses left of Revenue at 1280px, their tops level, and Totals directly below Expenses when Expenses has fewer rows', async ({ page }) => {
+  const revenue = ['Interest', 'Royalties', 'Tips'] as const;
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
+  await page.goto('/settings');
+  await addAccounts(page, 'Revenue', revenue);
+
+  await showJuneAt1280(page);
+
+  await expectStatement(page, { ...nothingCounted, revenue: zeroRows('Sales', revenue) });
+  await expectTotalsDirectlyBelowShorter(page, 'Expenses');
+});
+
+test('puts Expenses left of Revenue at 1280px, their tops level, and Totals directly below Revenue when Revenue has fewer rows', async ({ page }) => {
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
+  await page.goto('/settings');
+  await addAccounts(page, 'Expenses', THREE_EXPENSES);
+
+  await showJuneAt1280(page);
+
+  await expectStatement(page, { ...nothingCounted, expenses: zeroRows('Expenses', THREE_EXPENSES) });
+  await expectTotalsDirectlyBelowShorter(page, 'Revenue');
+});
+
+test("counts each Account group's row as a row at 1280px, so Totals goes directly below Expenses when only the group rows make Revenue longer", async ({ page }) => {
+  test.slow();
+  const groups = [
+    ['Salary', 'Base pay'],
+    ['Bonus', 'Year-end bonus'],
+    ['Gifts', 'Birthday gifts'],
+  ] as const;
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
+  await page.goto('/settings');
+  for (const [group, name] of groups) {
+    await addGroup(page, 'Revenue', { name: group });
+    await addAccount(page, 'Revenue', { name, group, activeFrom: BOOKS_OPEN });
+  }
+  await addAccounts(page, 'Expenses', THREE_EXPENSES);
+
+  await showJuneAt1280(page);
+
+  await expectStatement(page, {
+    ...nothingCounted,
+    revenue: zeroRows('Sales', groups.flat()),
+    expenses: zeroRows('Expenses', THREE_EXPENSES),
+  });
+  await expectTotalsDirectlyBelowShorter(page, 'Expenses');
+});
+
+test('puts Expenses left of Revenue at 1280px, their tops level, and Totals below Revenue when the two have the same number of rows', async ({ page }) => {
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
+
+  await showJuneAt1280(page);
+
+  await expectStatement(page, nothingCounted);
+  await expectTwoColumnsWithTotalsUnder(page, 'Revenue');
+});
+
+test('stacks Revenue, Expenses and Totals in one column below 1280px and at 390px', async ({ page }) => {
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
+  await page.goto('/settings');
+  await addAccount(page, 'Revenue', { name: 'Interest', activeFrom: BOOKS_OPEN });
+
+  for (const viewport of [WIDE_BELOW_SPLIT, PHONE]) {
+    await page.setViewportSize(viewport);
+    await page.goto(STATEMENT);
+    await showStatement(page, JUNE_FIRST, JUNE_LAST);
+
+    await expectStatement(page, { ...nothingCounted, revenue: [['Sales', '0'], ['Interest', '0']] });
+    await expectOneColumn(page);
   }
 });
 
