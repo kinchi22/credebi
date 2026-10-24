@@ -69,6 +69,14 @@ const KOREAN_PAGE_NAME = '\uC790\uC0B0\u00B7\uBD80\uCC44';
 
 const KOREAN_NET_WORTH = '\uC21C\uC790\uC0B0';
 
+const JAPANESE_PAGE_NAME = '\u8CC7\u7523\u30FB\u8CA0\u50B5';
+
+const JAPANESE_NET_WORTH = '\u7D14\u8CC7\u7523';
+
+const EQUITY_LABEL = { ko: '\uC790\uBCF8', ja: '\u8CC7\u672C' } as const;
+
+const NET_WORTH_LABEL = { ko: KOREAN_NET_WORTH, ja: JAPANESE_NET_WORTH } as const;
+
 const JAPANESE = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
 
 const LONG_NAME = 'Savings kept for every single rainy day';
@@ -584,16 +592,14 @@ test("shows Assets and liabilities in the User's Language: its heading, title, S
   await expect(reportTables(page)).toHaveCount(0);
 });
 
-test("shows Assets and liabilities in Japanese when that is the User's Language: its heading, title, Sidebar link, date control, tables and Accounts", async ({ page }) => {
+test("shows Assets and liabilities in Japanese when that is the User's Language: its heading, title, Sidebar link, date control, tables, Net worth and Accounts", async ({ page }) => {
   await signUpAfterChoosing(page, 'ja');
   await page.goto(REPORT);
 
   await expect(documentLanguage(page)).toHaveAttribute('lang', 'ja');
-  const heading = page.getByRole('heading', { level: 1 });
-  await expect(heading).toHaveText(JAPANESE);
-  await expect(heading).not.toHaveText(/Assets|liabilities/);
-  await expect(page).toHaveTitle(pageTitle((await heading.textContent()) ?? ''));
-  await expect(reportLinkIn(page.getByRole('navigation', { name: JAPANESE }))).toHaveText(JAPANESE);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(JAPANESE_PAGE_NAME);
+  await expect(page).toHaveTitle(pageTitle(JAPANESE_PAGE_NAME));
+  await expect(reportLinkIn(page.getByRole('navigation', { name: JAPANESE }))).toHaveText(JAPANESE_PAGE_NAME);
 
   const form = page.getByRole('main').getByRole('form');
   await expect(form).toHaveAccessibleName(JAPANESE);
@@ -605,11 +611,29 @@ test("shows Assets and liabilities in Japanese when that is the User's Language:
     await expect(tables.nth(index)).toHaveAccessibleName(JAPANESE);
     await expect(tables.nth(index)).not.toHaveAccessibleName(/Assets|Liabilities|Totals/);
   }
+  await expect(page.getByRole('main').getByRole('rowheader', { name: JAPANESE_NET_WORTH, exact: true })).toBeVisible();
   const [cash, payable] = CATALOGUE.ja.startingAccounts;
   for (const name of [cash ?? '', payable ?? '']) {
     await expect(page.getByRole('main').getByRole('rowheader', { name, exact: true })).toBeVisible();
   }
 });
+
+for (const language of ['ko', 'ja'] as const) {
+  test(`labels the equity Account type apart from Net worth in the Account picker and at Settings in ${language}`, async ({ page }) => {
+    const equity = EQUITY_LABEL[language];
+    const netWorth = NET_WORTH_LABEL[language];
+    const band = (label: string): RegExp => new RegExp(`^${label}(?:[,\u3001].+)?$`, 'u');
+    await signUpAfterChoosing(page, language);
+
+    await page.goto('/entries');
+    await expect(page.getByRole('main').getByRole('group', { name: band(equity) })).toHaveCount(2);
+    await expect(page.getByRole('main').getByRole('group', { name: band(netWorth) })).toHaveCount(0);
+
+    await page.goto(SETTINGS_PATH);
+    await expect(page.getByRole('main').getByRole('group', { name: equity, exact: true })).toBeVisible();
+    await expect(page.getByRole('main').getByRole('group', { name: netWorth, exact: true })).toHaveCount(0);
+  });
+}
 
 test('shows each Account with one whole, grouped amount within the screen at 390px', async ({ page }) => {
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
