@@ -29,6 +29,7 @@ export {
   SignOutIcon,
   SlidersIcon,
   SparkleIcon,
+  StatementIcon,
   TrashIcon,
   WalletIcon,
 } from './icons';

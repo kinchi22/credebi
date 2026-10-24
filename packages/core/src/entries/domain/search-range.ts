@@ -1,7 +1,28 @@
+import { domainError, err, ok, type DomainError, type Err, type Result } from '@repo/contracts';
+import { parseDay } from '../../accounts/domain/account';
+
 export type DayRange = {
   readonly from: string;
   readonly to: string;
 };
+
+export function reversedRange(from: string, to: string): Err<DomainError> {
+  return err(
+    domainError('INVALID_INPUT', `A day range cannot end (${to}) before it starts (${from}).`),
+  );
+}
+
+export function makeDayRange({ from, to }: DayRange): Result<DayRange, DomainError> {
+  const first = parseDay(from);
+  if (!first.ok) {
+    return first;
+  }
+  const last = parseDay(to);
+  if (!last.ok) {
+    return last;
+  }
+  return from > to ? reversedRange(from, to) : ok({ from, to });
+}
 
 export function calendarDay(year: number, monthIndex: number, date: number): string {
   const instant = new Date(0);
@@ -41,6 +62,17 @@ export function firstDayOfLastMonths(today: string, months: number): string {
 
 export function lastDayOfNextMonths(today: string, months: number): string {
   return daysAfter(monthsAfter(today, months), -1);
+}
+
+export function monthsRange(year: number, firstMonthIndex: number, months: number): DayRange {
+  return {
+    from: calendarDay(year, firstMonthIndex, 1),
+    to: calendarDay(year, firstMonthIndex + months, 0),
+  };
+}
+
+export function calendarMonth(day: string): DayRange {
+  return monthsRange(yearOf(day), monthOf(day) - 1, 1);
 }
 
 export function defaultSearchRange(today: string): DayRange {

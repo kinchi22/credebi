@@ -967,6 +967,101 @@ describe('createPostgresEntryRepository', () => {
   });
 });
 
+describe('accountTotals', () => {
+  const JUNE = { from: '2026-06-01', to: '2026-06-30' };
+
+  const lines = (debit: AccountId, credit: AccountId, amount: number): EntryDraft['lines'] => [
+    { account: debit, side: 'debit', amount: amount as Money },
+    { account: credit, side: 'credit', amount: amount as Money },
+  ];
+
+  async function totals(userId: UserId = ADA, range = JUNE) {
+    const result = await repository.accountTotals(userId, range);
+    expect(isOk(result)).toBe(true);
+    return isOk(result)
+      ? [...result.value].sort((first, second) => first.account.localeCompare(second.account))
+      : [];
+  }
+
+  it('sums the debit amounts and the credit amounts of each Account a shown Entry line names', async () => {
+    await repository.save(ADA, entry({ entryDate: '2026-06-10', lines: lines(EXPENSES, CASH, 4000) }));
+    await repository.save(ADA, entry({ entryDate: '2026-06-11', lines: lines(CASH, EXPENSES, 1000) }));
+    await repository.save(ADA, entry({ entryDate: '2026-06-12', lines: lines(EXPENSES, CASH, 250) }));
+    await repository.save(ADA, entry({ entryDate: '2026-06-13', lines: lines(CASH, SALES, 12500) }));
+
+    expect(await totals()).toEqual([
+      { account: CASH, debit: 13500, credit: 4250 },
+      { account: SALES, debit: 0, credit: 12500 },
+      { account: EXPENSES, debit: 4250, credit: 1000 },
+    ]);
+  });
+
+  it('counts an Entry dated on either end of the range, and none dated outside it', async () => {
+    await repository.save(ADA, entry({ entryDate: '2026-05-31', lines: lines(EXPENSES, CASH, 1) }));
+    await repository.save(ADA, entry({ entryDate: '2026-06-01', lines: lines(EXPENSES, CASH, 20) }));
+    await repository.save(ADA, entry({ entryDate: '2026-06-30', lines: lines(EXPENSES, CASH, 300) }));
+    await repository.save(ADA, entry({ entryDate: '2026-07-01', lines: lines(EXPENSES, CASH, 4000) }));
+
+    expect(await totals()).toEqual([
+      { account: CASH, debit: 0, credit: 320 },
+      { account: EXPENSES, debit: 320, credit: 0 },
+    ]);
+  });
+
+  it('leaves out a deleted Entry and its Reversal, and the Entry a Correction replaced', async () => {
+    const deleted = entry({ entryDate: '2026-06-15', lines: lines(EXPENSES, CASH, 2000) });
+    const corrected = entry({ entryDate: '2026-06-15', lines: lines(EXPENSES, CASH, 4000) });
+    const correction = entry({ entryDate: '2026-06-16', lines: lines(EXPENSES, CASH, 3000) });
+    await repository.save(ADA, deleted);
+    await repository.save(ADA, corrected);
+    await repository.saveReversal(ADA, reversalOf(deleted));
+    await repository.saveReversal(ADA, reversalOf(corrected));
+    await repository.save(ADA, correction);
+
+    expect(await totals()).toEqual([
+      { account: CASH, debit: 0, credit: 3000 },
+      { account: EXPENSES, debit: 3000, credit: 0 },
+    ]);
+  });
+
+  it("sums one User's Entries for nobody else (ADR-0021)", async () => {
+    await repository.save(ADA, entry({ entryDate: '2026-06-15', lines: lines(EXPENSES, CASH, 700) }));
+    await repository.save(GRACE, entry({ entryDate: '2026-06-15', lines: lines(EXPENSES, CASH, 90) }));
+
+    expect(await totals(GRACE)).toEqual([
+      { account: CASH, debit: 0, credit: 90 },
+      { account: EXPENSES, debit: 90, credit: 0 },
+    ]);
+    expect(await totals(ADA)).toEqual([
+      { account: CASH, debit: 0, credit: 700 },
+      { account: EXPENSES, debit: 700, credit: 0 },
+    ]);
+  });
+
+  it('answers with no sums for a range no shown Entry is dated in', async () => {
+    await repository.save(ADA, entry({ entryDate: '2026-07-15' }));
+
+    expect(await totals()).toEqual([]);
+  });
+
+  it('reports sums too large for an amount to hold', async () => {
+    const huge = lines(EXPENSES, CASH, Number.MAX_SAFE_INTEGER);
+    await repository.save(ADA, entry({ entryDate: '2026-06-15', lines: huge }));
+    await repository.save(ADA, entry({ entryDate: '2026-06-16', lines: huge }));
+
+    const result = await repository.accountTotals(ADA, JUNE);
+
+    expect(isErr(result) && result.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+  });
+
+  it('reports an unreachable database as a result, never by throwing', async () => {
+    const result = await dead.accountTotals(ADA, JUNE);
+
+    expect(isErr(result) && result.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+    expect(logged.map((fields) => fields.event)).toEqual(['entries.account_totals_failed']);
+  });
+});
+
 describe('createPostgresUnitOfWork', () => {
   it('commits a unit of work as one: the Reversal and the replacement are both stored', async () => {
     const original = entry({ memo: 'Original' });

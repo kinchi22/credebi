@@ -109,6 +109,7 @@ export const ko = {
     menu: '메뉴',
     entries: '거래 입력',
     entrySearch: '거래 검색',
+    incomeStatement: '손익계산서',
     settings: '설정',
     signOut: '로그아웃',
   },
@@ -213,10 +214,12 @@ export const ko = {
   entrySearchPage: {
     heading: '거래 검색',
   },
-  entrySearch: {
-    title: '거래 검색',
+  dayRange: {
     from: '시작일',
     to: '종료일',
+  },
+  entrySearch: {
+    title: '거래 검색',
     account: '계정',
     anyAccount: '모든 계정',
     accountOption: '{name}, {type}',
@@ -232,6 +235,23 @@ export const ko = {
     nothingMatched: '조건에 맞는 거래가 없습니다.',
     refused:
       '날짜 범위의 시작일은 종료일보다 늦을 수 없습니다. 계정이 목록에 있는 것인지, 제목과 메모가 허용된 길이를 넘지 않는지 확인하세요.',
+  },
+  incomeStatementPage: {
+    title: '손익계산서',
+  },
+  incomeStatement: {
+    period: '조회 기간',
+    show: '조회',
+    revenue: '수익',
+    expenses: '비용',
+    totals: '합계',
+    totalRevenue: '수익 합계',
+    totalExpense: '비용 합계',
+    netIncome: '순이익',
+    refused:
+      '손익계산서를 표시하지 않았습니다. 날짜 범위를 확인하세요. 각 날짜는 달력상의 날짜여야 하며, 시작일은 종료일보다 늦을 수 없습니다.',
+    unavailable: '지금은 손익계산서를 불러올 수 없습니다. 조회를 눌러 다시 시도해 주세요.',
+    loading: '이번 달을 불러오는 중...',
   },
   datePresets: {
     title: '기간 프리셋',

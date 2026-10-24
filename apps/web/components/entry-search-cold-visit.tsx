@@ -2,15 +2,15 @@
 
 import { useTranslations } from 'next-intl';
 import { defaultSearchRange, type DayRange } from '@repo/core/entries';
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { type EntrySearchAnswer } from '../server/entry-search';
-import { useBrowserToday } from './use-browser-today';
 import { type DeleteEntryAction } from './delete-entry';
 import { type EditEntryAction } from './edit-entry';
 import { type EntryControls } from './entry-list';
 import { EntrySearchForm } from './entry-search-form';
 import { EntrySearchOutcome, EntrySearchPending } from './entry-search-results';
 import { DANGER_TEXT } from './text-classes';
+import { UNAVAILABLE, useDefaultRangeAnswer } from './use-default-range-answer';
 
 export type SearchDefaultRange = (range: DayRange) => Promise<EntrySearchAnswer>;
 
@@ -18,8 +18,6 @@ export type EntrySearchColdVisitProps = {
   readonly search: SearchDefaultRange;
   readonly controls: EntryControls;
 };
-
-const UNAVAILABLE = 'unavailable';
 
 type ColdVisitAnswer = EntrySearchAnswer | typeof UNAVAILABLE;
 
@@ -45,10 +43,8 @@ function ColdVisitOutcome({
 }
 
 export function EntrySearchColdVisit({ search, controls }: EntrySearchColdVisitProps): ReactNode {
-  const today = useBrowserToday();
-  const range = useMemo(() => (today === undefined ? undefined : defaultSearchRange(today)), [today]);
-  const [answer, setAnswer] = useState<ColdVisitAnswer>();
   const [revision, setRevision] = useState(0);
+  const { range, rangeKey, answer } = useDefaultRangeAnswer(defaultSearchRange, search, revision);
   const { deleteEntry, editEntry } = controls;
   const deleteAndSearchAgain = useCallback<DeleteEntryAction>(
     async (id) => {
@@ -71,32 +67,10 @@ export function EntrySearchColdVisit({ search, controls }: EntrySearchColdVisitP
     [editEntry],
   );
 
-  useEffect(() => {
-    if (range === undefined) {
-      return undefined;
-    }
-    let current = true;
-    search(range).then(
-      (found) => {
-        if (current) {
-          setAnswer(found);
-        }
-      },
-      () => {
-        if (current) {
-          setAnswer(UNAVAILABLE);
-        }
-      },
-    );
-    return () => {
-      current = false;
-    };
-  }, [range, search, revision]);
-
   return (
     <>
       <EntrySearchForm
-        key={range === undefined ? 'today-unknown' : `${range.from}/${range.to}`}
+        key={rangeKey}
         criteria={range ?? {}}
         chart={controls.chart}
         titles={controls.titles}

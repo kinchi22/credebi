@@ -1,8 +1,8 @@
 import {
-  calendarDay,
   firstDayOfLastMonths,
   lastDayOfNextMonths,
   monthOf,
+  monthsRange,
   yearOf,
   type DayRange,
 } from './search-range';
@@ -65,13 +65,6 @@ export const RELATIVE_DIRECTIONS: readonly RelativeDirection[] = ['last', 'next'
 function yearsAround(today: string, span: YearSpan): number[] {
   const first = yearOf(today) - span.back;
   return Array.from({ length: span.back + span.ahead + 1 }, (_, offset) => first + offset);
-}
-
-function monthsRange(year: number, firstMonthIndex: number, months: number): DayRange {
-  return {
-    from: calendarDay(year, firstMonthIndex, 1),
-    to: calendarDay(year, firstMonthIndex + months, 0),
-  };
 }
 
 export function yearPresets(today: string): readonly YearPreset[] {
