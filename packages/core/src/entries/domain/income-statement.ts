@@ -62,17 +62,17 @@ const TOTAL_BY_TYPE: Readonly<
   expense: ({ debit, credit }) => addMoney(debit, negateMoney(credit)),
 };
 
-type Listing = {
+type SectionScope = {
   readonly accountType: StatementType;
   readonly range: DayRange;
   readonly sums: ReadonlyMap<AccountId, AccountSums>;
 };
 
-function listedAccounts(
+function accountRows(
   accounts: readonly Account[],
-  { accountType, range, sums }: Listing,
+  { accountType, range, sums }: SectionScope,
 ): Result<StatementAccount[], DomainError> {
-  const listed: StatementAccount[] = [];
+  const rows: StatementAccount[] = [];
   for (const account of accounts) {
     const named = sums.get(account.id);
     if (
@@ -83,21 +83,21 @@ function listedAccounts(
       if (!total.ok) {
         return total;
       }
-      listed.push({ kind: 'account', account: account.id, name: account.name, total: total.value });
+      rows.push({ kind: 'account', account: account.id, name: account.name, total: total.value });
     }
   }
-  return ok(listed);
+  return ok(rows);
 }
 
-function rowsOf(node: ChartNode, listing: Listing): Result<StatementRow[], DomainError> {
+function rowsOf(node: ChartNode, scope: SectionScope): Result<StatementRow[], DomainError> {
   if (node.kind === 'account') {
-    return listedAccounts([node.account], listing);
+    return accountRows([node.account], scope);
   }
-  const accounts = listedAccounts(node.accounts, listing);
+  const accounts = accountRows(node.accounts, scope);
   if (!accounts.ok || accounts.value.length === 0) {
     return accounts;
   }
-  const subtotal = sumMoney(accounts.value.map((listed) => listed.total));
+  const subtotal = sumMoney(accounts.value.map((row) => row.total));
   return subtotal.ok
     ? ok([
         {
@@ -113,19 +113,19 @@ function rowsOf(node: ChartNode, listing: Listing): Result<StatementRow[], Domai
 
 function section(
   chart: readonly ChartNode[],
-  listing: Listing,
+  scope: SectionScope,
 ): Result<StatementSection, DomainError> {
   const rows: StatementRow[] = [];
   for (const node of chart) {
-    const listed = rowsOf(node, listing);
-    if (!listed.ok) {
-      return listed;
+    const nodeRows = rowsOf(node, scope);
+    if (!nodeRows.ok) {
+      return nodeRows;
     }
-    rows.push(...listed.value);
+    rows.push(...nodeRows.value);
   }
   const total = sumMoney(
-    rows.flatMap((listed) => (listed.kind === 'group' ? listed.accounts : [listed])).map(
-      (listed) => listed.total,
+    rows.flatMap((row) => (row.kind === 'group' ? row.accounts : [row])).map(
+      (row) => row.total,
     ),
   );
   return total.ok ? ok({ total: total.value, rows }) : total;

@@ -830,7 +830,7 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   total row -- `Total revenue`, `Total expense`, and `Difference` in `Totals` --
   is semibold above a 2px `border` rule. A negative amount keeps its minus sign
   and its colour.
-  An Account group's row holds its name in Medium and its subtotal, and its
+  An Account group's row holds its name in medium and its subtotal, and its
   Accounts follow it, their names indented 16px; their hairlines and amounts
   are an Account row's.
 - **Entry row actions.** At the end of each Entry's first row, after its

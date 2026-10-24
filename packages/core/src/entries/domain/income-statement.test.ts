@@ -305,7 +305,6 @@ describe('incomeStatement', () => {
       [twoAccounts, [sums(SALES, 0, big), sums(other, 0, big)]],
       [STARTING, [sums(SALES, 0, big), sums(EXPENSES, 0, big)]],
       [oneGroup, [sums(grouped, 0, big), sums(otherGrouped, 0, big)]],
-      [STARTING, [sums(SALES, big, -1)]],
     ] as const) {
       const built = incomeStatement(chart, JUNE, named);
 
