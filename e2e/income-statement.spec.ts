@@ -83,14 +83,14 @@ const nothingCounted = {
   totalRevenue: '0',
   expenses: [['Expenses', '0']],
   totalExpense: '0',
-  difference: '0',
+  netIncome: '0',
 } as const;
 
 const spentOnly = (amount: string): Statement => ({
   ...nothingCounted,
   expenses: [['Expenses', amount]],
   totalExpense: amount,
-  difference: `-${amount}`,
+  netIncome: `-${amount}`,
 });
 
 const rangeInUrl = (page: Page): Record<string, string> => Object.fromEntries(queryOf(page));
@@ -287,7 +287,7 @@ test('totals a revenue Account as its credits less its debits and an expense Acc
     totalRevenue: '9,500',
     expenses: [['Expenses', '3,000'], ['Travel', '-5,000']],
     totalExpense: '-2,000',
-    difference: '11,500',
+    netIncome: '11,500',
   });
 });
 
@@ -351,7 +351,7 @@ test('lists each revenue and expense Account whose Active period overlaps the ra
     totalRevenue: '0',
     expenses: [['Expenses', '0'], ['Ends on the first', '0'], ['Starts on the last', '0']],
     totalExpense: '0',
-    difference: '0',
+    netIncome: '0',
   });
 });
 
@@ -395,7 +395,7 @@ test('puts each Account under its Account group with the group\'s subtotal, in C
       ['Rent', '0'],
     ],
     totalExpense: '6,000',
-    difference: '4,000',
+    netIncome: '4,000',
   });
   await expect(statementTable(page, 'Revenue').getByRole('link')).toHaveText(['Sales', 'Base pay']);
   await expect(statementTable(page, 'Expenses').getByRole('link')).toHaveText([
@@ -483,7 +483,7 @@ test('shows each Account with one amount within the screen at 390px', async ({ p
     ...nothingCounted,
     expenses: [['Expenses', '0'], [LONG_NAME, '1,234,567']],
     totalExpense: '1,234,567',
-    difference: '-1,234,567',
+    netIncome: '-1,234,567',
   });
   for (const table of ['Revenue', 'Expenses', 'Totals'] as const) {
     await expectWithinPhone(page, statementTable(page, table));
