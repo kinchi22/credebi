@@ -11,6 +11,7 @@ pipeline probe rather than a feature and should not be deleted.
 - Node 24+
 - pnpm 11 (`corepack enable`)
 - Docker with Compose v2+ (local Postgres only; not needed to build or test)
+- `git`, `jq` and `openssl` with `-addext` (OpenSSL 1.1.1+ or LibreSSL 3.1+) on PATH, for `pnpm verify:gates`
 
 ## Getting started
 

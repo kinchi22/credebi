@@ -236,14 +236,14 @@ describe('readHealthDeployment', () => {
     ['a bare host', { ...CURRENT_PRODUCTION, url: 'credebi-previous.vercel.app' }, 'reports no HTTPS fixed URL'],
     ['a plain HTTP URL', { ...CURRENT_PRODUCTION, url: 'http://credebi-previous.vercel.app' }, 'reports no HTTPS fixed URL'],
     ['a URL with a path', { ...CURRENT_PRODUCTION, url: 'https://credebi-previous.vercel.app/x' }, 'reports no HTTPS fixed URL'],
-  ])('blocks readiness on %s', (_, deployment, reason) => {
+  ])('rejects a deployment reporting %s', (_, deployment, reason) => {
     expect(readHealthDeployment('https://credebi.example', healthBody(deployment))).toEqual({
       ok: false,
       reason: `https://credebi.example ${reason}.`,
     });
   });
 
-  it('blocks readiness on a body that is not a health answer at all', () => {
+  it('rejects a body that is not a health answer at all', () => {
     expect(readHealthDeployment('https://credebi.example', '<html>Vercel login</html>').ok).toBe(false);
   });
 });
@@ -627,11 +627,18 @@ describe('production-release.ts, run as CI runs it', () => {
 });
 
 const run = promisify(execFile);
+
+const requireTool = (tool: string, ...args: string[]) => {
+  const found = spawnSync(tool, args, { encoding: 'utf8' });
+  if (found.status !== 0) {
+    throw new Error(`This suite needs \`${tool}\` on PATH; install it to run the gates.`);
+  }
+};
 const BYPASS = 'bypass-secret';
 
 type Answer = () => unknown;
 
-const runProcess = async (
+const runBesideServer = async (
   file: string,
   args: readonly string[],
   options: { cwd?: string; env: Record<string, string> },
@@ -652,6 +659,7 @@ const deployedFake = () => {
   const state = { url: '', certificate: '' };
 
   beforeAll(async () => {
+    requireTool('openssl', 'version');
     sandbox = mkdtempSync(path.join(tmpdir(), 'deployment-'));
     const key = path.join(sandbox, 'key.pem');
     state.certificate = path.join(sandbox, 'certificate.pem');
@@ -703,7 +711,7 @@ describe('production-release.ts, asking a deployment who it is', () => {
   const self = (): VerifiedDeployment => ({ ...CURRENT_PRODUCTION, url: deployment.state.url });
 
   const command = (name: string, input: unknown, bypass = BYPASS) =>
-    runProcess(
+    runBesideServer(
       process.execPath,
       [path.join(REPO_ROOT, 'tools', 'production-release.ts'), name, JSON.stringify(input)],
       { env: deployment.env(bypass) },
@@ -791,7 +799,7 @@ describe('production-release.ts, asking a deployment who it is', () => {
 describe('The compatibility run, as the workflow runs it', () => {
   const deployment = deployedFake();
   const release = readFileSync(path.join(REPO_ROOT, '.github/workflows/production-release.yml'), 'utf8');
-  const script = /- name: Smoke Current Production at its own commit\n[\s\S]*?run: \|\n([\s\S]*)$/
+  const script = /- name: Smoke Current Production at its own commit\n[\s\S]*?run: \|\n((?: {10}.*\n|\n)+)/
     .exec(release)?.[1]?.replace(/^ {10}/gm, '');
   let sandbox = '';
   let previous = '';
@@ -823,6 +831,8 @@ describe('The compatibility run, as the workflow runs it', () => {
 
   beforeAll(() => {
     if (script === undefined) throw new Error('The compatibility smoke step is missing.');
+    requireTool('jq', '--version');
+    requireTool('git', '--version');
     sandbox = realpathSync(mkdtempSync(path.join(tmpdir(), 'compatibility-')));
     const origin = path.join(sandbox, 'origin');
     mkdirSync(path.join(origin, 'e2e'), { recursive: true });
@@ -860,9 +870,14 @@ describe('The compatibility run, as the workflow runs it', () => {
 
   const record = () => path.join(sandbox, 'smoke-runs.jsonl');
 
-  const smokeRuns = (): { head: string; specs: string; url: string; args: string }[] =>
+  type SmokeRun = { head: string; specs: string; url: string; args: string };
+
+  const smokeRuns = (): SmokeRun[] =>
     existsSync(record())
-      ? readFileSync(record(), 'utf8').trim().split('\n').map((line) => JSON.parse(line) as never)
+      ? readFileSync(record(), 'utf8')
+          .trim()
+          .split('\n')
+          .map((line): SmokeRun => JSON.parse(line) as SmokeRun)
       : [];
 
   const serving = (...commits: string[]) => {
@@ -877,7 +892,7 @@ describe('The compatibility run, as the workflow runs it', () => {
     rmSync(path.join(sandbox, 'runner'), { recursive: true, force: true });
     git(path.join(sandbox, 'workspace'), 'worktree', 'prune');
     mkdirSync(path.join(sandbox, 'runner'));
-    return runProcess('bash', ['--noprofile', '--norc', '-eo', 'pipefail', '-c', script ?? ''], {
+    return runBesideServer('bash', ['--noprofile', '--norc', '-eo', 'pipefail', '-c', script ?? ''], {
       cwd: path.join(sandbox, 'workspace'),
       env: {
         ...deployment.env(),

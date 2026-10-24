@@ -179,7 +179,7 @@ export type VerifiedDeployment = {
   readonly url: string;
 };
 
-export type DeploymentReading =
+export type DeploymentCheck =
   | { readonly ok: true; readonly identity: VerifiedDeployment }
   | { readonly ok: false; readonly reason: string };
 
@@ -209,13 +209,13 @@ function isFixedUrl(value: unknown): value is string {
   }
 }
 
-export function readHealthDeployment(source: string, body: unknown): DeploymentReading {
+export function readHealthDeployment(source: string, body: unknown): DeploymentCheck {
   const result = isRecord(body) ? body['result'] : undefined;
   const data = isRecord(result) ? result['data'] : undefined;
   return verifyDeployment(source, isRecord(data) ? data['deployment'] : undefined);
 }
 
-export function verifyDeployment(source: string, deployment: unknown): DeploymentReading {
+export function verifyDeployment(source: string, deployment: unknown): DeploymentCheck {
   if (!isRecord(deployment)) {
     return { ok: false, reason: `${source} reports no deployment identity.` };
   }
@@ -235,7 +235,7 @@ export function verifyDeployment(source: string, deployment: unknown): Deploymen
 const sameIdentity = (left: VerifiedDeployment, right: VerifiedDeployment): boolean =>
   left.id === right.id && left.commit === right.commit && left.url === right.url;
 
-export function crossCheckIdentity(domain: DeploymentReading, fixed: DeploymentReading): DeploymentReading {
+export function crossCheckIdentity(domain: DeploymentCheck, fixed: DeploymentCheck): DeploymentCheck {
   if (!domain.ok) return domain;
   if (!fixed.ok) return fixed;
   if (!sameIdentity(domain.identity, fixed.identity)) {
@@ -247,7 +247,7 @@ export function crossCheckIdentity(domain: DeploymentReading, fixed: DeploymentR
   return domain;
 }
 
-export function checkSelfReport(reported: DeploymentReading, expectedCommit: string): DeploymentReading {
+export function checkSelfReport(reported: DeploymentCheck, expectedCommit: string): DeploymentCheck {
   if (!reported.ok) return reported;
   if (reported.identity.commit !== expectedCommit) {
     return {
@@ -338,7 +338,7 @@ const isIdentifyInput = (value: unknown): value is { url: string } =>
 const isVerifyInput = (value: unknown): value is { url: string; commit: string } =>
   isRecord(value) && typeof value['url'] === 'string' && typeof value['commit'] === 'string';
 
-async function fetchIdentity(url: string): Promise<DeploymentReading> {
+async function fetchIdentity(url: string): Promise<DeploymentCheck> {
   const endpoint = new URL('/api/trpc/health.get', url);
   const bypass = process.env['VERCEL_AUTOMATION_BYPASS_SECRET'] ?? '';
   try {
@@ -358,13 +358,13 @@ async function fetchIdentity(url: string): Promise<DeploymentReading> {
   }
 }
 
-async function identify(url: string): Promise<DeploymentReading> {
+async function identify(url: string): Promise<DeploymentCheck> {
   const domain = await fetchIdentity(url);
   if (!domain.ok) return domain;
   return crossCheckIdentity(domain, await fetchIdentity(domain.identity.url));
 }
 
-function publishDeployment(result: DeploymentReading): void {
+function publishDeployment(result: DeploymentCheck): void {
   if (!result.ok) {
     console.error(result.reason);
     process.exitCode = 1;
