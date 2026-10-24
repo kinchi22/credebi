@@ -9,7 +9,6 @@ import {
   type ChartOutput,
   type Side,
 } from '@repo/contracts';
-import { ACCOUNT_TYPES } from '@repo/core/accounts';
 import { ChevronIcon, SearchIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import Link from 'next/link';
@@ -32,6 +31,7 @@ import { CloseButton } from './close-button';
 import { SheetBar, SheetTabs } from './sheet';
 import { SIDES } from './entry-lines';
 import { SIDE_TONE } from './side-classes';
+import { SIDE_ORDER } from './side-order';
 import { NOTHING_SUGGESTED, type Suggested } from './suggested-accounts';
 import { LINK } from './text-classes';
 import { GroupFolder, TreeBranch } from './tree-branch';
@@ -445,7 +445,7 @@ function SideChoices({
           </div>
         </div>
       )}
-      {ACCOUNT_TYPES.map((type) => {
+      {SIDE_ORDER[side].map((type) => {
         const runs = runsOf(chart, type);
         return (
           <div
