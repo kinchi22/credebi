@@ -2,7 +2,6 @@ import {
   domainError,
   err,
   ok,
-  type DeploymentIdentity,
   type DomainError,
   type HealthState,
   type Result,
@@ -17,13 +16,11 @@ export type HealthReport = {
   readonly status: HealthState;
   readonly components: readonly ComponentReport[];
   readonly checkedAt: Date;
-  readonly deployment: DeploymentIdentity;
 };
 
 export function evaluateHealth(
   reports: readonly ComponentReport[],
   checkedAt: Date,
-  deployment: DeploymentIdentity,
 ): Result<HealthReport, DomainError> {
   if (reports.length === 0) {
     return err(
@@ -45,6 +42,5 @@ export function evaluateHealth(
       reachable: report.reachable,
     })),
     checkedAt,
-    deployment,
   });
 }

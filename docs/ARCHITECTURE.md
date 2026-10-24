@@ -571,8 +571,9 @@ reads it and fails on every doubt:
   is asked again afterwards: a change discards the result and repeats the run
   once against the new deployment, and a second change fails.
 - *Candidate.* The event's URL must report the event's SHA before it is smoked.
-- *Post-Promotion.* The production domain must report the promoted SHA before
-  it is smoked.
+- *Post-Promotion.* The production domain must report the promoted SHA. A
+  mismatch fails the run, but the domain is smoked anyway, so the incident
+  comes with its evidence.
 
 A deployment that reports no identity, as one built before this existed, fails
 the compatibility run, so its successor is held back. ADR-0024.

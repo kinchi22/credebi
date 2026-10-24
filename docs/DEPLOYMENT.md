@@ -152,7 +152,8 @@ becomes Current Production: previews, and Production deployments never
 promoted, send none. It checks out the SHA the event carries -- a missing or
 malformed SHA, or a missing environment, fails the run rather than smoking
 the default branch -- checks that `PRODUCTION_URL` reports that SHA as its
-commit, and tests `PRODUCTION_URL`. It publishes no status and changes
+commit, and tests `PRODUCTION_URL`. A domain reporting another commit fails the
+run, but only after the smoke has run too. It publishes no status and changes
 nothing.
 
 Every URL tested sits behind Standard Protection's Vercel login.

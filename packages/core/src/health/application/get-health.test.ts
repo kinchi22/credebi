@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isOk } from '@repo/contracts';
+import { isErr, isOk } from '@repo/contracts';
 import { createGetHealth } from './get-health';
 import { type HealthProbe } from '../ports/health-probe';
 
@@ -92,5 +92,19 @@ describe('createGetHealth', () => {
     if (!isOk(result)) return;
     expect(result.value.status).toBe('healthy');
     expect(result.value.deployment).toEqual(UNIDENTIFIED);
+  });
+
+  it('refuses to report health with no probe, deployment or not', async () => {
+    const getHealth = createGetHealth({
+      probes: [],
+      now: () => CHECKED_AT,
+      deployment: UNIDENTIFIED,
+    });
+
+    const result = await getHealth();
+
+    expect(isErr(result)).toBe(true);
+    if (!isErr(result)) return;
+    expect(result.error.code).toBe('INVALID_INPUT');
   });
 });

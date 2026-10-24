@@ -1,20 +1,30 @@
 import { execFile, spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
-import { createServer, type Server } from 'node:http';
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { createServer as createHttpsServer, type Server } from 'node:https';
 import { type AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   checkSelfReport,
   coalesceProductionReleases,
   crossCheckIdentity,
   decideCompatibility,
   decideProductionRelease,
-  readDeploymentIdentity,
+  readHealthDeployment,
   selectReleaseCommit,
-  type DeploymentIdentity,
+  type VerifiedDeployment,
 } from '../production-release';
 import { REPO_ROOT } from './run-gate';
 
@@ -185,13 +195,13 @@ describe('selectReleaseCommit', () => {
 
 const RELEASE_COMMIT = 'a'.repeat(40);
 
-const CURRENT_PRODUCTION: DeploymentIdentity = {
+const CURRENT_PRODUCTION: VerifiedDeployment = {
   id: 'dpl_previous',
   commit: 'd'.repeat(40),
   url: 'https://credebi-previous.vercel.app',
 };
 
-const REDEPLOYED: DeploymentIdentity = {
+const REDEPLOYED: VerifiedDeployment = {
   id: 'dpl_rolled_back',
   commit: 'e'.repeat(40),
   url: 'https://credebi-rolled-back.vercel.app',
@@ -208,10 +218,10 @@ const healthBody = (deployment: unknown) => ({
   },
 });
 
-const reported = (deployment: DeploymentIdentity) =>
-  readDeploymentIdentity(deployment.url, healthBody(deployment));
+const reported = (deployment: VerifiedDeployment) =>
+  readHealthDeployment(deployment.url, healthBody(deployment));
 
-describe('readDeploymentIdentity', () => {
+describe('readHealthDeployment', () => {
   it('reads the identity a deployment reports about itself', () => {
     expect(reported(CURRENT_PRODUCTION)).toEqual({ ok: true, identity: CURRENT_PRODUCTION });
   });
@@ -227,23 +237,23 @@ describe('readDeploymentIdentity', () => {
     ['a plain HTTP URL', { ...CURRENT_PRODUCTION, url: 'http://credebi-previous.vercel.app' }, 'reports no HTTPS fixed URL'],
     ['a URL with a path', { ...CURRENT_PRODUCTION, url: 'https://credebi-previous.vercel.app/x' }, 'reports no HTTPS fixed URL'],
   ])('blocks readiness on %s', (_, deployment, reason) => {
-    expect(readDeploymentIdentity('https://credebi.example', healthBody(deployment))).toEqual({
+    expect(readHealthDeployment('https://credebi.example', healthBody(deployment))).toEqual({
       ok: false,
       reason: `https://credebi.example ${reason}.`,
     });
   });
 
   it('blocks readiness on a body that is not a health answer at all', () => {
-    expect(readDeploymentIdentity('https://credebi.example', '<html>Vercel login</html>').ok).toBe(false);
+    expect(readHealthDeployment('https://credebi.example', '<html>Vercel login</html>').ok).toBe(false);
   });
 });
 
 describe('crossCheckIdentity', () => {
-  it('binds the compatibility run to Current Production, never to the release commit', () => {
-    const target = crossCheckIdentity(reported(CURRENT_PRODUCTION), reported(CURRENT_PRODUCTION));
-
-    expect(target).toEqual({ ok: true, identity: CURRENT_PRODUCTION });
-    expect(target.ok && target.identity.commit).not.toBe(RELEASE_COMMIT);
+  it('accepts the deployment when the domain and its fixed URL name the same one', () => {
+    expect(crossCheckIdentity(reported(CURRENT_PRODUCTION), reported(CURRENT_PRODUCTION))).toEqual({
+      ok: true,
+      identity: CURRENT_PRODUCTION,
+    });
   });
 
   it('blocks readiness when the fixed URL names another deployment than the domain did', () => {
@@ -482,6 +492,16 @@ describe('Post-Promotion smoke workflow', () => {
     expect(check).toBeLessThan(promoted.indexOf('ref: ${{ steps.promoted.outputs.sha }}'));
   });
 
+  it('smokes the domain even when it reports another commit, then fails the job for it', () => {
+    const identity = promoted.slice(promoted.indexOf('- name: Check the production domain reports the promoted SHA'));
+    const verdict = promoted.indexOf('- name: Fail when the production domain reported another deployment');
+
+    expect(identity).toMatch(/^- name: [^\n]+\n\s+id: identity\n\s+continue-on-error: true\n/);
+    expect(verdict).toBeGreaterThan(promoted.indexOf('- name: Smoke Current Production'));
+    expect(promoted.slice(verdict)).toContain("if: always() && steps.identity.outcome != 'success'");
+    expect(promoted.slice(verdict)).toContain('exit 1');
+  });
+
   it('runs the job for a production or environment-less event only, so a preview never starts it', () => {
     const condition = /\n {4}if: >-\n((?: {6}.*\n)+)/.exec(promoted)?.[1]?.replace(/\s+/g, ' ').trim();
     expect(condition).toBe(
@@ -606,82 +626,139 @@ describe('production-release.ts, run as CI runs it', () => {
   });
 });
 
-describe('production-release.ts, asking a deployment who it is', () => {
-  const run = promisify(execFile);
-  const BYPASS = 'bypass-secret';
-  let server: Server | undefined;
+const run = promisify(execFile);
+const BYPASS = 'bypass-secret';
 
-  afterEach(async () => {
+type Answer = () => unknown;
+
+const runProcess = async (
+  file: string,
+  args: readonly string[],
+  options: { cwd?: string; env: Record<string, string> },
+) => {
+  try {
+    const { stdout, stderr } = await run(file, args, options);
+    return { status: 0, stdout, stderr };
+  } catch (error) {
+    const failed = error as { code: number; stdout: string; stderr: string };
+    return { status: failed.code, stdout: failed.stdout, stderr: failed.stderr };
+  }
+};
+
+const deployedFake = () => {
+  let sandbox: string | undefined;
+  let server: Server | undefined;
+  let answer: Answer = () => undefined;
+  const state = { url: '', certificate: '' };
+
+  beforeAll(async () => {
+    sandbox = mkdtempSync(path.join(tmpdir(), 'deployment-'));
+    const key = path.join(sandbox, 'key.pem');
+    state.certificate = path.join(sandbox, 'certificate.pem');
+    const made = spawnSync('openssl', [
+      'req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '1', '-subj', '/CN=127.0.0.1',
+      '-addext', 'subjectAltName=IP:127.0.0.1', '-keyout', key, '-out', state.certificate,
+    ], { encoding: 'utf8' });
+    if (made.status !== 0) throw new Error(made.stderr);
+    server = createHttpsServer(
+      { key: readFileSync(key), cert: readFileSync(state.certificate) },
+      (request, response) => {
+        if (request.headers['x-vercel-protection-bypass'] !== BYPASS || request.url !== '/api/trpc/health.get') {
+          response.writeHead(401).end();
+          return;
+        }
+        response.writeHead(200, { 'content-type': 'application/json' });
+        response.end(JSON.stringify(healthBody(answer())));
+      },
+    );
+    await new Promise<void>((resolve) => server?.listen(0, '127.0.0.1', resolve));
+    state.url = `https://127.0.0.1:${String((server.address() as AddressInfo).port)}`;
+  });
+
+  afterAll(async () => {
     const running = server;
-    server = undefined;
     if (running !== undefined) {
       await new Promise((resolve) => {
         running.close(resolve);
       });
     }
+    if (sandbox !== undefined) rmSync(sandbox, { recursive: true, force: true });
   });
 
-  const serve = async (answer: (host: string) => unknown): Promise<string> => {
-    server = createServer((request, response) => {
-      if (request.headers['x-vercel-protection-bypass'] !== BYPASS || request.url !== '/api/trpc/health.get') {
-        response.writeHead(401).end();
-        return;
-      }
-      response.writeHead(200, { 'content-type': 'application/json' });
-      response.end(JSON.stringify(healthBody(answer(request.headers.host ?? ''))));
+  return {
+    state,
+    answer: (next: Answer) => {
+      answer = next;
+    },
+    env: (bypass = BYPASS) => ({
+      PATH: process.env['PATH'] ?? '',
+      NODE_EXTRA_CA_CERTS: state.certificate,
+      VERCEL_AUTOMATION_BYPASS_SECRET: bypass,
+    }),
+  };
+};
+
+describe('production-release.ts, asking a deployment who it is', () => {
+  const deployment = deployedFake();
+  const self = (): VerifiedDeployment => ({ ...CURRENT_PRODUCTION, url: deployment.state.url });
+
+  const command = (name: string, input: unknown, bypass = BYPASS) =>
+    runProcess(
+      process.execPath,
+      [path.join(REPO_ROOT, 'tools', 'production-release.ts'), name, JSON.stringify(input)],
+      { env: deployment.env(bypass) },
+    );
+
+  it('identifies a deployment whose fixed URL names the same deployment the domain did', async () => {
+    deployment.answer(self);
+
+    const result = await command('identify', { url: deployment.state.url });
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(JSON.parse(result.stdout)).toEqual(self());
+  });
+
+  it('fails closed when the fixed URL names another deployment than the domain did', async () => {
+    let asked = 0;
+    deployment.answer(() => {
+      asked += 1;
+      return asked === 1 ? self() : { ...self(), id: REDEPLOYED.id };
     });
-    await new Promise<void>((resolve) => server?.listen(0, '127.0.0.1', resolve));
-    return `http://127.0.0.1:${String((server.address() as AddressInfo).port)}`;
-  };
 
-  const command = async (name: string, input: unknown, bypass = BYPASS) => {
-    try {
-      const { stdout } = await run(
-        process.execPath,
-        [path.join(REPO_ROOT, 'tools', 'production-release.ts'), name, JSON.stringify(input)],
-        { env: { PATH: process.env['PATH'] ?? '', VERCEL_AUTOMATION_BYPASS_SECRET: bypass } },
-      );
-      return { status: 0, stdout, stderr: '' };
-    } catch (error) {
-      const failed = error as { code: number; stdout: string; stderr: string };
-      return { status: failed.code, stdout: failed.stdout, stderr: failed.stderr };
-    }
-  };
+    const result = await command('identify', { url: deployment.state.url });
 
-  it('fails closed on a deployment that reports no identity, as one built before it would', async () => {
-    const url = await serve(() => undefined);
+    expect(asked).toBe(2);
+    expect(result.status).not.toBe(0);
+    expect(result.stdout).toBe('');
+    expect(result.stderr).toContain(`reports deployment ${REDEPLOYED.id}`);
+  });
 
-    const result = await command('identify', { url });
+  it('fails closed on a deployment that reports no identity', async () => {
+    deployment.answer(() => undefined);
+
+    const result = await command('identify', { url: deployment.state.url });
 
     expect(result.status).not.toBe(0);
     expect(result.stdout).toBe('');
-    expect(result.stderr).toContain(`${url} reports no deployment identity.`);
+    expect(result.stderr).toContain(`${deployment.state.url} reports no deployment identity.`);
   });
 
   it('sends the bypass secret, and fails closed when Deployment Protection turns it away', async () => {
-    const url = await serve(() => CURRENT_PRODUCTION);
+    deployment.answer(self);
 
-    const passed = await command('verify', { url, commit: CURRENT_PRODUCTION.commit });
-    const refused = await command('verify', { url, commit: CURRENT_PRODUCTION.commit }, '');
+    const passed = await command('verify', { url: deployment.state.url, commit: CURRENT_PRODUCTION.commit });
+    const refused = await command('verify', { url: deployment.state.url, commit: CURRENT_PRODUCTION.commit }, '');
 
     expect(passed.status, passed.stderr).toBe(0);
+    expect(JSON.parse(passed.stdout)).toEqual(self());
     expect(refused.status).not.toBe(0);
-    expect(refused.stderr).toContain(`${url} answered health.get with HTTP 401.`);
-  });
-
-  it('verifies a deployment that reports the commit it was asked about', async () => {
-    const url = await serve(() => CURRENT_PRODUCTION);
-
-    const result = await command('verify', { url, commit: CURRENT_PRODUCTION.commit });
-
-    expect(result.status, result.stderr).toBe(0);
-    expect(JSON.parse(result.stdout)).toEqual(CURRENT_PRODUCTION);
+    expect(refused.stderr).toContain(`${deployment.state.url} answered health.get with HTTP 401.`);
   });
 
   it('fails a deployment that reports another commit than the one it was asked about', async () => {
-    const url = await serve(() => CURRENT_PRODUCTION);
+    deployment.answer(self);
 
-    const result = await command('verify', { url, commit: RELEASE_COMMIT });
+    const result = await command('verify', { url: deployment.state.url, commit: RELEASE_COMMIT });
 
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain(`reports commit ${CURRENT_PRODUCTION.commit}, not ${RELEASE_COMMIT}.`);
@@ -697,5 +774,177 @@ describe('production-release.ts, asking a deployment who it is', () => {
 
     expect(result.status, result.stderr).toBe(0);
     expect(JSON.parse(result.stdout)).toMatchObject({ decision: 'rerun' });
+  });
+
+  it('refuses a compatibility input whose target is not a verified deployment', async () => {
+    const result = await command('compatibility', {
+      attempt: 1,
+      target: { ...CURRENT_PRODUCTION, commit: 'd48b5f0' },
+      smoke: 'success',
+      after: CURRENT_PRODUCTION,
+    });
+
+    expect(result.status).not.toBe(0);
+  });
+});
+
+describe('The compatibility run, as the workflow runs it', () => {
+  const deployment = deployedFake();
+  const release = readFileSync(path.join(REPO_ROOT, '.github/workflows/production-release.yml'), 'utf8');
+  const script = /- name: Smoke Current Production at its own commit\n[\s\S]*?run: \|\n([\s\S]*)$/
+    .exec(release)?.[1]?.replace(/^ {10}/gm, '');
+  let sandbox = '';
+  let previous = '';
+  let replaced = '';
+  let releaseCommit = '';
+
+  const git = (cwd: string, ...args: string[]) => {
+    const result = spawnSync('git', args, {
+      cwd,
+      encoding: 'utf8',
+      env: {
+        PATH: process.env['PATH'] ?? '',
+        GIT_AUTHOR_NAME: 'Smoke',
+        GIT_AUTHOR_EMAIL: 'smoke@example.com',
+        GIT_COMMITTER_NAME: 'Smoke',
+        GIT_COMMITTER_EMAIL: 'smoke@example.com',
+      },
+    });
+    if (result.status !== 0) throw new Error(result.stderr);
+    return result.stdout.trim();
+  };
+
+  const commitSpecs = (origin: string, spec: string) => {
+    writeFileSync(path.join(origin, 'e2e', spec), '');
+    git(origin, 'add', '.');
+    git(origin, 'commit', '-q', '-m', spec);
+    return git(origin, 'rev-parse', 'HEAD');
+  };
+
+  beforeAll(() => {
+    if (script === undefined) throw new Error('The compatibility smoke step is missing.');
+    sandbox = realpathSync(mkdtempSync(path.join(tmpdir(), 'compatibility-')));
+    const origin = path.join(sandbox, 'origin');
+    mkdirSync(path.join(origin, 'e2e'), { recursive: true });
+    git(origin, 'init', '-q', '-b', 'main');
+    git(origin, 'config', 'uploadpack.allowAnySHA1InWant', 'true');
+    previous = commitSpecs(origin, 'existing.spec.ts');
+    replaced = commitSpecs(origin, 'rolled-back.spec.ts');
+    releaseCommit = commitSpecs(origin, 'new-feature.spec.ts');
+    git(sandbox, 'clone', '-q', origin, 'workspace');
+    mkdirSync(path.join(sandbox, 'workspace', 'tools'));
+    copyFileSync(
+      path.join(REPO_ROOT, 'tools', 'production-release.ts'),
+      path.join(sandbox, 'workspace', 'tools', 'production-release.ts'),
+    );
+    mkdirSync(path.join(sandbox, 'bin'));
+    writeFileSync(
+      path.join(sandbox, 'bin', 'pnpm'),
+      [
+        '#!/usr/bin/env bash',
+        'if [ "$1" = test:e2e ]; then',
+        '  jq -nc --arg head "$(git rev-parse HEAD)" --arg specs "$(ls e2e | tr "\\n" " ")" \\',
+        '    --arg url "$E2E_BASE_URL" --arg args "$*" \\',
+        '    \'{head: $head, specs: $specs, url: $url, args: $args}\' >> "$SMOKE_RECORD"',
+        '  exit "${SMOKE_EXIT:-0}"',
+        'fi',
+        '',
+      ].join('\n'),
+      { mode: 0o755 },
+    );
+  });
+
+  afterAll(() => {
+    rmSync(sandbox, { recursive: true, force: true });
+  });
+
+  const record = () => path.join(sandbox, 'smoke-runs.jsonl');
+
+  const smokeRuns = (): { head: string; specs: string; url: string; args: string }[] =>
+    existsSync(record())
+      ? readFileSync(record(), 'utf8').trim().split('\n').map((line) => JSON.parse(line) as never)
+      : [];
+
+  const serving = (...commits: string[]) => {
+    deployment.answer(() => {
+      const commit = commits[Math.min(smokeRuns().length, commits.length - 1)] ?? '';
+      return { id: `dpl_${commit.slice(0, 7)}`, commit, url: deployment.state.url };
+    });
+  };
+
+  const runCompatibility = async (smokeExit = 0) => {
+    rmSync(record(), { force: true });
+    rmSync(path.join(sandbox, 'runner'), { recursive: true, force: true });
+    git(path.join(sandbox, 'workspace'), 'worktree', 'prune');
+    mkdirSync(path.join(sandbox, 'runner'));
+    return runProcess('bash', ['--noprofile', '--norc', '-eo', 'pipefail', '-c', script ?? ''], {
+      cwd: path.join(sandbox, 'workspace'),
+      env: {
+        ...deployment.env(),
+        PATH: `${path.join(sandbox, 'bin')}:${process.env['PATH'] ?? ''}`,
+        GITHUB_WORKSPACE: path.join(sandbox, 'workspace'),
+        RUNNER_TEMP: path.join(sandbox, 'runner'),
+        PRODUCTION_URL: deployment.state.url,
+        SMOKE_SESSION_TOKEN: 'token',
+        SMOKE_RECORD: record(),
+        SMOKE_EXIT: String(smokeExit),
+      },
+    });
+  };
+
+  it('runs the specs of the commit Current Production reports, so a newer spec never meets it', async () => {
+    serving(previous);
+
+    const result = await runCompatibility();
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(git(path.join(sandbox, 'workspace'), 'rev-parse', 'HEAD')).toBe(releaseCommit);
+    expect(smokeRuns()).toEqual([
+      {
+        head: previous,
+        specs: 'existing.spec.ts ',
+        url: deployment.state.url,
+        args: 'test:e2e --grep @smoke',
+      },
+    ]);
+  });
+
+  it('fails when Current Production fails its own specs on the resulting schema', async () => {
+    serving(previous);
+
+    const result = await runCompatibility(1);
+
+    expect(result.status).not.toBe(0);
+    expect(smokeRuns()).toHaveLength(1);
+  });
+
+  it('smokes the new Current Production with its own specs when it changes during the run', async () => {
+    serving(previous, replaced);
+
+    const result = await runCompatibility();
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(smokeRuns().map((smoke) => [smoke.head, smoke.specs])).toEqual([
+      [previous, 'existing.spec.ts '],
+      [replaced, 'existing.spec.ts rolled-back.spec.ts '],
+    ]);
+  });
+
+  it('fails when Current Production changes again during the rerun', async () => {
+    serving(previous, replaced, releaseCommit);
+
+    const result = await runCompatibility();
+
+    expect(result.status).not.toBe(0);
+    expect(smokeRuns()).toHaveLength(2);
+  });
+
+  it('runs no spec at all when Current Production cannot name itself', async () => {
+    deployment.answer(() => ({ id: null, commit: null, url: null }));
+
+    const result = await runCompatibility();
+
+    expect(result.status).not.toBe(0);
+    expect(smokeRuns()).toEqual([]);
   });
 });

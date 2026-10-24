@@ -65,7 +65,11 @@ jobs:
         with:
           node-version: 24
           package-manager-cache: false
+      # A mismatch is part of the incident, not a reason to skip the smoke run:
+      # it is recorded, the smoke still runs, and the last step fails the job.
       - name: Check the production domain reports the promoted SHA
+        id: identity
+        continue-on-error: true
         env:
           PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
           PROMOTED_SHA: ${{ steps.promoted.outputs.sha }}
@@ -102,3 +106,8 @@ jobs:
           E2E_BASE_URL: ${{ vars.PRODUCTION_URL }}
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
           SMOKE_SESSION_TOKEN: ${{ secrets.SMOKE_SESSION_TOKEN }}
+      - name: Fail when the production domain reported another deployment
+        if: always() && steps.identity.outcome != 'success'
+        run: |
+          echo 'The production domain did not report the promoted SHA; see the identity check above.' >&2
+          exit 1

@@ -173,21 +173,23 @@ const isOneOf = <T extends string>(value: unknown, choices: readonly T[]): value
 
 export const COMPATIBILITY_ATTEMPTS = 2;
 
-export type DeploymentIdentity = {
+export type VerifiedDeployment = {
   readonly id: string;
   readonly commit: string;
   readonly url: string;
 };
 
-export type IdentityResult =
-  | { readonly ok: true; readonly identity: DeploymentIdentity }
+export type DeploymentReading =
+  | { readonly ok: true; readonly identity: VerifiedDeployment }
   | { readonly ok: false; readonly reason: string };
+
+export const SMOKE_OUTCOMES = ['success', 'failure'] as const;
 
 export type CompatibilityInput = {
   readonly attempt: number;
-  readonly target: DeploymentIdentity;
-  readonly smoke: 'success' | 'failure';
-  readonly after: DeploymentIdentity | null;
+  readonly target: VerifiedDeployment;
+  readonly smoke: (typeof SMOKE_OUTCOMES)[number];
+  readonly after: VerifiedDeployment | null;
 };
 
 export type CompatibilityDecision = {
@@ -207,10 +209,13 @@ function isFixedUrl(value: unknown): value is string {
   }
 }
 
-export function readDeploymentIdentity(source: string, body: unknown): IdentityResult {
+export function readHealthDeployment(source: string, body: unknown): DeploymentReading {
   const result = isRecord(body) ? body['result'] : undefined;
   const data = isRecord(result) ? result['data'] : undefined;
-  const deployment = isRecord(data) ? data['deployment'] : undefined;
+  return verifyDeployment(source, isRecord(data) ? data['deployment'] : undefined);
+}
+
+export function verifyDeployment(source: string, deployment: unknown): DeploymentReading {
   if (!isRecord(deployment)) {
     return { ok: false, reason: `${source} reports no deployment identity.` };
   }
@@ -227,10 +232,10 @@ export function readDeploymentIdentity(source: string, body: unknown): IdentityR
   return { ok: true, identity: { id, commit, url } };
 }
 
-const sameIdentity = (left: DeploymentIdentity, right: DeploymentIdentity): boolean =>
+const sameIdentity = (left: VerifiedDeployment, right: VerifiedDeployment): boolean =>
   left.id === right.id && left.commit === right.commit && left.url === right.url;
 
-export function crossCheckIdentity(domain: IdentityResult, fixed: IdentityResult): IdentityResult {
+export function crossCheckIdentity(domain: DeploymentReading, fixed: DeploymentReading): DeploymentReading {
   if (!domain.ok) return domain;
   if (!fixed.ok) return fixed;
   if (!sameIdentity(domain.identity, fixed.identity)) {
@@ -242,7 +247,7 @@ export function crossCheckIdentity(domain: IdentityResult, fixed: IdentityResult
   return domain;
 }
 
-export function checkSelfReport(reported: IdentityResult, expectedCommit: string): IdentityResult {
+export function checkSelfReport(reported: DeploymentReading, expectedCommit: string): DeploymentReading {
   if (!reported.ok) return reported;
   if (reported.identity.commit !== expectedCommit) {
     return {
@@ -317,28 +322,23 @@ function isCurrentInput(value: unknown): value is { commit: string; mainHead?: s
     (value['mainHead'] === undefined || typeof value['mainHead'] === 'string');
 }
 
-const isIdentity = (value: unknown): value is DeploymentIdentity =>
-  isRecord(value) &&
-  typeof value['id'] === 'string' &&
-  typeof value['commit'] === 'string' &&
-  typeof value['url'] === 'string';
-
 function isCompatibilityInput(value: unknown): value is CompatibilityInput {
   return (
     isRecord(value) &&
     typeof value['attempt'] === 'number' &&
-    isIdentity(value['target']) &&
-    (value['smoke'] === 'success' || value['smoke'] === 'failure') &&
-    (value['after'] === null || isIdentity(value['after']))
+    verifyDeployment('target', value['target']).ok &&
+    isOneOf(value['smoke'], SMOKE_OUTCOMES) &&
+    (value['after'] === null || verifyDeployment('after', value['after']).ok)
   );
 }
 
-const isUrlInput = (value: unknown): value is { url: string; commit?: string } =>
-  isRecord(value) &&
-  typeof value['url'] === 'string' &&
-  (value['commit'] === undefined || typeof value['commit'] === 'string');
+const isIdentifyInput = (value: unknown): value is { url: string } =>
+  isRecord(value) && typeof value['url'] === 'string';
 
-async function fetchIdentity(url: string): Promise<IdentityResult> {
+const isVerifyInput = (value: unknown): value is { url: string; commit: string } =>
+  isRecord(value) && typeof value['url'] === 'string' && typeof value['commit'] === 'string';
+
+async function fetchIdentity(url: string): Promise<DeploymentReading> {
   const endpoint = new URL('/api/trpc/health.get', url);
   const bypass = process.env['VERCEL_AUTOMATION_BYPASS_SECRET'] ?? '';
   try {
@@ -349,7 +349,7 @@ async function fetchIdentity(url: string): Promise<IdentityResult> {
     if (!response.ok) {
       return { ok: false, reason: `${url} answered health.get with HTTP ${String(response.status)}.` };
     }
-    return readDeploymentIdentity(url, await response.json());
+    return readHealthDeployment(url, await response.json());
   } catch (error) {
     return {
       ok: false,
@@ -358,13 +358,13 @@ async function fetchIdentity(url: string): Promise<IdentityResult> {
   }
 }
 
-async function identify(url: string): Promise<IdentityResult> {
+async function identify(url: string): Promise<DeploymentReading> {
   const domain = await fetchIdentity(url);
   if (!domain.ok) return domain;
   return crossCheckIdentity(domain, await fetchIdentity(domain.identity.url));
 }
 
-function settle(result: IdentityResult): void {
+function publishDeployment(result: DeploymentReading): void {
   if (!result.ok) {
     console.error(result.reason);
     process.exitCode = 1;
@@ -378,7 +378,7 @@ function publish(
     | ReleaseDecision
     | ReleaseQueueDecision
     | CompatibilityDecision
-    | DeploymentIdentity
+    | VerifiedDeployment
     | { current: boolean },
 ): void {
   console.log(JSON.stringify(result));
@@ -405,10 +405,10 @@ if (entryPoint !== undefined && pathToFileURL(path.resolve(entryPoint)).href ===
     publish(selectReleaseCommit(input.commit, input.mainHead));
   } else if (command === 'compatibility' && isCompatibilityInput(input)) {
     publish(decideCompatibility(input));
-  } else if (command === 'identify' && isUrlInput(input)) {
-    settle(await identify(input.url));
-  } else if (command === 'verify' && isUrlInput(input) && input.commit !== undefined) {
-    settle(checkSelfReport(await fetchIdentity(input.url), input.commit));
+  } else if (command === 'identify' && isIdentifyInput(input)) {
+    publishDeployment(await identify(input.url));
+  } else if (command === 'verify' && isVerifyInput(input)) {
+    publishDeployment(checkSelfReport(await fetchIdentity(input.url), input.commit));
   } else {
     throw new Error(
       'Expected `decide`, `queue`, `current`, `compatibility`, `identify` or `verify` and an input matching that command.',

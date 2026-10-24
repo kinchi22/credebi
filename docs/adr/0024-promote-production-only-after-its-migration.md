@@ -100,8 +100,8 @@ Which deployment answers is its Deployment identity, and it reports that
 itself: `health.get` carries a `deployment` field, `{ id, commit, url }`, read
 from Vercel's `VERCEL_DEPLOYMENT_ID`, `VERCEL_GIT_COMMIT_SHA` and `VERCEL_URL`.
 Where Vercel sets none -- locally, in `E2E build` -- the fields are `null` and
-health is unaffected (ADR-0020); only the release tooling reads `null` as a
-failure.
+health is unaffected; ADR-0020 is amended to carry the field. Only the release
+tooling reads `null` as a failure.
 
 The compatibility run asks the production domain who it is, asks the fixed URL
 it names the same, and fails unless both name one deployment. It installs that
@@ -109,8 +109,10 @@ deployment's commit in a `git worktree`, smokes its fixed URL, and asks the
 domain again. The release commit still orchestrates the run. If Current
 Production changed meanwhile, the result is discarded and the run repeated once
 against the new deployment; a second change fails. The candidate run fails
-unless its URL reports the event's SHA, and the post-Promotion run fails unless
-the production domain reports the promoted SHA. Every doubt fails the run.
+unless its URL reports the event's SHA. The post-Promotion run fails unless the
+production domain reports the promoted SHA, but smokes the domain either way,
+since its failure is an incident to read rather than a gate. Every doubt fails
+the run.
 
 **Order.** Preview first, as a canary: a Production approval is requested only
 after the Preview database migrated successfully. The Production migration
