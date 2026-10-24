@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { domainError, err, ok } from '@repo/contracts';
-import { defaultSearchRange, makeDayRange } from './search-range';
+import { calendarMonth, defaultSearchRange, makeDayRange } from './search-range';
 
 describe('defaultSearchRange', () => {
   it('runs from the day after the same day a month back, through today', () => {
@@ -42,6 +42,33 @@ describe('defaultSearchRange', () => {
 
   it('writes a year before 1000 with four digits', () => {
     expect(defaultSearchRange('0999-02-10')).toEqual({ from: '0999-01-11', to: '0999-02-10' });
+  });
+});
+
+describe('calendarMonth', () => {
+  it('runs from the first day to the last of the month holding a day in its middle', () => {
+    expect(calendarMonth('2026-09-15')).toEqual({ from: '2026-09-01', to: '2026-09-30' });
+  });
+
+  it('gives the same month for its first day and its last', () => {
+    expect(calendarMonth('2026-07-01')).toEqual({ from: '2026-07-01', to: '2026-07-31' });
+    expect(calendarMonth('2026-07-31')).toEqual({ from: '2026-07-01', to: '2026-07-31' });
+  });
+
+  it('ends December on the 31st without crossing into the next year', () => {
+    expect(calendarMonth('2026-12-31')).toEqual({ from: '2026-12-01', to: '2026-12-31' });
+    expect(calendarMonth('2026-12-01')).toEqual({ from: '2026-12-01', to: '2026-12-31' });
+  });
+
+  it('ends February on the 29th in a leap year and on the 28th in a common one', () => {
+    expect(calendarMonth('2028-02-10')).toEqual({ from: '2028-02-01', to: '2028-02-29' });
+    expect(calendarMonth('2028-02-29')).toEqual({ from: '2028-02-01', to: '2028-02-29' });
+    expect(calendarMonth('2026-02-10')).toEqual({ from: '2026-02-01', to: '2026-02-28' });
+    expect(calendarMonth('2100-02-10')).toEqual({ from: '2100-02-01', to: '2100-02-28' });
+  });
+
+  it('writes a year before 1000 with four digits', () => {
+    expect(calendarMonth('0999-04-10')).toEqual({ from: '0999-04-01', to: '0999-04-30' });
   });
 });
 

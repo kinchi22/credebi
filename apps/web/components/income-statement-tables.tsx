@@ -5,7 +5,7 @@ import { typeClasses } from '@repo/ui/type-classes';
 import { type ReactNode } from 'react';
 import { type IncomeStatementAnswer } from '../server/income-statement';
 import { formatAmount } from './amount';
-import { DANGER_TEXT } from './text-classes';
+import { DANGER_TEXT, MUTED_TEXT } from './text-classes';
 
 const TABLE = `w-full border-collapse ${typeClasses['body-sm']}`;
 const CAPTION = `mb-2 text-left ${PANEL_TITLE}`;
@@ -120,5 +120,16 @@ export function IncomeStatementOutcome({ answer }: IncomeStatementOutcomeProps):
     <p role="alert" className={DANGER_TEXT}>
       {t(answer.outcome)}
     </p>
+  );
+}
+
+export function IncomeStatementPending(): ReactNode {
+  const t = useTranslations('incomeStatement');
+  return (
+    <section aria-busy className="flex flex-col gap-2">
+      <p role="status" className={MUTED_TEXT}>
+        {t('loading')}
+      </p>
+    </section>
   );
 }

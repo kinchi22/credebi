@@ -1,4 +1,5 @@
 import {
+  incomeStatementQuerySchema,
   parseIncomeStatementQuery,
   type DomainErrorCode,
   type IncomeStatementOutput,
@@ -44,4 +45,15 @@ export async function answerIncomeStatement(
     }
     return { outcome, period: period.value };
   }
+}
+
+export async function answerDefaultRangeStatement(
+  show: ShowIncomeStatement,
+  range: unknown,
+): Promise<IncomeStatementAnswer> {
+  const parsed = incomeStatementQuerySchema.safeParse(range);
+  if (!parsed.success) {
+    return { outcome: 'refused', period: {} };
+  }
+  return answerIncomeStatement(show, parsed.data);
 }

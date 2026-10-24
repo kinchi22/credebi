@@ -64,6 +64,17 @@ export function lastDayOfNextMonths(today: string, months: number): string {
   return daysAfter(monthsAfter(today, months), -1);
 }
 
+export function monthsRange(year: number, firstMonthIndex: number, months: number): DayRange {
+  return {
+    from: calendarDay(year, firstMonthIndex, 1),
+    to: calendarDay(year, firstMonthIndex + months, 0),
+  };
+}
+
+export function calendarMonth(day: string): DayRange {
+  return monthsRange(yearOf(day), monthOf(day) - 1, 1);
+}
+
 export function defaultSearchRange(today: string): DayRange {
   return { from: firstDayOfLastMonths(today, 1), to: today };
 }
