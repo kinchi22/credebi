@@ -1,7 +1,7 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import { closeDialog } from './dialog';
 import {
-  type ACCOUNT_TYPES,
+  type AccountType,
   accountChoices,
   nameOf,
   typeGroupName,
@@ -9,7 +9,7 @@ import {
   type Side,
 } from './entries';
 
-export type AccountType = (typeof ACCOUNT_TYPES)[number];
+export type { AccountType };
 
 export type Kind = 'account' | 'group';
 

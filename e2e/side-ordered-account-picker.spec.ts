@@ -1,18 +1,21 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { addAccount, addGroup, BOOKS_OPEN, type AccountType } from './accounts';
+import { addAccount, addGroup, BOOKS_OPEN } from './accounts';
 import {
   accountChoice,
   accountChoices,
   accountTick,
   accountTicks,
   ACCOUNTS,
-  type BALANCE_DIRECTIONS,
+  type AccountType,
+  type BalanceDirection,
   chooseAccountButton,
+  expectNamesInOrder,
   lineGroup,
   openAccountSheet,
   openEntryForm,
   openTwoLineAccountSheet,
+  type PickRole,
   postEntries,
   pressDone,
   sheetTab,
@@ -25,8 +28,6 @@ import {
 import { signIn } from './session';
 import { type EntryFormMode } from './settings';
 import { PHONE } from './viewport';
-
-type BalanceDirection = (typeof BALANCE_DIRECTIONS)[number];
 
 const SIDE_ORDER: Readonly<Record<Side, readonly AccountType[]>> = {
   Debit: ['Expenses', 'Assets', 'Liabilities', 'Equity', 'Revenue'],
@@ -53,14 +54,70 @@ const TITLE = 'Groceries';
 
 type Mode = {
   readonly mode: EntryFormMode;
-  readonly role: 'radio' | 'checkbox';
+  readonly role: PickRole;
   readonly pickers: (scope: Locator, side: Side) => Locator;
   readonly openSheet: (form: Locator, side: Side) => Promise<Locator>;
+  readonly chooseEach: (form: Locator, side: Side) => Promise<void>;
+  readonly chooseEachOnSheet: (form: Locator, side: Side) => Promise<void>;
 };
 
+async function chooseEachAccount(form: Locator, side: Side): Promise<void> {
+  for (const account of ACCOUNTS) {
+    const choice = accountChoice(form, side, account);
+    await choice.check();
+    await expect(choice).toBeChecked();
+  }
+}
+
+async function chooseEachAccountOnSheet(form: Locator, side: Side): Promise<void> {
+  for (const account of ACCOUNTS) {
+    const sheet = await openTwoLineAccountSheet(form, side);
+    await accountChoice(sheet, side, account).check();
+    await form.page().keyboard.press('Escape');
+    await expect(sheet).toBeHidden();
+    await expect(chooseAccountButton(form, side)).toContainText(account);
+  }
+}
+
+async function expectEveryLine(form: Locator, side: Side): Promise<void> {
+  for (const account of ACCOUNTS) {
+    await expect(lineGroup(form, side, account)).toBeVisible();
+  }
+}
+
+async function tickEachAccount(form: Locator, side: Side): Promise<void> {
+  for (const account of ACCOUNTS) {
+    await accountTick(form, side, account).check();
+  }
+  await expectEveryLine(form, side);
+}
+
+async function tickEachAccountOnSheet(form: Locator, side: Side): Promise<void> {
+  const sheet = await openAccountSheet(form, side);
+  for (const account of ACCOUNTS) {
+    await accountTick(sheet, side, account).check();
+  }
+  await pressDone(sheet);
+  await expectEveryLine(form, side);
+}
+
 const MODES: readonly Mode[] = [
-  { mode: 'Two-line mode', role: 'radio', pickers: accountChoices, openSheet: openTwoLineAccountSheet },
-  { mode: 'Multi-line mode', role: 'checkbox', pickers: accountTicks, openSheet: openAccountSheet },
+  {
+    mode: 'Two-line mode',
+    role: 'radio',
+    pickers: accountChoices,
+    openSheet: openTwoLineAccountSheet,
+    chooseEach: chooseEachAccount,
+    chooseEachOnSheet: chooseEachAccountOnSheet,
+  },
+  {
+    mode: 'Multi-line mode',
+    role: 'checkbox',
+    pickers: accountTicks,
+    openSheet: openAccountSheet,
+    chooseEach: tickEachAccount,
+    chooseEachOnSheet: tickEachAccountOnSheet,
+  },
 ];
 
 const groupName = (type: AccountType, side: Side): string =>
@@ -76,14 +133,7 @@ async function keepExpensesInUsersOrder(page: Page): Promise<void> {
   await postEntries(page, [titled(TITLE, `${TITLE} ${randomUUID()}`)]);
 }
 
-async function expectNamesInOrder(shown: Locator, names: readonly string[]): Promise<void> {
-  await expect(shown).toHaveCount(names.length);
-  for (const [index, name] of names.entries()) {
-    await expect(shown.nth(index)).toHaveAccessibleName(name);
-  }
-}
-
-async function expectSideOrder(picker: Locator, side: Side, role: Mode['role']): Promise<void> {
+async function expectSideOrder(picker: Locator, side: Side, role: PickRole): Promise<void> {
   await expectNamesInOrder(picker.getByRole('group'), [
     'Suggested',
     ...SIDE_ORDER[side].map((type) => groupName(type, side)),
@@ -91,12 +141,13 @@ async function expectSideOrder(picker: Locator, side: Side, role: Mode['role']):
   await expect(suggested(picker)).not.toContainText(/Increase|Decrease/);
   for (const type of SIDE_ORDER[side]) {
     const group = picker.getByRole('group', { name: groupName(type, side), exact: true });
+    await expect(group.getByText(BALANCE_DIRECTION[type][side], { exact: true })).toBeVisible();
     await expectNamesInOrder(group.getByRole(role), CHART[type]);
   }
 }
 
-for (const { mode, role, pickers, openSheet } of MODES) {
-  test(`lists the Account types in each Side's order in ${mode}, each group named with its Balance direction for that Side, after a Suggested group with none, keeping the User's order within a type`, async ({ page }) => {
+for (const { mode, role, pickers, openSheet, chooseEach, chooseEachOnSheet } of MODES) {
+  test(`lists the Account types in each Side's order in ${mode}, each Band showing and each group named with its Balance direction for that Side, below a Suggested Band with none, keeping the User's order within a type`, async ({ page }) => {
     test.slow();
     await keepExpensesInUsersOrder(page);
     const form = await openEntryForm(page, mode);
@@ -107,7 +158,7 @@ for (const { mode, role, pickers, openSheet } of MODES) {
     }
   });
 
-  test(`lists the Account types in each Side's order on each tab of the Account sheet at 390px in ${mode}, each group named with its Balance direction for that Side, after a Suggested group with none`, async ({ page }) => {
+  test(`lists the Account types in each Side's order on each tab of the Account sheet at 390px in ${mode}, each Band showing and each group named with its Balance direction for that Side, below a Suggested Band with none, keeping the User's order within a type`, async ({ page }) => {
     test.slow();
     await keepExpensesInUsersOrder(page);
     await page.setViewportSize(PHONE);
@@ -120,62 +171,23 @@ for (const { mode, role, pickers, openSheet } of MODES) {
       await expectSideOrder(pickers(sheet, side), side, role);
     }
   });
+
+  test(`lets every Account type be chosen on both Sides in ${mode}`, async ({ page }) => {
+    await signIn(page);
+    const form = await openEntryForm(page, mode);
+
+    for (const side of SIDES) {
+      await chooseEach(form, side);
+    }
+  });
+
+  test(`lets every Account type be chosen on both tabs of the Account sheet at 390px in ${mode}`, async ({ page }) => {
+    await page.setViewportSize(PHONE);
+    await signIn(page);
+    const form = await openEntryForm(page, mode);
+
+    for (const side of SIDES) {
+      await chooseEachOnSheet(form, side);
+    }
+  });
 }
-
-test('lets every Account type be chosen on both Sides in Two-line mode', async ({ page }) => {
-  await signIn(page);
-  const form = await openEntryForm(page, 'Two-line mode');
-
-  for (const side of SIDES) {
-    for (const account of ACCOUNTS) {
-      const choice = accountChoice(form, side, account);
-      await choice.check();
-      await expect(choice).toBeChecked();
-    }
-  }
-});
-
-test('lets every Account type be chosen on both Sides in Multi-line mode', async ({ page }) => {
-  await signIn(page);
-  const form = await openEntryForm(page, 'Multi-line mode');
-
-  for (const side of SIDES) {
-    for (const account of ACCOUNTS) {
-      await accountTick(form, side, account).check();
-      await expect(lineGroup(form, side, account)).toBeVisible();
-    }
-  }
-});
-
-test('lets every Account type be chosen on both tabs of the Account sheet at 390px in Two-line mode', async ({ page }) => {
-  await page.setViewportSize(PHONE);
-  await signIn(page);
-  const form = await openEntryForm(page, 'Two-line mode');
-
-  for (const side of SIDES) {
-    for (const account of ACCOUNTS) {
-      const sheet = await openTwoLineAccountSheet(form, side);
-      await accountChoice(sheet, side, account).check();
-      await page.keyboard.press('Escape');
-      await expect(sheet).toBeHidden();
-      await expect(chooseAccountButton(form, side)).toContainText(account);
-    }
-  }
-});
-
-test('lets every Account type be chosen on both tabs of the Account sheet at 390px in Multi-line mode', async ({ page }) => {
-  await page.setViewportSize(PHONE);
-  await signIn(page);
-  const form = await openEntryForm(page, 'Multi-line mode');
-
-  for (const side of SIDES) {
-    const sheet = await openAccountSheet(form, side);
-    for (const account of ACCOUNTS) {
-      await accountTick(sheet, side, account).check();
-    }
-    await pressDone(sheet);
-    for (const account of ACCOUNTS) {
-      await expect(lineGroup(form, side, account)).toBeVisible();
-    }
-  }
-});

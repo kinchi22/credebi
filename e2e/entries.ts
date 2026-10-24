@@ -25,6 +25,14 @@ export const SIDES = ['Debit', 'Credit'] as const;
 
 export const ACCOUNT_TYPES = ['Assets', 'Liabilities', 'Equity', 'Revenue', 'Expenses'] as const;
 
+export type AccountType = (typeof ACCOUNT_TYPES)[number];
+
+export const BALANCE_DIRECTIONS = ['Increase', 'Decrease'] as const;
+
+export type BalanceDirection = (typeof BALANCE_DIRECTIONS)[number];
+
+export type PickRole = 'radio' | 'checkbox';
+
 export type Side = (typeof SIDES)[number];
 
 export type Heading = {
@@ -77,13 +85,11 @@ export const entrySearchForm = (page: Page): Locator =>
 export const accountChoices = (form: Page | Locator, side: Side): Locator =>
   form.getByRole('radiogroup', { name: `${side} account`, exact: true });
 
-export const BALANCE_DIRECTIONS = ['Increase', 'Decrease'] as const;
-
-export const typeGroupName = (type: string): RegExp =>
-  new RegExp(`^(${type})(, (${BALANCE_DIRECTIONS.join('|')}))?$`);
+export const typeGroupName = (types: AccountType | readonly AccountType[]): RegExp =>
+  new RegExp(`^(${[types].flat().join('|')})(, (${BALANCE_DIRECTIONS.join('|')}))?$`);
 
 const chart = (picker: Locator): Locator =>
-  picker.getByRole('group', { name: typeGroupName(ACCOUNT_TYPES.join('|')) });
+  picker.getByRole('group', { name: typeGroupName(ACCOUNT_TYPES) });
 
 export const accountChoice = (form: Locator, side: Side, account: string): Locator =>
   chart(accountChoices(form, side)).getByRole('radio', { name: account, exact: true });
@@ -97,9 +103,16 @@ export const accountTick = (form: Locator, side: Side, account: LineAccount): Lo
 export const suggested = (picker: Locator): Locator =>
   picker.getByRole('group', { name: 'Suggested', exact: true });
 
+export async function expectNamesInOrder(shown: Locator, names: readonly string[]): Promise<void> {
+  await expect(shown).toHaveCount(names.length);
+  for (const [index, name] of names.entries()) {
+    await expect(shown.nth(index)).toHaveAccessibleName(name);
+  }
+}
+
 export async function expectSuggested(
   picker: Locator,
-  role: 'radio' | 'checkbox',
+  role: PickRole,
   accounts: readonly LineAccount[],
 ): Promise<void> {
   await expect(picker).toBeVisible();
@@ -107,11 +120,7 @@ export async function expectSuggested(
     await expect(suggested(picker)).toBeHidden();
     return;
   }
-  const shown = suggested(picker).getByRole(role);
-  await expect(shown).toHaveCount(accounts.length);
-  for (const [index, account] of accounts.entries()) {
-    await expect(shown.nth(index)).toHaveAccessibleName(nameOf(account));
-  }
+  await expectNamesInOrder(suggested(picker).getByRole(role), accounts.map(nameOf));
 }
 
 const lineName = (side: Side, account: LineAccount): string => `${side} ${nameOf(account)}`;
