@@ -7,6 +7,7 @@ import {
   type Result,
 } from '@repo/contracts';
 import { type AccountNames } from '../../accounts/domain/account';
+import { reversedRange } from './search-range';
 import { MEMO_MAX_LENGTH, TITLE_MAX_LENGTH, textLength } from './entry';
 
 export type SearchCriteriaDraft = {
@@ -44,9 +45,7 @@ export function makeSearchCriteria(
     );
   }
   if (from !== undefined && to !== undefined && from > to) {
-    return err(
-      domainError('INVALID_INPUT', `A day range cannot end (${to}) before it starts (${from}).`),
-    );
+    return reversedRange(from, to);
   }
 
   if (textLength(title) > TITLE_MAX_LENGTH) {

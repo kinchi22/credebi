@@ -19,6 +19,10 @@ export function isActiveOn(period: ActivePeriod, day: string): boolean {
   return period.activeFrom <= day && (period.activeUntil === null || day <= period.activeUntil);
 }
 
+export function isActiveWithin(period: ActivePeriod, from: string, to: string): boolean {
+  return period.activeFrom <= to && (period.activeUntil === null || from <= period.activeUntil);
+}
+
 export function hasEndedBy(period: ActivePeriod, day: string): boolean {
   return period.activeUntil !== null && period.activeUntil < day;
 }

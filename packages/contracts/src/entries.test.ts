@@ -9,11 +9,13 @@ import {
   parseEntryForm,
   parseMultiLineEntryForm,
   parseTwoLineEntryForm,
+  parseIncomeStatementQuery,
   parseSearchQuery,
   postEntryInputSchema,
   postedEntrySchema,
   searchCriteriaSchema,
   sideSchema,
+  toIncomeStatement,
   toPostedEntry,
   type EntryId,
   type SubmittedFields,
@@ -706,5 +708,61 @@ describe('offeredTitleSchema', () => {
     expect(
       offeredTitleSchema.safeParse({ ...offered, suggested: { debit: [], credit: ['cash'] } }).success,
     ).toBe(false);
+  });
+});
+
+describe('parseIncomeStatementQuery', () => {
+  it('reads both ends of the period out of the query', () => {
+    expect(parseIncomeStatementQuery({ from: '2026-06-01', to: '2026-06-30', other: 'x' })).toEqual({
+      ok: true,
+      value: { from: '2026-06-01', to: '2026-06-30' },
+    });
+  });
+
+  it.each([
+    ['no parameters', {}],
+    ['no From', { to: '2026-06-30' }],
+    ['no To', { from: '2026-06-01' }],
+    ['an empty From', { from: '', to: '2026-06-30' }],
+    ['a To that is no calendar day', { from: '2026-02-01', to: '2026-02-30' }],
+    ['a From given twice', { from: ['2026-06-01', '2026-06-02'], to: '2026-06-30' }],
+  ])('refuses a query with %s as malformed', (_case, query) => {
+    const period = parseIncomeStatementQuery(query);
+
+    expect(isErr(period) && period.error).toEqual({
+      code: 'INVALID_INPUT',
+      message: 'The statement period is malformed.',
+    });
+  });
+});
+
+describe('toIncomeStatement', () => {
+  it('carries each section, its Accounts in order with their totals, and the difference', () => {
+    const sales = {
+      kind: 'account',
+      account: CASH,
+      name: 'Sales',
+      total: 9500 as Money,
+    } as const;
+    const travel = { ...sales, name: 'Travel', total: -5000 as Money };
+    const rent = { ...sales, name: 'Rent', total: 3000 as Money };
+
+    expect(
+      toIncomeStatement({
+        revenue: { total: 9500 as Money, rows: [sales] },
+        expense: { total: -2000 as Money, rows: [rent, travel] },
+        difference: 11500 as Money,
+      }),
+    ).toEqual({
+      revenue: { total: 9500, rows: [{ kind: 'account', account: CASH, name: 'Sales', total: 9500 }] },
+      expense: {
+        total: -2000,
+        rows: [
+          { kind: 'account', account: CASH, name: 'Rent', total: 3000 },
+          { kind: 'account', account: CASH, name: 'Travel', total: -5000 },
+        ],
+      },
+      difference: 11500,
+    });
   });
 });

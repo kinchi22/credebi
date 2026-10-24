@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { defaultSearchRange } from './search-range';
+import { domainError, err, ok } from '@repo/contracts';
+import { defaultSearchRange, makeDayRange } from './search-range';
 
 describe('defaultSearchRange', () => {
   it('runs from the day after the same day a month back, through today', () => {
@@ -41,5 +42,38 @@ describe('defaultSearchRange', () => {
 
   it('writes a year before 1000 with four digits', () => {
     expect(defaultSearchRange('0999-02-10')).toEqual({ from: '0999-01-11', to: '0999-02-10' });
+  });
+});
+
+describe('makeDayRange', () => {
+  it('keeps a range whose From is no later than its To, a one-day range included', () => {
+    expect(makeDayRange({ from: '2026-06-01', to: '2026-06-30' })).toEqual(
+      ok({ from: '2026-06-01', to: '2026-06-30' }),
+    );
+    expect(makeDayRange({ from: '2026-06-15', to: '2026-06-15' })).toEqual(
+      ok({ from: '2026-06-15', to: '2026-06-15' }),
+    );
+  });
+
+  it('refuses a range that ends before it starts, and says so', () => {
+    expect(makeDayRange({ from: '2026-06-30', to: '2026-06-01' })).toEqual(
+      err(
+        domainError(
+          'INVALID_INPUT',
+          'A day range cannot end (2026-06-01) before it starts (2026-06-30).',
+        ),
+      ),
+    );
+  });
+
+  it.each([
+    ['a From that is no calendar day', '2026-02-30', '2026-03-31'],
+    ['a To that is no calendar day', '2026-02-01', '2026-02-30'],
+    ['a From that is not a day at all', 'June', '2026-06-30'],
+    ['a To that is not a day at all', '2026-06-01', 'June'],
+  ])('refuses %s', (_case, from, to) => {
+    const range = makeDayRange({ from, to });
+
+    expect(!range.ok && range.error.code).toBe('INVALID_INPUT');
   });
 });

@@ -1,12 +1,17 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { ListIcon, Logo, MenuIcon, SearchIcon, SignOutIcon, SlidersIcon } from '@repo/ui';
+import { ListIcon, Logo, MenuIcon, SearchIcon, SignOutIcon, SlidersIcon, StatementIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { type ReactNode, type RefObject, useId, useRef } from 'react';
-import { ENTRY_SEARCH_PATH, SETTINGS_PATH, SIGNED_IN_HOME } from '../server/return-path';
+import {
+  ENTRY_SEARCH_PATH,
+  INCOME_STATEMENT_PATH,
+  SETTINGS_PATH,
+  SIGNED_IN_HOME,
+} from '../server/return-path';
 import { useModalDialog } from './use-modal-dialog';
 
 export type SidebarProps = {
@@ -22,6 +27,7 @@ type SidebarNavProps = SidebarProps & {
 const LINKS = [
   { href: SIGNED_IN_HOME, label: 'sidebar.entries', icon: <ListIcon /> },
   { href: ENTRY_SEARCH_PATH, label: 'sidebar.entrySearch', icon: <SearchIcon size={18} /> },
+  { href: INCOME_STATEMENT_PATH, label: 'sidebar.incomeStatement', icon: <StatementIcon /> },
   { href: SETTINGS_PATH, label: 'sidebar.settings', icon: <SlidersIcon /> },
 ] as const;
 

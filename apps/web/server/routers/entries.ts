@@ -1,10 +1,13 @@
 import {
   deleteEntryInputSchema,
   editEntryInputSchema,
+  incomeStatementQuerySchema,
+  incomeStatementSchema,
   offeredTitleSchema,
   postEntryInputSchema,
   postedEntrySchema,
   searchCriteriaSchema,
+  toIncomeStatement,
   toPostedEntry,
 } from '@repo/contracts';
 import { z } from 'zod';
@@ -21,6 +24,17 @@ export const entriesRouter = router({
         throw toTrpcError(result.error);
       }
       return result.value.map((entry) => toPostedEntry(entry));
+    }),
+
+  incomeStatement: sessionProcedure
+    .input(incomeStatementQuerySchema)
+    .output(incomeStatementSchema)
+    .query(async ({ ctx, input }) => {
+      const result = await ctx.container.getIncomeStatement(ctx.auth, input);
+      if (!result.ok) {
+        throw toTrpcError(result.error);
+      }
+      return toIncomeStatement(result.value);
     }),
 
   titles: sessionProcedure.output(z.array(offeredTitleSchema)).query(async ({ ctx }) => {

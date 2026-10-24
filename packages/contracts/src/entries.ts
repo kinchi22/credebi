@@ -153,6 +153,87 @@ export function parseSearchQuery(query: SearchQuery): Result<SearchCriteriaInput
     : err(domainError('INVALID_INPUT', 'The search criteria are malformed.'));
 }
 
+export const INCOME_STATEMENT_FIELDS = {
+  from: 'from',
+  to: 'to',
+} as const;
+
+export const incomeStatementQuerySchema = z.object({
+  from: entryDateSchema,
+  to: entryDateSchema,
+});
+
+export type IncomeStatementQuery = z.infer<typeof incomeStatementQuerySchema>;
+
+export function parseIncomeStatementQuery(
+  query: SearchQuery,
+): Result<IncomeStatementQuery, DomainError> {
+  const parsed = incomeStatementQuerySchema.safeParse({
+    from: query[INCOME_STATEMENT_FIELDS.from],
+    to: query[INCOME_STATEMENT_FIELDS.to],
+  });
+
+  return parsed.success
+    ? ok(parsed.data)
+    : err(domainError('INVALID_INPUT', 'The statement period is malformed.'));
+}
+
+export const statementAccountSchema = z.object({
+  kind: z.literal('account'),
+  account: accountIdSchema,
+  name: z.string(),
+  total: moneySchema,
+});
+
+export type StatementAccountOutput = z.infer<typeof statementAccountSchema>;
+
+export const statementSectionSchema = z.object({
+  total: moneySchema,
+  rows: z.array(statementAccountSchema),
+});
+
+export type StatementSectionOutput = z.infer<typeof statementSectionSchema>;
+
+export const incomeStatementSchema = z.object({
+  revenue: statementSectionSchema,
+  expense: statementSectionSchema,
+  difference: moneySchema,
+});
+
+export type IncomeStatementOutput = z.infer<typeof incomeStatementSchema>;
+
+type StatementSectionOf = {
+  readonly total: Money;
+  readonly rows: readonly {
+    readonly kind: 'account';
+    readonly account: AccountId;
+    readonly name: string;
+    readonly total: Money;
+  }[];
+};
+
+const toStatementSection = ({ total, rows }: StatementSectionOf): StatementSectionOutput => ({
+  total,
+  rows: rows.map(({ kind, account, name, total: accountTotal }) => ({
+    kind,
+    account,
+    name,
+    total: accountTotal,
+  })),
+});
+
+export function toIncomeStatement(statement: {
+  readonly revenue: StatementSectionOf;
+  readonly expense: StatementSectionOf;
+  readonly difference: Money;
+}): IncomeStatementOutput {
+  return {
+    revenue: toStatementSection(statement.revenue),
+    expense: toStatementSection(statement.expense),
+    difference: statement.difference,
+  };
+}
+
 export const ENTRY_FORM_FIELDS = {
   entryFormMode: 'entryFormMode',
   entryDate: 'entryDate',

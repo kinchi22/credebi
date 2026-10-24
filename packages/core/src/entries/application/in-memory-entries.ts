@@ -2,12 +2,15 @@ import {
   domainError,
   err,
   ok,
+  type AccountId,
   type DomainError,
   type EntryId,
   type Result,
   type UserId,
 } from '@repo/contracts';
+import { addMoney, MONEY_ZERO } from '../../money/domain/money';
 import { type Entry } from '../domain/entry';
+import { type AccountSums } from '../domain/income-statement';
 import { type EntryRepository, type FoundEntry } from '../ports/entry-repository';
 import { type UnitOfWork } from '../ports/unit-of-work';
 
@@ -57,6 +60,26 @@ function repositoryOver(rows: StoredEntry[]): EntryRepository {
       );
     },
     search: (userId) => Promise.resolve(ok(shownOf(userId))),
+    accountTotals: (userId, range): Promise<Result<readonly AccountSums[], DomainError>> => {
+      const totals = new Map<AccountId, AccountSums>();
+      for (const entry of shownOf(userId)) {
+        if (range.from <= entry.entryDate && entry.entryDate <= range.to) {
+          for (const line of entry.lines) {
+            const held = totals.get(line.account) ?? {
+              account: line.account,
+              debit: MONEY_ZERO,
+              credit: MONEY_ZERO,
+            };
+            const sum = addMoney(held[line.side], line.amount);
+            if (!sum.ok) {
+              return Promise.resolve(sum);
+            }
+            totals.set(line.account, { ...held, [line.side]: sum.value });
+          }
+        }
+      }
+      return Promise.resolve(ok([...totals.values()]));
+    },
     titledEntries: (userId, createdSince) =>
       Promise.resolve(
         ok(
