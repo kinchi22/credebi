@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
-import { expectRows, type ReportPanels, type ReportRow } from './report-tables';
+import { expectRows, namedTable, type ReportPanels, type ReportRow } from './report-tables';
 
 export const periodForm = (page: Page): Locator =>
   page.getByRole('form', { name: 'Statement period', exact: true });
@@ -27,8 +27,7 @@ export async function expectPeriod(page: Page, from: string, to: string): Promis
 
 export type StatementTable = 'Revenue' | 'Expenses' | 'Totals';
 
-export const statementTable = (page: Page, name: StatementTable): Locator =>
-  page.getByRole('main').getByRole('table', { name, exact: true });
+export const statementTable = (page: Page, name: StatementTable): Locator => namedTable(page, name);
 
 export const accountLink = (page: Page, table: StatementTable, name: string): Locator =>
   statementTable(page, table).getByRole('link', { name, exact: true });

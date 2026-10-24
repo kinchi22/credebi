@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
-import { expectRows, type ReportPanels, type ReportRow, reportTables } from './report-tables';
+import { expectRows, namedTable, type ReportPanels, type ReportRow, reportTables } from './report-tables';
 
 export const reportDateForm = (page: Page): Locator =>
   page.getByRole('form', { name: 'Report date', exact: true });
@@ -18,8 +18,7 @@ export async function showReport(page: Page, day: string): Promise<void> {
 
 export type ReportTable = 'Assets' | 'Liabilities' | 'Totals';
 
-export const reportTable = (page: Page, name: ReportTable): Locator =>
-  page.getByRole('main').getByRole('table', { name, exact: true });
+export const reportTable = (page: Page, name: ReportTable): Locator => namedTable(page, name);
 
 export const reportPanels = (page: Page): ReportPanels => ({
   left: reportTable(page, 'Assets'),

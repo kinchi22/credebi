@@ -27,11 +27,11 @@ import {
 import {
   ENTRY_SEARCH_PATH,
   INCOME_STATEMENT_PATH as STATEMENT,
-  INCOME_STATEMENT_WITH_QUERY,
   INCOME_STATEMENT_WITHOUT_QUERY,
   queryOf,
   SIGN_IN_URL,
   UUID_V7,
+  withQuery,
 } from './routes';
 import { CATALOGUE, documentLanguage, MIDDLE_DOT, pageTitle, signUpAfterChoosing } from './language';
 import {
@@ -139,12 +139,11 @@ test('puts a range chosen with From and To into the URL, which a reload and the 
   await expect(page).toHaveURL(INCOME_STATEMENT_WITHOUT_QUERY);
 
   await showStatement(page, JUNE_FIRST, JUNE_LAST);
-  await expect(page).toHaveURL(INCOME_STATEMENT_WITH_QUERY);
-  expect(rangeInUrl(page)).toMatchObject({ from: JUNE_FIRST, to: JUNE_LAST });
+  await expect(page).toHaveURL(withQuery(STATEMENT, { from: JUNE_FIRST, to: JUNE_LAST }));
   await expectStatement(page, june);
 
   await showStatement(page, '2026-07-01', '2026-07-31');
-  expect(rangeInUrl(page)).toMatchObject({ from: '2026-07-01', to: '2026-07-31' });
+  await expect(page).toHaveURL(withQuery(STATEMENT, { from: '2026-07-01', to: '2026-07-31' }));
   await expectStatement(page, july);
 
   await page.goBack();
@@ -152,7 +151,7 @@ test('puts a range chosen with From and To into the URL, which a reload and the 
   await expectStatement(page, june);
 
   await page.reload();
-  expect(rangeInUrl(page)).toMatchObject({ from: JUNE_FIRST, to: JUNE_LAST });
+  await expect(page).toHaveURL(withQuery(STATEMENT, { from: JUNE_FIRST, to: JUNE_LAST }));
   await expectPeriod(page, JUNE_FIRST, JUNE_LAST);
   await expectStatement(page, june);
 });
@@ -170,13 +169,12 @@ test('fills From and To from a date preset and shows the statement for it, with 
 
   await choosePreset(page, 'Month', 'Jun 2026');
   await expectPeriod(page, JUNE_FIRST, JUNE_LAST);
-  await expect(page).toHaveURL(INCOME_STATEMENT_WITH_QUERY);
-  expect(rangeInUrl(page)).toMatchObject({ from: JUNE_FIRST, to: JUNE_LAST });
+  await expect(page).toHaveURL(withQuery(STATEMENT, { from: JUNE_FIRST, to: JUNE_LAST }));
   await expectStatement(page, spentOnly('1,000'));
 
   await choosePreset(page, 'Year', '2025');
   await expectPeriod(page, '2025-01-01', '2025-12-31');
-  expect(rangeInUrl(page)).toMatchObject({ from: '2025-01-01', to: '2025-12-31' });
+  await expect(page).toHaveURL(withQuery(STATEMENT, { from: '2025-01-01', to: '2025-12-31' }));
   await expectStatement(page, spentOnly('2,000'));
 });
 

@@ -5,6 +5,9 @@ export type ReportRow = readonly [label: string, amount: string];
 
 export const reportTables = (page: Page): Locator => page.getByRole('main').getByRole('table');
 
+export const namedTable = (page: Page, name: string): Locator =>
+  page.getByRole('main').getByRole('table', { name, exact: true });
+
 export const zeroRows = (first: string, names: readonly string[]): ReportRow[] =>
   [first, ...names].map((name) => [name, '0'] as const);
 
@@ -22,7 +25,7 @@ export type Column = 'left' | 'right';
 
 export type ReportPanels = Readonly<Record<Column | 'totals', Locator>>;
 
-export type PanelBoxes = Readonly<Record<Column | 'totals', Box>>;
+type PanelBoxes = Readonly<Record<Column | 'totals', Box>>;
 
 const OTHER_COLUMN: Record<Column, Column> = { left: 'right', right: 'left' };
 

@@ -4,8 +4,6 @@ export const PHONE = { width: 390, height: 844 } as const;
 
 export const WIDE = { width: 1280, height: 720 } as const;
 
-export type Viewport = { readonly width: number; readonly height: number };
-
 export const WIDE_BELOW_SPLIT = { width: 1024, height: 720 } as const;
 
 export async function expectWithinPhone(page: Page, locator: Locator): Promise<void> {

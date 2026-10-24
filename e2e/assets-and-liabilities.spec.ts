@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page, type ViewportSize } from '@playwright/test';
 import {
   accountType,
   addAccount,
@@ -32,7 +32,7 @@ import {
   saveEdit,
   type TwoLineEntry,
 } from './entries';
-import { CATALOGUE, documentLanguage, MIDDLE_DOT, pageTitle, signUpAfterChoosing } from './language';
+import { CATALOGUE, documentLanguage, pageTitle, signUpAfterChoosing } from './language';
 import {
   expectOneColumn,
   expectTotalsDirectlyBelowShorter,
@@ -42,17 +42,16 @@ import {
 } from './report-tables';
 import {
   ASSETS_AND_LIABILITIES_PATH as REPORT,
-  ASSETS_AND_LIABILITIES_WITH_QUERY,
   ASSETS_AND_LIABILITIES_WITHOUT_QUERY,
   INCOME_STATEMENT_PATH,
-  queryOf,
   SETTINGS_PATH,
   SIGN_IN_URL,
+  withQuery,
 } from './routes';
 import { freshIdentifier, signIn, signInForSmoke, submitTestSignIn } from './session';
 import { linkTo, SIGNED_IN_PAGES, menu, sidebar } from './sidebar';
 import { HANGUL } from './typed-text';
-import { expectWithinPhone, PHONE, type Viewport, WIDE, WIDE_BELOW_SPLIT } from './viewport';
+import { expectWithinPhone, PHONE, WIDE, WIDE_BELOW_SPLIT } from './viewport';
 
 const TODAY = '2026-09-15';
 
@@ -103,7 +102,7 @@ const cashOnly = (amount: string): Report => ({
   netWorth: amount,
 });
 
-async function showJuneLastAt(page: Page, viewport: Viewport): Promise<void> {
+async function showJuneLastAt(page: Page, viewport: ViewportSize): Promise<void> {
   await page.setViewportSize(viewport);
   await page.goto(REPORT);
   await showReport(page, JUNE_LAST);
@@ -157,21 +156,20 @@ test('puts a day chosen with Date and Show into the URL, which a reload and the 
   await expect(page).toHaveURL(ASSETS_AND_LIABILITIES_WITHOUT_QUERY);
 
   await showReport(page, JUNE_LAST);
-  await expect(page).toHaveURL(ASSETS_AND_LIABILITIES_WITH_QUERY);
-  expect(queryOf(page).getAll('date')).toEqual([JUNE_LAST]);
+  await expect(page).toHaveURL(withQuery(REPORT, { date: JUNE_LAST }));
   await expectReport(page, june);
 
   await showReport(page, JULY_LAST);
-  expect(queryOf(page).getAll('date')).toEqual([JULY_LAST]);
+  await expect(page).toHaveURL(withQuery(REPORT, { date: JULY_LAST }));
   await expectReport(page, july);
 
   await page.goBack();
-  expect(queryOf(page).getAll('date')).toEqual([JUNE_LAST]);
+  await expect(page).toHaveURL(withQuery(REPORT, { date: JUNE_LAST }));
   await expect(reportDate(page)).toHaveValue(JUNE_LAST);
   await expectReport(page, june);
 
   await page.reload();
-  expect(queryOf(page).getAll('date')).toEqual([JUNE_LAST]);
+  await expect(page).toHaveURL(withQuery(REPORT, { date: JUNE_LAST }));
   await expect(reportDate(page)).toHaveValue(JUNE_LAST);
   await expectReport(page, june);
 });
@@ -216,7 +214,7 @@ test("shows an error and no report when the browser's read of today fails, and s
   await page.unrouteAll({ behavior: 'wait' });
   await reportDateForm(page).getByRole('button', { name: 'Show', exact: true }).click();
 
-  expect(queryOf(page).getAll('date')).toEqual([TODAY]);
+  await expect(page).toHaveURL(withQuery(REPORT, { date: TODAY }));
   await expect(page.getByRole('main').getByRole('alert')).toHaveCount(0);
   await expectReport(page, cashOnly('1,000'));
 });
@@ -511,8 +509,7 @@ test('sends a signed-out visitor to sign in, and back to the report for the day 
 
   await submitTestSignIn(page, freshIdentifier(), BOOKS_OPEN);
 
-  await expect(page).toHaveURL(ASSETS_AND_LIABILITIES_WITH_QUERY);
-  expect(queryOf(page).getAll('date')).toEqual([JUNE_LAST]);
+  await expect(page).toHaveURL(withQuery(REPORT, { date: JUNE_LAST }));
   await expect(reportDate(page)).toHaveValue(JUNE_LAST);
   await expectReport(page, nothingCounted);
 });
@@ -595,7 +592,7 @@ test("shows Assets and liabilities in Japanese when that is the User's Language:
   const heading = page.getByRole('heading', { level: 1 });
   await expect(heading).toHaveText(JAPANESE);
   await expect(heading).not.toHaveText(/Assets|liabilities/);
-  await expect(page).toHaveTitle(new RegExp(`${JAPANESE.source}.* ${MIDDLE_DOT} Credebi$`, 'u'));
+  await expect(page).toHaveTitle(pageTitle((await heading.textContent()) ?? ''));
   await expect(reportLinkIn(page.getByRole('navigation', { name: JAPANESE }))).toHaveText(JAPANESE);
 
   const form = page.getByRole('main').getByRole('form');
