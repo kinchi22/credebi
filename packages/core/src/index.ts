@@ -45,6 +45,9 @@ export {
   createGetTitles,
   type GetTitles,
   type GetTitlesDependencies,
+  createGetIncomeStatement,
+  type GetIncomeStatement,
+  type GetIncomeStatementDependencies,
   type EntryRepository,
   type UnitOfWork,
 } from './entries/index';

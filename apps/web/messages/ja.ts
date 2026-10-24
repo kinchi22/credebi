@@ -110,6 +110,7 @@ export const ja = {
     menu: 'メニュー',
     entries: '仕訳',
     entrySearch: '仕訳検索',
+    incomeStatement: '損益計算書',
     settings: '設定',
     signOut: 'ログアウト',
   },
@@ -236,6 +237,22 @@ export const ja = {
     nothingMatched: '条件に合う仕訳はありません。',
     refused:
       '日付の範囲の開始日を終了日より後にはできません。勘定科目が一覧にあるものか、タイトルとメモが上限の長さを超えていないかを確認してください。',
+  },
+  incomeStatementPage: {
+    title: '損益計算書',
+  },
+  incomeStatement: {
+    period: '表示期間',
+    show: '表示',
+    revenue: '収益',
+    expenses: '費用',
+    totals: '合計',
+    totalRevenue: '収益合計',
+    totalExpense: '費用合計',
+    difference: '差額',
+    refused:
+      '損益計算書を表示しませんでした。日付の範囲を確認してください。各日付は暦の上の日付で、開始日を終了日より後にはできません。',
+    unavailable: '今は損益計算書を読み込めません。「表示」を押してもう一度お試しください。',
   },
   datePresets: {
     title: '期間のプリセット',

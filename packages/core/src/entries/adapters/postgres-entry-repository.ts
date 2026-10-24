@@ -32,10 +32,12 @@ import { createDatabase, schema, type Schema } from '@repo/db';
 import { type NamedAccount } from '../../accounts/domain/account';
 import { describeError } from '../../logging/domain/describe-error';
 import { type Logger } from '../../logging/ports/logger';
-import { money } from '../../money/domain/money';
+import { money, MONEY_ZERO } from '../../money/domain/money';
 import { makeEntry, notInChart, type Entry, type EntryDraft } from '../domain/entry';
+import { type AccountSums } from '../domain/income-statement';
 import { type TitledEntry, type TitledLine } from '../domain/offered-titles';
 import { type SearchCriteria } from '../domain/search-criteria';
+import { type DayRange } from '../domain/search-range';
 import { reversedAlready, type Reversal } from '../domain/reversal';
 import { reversed, shownEntry } from './shown-entry';
 import { type EntryRepository, type FoundEntry } from '../ports/entry-repository';
@@ -264,6 +266,52 @@ export function postgresEntriesOn(database: PostgresExecutor, logger: Logger): E
         entries.push(entry.value);
       }
       return ok(entries);
+    },
+
+    accountTotals: async (
+      userId: UserId,
+      range: DayRange,
+    ): Promise<Result<readonly AccountSums[], DomainError>> => {
+      let rows: { readonly accountId: string; readonly side: string; readonly amount: string }[];
+      try {
+        rows = await database
+          .select({
+            accountId: schema.entryLines.accountId,
+            side: schema.entryLines.side,
+            amount: sql<string>`sum(${schema.entryLines.amount})::text`,
+          })
+          .from(schema.entryLines)
+          .innerJoin(schema.entries, eq(schema.entries.id, schema.entryLines.entryId))
+          .where(
+            and(
+              eq(schema.entries.userId, userId),
+              shownEntry(),
+              gte(schema.entries.entryDate, range.from),
+              lte(schema.entries.entryDate, range.to),
+            ),
+          )
+          .groupBy(schema.entryLines.accountId, schema.entryLines.side)
+          .orderBy(asc(schema.entryLines.accountId), asc(schema.entryLines.side));
+      } catch (error) {
+        logger.error(
+          { event: 'entries.account_totals_failed', error: describeError(error) },
+          'The Account totals could not be read.',
+        );
+        return unavailable('The Account totals could not be read.');
+      }
+
+      const totals = new Map<AccountId, AccountSums>();
+      for (const row of rows) {
+        const account = row.accountId as AccountId;
+        const side = sideSchema.safeParse(row.side);
+        const amount = money(Number(row.amount));
+        if (!side.success || !amount.ok) {
+          return unavailable(`Account ${account} sums to no valid amount on a valid side.`);
+        }
+        const held = totals.get(account) ?? { account, debit: MONEY_ZERO, credit: MONEY_ZERO };
+        totals.set(account, { ...held, [side.data]: amount.value });
+      }
+      return ok([...totals.values()]);
     },
 
     titledEntries: async (

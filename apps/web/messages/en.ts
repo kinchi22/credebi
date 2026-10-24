@@ -92,6 +92,7 @@ export const en = {
     menu: 'Menu',
     entries: 'Entries',
     entrySearch: 'Entry search',
+    incomeStatement: 'Income statement',
     settings: 'Settings',
     signOut: 'Sign out',
   },
@@ -217,6 +218,22 @@ export const en = {
     nothingMatched: 'Nothing matched what you asked for.',
     refused:
       'That search was not run. Check the day range -- each day is a calendar day, and From cannot be later than To -- that the account is one of those listed, and that the Title and the memo are no longer than a Title and a memo can be.',
+  },
+  incomeStatementPage: {
+    title: 'Income statement',
+  },
+  incomeStatement: {
+    period: 'Statement period',
+    show: 'Show',
+    revenue: 'Revenue',
+    expenses: 'Expenses',
+    totals: 'Totals',
+    totalRevenue: 'Total revenue',
+    totalExpense: 'Total expense',
+    difference: 'Difference',
+    refused:
+      'That statement was not shown. Check the day range: each day is a calendar day, and From cannot be later than To.',
+    unavailable: 'The statement could not be loaded just now. Press Show to try again.',
   },
   datePresets: {
     title: 'Date presets',
