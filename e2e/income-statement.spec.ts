@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { type AccountType, addAccount, addGroup, BOOKS_OPEN, bottom, type Box, boxOf, dayInBrowser } from './accounts';
+import { type AccountType, addAccount, addGroup, BOOKS_OPEN, dayInBrowser } from './accounts';
 import { choosePreset, fixToday } from './date-presets';
 import {
   deleteListed,
@@ -34,6 +34,13 @@ import {
   UUID_V7,
 } from './routes';
 import { CATALOGUE, documentLanguage, signUpAfterChoosing } from './language';
+import {
+  type Column,
+  expectOneColumn as expectStacked,
+  expectTotalsDirectlyBelowShorter as expectTotalsBelowShorterColumn,
+  expectTwoColumnsWithTotalsUnder as expectTotalsUnderColumn,
+  type ReportPanels,
+} from './report-tables';
 import { freshIdentifier, signIn, signInForSmoke, submitTestSignIn } from './session';
 import { SIGNED_IN_PAGES, sidebar } from './sidebar';
 import { HANGUL } from './typed-text';
@@ -49,7 +56,7 @@ const IN_JUNE = '2026-06-15';
 
 const REVERSED_JUNE = `${STATEMENT}?from=${JUNE_LAST}&to=${JUNE_FIRST}`;
 
-const SIDEBAR_LINKS = ['Entries', 'Entry search', 'Income statement', 'Settings'] as const;
+const SIDEBAR_LINKS = ['Entries', 'Entry search', 'Income statement', 'Assets and liabilities', 'Settings'] as const;
 
 const WIDE = { width: 1280, height: 720 } as const;
 
@@ -99,7 +106,7 @@ const rangeInUrl = (page: Page): Record<string, string> => Object.fromEntries(qu
 
 type SectionTable = Exclude<StatementTable, 'Totals'>;
 
-const OTHER_SECTION: Record<SectionTable, SectionTable> = { Expenses: 'Revenue', Revenue: 'Expenses' };
+const COLUMN: Record<SectionTable, Column> = { Expenses: 'left', Revenue: 'right' };
 
 const THREE_EXPENSES = ['Rent', 'Travel', 'Utilities'] as const;
 
@@ -118,38 +125,30 @@ async function showJuneAt1280(page: Page): Promise<void> {
   await showStatement(page, JUNE_FIRST, JUNE_LAST);
 }
 
-async function boxesOf(page: Page): Promise<Record<StatementTable, Box>> {
+async function panels(page: Page): Promise<ReportPanels> {
   await expect(statementTables(page)).toHaveCount(3);
   return {
-    Revenue: await boxOf(statementTable(page, 'Revenue'), 'the Revenue table'),
-    Expenses: await boxOf(statementTable(page, 'Expenses'), 'the Expenses table'),
-    Totals: await boxOf(statementTable(page, 'Totals'), 'the Totals table'),
+    left: statementTable(page, 'Expenses'),
+    right: statementTable(page, 'Revenue'),
+    totals: statementTable(page, 'Totals'),
   };
 }
 
-async function expectTwoColumnsWithTotalsUnder(page: Page, section: SectionTable): Promise<Record<StatementTable, Box>> {
-  const boxes = await boxesOf(page);
-  const { Expenses: expenses, Revenue: revenue, Totals: totals } = boxes;
-  const under = boxes[section];
-  expect(expenses.x + expenses.width).toBeLessThanOrEqual(revenue.x);
-  expect(revenue.y).toBeCloseTo(expenses.y, 0);
-  expect(totals.x).toBeCloseTo(under.x, 0);
-  expect(totals.x + totals.width).toBeCloseTo(under.x + under.width, 0);
-  expect(totals.y).toBeGreaterThanOrEqual(bottom(under));
-  return boxes;
+async function expectTwoColumnsWithTotalsUnder(page: Page, section: SectionTable): Promise<void> {
+  await expectTotalsUnderColumn(await panels(page), COLUMN[section]);
 }
 
 async function expectTotalsDirectlyBelowShorter(page: Page, shorter: SectionTable): Promise<void> {
-  const boxes = await expectTwoColumnsWithTotalsUnder(page, shorter);
-  expect(boxes.Totals.y).toBeLessThan(bottom(boxes[OTHER_SECTION[shorter]]));
+  await expectTotalsBelowShorterColumn(await panels(page), COLUMN[shorter]);
 }
 
 async function expectOneColumn(page: Page): Promise<void> {
-  const { Revenue: revenue, Expenses: expenses, Totals: totals } = await boxesOf(page);
-  expect(expenses.x).toBeCloseTo(revenue.x, 0);
-  expect(totals.x).toBeCloseTo(revenue.x, 0);
-  expect(expenses.y).toBeGreaterThanOrEqual(bottom(revenue));
-  expect(totals.y).toBeGreaterThanOrEqual(bottom(expenses));
+  await expect(statementTables(page)).toHaveCount(3);
+  await expectStacked([
+    statementTable(page, 'Revenue'),
+    statementTable(page, 'Expenses'),
+    statementTable(page, 'Totals'),
+  ]);
 }
 
 test('opens with no query on the calendar month holding the browser\'s day, filled into From and To, and counts only its Entries', async ({ page }) => {

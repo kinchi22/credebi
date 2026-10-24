@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
+import { expectRows, type ReportRow } from './report-tables';
 
 export const periodForm = (page: Page): Locator =>
   page.getByRole('form', { name: 'Statement period', exact: true });
@@ -31,20 +32,10 @@ export const statementTable = (page: Page, name: StatementTable): Locator =>
 
 export const statementTables = (page: Page): Locator => page.getByRole('main').getByRole('table');
 
-const statementRow = (table: Locator, label: string): Locator =>
-  table.getByRole('row').filter({ has: table.page().getByRole('rowheader', { name: label, exact: true }) });
-
 export const accountLink = (page: Page, table: StatementTable, name: string): Locator =>
   statementTable(page, table).getByRole('link', { name, exact: true });
 
-export type StatementRow = readonly [label: string, amount: string];
-
-async function expectRows(table: Locator, rows: readonly StatementRow[]): Promise<void> {
-  await expect(table.getByRole('rowheader')).toHaveText(rows.map(([label]) => label));
-  for (const [label, amount] of rows) {
-    await expect(statementRow(table, label).getByRole('cell')).toHaveText([amount]);
-  }
-}
+export type StatementRow = ReportRow;
 
 export type Statement = {
   readonly revenue: readonly StatementRow[];

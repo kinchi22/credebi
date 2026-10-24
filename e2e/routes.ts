@@ -16,6 +16,12 @@ export const INCOME_STATEMENT_WITHOUT_QUERY = /\/income-statement$/;
 
 export const INCOME_STATEMENT_WITH_QUERY = /\/income-statement\?.+$/;
 
+export const ASSETS_AND_LIABILITIES_PATH = '/assets-and-liabilities';
+
+export const ASSETS_AND_LIABILITIES_WITHOUT_QUERY = /\/assets-and-liabilities$/;
+
+export const ASSETS_AND_LIABILITIES_WITH_QUERY = /\/assets-and-liabilities\?.+$/;
+
 export const SETTINGS_PATH = '/settings';
 
 export const SETTINGS_URL = /\/settings$/;
