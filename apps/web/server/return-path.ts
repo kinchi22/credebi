@@ -1,4 +1,9 @@
-import { type SearchQuery } from '@repo/contracts';
+import {
+  SEARCH_CRITERIA_FIELDS,
+  type AccountId,
+  type IncomeStatementQuery,
+  type SearchQuery,
+} from '@repo/contracts';
 
 export const SIGNED_IN_HOME = '/entries';
 
@@ -56,4 +61,12 @@ export function pathWithQuery(path: string, query: SearchQuery): string {
   }
   const search = parameters.toString();
   return search === '' ? path : `${path}?${search}`;
+}
+
+export function accountSearchPath(account: AccountId, range: IncomeStatementQuery): string {
+  return pathWithQuery(ENTRY_SEARCH_PATH, {
+    [SEARCH_CRITERIA_FIELDS.account]: account,
+    [SEARCH_CRITERIA_FIELDS.from]: range.from,
+    [SEARCH_CRITERIA_FIELDS.to]: range.to,
+  });
 }

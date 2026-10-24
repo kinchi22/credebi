@@ -1,7 +1,9 @@
+import { type AccountId } from '@repo/contracts';
 import { describe, expect, it } from 'vitest';
 import {
   ENTRY_SEARCH_PATH,
   REQUESTED_PATH_HEADER,
+  accountSearchPath,
   pathWithQuery,
   requestedPath,
   returnPath,
@@ -112,5 +114,13 @@ describe('signInPathFor', () => {
 
   it('returns to the entries page when the forwarded path leaves this origin', () => {
     expect(signInPathFor(forwarded('//evil.test/steal'))).toBe('/sign-in?returnTo=%2Fentries');
+  });
+});
+
+describe('accountSearchPath', () => {
+  it('searches Entries for the Account over the range', () => {
+    const groceries = '01920000-0000-7000-8000-00000000c004' as AccountId;
+
+    expect(accountSearchPath(groceries, { from: '2026-06-01', to: '2026-06-30' })).toBe('/entries/search?account=01920000-0000-7000-8000-00000000c004&from=2026-06-01&to=2026-06-30');
   });
 });

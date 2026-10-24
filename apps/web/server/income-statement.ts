@@ -17,7 +17,7 @@ type Unanswered = 'refused' | 'unavailable';
 export type IncomeStatementAnswer =
   | {
       readonly outcome: 'answered';
-      readonly period: StatementPeriod;
+      readonly period: IncomeStatementQuery;
       readonly statement: IncomeStatementOutput;
     }
   | { readonly outcome: Unanswered; readonly period: StatementPeriod };

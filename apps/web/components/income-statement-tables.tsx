@@ -1,11 +1,18 @@
 import { useTranslations } from 'next-intl';
-import { type IncomeStatementOutput, type Money, type StatementSectionOutput } from '@repo/contracts';
+import Link from 'next/link';
+import {
+  type IncomeStatementOutput,
+  type IncomeStatementQuery,
+  type Money,
+  type StatementSectionOutput,
+} from '@repo/contracts';
 import { PANEL, PANEL_TITLE } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { type ReactNode } from 'react';
 import { type IncomeStatementAnswer } from '../server/income-statement';
+import { accountSearchPath } from '../server/return-path';
 import { formatAmount } from './amount';
-import { DANGER_TEXT, MUTED_TEXT } from './text-classes';
+import { DANGER_TEXT, LINK, MUTED_TEXT } from './text-classes';
 
 const TABLE = `w-full border-collapse ${typeClasses['body-sm']}`;
 const CAPTION = `mb-2 text-left ${PANEL_TITLE}`;
@@ -27,14 +34,21 @@ type AmountRowProps = {
   readonly label: string;
   readonly amount: Money;
   readonly variant?: AmountRowVariant;
+  readonly href?: string;
 };
 
-function AmountRow({ label, amount, variant = 'account' }: AmountRowProps): ReactNode {
+function AmountRow({ label, amount, variant = 'account', href }: AmountRowProps): ReactNode {
   const classes = ROW_CLASSES[variant];
   return (
     <tr className={classes.row}>
       <th scope="row" className={classes.label}>
-        {label}
+        {href === undefined ? (
+          label
+        ) : (
+          <Link href={href} className={LINK}>
+            {label}
+          </Link>
+        )}
       </th>
       <td className={AMOUNT}>{formatAmount(amount)}</td>
     </tr>
@@ -45,9 +59,10 @@ type SectionTableProps = {
   readonly caption: string;
   readonly totalLabel: string;
   readonly section: StatementSectionOutput;
+  readonly period: IncomeStatementQuery;
 };
 
-function SectionTable({ caption, totalLabel, section }: SectionTableProps): ReactNode {
+function SectionTable({ caption, totalLabel, section, period }: SectionTableProps): ReactNode {
   return (
     <div className={PANEL}>
       <table className={TABLE}>
@@ -55,7 +70,14 @@ function SectionTable({ caption, totalLabel, section }: SectionTableProps): Reac
         <tbody>
           {section.rows.flatMap((row) =>
             row.kind === 'account'
-              ? [<AmountRow key={row.account} label={row.name} amount={row.total} />]
+              ? [
+                  <AmountRow
+                    key={row.account}
+                    label={row.name}
+                    amount={row.total}
+                    href={accountSearchPath(row.account, period)}
+                  />,
+                ]
               : [
                   <AmountRow
                     key={row.group}
@@ -69,6 +91,7 @@ function SectionTable({ caption, totalLabel, section }: SectionTableProps): Reac
                       label={account.name}
                       amount={account.total}
                       variant="grouped"
+                      href={accountSearchPath(account.account, period)}
                     />
                   )),
                 ],
@@ -84,15 +107,16 @@ function SectionTable({ caption, totalLabel, section }: SectionTableProps): Reac
 
 export type IncomeStatementTablesProps = {
   readonly statement: IncomeStatementOutput;
+  readonly period: IncomeStatementQuery;
 };
 
-export function IncomeStatementTables({ statement }: IncomeStatementTablesProps): ReactNode {
+export function IncomeStatementTables({ statement, period }: IncomeStatementTablesProps): ReactNode {
   const t = useTranslations('incomeStatement');
 
   return (
     <>
-      <SectionTable caption={t('revenue')} totalLabel={t('totalRevenue')} section={statement.revenue} />
-      <SectionTable caption={t('expenses')} totalLabel={t('totalExpense')} section={statement.expense} />
+      <SectionTable caption={t('revenue')} totalLabel={t('totalRevenue')} section={statement.revenue} period={period} />
+      <SectionTable caption={t('expenses')} totalLabel={t('totalExpense')} section={statement.expense} period={period} />
       <div className={PANEL}>
         <table className={TABLE}>
           <caption className={CAPTION}>{t('totals')}</caption>
@@ -114,7 +138,7 @@ export type IncomeStatementOutcomeProps = {
 export function IncomeStatementOutcome({ answer }: IncomeStatementOutcomeProps): ReactNode {
   const t = useTranslations('incomeStatement');
   if (answer.outcome === 'answered') {
-    return <IncomeStatementTables statement={answer.statement} />;
+    return <IncomeStatementTables statement={answer.statement} period={answer.period} />;
   }
   return (
     <p role="alert" className={DANGER_TEXT}>
