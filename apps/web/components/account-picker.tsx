@@ -9,6 +9,7 @@ import {
   type ChartOutput,
   type Side,
 } from '@repo/contracts';
+import { balanceDirection } from '@repo/core/accounts';
 import { ChevronIcon, SearchIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import Link from 'next/link';
@@ -447,14 +448,23 @@ function SideChoices({
       )}
       {SIDE_ORDER[side].map((type) => {
         const runs = runsOf(chart, type);
+        const direction = balanceDirection(type, side);
         return (
           <div
             key={type}
             role="group"
-            aria-labelledby={`${typeId}-${type}`}
+            aria-label={t('accountSheet.typeDirection', {
+              type: t(`accountTypes.${type}`),
+              direction: t(`accountSheet.${direction}`),
+            })}
             className={runs.some(isShown) ? 'flex flex-col gap-1' : 'hidden'}
           >
-            <Band accountType={type} id={`${typeId}-${type}`} className={BAND_PADDING} />
+            <Band
+              accountType={type}
+              id={`${typeId}-${type}`}
+              direction={direction}
+              className={BAND_PADDING}
+            />
             {look.groups === 'tree' ? treeOf(runs) : captionsOf(runs)}
           </div>
         );

@@ -99,6 +99,7 @@ export const textPairs: readonly ColorPair[] = [
   { foreground: 'white', background: 'rust' },
   { foreground: 'ink', background: 'fog' },
   { foreground: 'mint-deeper', background: 'fog' },
+  { foreground: 'slate', background: 'fog' },
   { foreground: 'ink', background: 'mint-fog' },
   { foreground: 'ink', background: 'mist-pale' },
   { foreground: 'slate', background: 'mist-pale' },
