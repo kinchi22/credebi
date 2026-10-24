@@ -441,6 +441,10 @@ utilities, `shadow-lift` and `shadow-lift-card`. The lint rule
 arbitrary one, and `repo/no-raw-color`, which reads the shadow names from the
 tokens module, rejects any other.
 
+Two layers stack over the page: a popover, such as a Help tip's panel or a
+menu, at `z-10`, and the Top bar at `z-20`, so a popover passes under the bar.
+A modal dialog sits in the browser's top layer, above both.
+
 ## Shapes
 
 Three radii, `radii` in the tokens module and `rounded` above, and no other is
