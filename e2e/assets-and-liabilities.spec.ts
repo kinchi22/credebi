@@ -3,8 +3,8 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   accountType,
   addAccount,
+  addAccounts,
   addGroup,
-  type AccountType,
   BOOKS_OPEN,
   dayInBrowser,
   drag,
@@ -19,25 +19,26 @@ import {
   reportDateForm,
   reportPanels,
   reportTable,
-  reportTables,
   showReport,
 } from './assets-and-liabilities';
 import { fixToday } from './date-presets';
 import {
+  added,
   deleteListed,
-  type LineAccount,
+  entryOn,
   listedEntry,
   openEditEntry,
   postEntries,
   saveEdit,
   type TwoLineEntry,
 } from './entries';
-import { CATALOGUE, documentLanguage, signUpAfterChoosing } from './language';
+import { CATALOGUE, documentLanguage, MIDDLE_DOT, pageTitle, signUpAfterChoosing } from './language';
 import {
   expectOneColumn,
   expectTotalsDirectlyBelowShorter,
   expectTwoColumnsWithTotalsUnder,
-  type ReportRow,
+  reportTables,
+  zeroRows,
 } from './report-tables';
 import {
   ASSETS_AND_LIABILITIES_PATH as REPORT,
@@ -45,12 +46,13 @@ import {
   ASSETS_AND_LIABILITIES_WITHOUT_QUERY,
   INCOME_STATEMENT_PATH,
   queryOf,
+  SETTINGS_PATH,
   SIGN_IN_URL,
 } from './routes';
 import { freshIdentifier, signIn, signInForSmoke, submitTestSignIn } from './session';
-import { SIGNED_IN_PAGES, menu, sidebar } from './sidebar';
+import { linkTo, SIGNED_IN_PAGES, menu, sidebar } from './sidebar';
 import { HANGUL } from './typed-text';
-import { expectWithinPhone, PHONE, WIDE_BELOW_SPLIT } from './viewport';
+import { expectWithinPhone, PHONE, type Viewport, WIDE, WIDE_BELOW_SPLIT } from './viewport';
 
 const TODAY = '2026-09-15';
 
@@ -64,25 +66,15 @@ const AHEAD_OF_THE_SERVER = 'Pacific/Kiritimati';
 
 const SIDEBAR_LINKS = ['Entries', 'Entry search', 'Income statement', 'Assets and liabilities', 'Settings'] as const;
 
-const WIDE = { width: 1280, height: 720 } as const;
-
-const MIDDLE_DOT = '\u00B7';
-
 const KOREAN_PAGE_NAME = '\uC790\uC0B0\u00B7\uBD80\uCC44';
 
 const KOREAN_NET_WORTH = '\uC21C\uC790\uC0B0';
 
+const JAPANESE = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
+
 const LONG_NAME = 'Savings kept for every single rainy day';
 
 const THREE_ACCOUNTS = ['First', 'Second', 'Third'] as const;
-
-const entryOn = (
-  day: string,
-  memo: string,
-  debitAccount: LineAccount,
-  creditAccount: LineAccount,
-  amount: string,
-): TwoLineEntry => ({ day, memo, debitAccount, creditAccount, amount });
 
 const intoCash = (day: string, memo: string, amount: string): TwoLineEntry =>
   entryOn(day, memo, 'Cash', 'Capital', amount);
@@ -90,9 +82,7 @@ const intoCash = (day: string, memo: string, amount: string): TwoLineEntry =>
 const outOfCash = (day: string, memo: string, amount: string): TwoLineEntry =>
   entryOn(day, memo, 'Expenses', 'Cash', amount);
 
-const added = (name: string): LineAccount => ({ added: name });
-
-const reportLinkIn = (navigation: Locator): Locator => navigation.locator(`a[href="${REPORT}"]`);
+const reportLinkIn = (navigation: Locator): Locator => linkTo(navigation, REPORT);
 
 const reportLink = (page: Page): Locator => reportLinkIn(sidebar(page));
 
@@ -113,16 +103,7 @@ const cashOnly = (amount: string): Report => ({
   netWorth: amount,
 });
 
-const zeroRows = (first: string, names: readonly string[]): ReportRow[] =>
-  [first, ...names].map((name) => [name, '0'] as const);
-
-async function addAccounts(page: Page, type: AccountType, names: readonly string[]): Promise<void> {
-  for (const name of names) {
-    await addAccount(page, type, { name, activeFrom: BOOKS_OPEN });
-  }
-}
-
-async function showJuneLastAt(page: Page, viewport: { readonly width: number; readonly height: number }): Promise<void> {
+async function showJuneLastAt(page: Page, viewport: Viewport): Promise<void> {
   await page.setViewportSize(viewport);
   await page.goto(REPORT);
   await showReport(page, JUNE_LAST);
@@ -185,6 +166,7 @@ test('puts a day chosen with Date and Show into the URL, which a reload and the 
   await expectReport(page, july);
 
   await page.goBack();
+  expect(queryOf(page).getAll('date')).toEqual([JUNE_LAST]);
   await expect(reportDate(page)).toHaveValue(JUNE_LAST);
   await expectReport(page, june);
 
@@ -207,6 +189,36 @@ test('shows a future day opened from the URL, counting the Entries already recor
   await page.goto(dated('2030-01-15'));
   await expect(reportDate(page)).toHaveValue('2030-01-15');
   await expectReport(page, cashOnly('6,000'));
+});
+
+test("shows an error and no report when the browser's read of today fails, and shows the report once Show is pressed again", async ({ page }) => {
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
+  await postEntries(page, [intoCash(IN_JUNE, `Paid in ${randomUUID()}`, '1000')]);
+  await fixToday(page, TODAY);
+  await page.route(
+    (url) => url.pathname === REPORT,
+    async (route) => {
+      const request = route.request();
+      if (request.method() === 'POST' && (await request.headerValue('next-action')) !== null) {
+        await route.abort();
+        return;
+      }
+      await route.fallback();
+    },
+  );
+
+  await page.goto(REPORT);
+
+  await expect(reportDate(page)).toHaveValue(TODAY);
+  await expect(page.getByRole('main').getByRole('alert')).toBeVisible();
+  await expect(reportTables(page)).toHaveCount(0);
+
+  await page.unrouteAll({ behavior: 'wait' });
+  await reportDateForm(page).getByRole('button', { name: 'Show', exact: true }).click();
+
+  expect(queryOf(page).getAll('date')).toEqual([TODAY]);
+  await expect(page.getByRole('main').getByRole('alert')).toHaveCount(0);
+  await expectReport(page, cashOnly('1,000'));
 });
 
 test('refuses an empty, impossible, malformed or repeated date in the URL, explains itself, and shows no report', async ({ page }) => {
@@ -262,7 +274,7 @@ test('balances an asset Account as its debits less its credits and a liability A
   const bank = added('Overdrawn bank');
   const card = added('Card');
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await page.goto('/settings');
+  await page.goto(SETTINGS_PATH);
   await addAccount(page, 'Assets', { name: 'Overdrawn bank', activeFrom: BOOKS_OPEN });
   await addAccount(page, 'Liabilities', { name: 'Card', activeFrom: BOOKS_OPEN });
   await postEntries(page, [
@@ -287,7 +299,7 @@ test('balances an asset Account as its debits less its credits and a liability A
 
 test('lists an Account on the first and last days of its Active period, at zero with no Entry, and leaves it out the day before it starts and the day after it ends', async ({ page }) => {
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await page.goto('/settings');
+  await page.goto(SETTINGS_PATH);
   await addAccount(page, 'Assets', { name: 'Wallet', activeFrom: '2026-06-10', activeUntil: '2026-06-20' });
   await addAccount(page, 'Liabilities', { name: 'Tab', activeFrom: '2026-06-10', activeUntil: '2026-06-20' });
   const listed: Report = {
@@ -312,7 +324,7 @@ test('leaves an ended Account with a balance out of its row, its group subtotal,
   test.slow();
   const run = randomUUID();
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await page.goto('/settings');
+  await page.goto(SETTINGS_PATH);
   await addGroup(page, 'Assets', { name: 'Savings' });
   await addAccount(page, 'Assets', { name: 'Deposit', group: 'Savings', activeFrom: BOOKS_OPEN, activeUntil: JUNE_LAST });
   await addAccount(page, 'Assets', { name: 'Fund', group: 'Savings', activeFrom: BOOKS_OPEN });
@@ -362,7 +374,7 @@ test("puts each Account under its Account group with the group's subtotal, in Ch
   test.slow();
   const run = randomUUID();
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await page.goto('/settings');
+  await page.goto(SETTINGS_PATH);
   await addGroup(page, 'Assets', { name: 'Banks' });
   await addAccount(page, 'Assets', { name: 'Checking', group: 'Banks', activeFrom: BOOKS_OPEN });
   await addAccount(page, 'Assets', { name: 'Savings account', group: 'Banks', activeFrom: BOOKS_OPEN });
@@ -404,7 +416,7 @@ test("puts each Account under its Account group with the group's subtotal, in Ch
 test("shows a past day's balances under each Account's current name and Account group, in the current Chart of accounts order", async ({ page }) => {
   const run = randomUUID();
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await page.goto('/settings');
+  await page.goto(SETTINGS_PATH);
   await addAccounts(page, 'Assets', ['Wallet', 'Bank']);
   await postEntries(page, [
     entryOn(IN_JUNE, `Pocketed ${run}`, added('Wallet'), 'Capital', '2000'),
@@ -418,7 +430,7 @@ test("shows a past day's balances under each Account's current name and Account 
     netWorth: '5,000',
   });
 
-  await page.goto('/settings');
+  await page.goto(SETTINGS_PATH);
   const assets = accountType(page, 'Assets');
   await editAccount(page, 'Assets', 'Wallet', { name: 'Pocket money' });
   await addGroup(page, 'Assets', { name: 'Banks' });
@@ -467,7 +479,7 @@ test("counts no other User's Accounts or Entries in a User's balances, subtotals
   const owner = await browser.newContext();
   const ownerPage = await owner.newPage();
   await signIn(ownerPage, { accountsStartOn: BOOKS_OPEN });
-  await ownerPage.goto('/settings');
+  await ownerPage.goto(SETTINGS_PATH);
   await addAccount(ownerPage, 'Assets', { name: safe, activeFrom: BOOKS_OPEN });
   await postEntries(ownerPage, [
     intoCash(IN_JUNE, `Private cash ${run}`, '1000'),
@@ -540,7 +552,7 @@ test('names Assets and liabilities by exactly one level-1 heading on a wide wind
     await expect(page.getByRole('heading', { level: 1, name: 'Assets and liabilities', exact: true })).toBeVisible();
     await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
   }
-  await expect(page).toHaveTitle(`Assets and liabilities ${MIDDLE_DOT} Credebi`);
+  await expect(page).toHaveTitle(pageTitle('Assets and liabilities'));
 });
 
 test("shows Assets and liabilities in the User's Language: its heading, title, Sidebar link, date control, tables, Net worth, Accounts and refusal", async ({ page }) => {
@@ -549,7 +561,7 @@ test("shows Assets and liabilities in the User's Language: its heading, title, S
 
   await expect(documentLanguage(page)).toHaveAttribute('lang', 'ko');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(KOREAN_PAGE_NAME);
-  await expect(page).toHaveTitle(`${KOREAN_PAGE_NAME} ${MIDDLE_DOT} Credebi`);
+  await expect(page).toHaveTitle(pageTitle(KOREAN_PAGE_NAME));
   await expect(reportLinkIn(page.getByRole('navigation', { name: HANGUL }))).toHaveText(KOREAN_PAGE_NAME);
 
   const form = page.getByRole('main').getByRole('form');
@@ -575,9 +587,36 @@ test("shows Assets and liabilities in the User's Language: its heading, title, S
   await expect(reportTables(page)).toHaveCount(0);
 });
 
+test("shows Assets and liabilities in Japanese when that is the User's Language: its heading, title, Sidebar link, date control, tables and Accounts", async ({ page }) => {
+  await signUpAfterChoosing(page, 'ja');
+  await page.goto(REPORT);
+
+  await expect(documentLanguage(page)).toHaveAttribute('lang', 'ja');
+  const heading = page.getByRole('heading', { level: 1 });
+  await expect(heading).toHaveText(JAPANESE);
+  await expect(heading).not.toHaveText(/Assets|liabilities/);
+  await expect(page).toHaveTitle(new RegExp(`${JAPANESE.source}.* ${MIDDLE_DOT} Credebi$`, 'u'));
+  await expect(reportLinkIn(page.getByRole('navigation', { name: JAPANESE }))).toHaveText(JAPANESE);
+
+  const form = page.getByRole('main').getByRole('form');
+  await expect(form).toHaveAccessibleName(JAPANESE);
+  await expect(form.locator('input[name="date"]')).toHaveAccessibleName(JAPANESE);
+
+  const tables = reportTables(page);
+  await expect(tables).toHaveCount(3);
+  for (const index of [0, 1, 2]) {
+    await expect(tables.nth(index)).toHaveAccessibleName(JAPANESE);
+    await expect(tables.nth(index)).not.toHaveAccessibleName(/Assets|Liabilities|Totals/);
+  }
+  const [cash, payable] = CATALOGUE.ja.startingAccounts;
+  for (const name of [cash ?? '', payable ?? '']) {
+    await expect(page.getByRole('main').getByRole('rowheader', { name, exact: true })).toBeVisible();
+  }
+});
+
 test('shows each Account with one whole, grouped amount within the screen at 390px', async ({ page }) => {
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await page.goto('/settings');
+  await page.goto(SETTINGS_PATH);
   await addAccount(page, 'Assets', { name: LONG_NAME, activeFrom: BOOKS_OPEN });
   await postEntries(page, [entryOn(IN_JUNE, `Saved up ${randomUUID()}`, added(LONG_NAME), 'Capital', '1234567')]);
 
@@ -596,7 +635,7 @@ test('shows each Account with one whole, grouped amount within the screen at 390
 
 test('puts Assets left of Liabilities at 1280px, their tops level, and Totals directly below Assets when Assets has fewer rows', async ({ page }) => {
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await page.goto('/settings');
+  await page.goto(SETTINGS_PATH);
   await addAccounts(page, 'Liabilities', THREE_ACCOUNTS);
 
   await showJuneLastAt(page, WIDE);
@@ -607,7 +646,7 @@ test('puts Assets left of Liabilities at 1280px, their tops level, and Totals di
 
 test('puts Assets left of Liabilities at 1280px, their tops level, and Totals directly below Liabilities when Liabilities has fewer rows', async ({ page }) => {
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await page.goto('/settings');
+  await page.goto(SETTINGS_PATH);
   await addAccounts(page, 'Assets', THREE_ACCOUNTS);
 
   await showJuneLastAt(page, WIDE);
@@ -624,7 +663,7 @@ test("counts each Account group's row as a row at 1280px, so Totals goes directl
     ['Family', 'Owed to parents'],
   ] as const;
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await page.goto('/settings');
+  await page.goto(SETTINGS_PATH);
   for (const [group, name] of groups) {
     await addGroup(page, 'Liabilities', { name: group });
     await addAccount(page, 'Liabilities', { name, group, activeFrom: BOOKS_OPEN });
@@ -652,14 +691,14 @@ test('puts Assets left of Liabilities at 1280px, their tops level, and Totals be
 
 test('stacks Assets, Liabilities and Totals in one column below 1280px and at 390px', async ({ page }) => {
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await page.goto('/settings');
+  await page.goto(SETTINGS_PATH);
   await addAccount(page, 'Assets', { name: 'Wallet', activeFrom: BOOKS_OPEN });
 
   for (const viewport of [WIDE_BELOW_SPLIT, PHONE]) {
     await showJuneLastAt(page, viewport);
 
     await expectReport(page, { ...nothingCounted, assets: [['Cash', '0'], ['Wallet', '0']] });
-    await expectOneColumn([reportTable(page, 'Assets'), reportTable(page, 'Liabilities'), reportTable(page, 'Totals')]);
+    await expectOneColumn(reportTable(page, 'Assets'), reportTable(page, 'Liabilities'), reportTable(page, 'Totals'));
   }
 });
 

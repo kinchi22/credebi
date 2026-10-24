@@ -1,7 +1,12 @@
-import { expect, type Locator } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import { bottom, type Box, boxOf } from './accounts';
 
 export type ReportRow = readonly [label: string, amount: string];
+
+export const reportTables = (page: Page): Locator => page.getByRole('main').getByRole('table');
+
+export const zeroRows = (first: string, names: readonly string[]): ReportRow[] =>
+  [first, ...names].map((name) => [name, '0'] as const);
 
 const reportRow = (table: Locator, label: string): Locator =>
   table.getByRole('row').filter({ has: table.page().getByRole('rowheader', { name: label, exact: true }) });
@@ -17,7 +22,7 @@ export type Column = 'left' | 'right';
 
 export type ReportPanels = Readonly<Record<Column | 'totals', Locator>>;
 
-type PanelBoxes = Readonly<Record<Column | 'totals', Box>>;
+export type PanelBoxes = Readonly<Record<Column | 'totals', Box>>;
 
 const OTHER_COLUMN: Record<Column, Column> = { left: 'right', right: 'left' };
 
@@ -46,15 +51,10 @@ export async function expectTotalsDirectlyBelowShorter(panels: ReportPanels, sho
   expect(boxes.totals.y).toBeLessThan(bottom(boxes[OTHER_COLUMN[shorter]]));
 }
 
-export async function expectOneColumn(stacked: readonly Locator[]): Promise<void> {
-  const boxes: Box[] = [];
-  for (const [index, table] of stacked.entries()) {
-    boxes.push(await boxOf(table, `table ${String(index + 1)} of the column`));
-  }
-  const [first, ...rest] = boxes;
-  expect(first, 'the column holds a table').toBeDefined();
-  let above = first ?? { x: Number.NaN, y: Number.NaN, width: 0, height: 0 };
-  for (const box of rest) {
+export async function expectOneColumn(top: Locator, ...below: readonly Locator[]): Promise<void> {
+  let above = await boxOf(top, 'the top table of the column');
+  for (const table of below) {
+    const box = await boxOf(table, 'a table lower in the column');
     expect(box.x).toBeCloseTo(above.x, 0);
     expect(box.y).toBeGreaterThanOrEqual(bottom(above));
     above = box;

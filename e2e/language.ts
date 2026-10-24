@@ -59,6 +59,10 @@ export const CATALOGUE: Readonly<Record<Language, CatalogueText>> = {
   },
 };
 
+export const MIDDLE_DOT = '\u00B7';
+
+export const pageTitle = (name: string): string => `${name} ${MIDDLE_DOT} Credebi`;
+
 const IDENTIFIER_FIELD = 'input[name="identifier"]';
 
 export const documentLanguage = (page: Page): Locator => page.locator('html');

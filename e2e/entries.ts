@@ -21,6 +21,8 @@ export type LineAccount = Account | AddedAccount;
 export const nameOf = (account: LineAccount): string =>
   typeof account === 'string' ? account : account.added;
 
+export const added = (name: string): AddedAccount => ({ added: name });
+
 export const SIDES = ['Debit', 'Credit'] as const;
 
 export const ACCOUNT_TYPES = ['Assets', 'Liabilities', 'Equity', 'Revenue', 'Expenses'] as const;
@@ -56,6 +58,14 @@ export type Line = {
 export type MultiLineEntry = Heading & {
   readonly lines: readonly Line[];
 };
+
+export const entryOn = (
+  day: string,
+  memo: string,
+  debitAccount: LineAccount,
+  creditAccount: LineAccount,
+  amount: string,
+): TwoLineEntry => ({ day, memo, debitAccount, creditAccount, amount });
 
 export const TITLE_MAX = 40;
 

@@ -113,6 +113,12 @@ export async function addAccount(
   await save(dialog);
 }
 
+export async function addAccounts(page: Page, type: AccountType, names: readonly string[]): Promise<void> {
+  for (const name of names) {
+    await addAccount(page, type, { name, activeFrom: BOOKS_OPEN });
+  }
+}
+
 export async function addGroup(
   page: Page,
   type: AccountType,

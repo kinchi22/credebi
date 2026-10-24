@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
-import { expectRows, type ReportRow } from './report-tables';
+import { expectRows, type ReportPanels, type ReportRow } from './report-tables';
 
 export const periodForm = (page: Page): Locator =>
   page.getByRole('form', { name: 'Statement period', exact: true });
@@ -30,17 +30,19 @@ export type StatementTable = 'Revenue' | 'Expenses' | 'Totals';
 export const statementTable = (page: Page, name: StatementTable): Locator =>
   page.getByRole('main').getByRole('table', { name, exact: true });
 
-export const statementTables = (page: Page): Locator => page.getByRole('main').getByRole('table');
-
 export const accountLink = (page: Page, table: StatementTable, name: string): Locator =>
   statementTable(page, table).getByRole('link', { name, exact: true });
 
-export type StatementRow = ReportRow;
+export const statementPanels = (page: Page): ReportPanels => ({
+  left: statementTable(page, 'Expenses'),
+  right: statementTable(page, 'Revenue'),
+  totals: statementTable(page, 'Totals'),
+});
 
 export type Statement = {
-  readonly revenue: readonly StatementRow[];
+  readonly revenue: readonly ReportRow[];
   readonly totalRevenue: string;
-  readonly expenses: readonly StatementRow[];
+  readonly expenses: readonly ReportRow[];
   readonly totalExpense: string;
   readonly netIncome: string;
 };
