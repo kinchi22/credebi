@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { addAccount, addGroup, BOOKS_OPEN, dayInBrowser } from './accounts';
+import { addAccount, addGroup, BOOKS_OPEN, bottom, boxOf, dayInBrowser } from './accounts';
 import { choosePreset, fixToday } from './date-presets';
 import {
   deleteListed,
@@ -20,6 +20,7 @@ import {
   type Statement,
   showStatement,
   statementTable,
+  type StatementTable,
   statementTables,
 } from './income-statement';
 import {
@@ -35,7 +36,7 @@ import { CATALOGUE, documentLanguage, signUpAfterChoosing } from './language';
 import { freshIdentifier, signIn, signInForSmoke, submitTestSignIn } from './session';
 import { SIGNED_IN_PAGES, sidebar } from './sidebar';
 import { HANGUL } from './typed-text';
-import { expectWithinPhone, PHONE } from './viewport';
+import { expectWithinPhone, PHONE, WIDE_BELOW_SPLIT } from './viewport';
 
 const TODAY = '2026-09-15';
 
@@ -94,6 +95,36 @@ const spentOnly = (amount: string): Statement => ({
 });
 
 const rangeInUrl = (page: Page): Record<string, string> => Object.fromEntries(queryOf(page));
+
+type Column = 'Expenses' | 'Revenue';
+
+async function boxesOf(page: Page): Promise<Record<StatementTable, Awaited<ReturnType<typeof boxOf>>>> {
+  await expect(statementTables(page)).toHaveCount(3);
+  return {
+    Revenue: await boxOf(statementTable(page, 'Revenue'), 'the Revenue table'),
+    Expenses: await boxOf(statementTable(page, 'Expenses'), 'the Expenses table'),
+    Totals: await boxOf(statementTable(page, 'Totals'), 'the Totals table'),
+  };
+}
+
+async function expectTwoColumnsWithTotalsUnder(page: Page, column: Column): Promise<void> {
+  const boxes = await boxesOf(page);
+  const { Expenses: expenses, Revenue: revenue, Totals: totals } = boxes;
+  const under = boxes[column];
+  expect(expenses.x + expenses.width).toBeLessThanOrEqual(revenue.x);
+  expect(revenue.y).toBeCloseTo(expenses.y, 0);
+  expect(totals.x).toBeCloseTo(under.x, 0);
+  expect(totals.x + totals.width).toBeCloseTo(under.x + under.width, 0);
+  expect(totals.y).toBeGreaterThanOrEqual(bottom(under));
+}
+
+async function expectOneColumn(page: Page): Promise<void> {
+  const { Revenue: revenue, Expenses: expenses, Totals: totals } = await boxesOf(page);
+  expect(expenses.x).toBeCloseTo(revenue.x, 0);
+  expect(totals.x).toBeCloseTo(revenue.x, 0);
+  expect(expenses.y).toBeGreaterThanOrEqual(bottom(revenue));
+  expect(totals.y).toBeGreaterThanOrEqual(bottom(expenses));
+}
 
 test('opens with no query on the calendar month holding the browser\'s day, filled into From and To, and counts only its Entries', async ({ page }) => {
   test.slow();
@@ -487,6 +518,62 @@ test('shows each Account with one amount within the screen at 390px', async ({ p
   });
   for (const table of ['Revenue', 'Expenses', 'Totals'] as const) {
     await expectWithinPhone(page, statementTable(page, table));
+  }
+});
+
+test('puts Expenses left of Revenue at 1280px, their tops level, and Totals below Expenses when Expenses has fewer rows', async ({ page }) => {
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
+  await page.goto('/settings');
+  await addAccount(page, 'Revenue', { name: 'Interest', activeFrom: BOOKS_OPEN });
+
+  await page.setViewportSize(WIDE);
+  await page.goto(STATEMENT);
+  await showStatement(page, JUNE_FIRST, JUNE_LAST);
+
+  await expectStatement(page, { ...nothingCounted, revenue: [['Sales', '0'], ['Interest', '0']] });
+  await expectTwoColumnsWithTotalsUnder(page, 'Expenses');
+});
+
+test('puts Expenses left of Revenue at 1280px, their tops level, and Totals below Revenue when Revenue has fewer rows, counting group rows', async ({ page }) => {
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
+  await page.goto('/settings');
+  await addGroup(page, 'Expenses', { name: 'Food' });
+  await addAccount(page, 'Expenses', { name: 'Groceries', group: 'Food', activeFrom: BOOKS_OPEN });
+
+  await page.setViewportSize(WIDE);
+  await page.goto(STATEMENT);
+  await showStatement(page, JUNE_FIRST, JUNE_LAST);
+
+  await expectStatement(page, {
+    ...nothingCounted,
+    expenses: [['Expenses', '0'], ['Food', '0'], ['Groceries', '0']],
+  });
+  await expectTwoColumnsWithTotalsUnder(page, 'Revenue');
+});
+
+test('puts Expenses left of Revenue at 1280px, their tops level, and Totals below Revenue when the two have the same number of rows', async ({ page }) => {
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
+
+  await page.setViewportSize(WIDE);
+  await page.goto(STATEMENT);
+  await showStatement(page, JUNE_FIRST, JUNE_LAST);
+
+  await expectStatement(page, nothingCounted);
+  await expectTwoColumnsWithTotalsUnder(page, 'Revenue');
+});
+
+test('stacks Revenue, Expenses and Totals in one column below 1280px and at 390px', async ({ page }) => {
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
+  await page.goto('/settings');
+  await addAccount(page, 'Revenue', { name: 'Interest', activeFrom: BOOKS_OPEN });
+
+  for (const viewport of [WIDE_BELOW_SPLIT, PHONE]) {
+    await page.setViewportSize(viewport);
+    await page.goto(STATEMENT);
+    await showStatement(page, JUNE_FIRST, JUNE_LAST);
+
+    await expectStatement(page, { ...nothingCounted, revenue: [['Sales', '0'], ['Interest', '0']] });
+    await expectOneColumn(page);
   }
 });
 
