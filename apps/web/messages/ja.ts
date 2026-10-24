@@ -249,7 +249,7 @@ export const ja = {
     totals: '合計',
     totalRevenue: '収益合計',
     totalExpense: '費用合計',
-    difference: '差額',
+    netIncome: '純利益',
     refused:
       '損益計算書を表示しませんでした。日付の範囲を確認してください。各日付は暦の上の日付で、開始日を終了日より後にはできません。',
     unavailable: '今は損益計算書を読み込めません。「表示」を押してもう一度お試しください。',

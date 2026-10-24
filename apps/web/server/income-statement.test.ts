@@ -15,7 +15,7 @@ const STATEMENT = incomeStatementSchema.parse({
     rows: [{ kind: 'account', account: '01920000-0000-7000-8000-00000000c004', name: 'Sales', total: 9500 }],
   },
   expense: { total: 0, rows: [] },
-  difference: 9500,
+  netIncome: 9500,
 });
 
 const failing = (code: Parameters<typeof domainError>[0]): ShowIncomeStatement => () =>

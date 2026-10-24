@@ -108,10 +108,10 @@ describe('incomeStatement', () => {
 
     expect(built?.revenue.total).toBe(-1500);
     expect(built?.expense.total).toBe(-5000);
-    expect(built?.difference).toBe(3500);
+    expect(built?.netIncome).toBe(3500);
   });
 
-  it('totals each section over its Accounts and takes the difference as revenue less expense', () => {
+  it('totals each section over its Accounts and takes the net income as revenue less expense', () => {
     const travel = account(6, 'expense', 'Travel');
     const built = statementOf({ ...STARTING, accounts: [...STARTING.accounts, travel] }, [
       sums(SALES, 0, 10000),
@@ -122,7 +122,7 @@ describe('incomeStatement', () => {
     expect(built).toEqual({
       revenue: { total: 10000, rows: [row(SALES, 10000)] },
       expense: { total: 6500, rows: [row(EXPENSES, 4000), row(travel, 2500)] },
-      difference: 3500,
+      netIncome: 3500,
     });
   });
 
@@ -130,7 +130,7 @@ describe('incomeStatement', () => {
     expect(statementOf(STARTING, [])).toEqual({
       revenue: { total: 0, rows: [row(SALES, 0)] },
       expense: { total: 0, rows: [row(EXPENSES, 0)] },
-      difference: 0,
+      netIncome: 0,
     });
   });
 
@@ -138,7 +138,7 @@ describe('incomeStatement', () => {
     expect(statementOf({ accounts: [CASH], groups: [] }, [])).toEqual({
       revenue: { total: 0, rows: [] },
       expense: { total: 0, rows: [] },
-      difference: 0,
+      netIncome: 0,
     });
   });
 
@@ -150,7 +150,7 @@ describe('incomeStatement', () => {
     ]);
 
     expect(namesIn(built)).toEqual({ revenue: ['Sales'], expense: ['Expenses'] });
-    expect(built?.difference).toBe(0);
+    expect(built?.netIncome).toBe(0);
   });
 
   it('lists an Account whose Active period overlaps the range by even one day at either end', () => {
@@ -191,7 +191,7 @@ describe('incomeStatement', () => {
     expect(built).toEqual({
       revenue: { total: 300, rows: [row(SALES, 0), row(startsAfter, 300)] },
       expense: { total: 700, rows: [row(EXPENSES, 0), row(endedBefore, 700)] },
-      difference: -400,
+      netIncome: -400,
     });
   });
 
@@ -216,7 +216,7 @@ describe('incomeStatement', () => {
         },
       ],
     });
-    expect(built?.difference).toBe(-6000);
+    expect(built?.netIncome).toBe(-6000);
   });
 
   it('subtotals a group whose Accounts come out at zero or below zero', () => {

@@ -738,7 +738,7 @@ describe('parseIncomeStatementQuery', () => {
 });
 
 describe('toIncomeStatement', () => {
-  it('carries each section, its Accounts in order with their totals, and the difference', () => {
+  it('carries each section, its Accounts in order with their totals, and the net income', () => {
     const sales = {
       kind: 'account',
       account: CASH,
@@ -752,7 +752,7 @@ describe('toIncomeStatement', () => {
       toIncomeStatement({
         revenue: { total: 9500 as Money, rows: [sales] },
         expense: { total: -2000 as Money, rows: [rent, travel] },
-        difference: 11500 as Money,
+        netIncome: 11500 as Money,
       }),
     ).toEqual({
       revenue: { total: 9500, rows: [{ kind: 'account', account: CASH, name: 'Sales', total: 9500 }] },
@@ -763,7 +763,7 @@ describe('toIncomeStatement', () => {
           { kind: 'account', account: CASH, name: 'Travel', total: -5000 },
         ],
       },
-      difference: 11500,
+      netIncome: 11500,
     });
   });
   it('carries an Account group with its subtotal and its Accounts in order', () => {
@@ -780,7 +780,7 @@ describe('toIncomeStatement', () => {
             { kind: 'group', group: food, name: 'Food', total: 5000 as Money, accounts: [groceries, dining] },
           ],
         },
-        difference: -5000 as Money,
+        netIncome: -5000 as Money,
       }).expense,
     ).toEqual({
       total: 5000,
@@ -804,7 +804,7 @@ describe('incomeStatementSchema', () => {
   const statement = (row: unknown) => ({
     revenue: { total: 0, rows: [] },
     expense: { total: 0, rows: [row] },
-    difference: 0,
+    netIncome: 0,
   });
 
   it('accepts a group row holding Accounts', () => {

@@ -79,7 +79,7 @@ const totalsOf = (
     ? {
         revenue: statement.value.revenue.total,
         expense: statement.value.expense.total,
-        difference: statement.value.difference,
+        netIncome: statement.value.netIncome,
       }
     : statement.error.code;
 
@@ -101,7 +101,7 @@ describe('createGetIncomeStatement', () => {
         total: 20,
         rows: [{ kind: 'account', account: EXPENSES.id, name: 'Expenses', total: 20 }],
       },
-      difference: 280,
+      netIncome: 280,
     });
   });
 
@@ -120,7 +120,7 @@ describe('createGetIncomeStatement', () => {
     expect(totalsOf(await getIncomeStatement({ userId: ADA }, JUNE))).toEqual({
       revenue: 0,
       expense: 70,
-      difference: -70,
+      netIncome: -70,
     });
   });
 
@@ -130,7 +130,7 @@ describe('createGetIncomeStatement', () => {
 
     const graces = await getIncomeStatement({ userId: GRACE }, JUNE);
 
-    expect(totalsOf(graces)).toEqual({ revenue: 0, expense: 0, difference: 0 });
+    expect(totalsOf(graces)).toEqual({ revenue: 0, expense: 0, netIncome: 0 });
     expect(graces.ok && graces.value.expense.rows.map(({ name }) => name)).toEqual(['Expenses']);
   });
 

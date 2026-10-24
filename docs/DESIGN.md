@@ -827,7 +827,7 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   a name on the left, Regular in `text`, and one amount on the right in
   `figure`, never wrapped; a long name wraps anywhere, so the row stays within
   the screen at 390px. A `border` hairline parts each row from the one above. A
-  total row -- `Total revenue`, `Total expense`, and `Difference` in `Totals` --
+  total row -- `Total revenue`, `Total expense`, and `Net income` in `Totals` --
   is semibold above a 2px `border` rule. A negative amount keeps its minus sign
   and its colour.
   An Account group's row holds its name in medium and its subtotal, and its

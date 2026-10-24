@@ -48,7 +48,7 @@ export type StatementSection = {
 export type IncomeStatement = {
   readonly revenue: StatementSection;
   readonly expense: StatementSection;
-  readonly difference: Money;
+  readonly netIncome: Money;
 };
 
 type StatementType = Extract<AccountType, 'revenue' | 'expense'>;
@@ -146,8 +146,8 @@ export function incomeStatement(
   if (!expense.ok) {
     return expense;
   }
-  const difference = addMoney(revenue.value.total, negateMoney(expense.value.total));
-  return difference.ok
-    ? ok({ revenue: revenue.value, expense: expense.value, difference: difference.value })
-    : difference;
+  const netIncome = addMoney(revenue.value.total, negateMoney(expense.value.total));
+  return netIncome.ok
+    ? ok({ revenue: revenue.value, expense: expense.value, netIncome: netIncome.value })
+    : netIncome;
 }

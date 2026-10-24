@@ -123,7 +123,7 @@ export function IncomeStatementTables({ statement, period }: IncomeStatementTabl
           <tbody>
             <AmountRow label={t('totalRevenue')} amount={statement.revenue.total} />
             <AmountRow label={t('totalExpense')} amount={statement.expense.total} />
-            <AmountRow label={t('difference')} amount={statement.difference} variant="total" />
+            <AmountRow label={t('netIncome')} amount={statement.netIncome} variant="total" />
           </tbody>
         </table>
       </div>

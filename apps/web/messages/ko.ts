@@ -247,7 +247,7 @@ export const ko = {
     totals: '합계',
     totalRevenue: '수익 합계',
     totalExpense: '비용 합계',
-    difference: '차액',
+    netIncome: '순이익',
     refused:
       '손익계산서를 표시하지 않았습니다. 날짜 범위를 확인하세요. 각 날짜는 달력상의 날짜여야 하며, 시작일은 종료일보다 늦을 수 없습니다.',
     unavailable: '지금은 손익계산서를 불러올 수 없습니다. 조회를 눌러 다시 시도해 주세요.',
