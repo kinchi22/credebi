@@ -6,6 +6,7 @@ import { PHONE } from './viewport';
 const PAGE_HEADINGS: Record<(typeof SIGNED_IN_PAGES)[number], string> = {
   '/entries': 'Entries',
   '/entries/search': 'Entry search',
+  '/income-statement': 'Income statement',
   '/settings': 'Settings',
 };
 
