@@ -33,7 +33,7 @@ export function TypeIcon({ accountType }: TypeIconProps): ReactNode {
 
 type StripProps = {
   readonly icon: ReactNode;
-  readonly name: ReactNode;
+  readonly name: string;
   readonly id: string;
   readonly className: string;
   readonly children?: ReactNode;
@@ -59,27 +59,19 @@ const DIRECTION_ICON: Readonly<Record<BalanceDirection, () => ReactNode>> = {
   decrease: ArrowDownIcon,
 };
 
-export type BandHint = {
-  readonly id: string;
-  readonly direction: BalanceDirection;
-};
-
 export type BandProps = {
   readonly accountType: AccountType;
   readonly id: string;
   readonly className: string;
-  readonly hint?: BandHint;
+  readonly direction?: BalanceDirection;
   readonly children?: ReactNode;
 };
 
-export const bandLabelledBy = (id: string, hint: BandHint): string => `${id} ${hint.id}`;
-
-function Hint({ id, direction }: BandHint): ReactNode {
+function Hint({ direction }: { readonly direction: BalanceDirection }): ReactNode {
   const t = useTranslations();
   const Icon = DIRECTION_ICON[direction];
   return (
     <span
-      id={id}
       className={`flex shrink-0 items-center gap-1 ${typeClasses['body-sm']} text-text-muted`}
     >
       <Icon />
@@ -88,21 +80,16 @@ function Hint({ id, direction }: BandHint): ReactNode {
   );
 }
 
-export function Band({ accountType, id, className, hint, children }: BandProps): ReactNode {
+export function Band({ accountType, id, className, direction, children }: BandProps): ReactNode {
   const t = useTranslations();
   return (
     <Strip
       icon={<TypeIcon accountType={accountType} />}
-      name={
-        <span>
-          {t(`accountTypes.${accountType}`)}
-          {hint === undefined ? null : <span className="opacity-0">,</span>}
-        </span>
-      }
+      name={t(`accountTypes.${accountType}`)}
       id={id}
       className={`bg-band ${className}`}
     >
-      {hint === undefined ? null : <Hint {...hint} />}
+      {direction === undefined ? null : <Hint direction={direction} />}
       {children}
     </Strip>
   );

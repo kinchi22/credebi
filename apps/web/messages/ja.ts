@@ -341,6 +341,7 @@ export const ja = {
     suggested: 'おすすめ',
     increase: '増加',
     decrease: '減少',
+    typeDirection: '{type}、{direction}',
     noActiveAccount: 'この日に使用できる勘定科目はありません。',
     settingsLink: '設定で勘定科目の使用期間を変更',
     add: {

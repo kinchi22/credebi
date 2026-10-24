@@ -323,6 +323,7 @@ export const en = {
     suggested: 'Suggested',
     increase: 'Increase',
     decrease: 'Decrease',
+    typeDirection: '{type}, {direction}',
     noActiveAccount: 'No account is active on this day.',
     settingsLink: 'Change when your accounts are active in Settings',
     add: {
