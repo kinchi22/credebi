@@ -9,14 +9,12 @@ import {
   type OfferedTitle,
 } from '@repo/contracts';
 import { endedLast } from '@repo/core/accounts';
-import { type DayRange } from '@repo/core/entries';
 import { PANEL, PANEL_TITLE } from '@repo/ui';
-import { useId, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
-import { flushSync } from 'react-dom';
+import { useId, type ReactNode } from 'react';
 import { ENTRY_SEARCH_PATH } from '../server/return-path';
 import { useBrowserToday } from './use-browser-today';
-import { CONTROL, DATE_CONTROL, FIELD, PRIMARY_BUTTON } from './control-classes';
-import { DatePresets, DatePresetsSheet } from './date-presets';
+import { CONTROL, FIELD, PRIMARY_BUTTON } from './control-classes';
+import { DayRangeFields } from './day-range-fields';
 import { AccountCombobox } from './account-combobox';
 import { TitleCombobox } from './title-combobox';
 
@@ -26,36 +24,14 @@ export type EntrySearchFormProps = {
   readonly titles: readonly OfferedTitle[];
 };
 
-const RANGE_DAY = `${DATE_CONTROL} w-full min-w-0 wide:w-auto`;
-
-function keepingADay(set: (day: string) => void): (event: ChangeEvent<HTMLInputElement>) => void {
-  return (event) => {
-    if (event.target.value !== '') {
-      set(event.target.value);
-    }
-  };
-}
-
 export function EntrySearchForm({ criteria, chart, titles }: EntrySearchFormProps): ReactNode {
   const t = useTranslations();
   const id = useId();
-  const [from, setFrom] = useState(criteria.from ?? '');
-  const [to, setTo] = useState(criteria.to ?? '');
-  const form = useRef<HTMLFormElement>(null);
   const today = useBrowserToday();
   const accounts = today === undefined ? accountsIn(chart) : endedLast(accountsIn(chart), today);
 
-  const searchPreset = (range: DayRange): void => {
-    flushSync(() => {
-      setFrom(range.from);
-      setTo(range.to);
-    });
-    form.current?.requestSubmit();
-  };
-
   return (
     <form
-      ref={form}
       aria-labelledby={`${id}-title`}
       action={ENTRY_SEARCH_PATH}
       method="get"
@@ -68,71 +44,43 @@ export function EntrySearchForm({ criteria, chart, titles }: EntrySearchFormProp
         {t('entrySearch.title')}
       </h2>
 
-      <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-end gap-3 wide:contents">
-        <div className={FIELD}>
-          <label htmlFor={`${id}-from`}>{t('entrySearch.from')}</label>
-          <input
-            id={`${id}-from`}
-            name={SEARCH_CRITERIA_FIELDS.from}
-            type="date"
-            value={from}
-            onChange={keepingADay(setFrom)}
-            required
-            className={RANGE_DAY}
-          />
-        </div>
-        <div className={FIELD}>
-          <label htmlFor={`${id}-to`}>{t('entrySearch.to')}</label>
-          <input
-            id={`${id}-to`}
-            name={SEARCH_CRITERIA_FIELDS.to}
-            type="date"
-            value={to}
-            onChange={keepingADay(setTo)}
-            required
-            className={RANGE_DAY}
-          />
-        </div>
-        <DatePresetsSheet today={today} onChoose={searchPreset} />
-      </div>
-
-      <AccountCombobox
-        id={`${id}-account`}
-        name={SEARCH_CRITERIA_FIELDS.account}
-        label={t('entrySearch.account')}
-        accounts={accounts}
-        defaultValue={criteria.account}
-      />
-
-      <TitleCombobox
-        id={`${id}-title-criterion`}
-        name={SEARCH_CRITERIA_FIELDS.title}
-        label={t('entrySearch.entryTitle')}
-        defaultValue={criteria.title}
-        titles={titles.map(({ title }) => title)}
-        dense={false}
-        className="grow"
-      />
-
-      <div className={`${FIELD} grow`}>
-        <label htmlFor={`${id}-memo`}>{t('entrySearch.memo')}</label>
-        <input
-          id={`${id}-memo`}
-          name={SEARCH_CRITERIA_FIELDS.memo}
-          type="text"
-          defaultValue={criteria.memo ?? ''}
-          className={CONTROL}
+      <DayRangeFields names={SEARCH_CRITERIA_FIELDS} from={criteria.from} to={criteria.to} today={today}>
+        <AccountCombobox
+          id={`${id}-account`}
+          name={SEARCH_CRITERIA_FIELDS.account}
+          label={t('entrySearch.account')}
+          accounts={accounts}
+          defaultValue={criteria.account}
         />
-      </div>
 
-      <button
-        type="submit"
-        className={PRIMARY_BUTTON}
-      >
-        {t('entrySearch.submit')}
-      </button>
+        <TitleCombobox
+          id={`${id}-title-criterion`}
+          name={SEARCH_CRITERIA_FIELDS.title}
+          label={t('entrySearch.entryTitle')}
+          defaultValue={criteria.title}
+          titles={titles.map(({ title }) => title)}
+          dense={false}
+          className="grow"
+        />
 
-      <DatePresets today={today} onChoose={searchPreset} />
+        <div className={`${FIELD} grow`}>
+          <label htmlFor={`${id}-memo`}>{t('entrySearch.memo')}</label>
+          <input
+            id={`${id}-memo`}
+            name={SEARCH_CRITERIA_FIELDS.memo}
+            type="text"
+            defaultValue={criteria.memo ?? ''}
+            className={CONTROL}
+          />
+        </div>
+
+        <button
+          type="submit"
+          className={PRIMARY_BUTTON}
+        >
+          {t('entrySearch.submit')}
+        </button>
+      </DayRangeFields>
     </form>
   );
 }

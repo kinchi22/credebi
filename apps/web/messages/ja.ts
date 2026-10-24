@@ -215,10 +215,12 @@ export const ja = {
   entrySearchPage: {
     heading: '仕訳検索',
   },
-  entrySearch: {
-    title: '仕訳検索',
+  dayRange: {
     from: '開始日',
     to: '終了日',
+  },
+  entrySearch: {
+    title: '仕訳検索',
     account: '勘定科目',
     anyAccount: 'すべての勘定科目',
     accountOption: '{name}、{type}',

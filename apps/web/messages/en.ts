@@ -196,10 +196,12 @@ export const en = {
   entrySearchPage: {
     heading: 'Entry search',
   },
-  entrySearch: {
-    title: 'Search entries',
+  dayRange: {
     from: 'From',
     to: 'To',
+  },
+  entrySearch: {
+    title: 'Search entries',
     account: 'Account',
     anyAccount: 'Any account',
     accountOption: '{name}, {type}',
