@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { addAccount, addGroup, BOOKS_OPEN, dayInBrowser } from './accounts';
 import { choosePreset, fixToday } from './date-presets';
 import {
@@ -17,6 +17,7 @@ import {
   expectPeriod,
   expectStatement,
   periodForm,
+  type Statement,
   showStatement,
   statementTable,
   statementTables,
@@ -26,9 +27,14 @@ import {
   INCOME_STATEMENT_PATH as STATEMENT,
   INCOME_STATEMENT_WITH_QUERY,
   INCOME_STATEMENT_WITHOUT_QUERY,
+  queryOf,
   SIGN_IN_URL,
+  UUID_V7,
 } from './routes';
+import { CATALOGUE, documentLanguage, signUpAfterChoosing } from './language';
 import { freshIdentifier, signIn, signInForSmoke, submitTestSignIn } from './session';
+import { SIGNED_IN_PAGES, sidebar } from './sidebar';
+import { HANGUL } from './typed-text';
 import { expectWithinPhone, PHONE } from './viewport';
 
 const TODAY = '2026-09-15';
@@ -39,11 +45,17 @@ const JUNE_LAST = '2026-06-30';
 
 const IN_JUNE = '2026-06-15';
 
+const REVERSED_JUNE = `${STATEMENT}?from=${JUNE_LAST}&to=${JUNE_FIRST}`;
+
+const SIDEBAR_LINKS = ['Entries', 'Entry search', 'Income statement', 'Settings'] as const;
+
+const WIDE = { width: 1280, height: 720 } as const;
+
+const MIDDLE_DOT = '\u00B7';
+
 const LONG_NAME = 'Memberships paid for every single month';
 
-const ACCOUNT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-
-const posting = (
+const entryOn = (
   day: string,
   memo: string,
   debitAccount: LineAccount,
@@ -52,10 +64,12 @@ const posting = (
 ): TwoLineEntry => ({ day, memo, debitAccount, creditAccount, amount });
 
 const spent = (day: string, memo: string, amount: string, account: LineAccount = 'Expenses'): TwoLineEntry =>
-  posting(day, memo, account, 'Cash', amount);
+  entryOn(day, memo, account, 'Cash', amount);
 
 const earned = (day: string, memo: string, amount: string, account: LineAccount = 'Sales'): TwoLineEntry =>
-  posting(day, memo, 'Cash', account, amount);
+  entryOn(day, memo, 'Cash', account, amount);
+
+const statementLink = (page: Page): Locator => sidebar(page).locator(`a[href="${STATEMENT}"]`);
 
 const added = (name: string): LineAccount => ({ added: name });
 
@@ -67,9 +81,14 @@ const nothingCounted = {
   difference: '0',
 } as const;
 
-function queryOf(page: Page): Record<string, string> {
-  return Object.fromEntries(new URL(page.url()).searchParams);
-}
+const spentOnly = (amount: string): Statement => ({
+  ...nothingCounted,
+  expenses: [['Expenses', amount]],
+  totalExpense: amount,
+  difference: `-${amount}`,
+});
+
+const rangeInUrl = (page: Page): Record<string, string> => Object.fromEntries(queryOf(page));
 
 test('opens with no query on the calendar month holding the browser\'s day, filled into From and To, and counts only its Entries', async ({ page }) => {
   test.slow();
@@ -88,39 +107,26 @@ test('opens with no query on the calendar month holding the browser\'s day, fill
 
   await expect(periodForm(page)).toBeVisible();
   await expectPeriod(page, '2026-09-01', '2026-09-30');
-  await expectStatement(page, {
-    revenue: [['Sales', '0']],
-    totalRevenue: '0',
-    expenses: [['Expenses', '6,000']],
-    totalExpense: '6,000',
-    difference: '-6,000',
-  });
+  await expectStatement(page, spentOnly('6,000'));
   await expect(page).toHaveURL(INCOME_STATEMENT_WITHOUT_QUERY);
 
   await fixToday(page, '2028-02-10');
   await page.goto(STATEMENT);
 
   await expectPeriod(page, '2028-02-01', '2028-02-29');
-  await expectStatement(page, {
-    revenue: [['Sales', '0']],
-    totalRevenue: '0',
-    expenses: [['Expenses', '16,000']],
-    totalExpense: '16,000',
-    difference: '-16,000',
-  });
+  await expectStatement(page, spentOnly('16,000'));
   await expect(page).toHaveURL(INCOME_STATEMENT_WITHOUT_QUERY);
 });
 
 test('puts a range chosen with From and To into the URL, which a reload and the back button keep', async ({ page }) => {
-  test.slow();
   const run = randomUUID();
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [
     spent(IN_JUNE, `June ${run}`, '1000'),
     spent('2026-07-15', `July ${run}`, '2000'),
   ]);
-  const june = { ...nothingCounted, expenses: [['Expenses', '1,000']], totalExpense: '1,000', difference: '-1,000' } as const;
-  const july = { ...nothingCounted, expenses: [['Expenses', '2,000']], totalExpense: '2,000', difference: '-2,000' } as const;
+  const june = spentOnly('1,000');
+  const july = spentOnly('2,000');
 
   await fixToday(page, TODAY);
   await page.goto(STATEMENT);
@@ -128,11 +134,11 @@ test('puts a range chosen with From and To into the URL, which a reload and the 
 
   await showStatement(page, JUNE_FIRST, JUNE_LAST);
   await expect(page).toHaveURL(INCOME_STATEMENT_WITH_QUERY);
-  expect(queryOf(page)).toMatchObject({ from: JUNE_FIRST, to: JUNE_LAST });
+  expect(rangeInUrl(page)).toMatchObject({ from: JUNE_FIRST, to: JUNE_LAST });
   await expectStatement(page, june);
 
   await showStatement(page, '2026-07-01', '2026-07-31');
-  expect(queryOf(page)).toMatchObject({ from: '2026-07-01', to: '2026-07-31' });
+  expect(rangeInUrl(page)).toMatchObject({ from: '2026-07-01', to: '2026-07-31' });
   await expectStatement(page, july);
 
   await page.goBack();
@@ -140,13 +146,12 @@ test('puts a range chosen with From and To into the URL, which a reload and the 
   await expectStatement(page, june);
 
   await page.reload();
-  expect(queryOf(page)).toMatchObject({ from: JUNE_FIRST, to: JUNE_LAST });
+  expect(rangeInUrl(page)).toMatchObject({ from: JUNE_FIRST, to: JUNE_LAST });
   await expectPeriod(page, JUNE_FIRST, JUNE_LAST);
   await expectStatement(page, june);
 });
 
 test('fills From and To from a date preset and shows the statement for it, with the range in the URL', async ({ page }) => {
-  test.slow();
   const run = randomUUID();
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [
@@ -160,23 +165,13 @@ test('fills From and To from a date preset and shows the statement for it, with 
   await choosePreset(page, 'Month', 'Jun 2026');
   await expectPeriod(page, JUNE_FIRST, JUNE_LAST);
   await expect(page).toHaveURL(INCOME_STATEMENT_WITH_QUERY);
-  expect(queryOf(page)).toMatchObject({ from: JUNE_FIRST, to: JUNE_LAST });
-  await expectStatement(page, {
-    ...nothingCounted,
-    expenses: [['Expenses', '1,000']],
-    totalExpense: '1,000',
-    difference: '-1,000',
-  });
+  expect(rangeInUrl(page)).toMatchObject({ from: JUNE_FIRST, to: JUNE_LAST });
+  await expectStatement(page, spentOnly('1,000'));
 
   await choosePreset(page, 'Year', '2025');
   await expectPeriod(page, '2025-01-01', '2025-12-31');
-  expect(queryOf(page)).toMatchObject({ from: '2025-01-01', to: '2025-12-31' });
-  await expectStatement(page, {
-    ...nothingCounted,
-    expenses: [['Expenses', '2,000']],
-    totalExpense: '2,000',
-    difference: '-2,000',
-  });
+  expect(rangeInUrl(page)).toMatchObject({ from: '2025-01-01', to: '2025-12-31' });
+  await expectStatement(page, spentOnly('2,000'));
 });
 
 test('refuses a range whose From is later than its To, explains itself, and shows no statement', async ({ page }) => {
@@ -189,6 +184,81 @@ test('refuses a range whose From is later than its To, explains itself, and show
   await expect(statementTables(page)).toHaveCount(0);
 });
 
+test('refuses a reversed range opened from the URL, explains itself, and shows no statement', async ({ page }) => {
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
+
+  await page.goto(REVERSED_JUNE);
+
+  await expect(page.getByRole('main').getByRole('alert')).toContainText(/range/i);
+  await expect(periodForm(page)).toBeVisible();
+  await expect(statementTables(page)).toHaveCount(0);
+});
+
+test('links to the Income statement from the Sidebar of every signed-in page, after Entry search and before Settings', async ({ page }) => {
+  await signIn(page);
+
+  for (const path of [...SIGNED_IN_PAGES, STATEMENT]) {
+    await page.goto(path);
+    await expect(sidebar(page).getByRole('link')).toHaveText([...SIDEBAR_LINKS]);
+  }
+
+  await page.goto('/entries');
+  await statementLink(page).click();
+  await expect(page).toHaveURL(INCOME_STATEMENT_WITHOUT_QUERY);
+  await expect(periodForm(page)).toBeVisible();
+  await expect(statementLink(page)).toHaveAttribute('aria-current', 'page');
+});
+
+test('links to the Income statement from the drawer behind Menu at 390px', async ({ page }) => {
+  await signIn(page);
+  await page.setViewportSize(PHONE);
+
+  await page.getByRole('button', { name: 'Menu', exact: true }).click();
+  await statementLink(page).click();
+
+  await expect(page).toHaveURL(INCOME_STATEMENT_WITHOUT_QUERY);
+  await expect(periodForm(page)).toBeVisible();
+});
+
+test('names the Income statement by exactly one level-1 heading on a wide window and at 390px, and titles it before Credebi', async ({ page }) => {
+  await signIn(page);
+
+  for (const viewport of [WIDE, PHONE]) {
+    await page.setViewportSize(viewport);
+    await page.goto(STATEMENT);
+    await expect(page.getByRole('heading', { level: 1, name: 'Income statement', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
+  }
+  await expect(page).toHaveTitle(`Income statement ${MIDDLE_DOT} Credebi`);
+});
+
+test("shows the Income statement in the User's Language: its heading, title, tables, Sidebar link, Accounts and refusal", async ({ page }) => {
+  await signUpAfterChoosing(page, 'ko');
+  await page.goto(STATEMENT);
+
+  await expect(documentLanguage(page)).toHaveAttribute('lang', 'ko');
+  const heading = page.getByRole('heading', { level: 1 });
+  await expect(heading).toHaveText(HANGUL);
+  await expect(heading).not.toHaveText('Income statement');
+  await expect(page).toHaveTitle(new RegExp(`\\p{Script=Hangul}.* ${MIDDLE_DOT} Credebi$`, 'u'));
+  await expect(statementLink(page)).toHaveText(HANGUL);
+
+  const tables = statementTables(page);
+  await expect(tables).toHaveCount(3);
+  for (const index of [0, 1, 2]) {
+    await expect(tables.nth(index)).toHaveAccessibleName(HANGUL);
+  }
+  const [, , , sales, expenses] = CATALOGUE.ko.startingAccounts;
+  for (const name of [sales ?? '', expenses ?? '']) {
+    await expect(page.getByRole('main').getByRole('link', { name, exact: true })).toBeVisible();
+  }
+
+  await page.goto(REVERSED_JUNE);
+  const refusal = page.getByRole('main').getByRole('alert');
+  await expect(refusal).toHaveText(HANGUL);
+  await expect(refusal).not.toContainText(/range/i);
+});
+
 test('totals a revenue Account as its credits less its debits and an expense Account as its debits less its credits, showing a total below zero as negative', async ({ page }) => {
   test.slow();
   const run = randomUUID();
@@ -198,10 +268,10 @@ test('totals a revenue Account as its credits less its debits and an expense Acc
   await addAccount(page, 'Expenses', { name: 'Travel', activeFrom: BOOKS_OPEN });
   await postEntries(page, [
     earned(IN_JUNE, `Sale ${run}`, '12500'),
-    posting(IN_JUNE, `Sale returned ${run}`, 'Sales', 'Cash', '3000'),
+    entryOn(IN_JUNE, `Sale returned ${run}`, 'Sales', 'Cash', '3000'),
     spent(IN_JUNE, `Supplies ${run}`, '4000'),
-    posting(IN_JUNE, `Supplies refunded ${run}`, 'Cash', 'Expenses', '1000'),
-    posting(IN_JUNE, `Fare refunded ${run}`, 'Cash', travel, '5000'),
+    entryOn(IN_JUNE, `Supplies refunded ${run}`, 'Cash', 'Expenses', '1000'),
+    entryOn(IN_JUNE, `Fare refunded ${run}`, 'Cash', travel, '5000'),
   ]);
 
   await page.goto(STATEMENT);
@@ -217,18 +287,12 @@ test('totals a revenue Account as its credits less its debits and an expense Acc
 });
 
 test('counts an Entry by its calendar day, not the day it was written', async ({ page }) => {
-  test.slow();
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [spent(IN_JUNE, `Backdated ${randomUUID()}`, '7000')]);
 
   await page.goto(STATEMENT);
   await showStatement(page, JUNE_FIRST, JUNE_LAST);
-  await expectStatement(page, {
-    ...nothingCounted,
-    expenses: [['Expenses', '7,000']],
-    totalExpense: '7,000',
-    difference: '-7,000',
-  });
+  await expectStatement(page, spentOnly('7,000'));
 
   const today = await dayInBrowser(page);
   await showStatement(page, today, today);
@@ -255,12 +319,7 @@ test('leaves out a deleted Entry and the Entry a Correction replaced, and counts
   await dialog.getByLabel('Amount').fill('3000');
   await saveEdit(dialog);
 
-  const counted = {
-    ...nothingCounted,
-    expenses: [['Expenses', '4,000']],
-    totalExpense: '4,000',
-    difference: '-4,000',
-  } as const;
+  const counted = spentOnly('4,000');
   await page.goto(STATEMENT);
   await showStatement(page, JUNE_FIRST, JUNE_LAST);
   await expectStatement(page, counted);
@@ -270,7 +329,6 @@ test('leaves out a deleted Entry and the Entry a Correction replaced, and counts
 });
 
 test('lists each revenue and expense Account whose Active period overlaps the range, at zero when no Entry names it, and leaves out one active only outside it', async ({ page }) => {
-  test.slow();
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await page.goto('/settings');
   await addAccount(page, 'Revenue', { name: 'Old sales', activeFrom: '2026-01-01', activeUntil: '2026-05-31' });
@@ -364,9 +422,9 @@ test('links an Account to Entry search with that Account and the same range', as
   await accountLink(page, 'Expenses', 'Groceries').click();
 
   await expect(page).toHaveURL((url) => url.pathname === ENTRY_SEARCH_PATH);
-  const query = queryOf(page);
+  const query = rangeInUrl(page);
   expect(query).toMatchObject({ from: JUNE_FIRST, to: JUNE_LAST });
-  expect(query['account'] ?? '').toMatch(ACCOUNT_ID);
+  expect(query['account'] ?? '').toMatch(UUID_V7);
   await expect(accountField(page)).toHaveValue('Groceries');
   await expect(fromField(page)).toHaveValue(JUNE_FIRST);
   await expect(toField(page)).toHaveValue(JUNE_LAST);
@@ -376,7 +434,6 @@ test('links an Account to Entry search with that Account and the same range', as
 });
 
 test("counts no other User's Entries, and shows both sections and their totals at zero when nothing counts", async ({ browser }) => {
-  test.slow();
   const owner = await browser.newContext();
   const ownerPage = await owner.newPage();
   await signIn(ownerPage, { accountsStartOn: BOOKS_OPEN });
@@ -408,7 +465,6 @@ test('sends a signed-out visitor to sign in, and back to the Income statement on
 });
 
 test('shows each Account with one amount within the screen at 390px', async ({ page }) => {
-  test.slow();
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await page.goto('/settings');
   await addAccount(page, 'Expenses', { name: LONG_NAME, activeFrom: BOOKS_OPEN });

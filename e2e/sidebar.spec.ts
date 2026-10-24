@@ -1,34 +1,25 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { entryForm, entrySearchForm } from './entries';
-import { periodForm } from './income-statement';
-import {
-  ENTRIES_URL,
-  ENTRY_SEARCH_WITHOUT_QUERY,
-  INCOME_STATEMENT_WITHOUT_QUERY,
-  SETTINGS_URL,
-  SIGN_IN_URL,
-} from './routes';
+import { ENTRIES_URL, ENTRY_SEARCH_WITHOUT_QUERY, SETTINGS_URL, SIGN_IN_URL } from './routes';
 import { signIn } from './session';
 import { entryFormModes } from './settings';
 import { SIGNED_IN_PAGES, sidebar } from './sidebar';
 import { PHONE } from './viewport';
 
-const SIDEBAR_LINKS = ['Entries', 'Entry search', 'Income statement', 'Settings'] as const;
-
-type SidebarLinkName = (typeof SIDEBAR_LINKS)[number];
-
-const sidebarLink = (page: Page, name: SidebarLinkName): Locator =>
+const sidebarLink = (page: Page, name: 'Entries' | 'Entry search' | 'Settings'): Locator =>
   sidebar(page).getByRole('link', { name, exact: true });
 
 const sidebarSignOut = (page: Page): Locator =>
   sidebar(page).getByRole('button', { name: 'Sign out' });
 
-test('shows the Sidebar on every signed-in page, with links to Entries, Entry search, Income statement and Settings in that order and the only Sign out', async ({ page }) => {
+test('shows the Sidebar on every signed-in page, with links to Entries, Entry search and Settings and the only Sign out', async ({ page }) => {
   await signIn(page);
 
   for (const path of SIGNED_IN_PAGES) {
     await page.goto(path);
-    await expect(sidebar(page).getByRole('link')).toHaveText([...SIDEBAR_LINKS]);
+    await expect(sidebarLink(page, 'Entries')).toBeVisible();
+    await expect(sidebarLink(page, 'Entry search')).toBeVisible();
+    await expect(sidebarLink(page, 'Settings')).toBeVisible();
     await expect(sidebarSignOut(page)).toBeVisible();
     await expect(page.getByRole('button', { name: 'Sign out' })).toHaveCount(1);
   }
@@ -40,10 +31,6 @@ test('moves between the signed-in pages through the Sidebar', async ({ page }) =
   await sidebarLink(page, 'Entry search').click();
   await expect(page).toHaveURL(ENTRY_SEARCH_WITHOUT_QUERY);
   await expect(entrySearchForm(page)).toBeVisible();
-
-  await sidebarLink(page, 'Income statement').click();
-  await expect(page).toHaveURL(INCOME_STATEMENT_WITHOUT_QUERY);
-  await expect(periodForm(page)).toBeVisible();
 
   await sidebarLink(page, 'Settings').click();
   await expect(page).toHaveURL(SETTINGS_URL);
@@ -94,9 +81,9 @@ test('puts the Sidebar behind a Menu button at 390px, whose drawer holds the lin
     await expect(sidebar(page)).toBeHidden();
 
     await menu.click();
-    for (const name of SIDEBAR_LINKS) {
-      await expect(sidebarLink(page, name)).toBeVisible();
-    }
+    await expect(sidebarLink(page, 'Entries')).toBeVisible();
+    await expect(sidebarLink(page, 'Entry search')).toBeVisible();
+    await expect(sidebarLink(page, 'Settings')).toBeVisible();
     await expect(sidebarSignOut(page)).toBeVisible();
   }
 

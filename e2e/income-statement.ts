@@ -3,13 +3,13 @@ import { expect, type Locator, type Page } from '@playwright/test';
 export const periodForm = (page: Page): Locator =>
   page.getByRole('form', { name: 'Statement period', exact: true });
 
-export const periodFrom = (page: Page): Locator =>
+const periodFrom = (page: Page): Locator =>
   periodForm(page).getByLabel('From', { exact: true });
 
-export const periodTo = (page: Page): Locator =>
+const periodTo = (page: Page): Locator =>
   periodForm(page).getByLabel('To', { exact: true });
 
-export const showButton = (page: Page): Locator =>
+const showButton = (page: Page): Locator =>
   periodForm(page).getByRole('button', { name: 'Show', exact: true });
 
 export async function showStatement(page: Page, from: string, to: string): Promise<void> {
@@ -31,7 +31,7 @@ export const statementTable = (page: Page, name: StatementTable): Locator =>
 
 export const statementTables = (page: Page): Locator => page.getByRole('main').getByRole('table');
 
-export const statementRow = (table: Locator, label: string): Locator =>
+const statementRow = (table: Locator, label: string): Locator =>
   table.getByRole('row').filter({ has: table.page().getByRole('rowheader', { name: label, exact: true }) });
 
 export const accountLink = (page: Page, table: StatementTable, name: string): Locator =>

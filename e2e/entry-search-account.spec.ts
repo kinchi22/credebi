@@ -18,7 +18,13 @@ import {
   toField,
 } from './entry-search';
 import { expectSettingsPageIn, languageChoice } from './language';
-import { ENTRY_SEARCH_PATH as SEARCH, ENTRY_SEARCH_WITH_QUERY, ENTRY_SEARCH_WITHOUT_QUERY } from './routes';
+import {
+  ENTRY_SEARCH_PATH as SEARCH,
+  ENTRY_SEARCH_WITH_QUERY,
+  ENTRY_SEARCH_WITHOUT_QUERY,
+  queryOf,
+  UUID_V7,
+} from './routes';
 import { signIn } from './session';
 import {
   finishComposing,
@@ -246,7 +252,7 @@ test('searches every Account once the clear button is pressed, or the field is e
   await expect(clearButton(page)).toHaveCount(0);
   await searchButton(page).click();
   await expectListed(page, [paid, owed], []);
-  expect(new URL(page.url()).searchParams.get('account') ?? '').toBe('');
+  expect(queryOf(page).get('account') ?? '').toBe('');
 
   for (const emptied of ['', '   ']) {
     await chooseAccount(page, 'Cash');
@@ -256,7 +262,7 @@ test('searches every Account once the clear button is pressed, or the field is e
     await typeAccount(field, emptied);
     await searchButton(page).click();
     await expectListed(page, [paid, owed], []);
-    expect(new URL(page.url()).searchParams.get('account') ?? '').toBe('');
+    expect(queryOf(page).get('account') ?? '').toBe('');
   }
 });
 
@@ -408,7 +414,7 @@ test('keeps the chosen Account in the URL by its id, and fills the field with it
   await expectListed(page, [paid], [owed]);
 
   const searched = new URL(page.url());
-  expect(searched.searchParams.get('account') ?? '').toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+  expect(searched.searchParams.get('account') ?? '').toMatch(UUID_V7);
   expect([...searched.searchParams.values()]).not.toContain('Cash');
 
   await page.reload();
