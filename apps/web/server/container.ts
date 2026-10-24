@@ -103,7 +103,7 @@ export type Container = {
 const noTestSignIn: TestSignIn = () =>
   Promise.resolve(err(domainError('NOT_FOUND', 'There is no test sign-in here.')));
 
-export function createContainer({ databaseUrl, google, testSignIn }: Env): Container {
+export function createContainer({ databaseUrl, google, testSignIn, deployment }: Env): Container {
   const logger = createLogger(stderr());
   const postgres = createPostgresHealthProbe(databaseUrl, logger);
   const entries = createPostgresEntryRepository(databaseUrl, logger);
@@ -128,6 +128,7 @@ export function createContainer({ databaseUrl, google, testSignIn }: Env): Conta
     getHealth: createGetHealth({
       probes: [postgres],
       now: () => new Date(),
+      deployment,
     }),
     postEntry: createPostEntry({
       entries,

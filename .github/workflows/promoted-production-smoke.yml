@@ -58,6 +58,21 @@ jobs:
             exit 1
           fi
           echo "sha=$PROMOTED_SHA" >> "$GITHUB_OUTPUT"
+      # The identity check comes from main, so a promoted commit older than it
+      # is still checked.
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Check the production domain reports the promoted SHA
+        env:
+          PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
+          PROMOTED_SHA: ${{ steps.promoted.outputs.sha }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: |
+          input=$(jq -nc --arg url "$PRODUCTION_URL" --arg commit "$PROMOTED_SHA" '{url: $url, commit: $commit}')
+          node tools/production-release.ts verify "$input"
       - uses: actions/checkout@v5
         with:
           ref: ${{ steps.promoted.outputs.sha }}

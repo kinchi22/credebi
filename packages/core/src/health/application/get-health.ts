@@ -1,15 +1,16 @@
-import { type DomainError, type Result } from '@repo/contracts';
+import { type DeploymentIdentity, type DomainError, type Result } from '@repo/contracts';
 import { evaluateHealth, type ComponentReport, type HealthReport } from '../domain/status';
 import { type HealthProbe } from '../ports/health-probe';
 
 export type GetHealthDependencies = {
   readonly probes: readonly HealthProbe[];
   readonly now: () => Date;
+  readonly deployment: DeploymentIdentity;
 };
 
 export type GetHealth = () => Promise<Result<HealthReport, DomainError>>;
 
-export function createGetHealth({ probes, now }: GetHealthDependencies): GetHealth {
+export function createGetHealth({ probes, now, deployment }: GetHealthDependencies): GetHealth {
   return async (): Promise<Result<HealthReport, DomainError>> => {
     const reports: ComponentReport[] = await Promise.all(
       probes.map(async (probe): Promise<ComponentReport> => {
@@ -18,6 +19,6 @@ export function createGetHealth({ probes, now }: GetHealthDependencies): GetHeal
       }),
     );
 
-    return evaluateHealth(reports, now());
+    return evaluateHealth(reports, now(), deployment);
   };
 }

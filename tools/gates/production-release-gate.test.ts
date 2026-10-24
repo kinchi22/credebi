@@ -1,9 +1,21 @@
-import { spawnSync } from 'node:child_process';
+import { execFile, spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { createServer, type Server } from 'node:http';
+import { type AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
-import { coalesceProductionReleases, decideProductionRelease, selectReleaseCommit } from '../production-release';
+import { promisify } from 'node:util';
+import { afterEach, describe, expect, it } from 'vitest';
+import {
+  checkSelfReport,
+  coalesceProductionReleases,
+  crossCheckIdentity,
+  decideCompatibility,
+  decideProductionRelease,
+  readDeploymentIdentity,
+  selectReleaseCommit,
+  type DeploymentIdentity,
+} from '../production-release';
 import { REPO_ROOT } from './run-gate';
 
 const SUCCESSFUL_PREREQUISITES = [
@@ -171,6 +183,164 @@ describe('selectReleaseCommit', () => {
   });
 });
 
+const RELEASE_COMMIT = 'a'.repeat(40);
+
+const CURRENT_PRODUCTION: DeploymentIdentity = {
+  id: 'dpl_previous',
+  commit: 'd'.repeat(40),
+  url: 'https://credebi-previous.vercel.app',
+};
+
+const REDEPLOYED: DeploymentIdentity = {
+  id: 'dpl_rolled_back',
+  commit: 'e'.repeat(40),
+  url: 'https://credebi-rolled-back.vercel.app',
+};
+
+const healthBody = (deployment: unknown) => ({
+  result: {
+    data: {
+      status: 'healthy',
+      components: [{ name: 'postgres', reachable: true }],
+      checkedAt: '2026-10-24T00:00:00.000Z',
+      deployment,
+    },
+  },
+});
+
+const reported = (deployment: DeploymentIdentity) =>
+  readDeploymentIdentity(deployment.url, healthBody(deployment));
+
+describe('readDeploymentIdentity', () => {
+  it('reads the identity a deployment reports about itself', () => {
+    expect(reported(CURRENT_PRODUCTION)).toEqual({ ok: true, identity: CURRENT_PRODUCTION });
+  });
+
+  it.each([
+    ['no deployment field', undefined, 'reports no deployment identity'],
+    ['every field null', { id: null, commit: null, url: null }, 'reports no deployment id'],
+    ['an empty id', { ...CURRENT_PRODUCTION, id: '' }, 'reports no deployment id'],
+    ['a null commit', { ...CURRENT_PRODUCTION, commit: null }, 'reports no full commit SHA'],
+    ['a short commit', { ...CURRENT_PRODUCTION, commit: 'd48b5f0' }, 'reports no full commit SHA'],
+    ['a null URL', { ...CURRENT_PRODUCTION, url: null }, 'reports no HTTPS fixed URL'],
+    ['a bare host', { ...CURRENT_PRODUCTION, url: 'credebi-previous.vercel.app' }, 'reports no HTTPS fixed URL'],
+    ['a plain HTTP URL', { ...CURRENT_PRODUCTION, url: 'http://credebi-previous.vercel.app' }, 'reports no HTTPS fixed URL'],
+    ['a URL with a path', { ...CURRENT_PRODUCTION, url: 'https://credebi-previous.vercel.app/x' }, 'reports no HTTPS fixed URL'],
+  ])('blocks readiness on %s', (_, deployment, reason) => {
+    expect(readDeploymentIdentity('https://credebi.example', healthBody(deployment))).toEqual({
+      ok: false,
+      reason: `https://credebi.example ${reason}.`,
+    });
+  });
+
+  it('blocks readiness on a body that is not a health answer at all', () => {
+    expect(readDeploymentIdentity('https://credebi.example', '<html>Vercel login</html>').ok).toBe(false);
+  });
+});
+
+describe('crossCheckIdentity', () => {
+  it('binds the compatibility run to Current Production, never to the release commit', () => {
+    const target = crossCheckIdentity(reported(CURRENT_PRODUCTION), reported(CURRENT_PRODUCTION));
+
+    expect(target).toEqual({ ok: true, identity: CURRENT_PRODUCTION });
+    expect(target.ok && target.identity.commit).not.toBe(RELEASE_COMMIT);
+  });
+
+  it('blocks readiness when the fixed URL names another deployment than the domain did', () => {
+    const result = crossCheckIdentity(reported(CURRENT_PRODUCTION), reported(REDEPLOYED));
+
+    expect(result).toEqual({
+      ok: false,
+      reason:
+        `${CURRENT_PRODUCTION.url} reports deployment ${REDEPLOYED.id} at ${REDEPLOYED.commit}, ` +
+        `not the ${CURRENT_PRODUCTION.id} at ${CURRENT_PRODUCTION.commit} the production domain named.`,
+    });
+  });
+
+  it.each([
+    ['the domain', { ok: false, reason: 'domain unknown' }, reported(CURRENT_PRODUCTION)],
+    ['the fixed URL', reported(CURRENT_PRODUCTION), { ok: false, reason: 'fixed URL unknown' }],
+  ] as const)('passes on the failure when %s cannot be identified', (_, domain, fixed) => {
+    const result = crossCheckIdentity(domain, fixed);
+    expect(result.ok).toBe(false);
+    expect(result).toEqual(domain.ok ? fixed : domain);
+  });
+});
+
+describe('checkSelfReport', () => {
+  it('accepts a deployment that reports the commit its event carried', () => {
+    expect(checkSelfReport(reported(CURRENT_PRODUCTION), CURRENT_PRODUCTION.commit)).toEqual({
+      ok: true,
+      identity: CURRENT_PRODUCTION,
+    });
+  });
+
+  it('rejects a deployment that reports another commit', () => {
+    expect(checkSelfReport(reported(CURRENT_PRODUCTION), RELEASE_COMMIT)).toEqual({
+      ok: false,
+      reason: `${CURRENT_PRODUCTION.url} reports commit ${CURRENT_PRODUCTION.commit}, not ${RELEASE_COMMIT}.`,
+    });
+  });
+
+  it('rejects a deployment that reports no identity', () => {
+    expect(checkSelfReport({ ok: false, reason: 'no identity' }, RELEASE_COMMIT)).toEqual({
+      ok: false,
+      reason: 'no identity',
+    });
+  });
+});
+
+describe('decideCompatibility', () => {
+  it('passes when Current Production passed its own specs and stayed the same deployment', () => {
+    expect(
+      decideCompatibility({ attempt: 1, target: CURRENT_PRODUCTION, smoke: 'success', after: CURRENT_PRODUCTION }),
+    ).toEqual({
+      decision: 'pass',
+      reason: `Current Production passed its own smoke specs at ${CURRENT_PRODUCTION.commit} on the resulting schema.`,
+    });
+  });
+
+  it('blocks Promotion when Current Production fails its own specs on the migrated schema', () => {
+    expect(
+      decideCompatibility({ attempt: 1, target: CURRENT_PRODUCTION, smoke: 'failure', after: CURRENT_PRODUCTION }),
+    ).toEqual({
+      decision: 'fail',
+      reason: `Current Production failed its own smoke specs at ${CURRENT_PRODUCTION.commit} on the resulting schema.`,
+    });
+  });
+
+  it.each(['success', 'failure'] as const)(
+    'reruns once against the new deployment when Current Production changed during a %s',
+    (smoke) => {
+      const decision = decideCompatibility({ attempt: 1, target: CURRENT_PRODUCTION, smoke, after: REDEPLOYED });
+      expect(decision.decision).toBe('rerun');
+      expect(decision.reason).toContain(`to ${REDEPLOYED.id} at ${REDEPLOYED.commit}`);
+    },
+  );
+
+  it('fails when Current Production changed again during the rerun', () => {
+    expect(
+      decideCompatibility({ attempt: 2, target: REDEPLOYED, smoke: 'success', after: CURRENT_PRODUCTION }).decision,
+    ).toBe('fail');
+  });
+
+  it.each([
+    ['its id', { ...CURRENT_PRODUCTION, id: 'dpl_other' }],
+    ['its commit', { ...CURRENT_PRODUCTION, commit: 'f'.repeat(40) }],
+    ['its URL', { ...CURRENT_PRODUCTION, url: 'https://credebi-other.vercel.app' }],
+  ])('treats a change in %s alone as a different deployment', (_, after) => {
+    expect(
+      decideCompatibility({ attempt: 1, target: CURRENT_PRODUCTION, smoke: 'success', after }).decision,
+    ).toBe('rerun');
+  });
+
+  it('fails when Current Production cannot be identified after the run', () => {
+    expect(
+      decideCompatibility({ attempt: 1, target: CURRENT_PRODUCTION, smoke: 'success', after: null }).decision,
+    ).toBe('fail');
+  });
+});
+
 describe('Production release workflow invariants', () => {
   const ci = readFileSync(path.join(REPO_ROOT, '.github/workflows/ci.yml'), 'utf8');
   const release = readFileSync(
@@ -212,10 +382,29 @@ describe('Production release workflow invariants', () => {
     expect(compatibility).toContain("needs.result.outputs.migration_outcome == 'success'");
     expect(compatibility).toContain("needs.result.outputs.migration_outcome == 'skipped-no-migration'");
     expect(compatibility).toContain('needs: result');
-    expect(release).toContain('E2E_BASE_URL: ${{ vars.PRODUCTION_URL }}');
-    expect(release).toContain('pnpm test:e2e --grep @smoke');
+    expect(compatibility).toContain('PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}');
+    expect(compatibility).toContain('pnpm test:e2e --grep @smoke');
     expect(ci).toContain('COMPATIBILITY_RESULT: ${{ needs.release.outputs.compatibility_result }}');
     expect(ci).toContain('test "$COMPATIBILITY_RESULT" = success');
+  });
+
+  it('runs the specs of the commit Current Production reports, from a worktree, against its fixed URL', () => {
+    const compatibility = release.slice(release.indexOf('\n  compatibility:'));
+    const steps = [
+      'target=$(node "$release" identify "$domain")',
+      'commit=$(jq -r .commit <<<"$target")',
+      'git worktree add --detach "$tree" "$commit"',
+      'cd "$tree"',
+      'E2E_BASE_URL="$url" pnpm test:e2e --grep @smoke',
+      'after=$(node "$release" identify "$domain" || echo null)',
+      'node "$release" compatibility "$input"',
+    ];
+
+    const positions = steps.map((step) => compatibility.indexOf(step));
+    expect(positions.every((position) => position >= 0), steps.join('\n')).toBe(true);
+    expect(positions).toEqual([...positions].sort((left, right) => left - right));
+    expect(compatibility).not.toContain('E2E_BASE_URL: ${{ vars.PRODUCTION_URL }}');
+    expect(compatibility).toMatch(/pass\) exit 0 ;;\n\s+rerun\) attempt=\$\(\(attempt \+ 1\)\) ;;\n\s+\*\) exit 1 ;;/);
   });
 
   it('checks the exact ready-event SHA and publishes candidate status', () => {
@@ -231,6 +420,19 @@ describe('Production release workflow invariants', () => {
     expect(candidate).toContain('ref: ${{ steps.pending.outputs.sha }}');
     expect(candidate).toContain('E2E_BASE_URL: ${{ steps.pending.outputs.url }}');
     expect(candidate).toContain('pnpm test:e2e --grep @smoke');
+  });
+
+  it('checks the candidate reports the event SHA before smoking it, with the tool saved from main', () => {
+    const candidate = readFileSync(
+      path.join(REPO_ROOT, '.github/workflows/candidate-production-smoke.yml'), 'utf8',
+    );
+    const check = candidate.indexOf('node "$RUNNER_TEMP/production-release.ts" verify "$input"');
+
+    expect(candidate).toContain('cp tools/production-release.ts "$RUNNER_TEMP/production-release.ts"');
+    expect(candidate).toContain('CANDIDATE_SHA: ${{ steps.pending.outputs.sha }}');
+    expect(candidate).toContain('CANDIDATE_URL: ${{ steps.pending.outputs.url }}');
+    expect(check).toBeGreaterThan(candidate.indexOf('id: readiness'));
+    expect(check).toBeLessThan(candidate.indexOf('id: candidate'));
   });
 });
 
@@ -270,6 +472,14 @@ describe('Post-Promotion smoke workflow', () => {
     expect(promoted).toContain('SMOKE_SESSION_TOKEN: ${{ secrets.SMOKE_SESSION_TOKEN }}');
     expect(promoted).toContain('pnpm test:e2e --grep @smoke');
     expect(promoted).not.toMatch(/upload-artifact|vercel (rollback|promote)|statuses: write/);
+  });
+
+  it('checks the production domain reports the promoted SHA before smoking it', () => {
+    const check = promoted.indexOf('node tools/production-release.ts verify "$input"');
+
+    expect(promoted).toContain('PROMOTED_SHA: ${{ steps.promoted.outputs.sha }}');
+    expect(check).toBeGreaterThan(promoted.indexOf('id: promoted'));
+    expect(check).toBeLessThan(promoted.indexOf('ref: ${{ steps.promoted.outputs.sha }}'));
   });
 
   it('runs the job for a production or environment-less event only, so a preview never starts it', () => {
@@ -393,5 +603,99 @@ describe('production-release.ts, run as CI runs it', () => {
 
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('Production release input must be a JSON argument.');
+  });
+});
+
+describe('production-release.ts, asking a deployment who it is', () => {
+  const run = promisify(execFile);
+  const BYPASS = 'bypass-secret';
+  let server: Server | undefined;
+
+  afterEach(async () => {
+    const running = server;
+    server = undefined;
+    if (running !== undefined) {
+      await new Promise((resolve) => {
+        running.close(resolve);
+      });
+    }
+  });
+
+  const serve = async (answer: (host: string) => unknown): Promise<string> => {
+    server = createServer((request, response) => {
+      if (request.headers['x-vercel-protection-bypass'] !== BYPASS || request.url !== '/api/trpc/health.get') {
+        response.writeHead(401).end();
+        return;
+      }
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end(JSON.stringify(healthBody(answer(request.headers.host ?? ''))));
+    });
+    await new Promise<void>((resolve) => server?.listen(0, '127.0.0.1', resolve));
+    return `http://127.0.0.1:${String((server.address() as AddressInfo).port)}`;
+  };
+
+  const command = async (name: string, input: unknown, bypass = BYPASS) => {
+    try {
+      const { stdout } = await run(
+        process.execPath,
+        [path.join(REPO_ROOT, 'tools', 'production-release.ts'), name, JSON.stringify(input)],
+        { env: { PATH: process.env['PATH'] ?? '', VERCEL_AUTOMATION_BYPASS_SECRET: bypass } },
+      );
+      return { status: 0, stdout, stderr: '' };
+    } catch (error) {
+      const failed = error as { code: number; stdout: string; stderr: string };
+      return { status: failed.code, stdout: failed.stdout, stderr: failed.stderr };
+    }
+  };
+
+  it('fails closed on a deployment that reports no identity, as one built before it would', async () => {
+    const url = await serve(() => undefined);
+
+    const result = await command('identify', { url });
+
+    expect(result.status).not.toBe(0);
+    expect(result.stdout).toBe('');
+    expect(result.stderr).toContain(`${url} reports no deployment identity.`);
+  });
+
+  it('sends the bypass secret, and fails closed when Deployment Protection turns it away', async () => {
+    const url = await serve(() => CURRENT_PRODUCTION);
+
+    const passed = await command('verify', { url, commit: CURRENT_PRODUCTION.commit });
+    const refused = await command('verify', { url, commit: CURRENT_PRODUCTION.commit }, '');
+
+    expect(passed.status, passed.stderr).toBe(0);
+    expect(refused.status).not.toBe(0);
+    expect(refused.stderr).toContain(`${url} answered health.get with HTTP 401.`);
+  });
+
+  it('verifies a deployment that reports the commit it was asked about', async () => {
+    const url = await serve(() => CURRENT_PRODUCTION);
+
+    const result = await command('verify', { url, commit: CURRENT_PRODUCTION.commit });
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(JSON.parse(result.stdout)).toEqual(CURRENT_PRODUCTION);
+  });
+
+  it('fails a deployment that reports another commit than the one it was asked about', async () => {
+    const url = await serve(() => CURRENT_PRODUCTION);
+
+    const result = await command('verify', { url, commit: RELEASE_COMMIT });
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain(`reports commit ${CURRENT_PRODUCTION.commit}, not ${RELEASE_COMMIT}.`);
+  });
+
+  it('exposes the compatibility decision as JSON', async () => {
+    const result = await command('compatibility', {
+      attempt: 1,
+      target: CURRENT_PRODUCTION,
+      smoke: 'success',
+      after: REDEPLOYED,
+    });
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({ decision: 'rerun' });
   });
 });

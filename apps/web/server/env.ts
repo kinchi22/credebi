@@ -1,3 +1,5 @@
+import { type DeploymentIdentity } from '@repo/contracts';
+
 const POSTGRES_PROTOCOLS: readonly string[] = ['postgres:', 'postgresql:'];
 
 const REQUIREMENT = 'a postgres:// or postgresql:// connection string with a host';
@@ -24,6 +26,11 @@ function required(record: Record<string, string | undefined>, name: string): str
   return value;
 }
 
+function optional(record: Record<string, string | undefined>, name: string): string | null {
+  const value = record[name]?.trim() ?? '';
+  return value === '' ? null : value;
+}
+
 export type Env = {
   readonly databaseUrl: string;
   readonly google: {
@@ -31,6 +38,7 @@ export type Env = {
     readonly clientSecret: string;
   };
   readonly testSignIn: boolean;
+  readonly deployment: DeploymentIdentity;
 };
 
 const TEST_SIGN_IN_ON_PRODUCTION =
@@ -52,5 +60,12 @@ export function parseEnv(record: Record<string, string | undefined>): Env {
     throw new Error(TEST_SIGN_IN_ON_PRODUCTION);
   }
 
-  return { databaseUrl, google, testSignIn };
+  const host = optional(record, 'VERCEL_URL');
+  const deployment = {
+    id: optional(record, 'VERCEL_DEPLOYMENT_ID'),
+    commit: optional(record, 'VERCEL_GIT_COMMIT_SHA'),
+    url: host === null ? null : `https://${host}`,
+  };
+
+  return { databaseUrl, google, testSignIn, deployment };
 }

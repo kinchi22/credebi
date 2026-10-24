@@ -166,8 +166,8 @@ Raise the TypeScript major only together with `typescript-eslint`.
 | Client writes        | Server Actions in `apps/web/app/**/actions.ts`, invoking `createCaller`. |
 | Wire types           | Contracts are JSON-safe. An instant crosses as an ISO 8601 string; `Date` exists only inside core, and the serializer that converts lives beside the schema. |
 | Logging              | Adapters report an infrastructure failure through the `Logger` port, as an event name and fields, describing any error with `describeError`; a field's type admits no raw error or object. pino writes one JSON object per line to stderr, built in the composition root; core never imports it. A request that fails on the server is logged by `onRequestError` in `apps/web/instrumentation.ts`. ADR-0018. |
-| Environment          | `DATABASE_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `AUTH_TEST_LOGIN`, validated by `parseEnv` in `apps/web/server/env.ts` and read in `apps/web/server/container.ts` alone, at first use rather than at import. Missing or malformed fails the request; unreachable degrades to the probe's amber dot. `AUTH_TEST_LOGIN` with `VERCEL_ENV=production` fails it too. ADR-0005, ADR-0021. |
-| Healthcheck          | `health.get` is the deployment's healthcheck, not a demonstration of the Phase 0 slice, and outlives the panel that renders it. Every external component the app depends on reports through it as a named component, and the smoke run asserts the strict answer: `healthy`, with `postgres` reachable. ADR-0020. |
+| Environment          | `DATABASE_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `AUTH_TEST_LOGIN` and Vercel's `VERCEL_DEPLOYMENT_ID`, `VERCEL_GIT_COMMIT_SHA` and `VERCEL_URL`, validated by `parseEnv` in `apps/web/server/env.ts` and read in `apps/web/server/container.ts` alone, at first use rather than at import. Missing or malformed fails the request; unreachable degrades to the probe's amber dot. `AUTH_TEST_LOGIN` with `VERCEL_ENV=production` fails it too. The three `VERCEL_*` variables are the exception: unset or blank, the Deployment identity reports `null` and the request goes on. ADR-0005, ADR-0021, ADR-0024. |
+| Healthcheck          | `health.get` is the deployment's healthcheck, not a demonstration of the Phase 0 slice, and outlives the panel that renders it. Every external component the app depends on reports through it as a named component, and the smoke run asserts the strict answer: `healthy`, with `postgres` reachable. It also carries the Deployment identity, which never changes the status. ADR-0020, ADR-0024. |
 | Barrels              | One `index.ts` per public surface. No barrels inside a package.        |
 | Metadata files       | The favicon, icons, web manifest and share image use Next.js metadata file conventions at the root of `apps/web/app/`, drawn from the `Logo` module's geometry and the tokens. An image the conventions cannot name, such as a web manifest icon, is served by a route handler at `apps/web/app/<name>/[param]/route.tsx` that renders it and nothing else: its params come from `generateStaticParams`, with `dynamicParams` off. The shared rendering lives in `apps/web/components/`. The share image sets its text in IBM Plex Sans from `apps/web/app/fonts/IBMPlexSans-Regular.ttf`, because `ImageResponse` cannot read woff2. |
 | User-facing copy     | In `apps/web/messages/en.ts`, a plain object read through `next-intl` (`getTranslations` in a server component, `useTranslations` in a client one), grouped by the part of the UI that renders it, with `ko.ts` and `ja.ts` beside it holding exactly its keys. `repo/no-inline-copy` rejects copy written as a literal in `apps/web/app` or `apps/web/components`. ADR-0007. The request config in `apps/web/server/request-config.ts`, called from the request shell `i18n-request.ts`, serves each request the Language `resolveLanguage` picks from the `locale` cookie, then `Accept-Language`, then `en`; a metadata file prerendered at build time names `en` outright. The Language switch on `/sign-in` writes the cookie, and signing in rewrites it with the User's own Language; signing out leaves it. A User's Language is one of their Settings; changing it at `/settings` saves it and rewrites the cookie (ADR-0008). |
@@ -518,9 +518,9 @@ pass on a push to `main`:
 4. *Apply migrations*, only when something is pending, in the
    `production-database` environment, after the owner approves. An unset
    `PRODUCTION_DATABASE_URL` fails.
-5. *Smoke Current Production* on the new schema, against `PRODUCTION_URL`,
-   which still routes to the previous deployment. This runs when nothing was
-   pending too.
+5. *Smoke Current Production* on the new schema, with the specs of its own
+   commit, against its fixed deployment URL: the deployment `PRODUCTION_URL`
+   still routes to, the previous one. This runs when nothing was pending too.
 
 `tools/production-release.ts` decides from those results whether the commit is
 ready, and `Production ready` fails unless it is and step 5 passed. An
@@ -548,7 +548,7 @@ as the Smoke User and past Deployment Protection with the bypass secret:
 
 | Seam | Target | Triggered by | On failure |
 | ---- | ------ | ------------ | ---------- |
-| Compatibility | `PRODUCTION_URL`, still the previous Current Production | step 5 of the release sequence | `Production ready` fails, nothing is promoted |
+| Compatibility | the fixed URL of the deployment `PRODUCTION_URL` routes to, still the previous Current Production | step 5 of the release sequence | `Production ready` fails, nothing is promoted |
 | Candidate | the Production deployment's own URL | Vercel's `vercel.deployment.ready` event, once `Production ready` passes on the event's SHA | the `Candidate Production smoke` status fails on that SHA |
 | Post-Promotion | `PRODUCTION_URL`, the new Current Production | Vercel's `vercel.deployment.promoted` event | reported; the owner decides, nothing rolls back |
 
@@ -556,6 +556,26 @@ The candidate and post-Promotion runs check out the SHA their event carries, so
 a newer `main` commit can never satisfy an older deployment's check. Each skips
 an event for another environment, such as a Preview's, and fails one with no
 environment or no valid SHA rather than smoking the default branch.
+
+**Version binding.** Each seam runs the specs of the commit the deployment it
+tests was built from, never a newer one, so a Feature's new `@smoke` spec is
+never asked of the deployment it replaces. A deployment names itself: `health.get`
+carries its Deployment identity, `{ id, commit, url }`, from Vercel's
+`VERCEL_DEPLOYMENT_ID`, `VERCEL_GIT_COMMIT_SHA` and `VERCEL_URL`, `null` where
+they are unset, without touching the health status. `tools/production-release.ts`
+reads it and fails on every doubt:
+
+- *Compatibility.* The production domain and the fixed URL it names must report
+  one deployment. The run installs that deployment's commit in a `git worktree`
+  and smokes its fixed URL, while the release commit orchestrates. The domain
+  is asked again afterwards: a change discards the result and repeats the run
+  once against the new deployment, and a second change fails.
+- *Candidate.* The event's URL must report the event's SHA before it is smoked.
+- *Post-Promotion.* The production domain must report the promoted SHA before
+  it is smoked.
+
+A deployment that reports no identity, as one built before this existed, fails
+the compatibility run, so its successor is held back. ADR-0024.
 
 Force Promote cannot be taken away by repository code, so the rule for it lives
 in `docs/DEPLOYMENT.md` with the rest of operating a release. Preview

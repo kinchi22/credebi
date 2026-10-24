@@ -14,6 +14,7 @@ const parsed = (databaseUrl: string): unknown => ({
   databaseUrl,
   google: { clientId: GOOGLE.GOOGLE_CLIENT_ID, clientSecret: GOOGLE.GOOGLE_CLIENT_SECRET },
   testSignIn: false,
+  deployment: { id: null, commit: null, url: null },
 });
 
 describe('parseEnv', () => {
@@ -126,4 +127,34 @@ describe('parseEnv, AUTH_TEST_LOGIN', () => {
       /^AUTH_TEST_LOGIN is set on Production, where the test sign-in must not exist\.$/,
     );
   });
+});
+
+describe('parseEnv, deployment identity', () => {
+  const env = { DATABASE_URL: VALID, ...GOOGLE };
+  const VERCEL = {
+    VERCEL_DEPLOYMENT_ID: 'dpl_8kQm2rTzLx',
+    VERCEL_GIT_COMMIT_SHA: 'b4a54cc0b4a54cc0b4a54cc0b4a54cc0b4a54cc0',
+    VERCEL_URL: 'credebi-abc123.vercel.app',
+  } as const;
+
+  it('names the deployment from what Vercel sets, with its fixed URL reachable over HTTPS', () => {
+    expect(parseEnv({ ...env, ...VERCEL }).deployment).toEqual({
+      id: 'dpl_8kQm2rTzLx',
+      commit: 'b4a54cc0b4a54cc0b4a54cc0b4a54cc0b4a54cc0',
+      url: 'https://credebi-abc123.vercel.app',
+    });
+  });
+
+  it('reports every field as null where Vercel sets none, rather than failing the request', () => {
+    expect(parseEnv(env).deployment).toEqual({ id: null, commit: null, url: null });
+  });
+
+  it.each(['VERCEL_DEPLOYMENT_ID', 'VERCEL_GIT_COMMIT_SHA', 'VERCEL_URL'] as const)(
+    'reports a blank %s as null alone, keeping the others',
+    (name) => {
+      const deployment = parseEnv({ ...env, ...VERCEL, [name]: '  ' }).deployment;
+
+      expect(Object.values(deployment).filter((value) => value === null)).toHaveLength(1);
+    },
+  );
 });

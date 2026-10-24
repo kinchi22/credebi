@@ -4,6 +4,8 @@ import { evaluateHealth } from './status';
 
 const CHECKED_AT = new Date('2026-01-01T00:00:00.000Z');
 
+const UNIDENTIFIED = { id: null, commit: null, url: null } as const;
+
 describe('evaluateHealth', () => {
   it('reports healthy when every component is reachable', () => {
     const result = evaluateHealth(
@@ -12,6 +14,7 @@ describe('evaluateHealth', () => {
         { name: 'cache', reachable: true },
       ],
       CHECKED_AT,
+      UNIDENTIFIED,
     );
 
     expect(isOk(result)).toBe(true);
@@ -28,6 +31,7 @@ describe('evaluateHealth', () => {
         { name: 'cache', reachable: false },
       ],
       CHECKED_AT,
+      UNIDENTIFIED,
     );
 
     expect(isOk(result)).toBe(true);
@@ -36,7 +40,7 @@ describe('evaluateHealth', () => {
   });
 
   it('reports degraded when every component is unreachable', () => {
-    const result = evaluateHealth([{ name: 'postgres', reachable: false }], CHECKED_AT);
+    const result = evaluateHealth([{ name: 'postgres', reachable: false }], CHECKED_AT, UNIDENTIFIED);
 
     expect(isOk(result)).toBe(true);
     if (!isOk(result)) return;
@@ -44,7 +48,7 @@ describe('evaluateHealth', () => {
   });
 
   it('rejects an empty component list rather than claiming health', () => {
-    const result = evaluateHealth([], CHECKED_AT);
+    const result = evaluateHealth([], CHECKED_AT, UNIDENTIFIED);
 
     expect(isErr(result)).toBe(true);
     if (!isErr(result)) return;
@@ -58,6 +62,7 @@ describe('evaluateHealth', () => {
         { name: '   ', reachable: true },
       ],
       CHECKED_AT,
+      UNIDENTIFIED,
     );
 
     expect(isErr(result)).toBe(true);
@@ -72,6 +77,7 @@ describe('evaluateHealth', () => {
         { name: 'cache', reachable: false },
       ],
       CHECKED_AT,
+      UNIDENTIFIED,
     );
 
     expect(isOk(result)).toBe(true);
@@ -80,5 +86,19 @@ describe('evaluateHealth', () => {
       { name: 'postgres', reachable: true },
       { name: 'cache', reachable: false },
     ]);
+  });
+
+  it('carries the deployment it was given into the report', () => {
+    const deployment = {
+      id: 'dpl_8kQm2rTzLx',
+      commit: 'b4a54cc0b4a54cc0b4a54cc0b4a54cc0b4a54cc0',
+      url: 'https://credebi-abc123.vercel.app',
+    };
+
+    const result = evaluateHealth([{ name: 'postgres', reachable: true }], CHECKED_AT, deployment);
+
+    expect(isOk(result)).toBe(true);
+    if (!isOk(result)) return;
+    expect(result.value.deployment).toEqual(deployment);
   });
 });

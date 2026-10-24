@@ -4,6 +4,7 @@
 **Date:** 2026-09-24
 **Amended:** 2026-10-12, PR #377 and PR #379
 **Amended:** 2026-10-14, PR #439
+**Amended:** 2026-10-24, issue #540
 
 ## Problem
 
@@ -85,6 +86,32 @@ After Promotion the `@smoke` specs run once more, against the production
 domain, and report. A failure there is an incident: nothing rolls back
 automatically.
 
+**Each Smoke run tests a deployment with the specs of its own commit.** A
+deployment is held only to requirements it was built to meet, so a Feature's
+new `@smoke` spec never runs against the deployment it replaces:
+
+| Seam | Target | Specs from |
+| ---- | ------ | ---------- |
+| Compatibility, after migration | Current Production's fixed deployment URL | Current Production's commit |
+| Candidate | the candidate's fixed deployment URL | the candidate's commit |
+| Post-Promotion | the production domain | the promoted commit |
+
+Which deployment answers is its Deployment identity, and it reports that
+itself: `health.get` carries a `deployment` field, `{ id, commit, url }`, read
+from Vercel's `VERCEL_DEPLOYMENT_ID`, `VERCEL_GIT_COMMIT_SHA` and `VERCEL_URL`.
+Where Vercel sets none -- locally, in `E2E build` -- the fields are `null` and
+health is unaffected (ADR-0020); only the release tooling reads `null` as a
+failure.
+
+The compatibility run asks the production domain who it is, asks the fixed URL
+it names the same, and fails unless both name one deployment. It installs that
+deployment's commit in a `git worktree`, smokes its fixed URL, and asks the
+domain again. The release commit still orchestrates the run. If Current
+Production changed meanwhile, the result is discarded and the run repeated once
+against the new deployment; a second change fails. The candidate run fails
+unless its URL reports the event's SHA, and the post-Promotion run fails unless
+the production domain reports the promoted SHA. Every doubt fails the run.
+
 **Order.** Preview first, as a canary: a Production approval is requested only
 after the Preview database migrated successfully. The Production migration
 waits for the owner in `production-database`, which accepts only `main` and
@@ -110,7 +137,9 @@ Promotion. A destructive change is an expand, then a contract, across releases.
 **Force Promote** is prohibited while a migration is pending or has failed. Its
 one sanctioned use is an emergency roll-forward: the migration succeeded,
 Current Production failed its smoke on the new schema, and the candidate passed
-its own. The incompatible migration is then a defect.
+its own. The incompatible migration is then a defect. The only other was the
+one-time promotion of the commit that introduced the Deployment identity, with
+nothing pending, which no earlier deployment could pass.
 
 **Preview is best effort.** Every Preview deployment uses the one shared Preview
 Neon project, which is migrated from `main` alone. No Preview result gates
@@ -180,6 +209,15 @@ approval, and alone holds `PREVIEW_DATABASE_URL`.
 - The candidate smoke's commit status and the promoted run both depend on
   Vercel's repository-dispatch events being enabled. Without them the candidate
   status never appears, so Promotion waits rather than proceeds.
+- The compatibility run proves Current Production still serves on the new
+  schema, and nothing about the candidate's new specs; those are the
+  candidate run's. A Current Production that cannot name itself holds every
+  release back, and Vercel's system environment variables must stay exposed to
+  the runtime.
+- The deployment serving when self-report shipped could not report itself, so
+  the commit that introduced it was promoted once with Force Promote, as
+  `docs/DEPLOYMENT.md` records. Its compatibility run could not establish an
+  identity; nothing was pending.
 - `PREVIEW_DATABASE_URL` and `PRODUCTION_DATABASE_URL` are secrets of
   environments restricted to `main`, so no pull request job reads them. A change
   to a workflow or to a package script a migrate job runs still could; `.github/`
@@ -226,6 +264,23 @@ Loses the Previews that do work to fix the few that cannot. Automatic Preview
 creation is now disabled for the separate operating choice in
 [#371](https://github.com/kinchi22/credebi/issues/371): deployed verification is
 opt-in. The shared database and its schema limitation remain.
+
+**Smoke Current Production with the release commit's specs**, the behaviour
+before the amendment. A new Feature's `@smoke` spec failed against the
+deployment it was about to replace, so `Production ready` failed and no
+later release could be promoted.
+
+**Read the Deployment identity from a GitHub deployment record** written on
+Vercel's events. A manual Instant Rollback changes Current Production without
+writing one, so the record would name a deployment no longer serving.
+
+**Read the Deployment identity through a Vercel API token.** It would put a
+Vercel credential into the Production release path, which this ADR keeps
+token-free.
+
+**Fall back to the old behaviour when no identity is reported.** It would keep
+the deadlock for every deployment that cannot name itself, and silently accept
+a result nobody can attribute.
 
 **A third-party Action to publish the Deployment Check status.** Executable code
 holding the repository's token; `gh api` with `statuses: write` does the same.
