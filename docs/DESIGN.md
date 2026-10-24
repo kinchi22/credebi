@@ -820,9 +820,17 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   technology. There is no shared header row: the first Entry's Side names are
   the table's `Debit` and `Credit` column headers, and every later Entry's are
   hidden from assistive technology.
-- **Income statement tables.** Laid out the same at every width, below the
-  `Statement period` form: `Revenue`, `Expenses` and `Totals`, each table a
-  panel of its own, the panels 16px apart. Each table's caption is the panel's
+- **Income statement tables.** Below the `Statement period` form: `Revenue`,
+  `Expenses` and `Totals`, each table a panel of its own, the panels 16px
+  apart. Below `split` they stack in one column in that order. From `split` up
+  they sit in two equal columns, `Expenses` on the left and `Revenue` on the
+  right, their tops level, and `Totals` sits directly below whichever of the
+  two has fewer rows, in its column, or below `Revenue` when the counts are
+  equal. A section's rows are counted, not measured: each Account row, Account
+  group row and grouped Account row, and its total. The server decides from
+  those counts, so nothing moves after the page loads; the grid has rows
+  `auto 1fr`, the longer section spans both and the shorter one and `Totals`
+  take one each. Each table's caption is the panel's
   title, `PANEL_TITLE`, on the left above the rows. In `body-sm`, each row holds
   a name on the left, Regular in `text`, and one amount on the right in
   `figure`, never wrapped; a long name wraps anywhere, so the row stays within
