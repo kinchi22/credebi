@@ -1,4 +1,3 @@
-export { ACCOUNT_TYPES } from './domain/account';
 export type { Account, AccountGroup, ChartNode } from './domain/account';
 export { balanceDirection } from './domain/balance-direction';
 export type { BalanceDirection } from './domain/balance-direction';
