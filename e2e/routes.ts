@@ -16,6 +16,8 @@ export const INCOME_STATEMENT_WITHOUT_QUERY = /\/income-statement$/;
 
 export const INCOME_STATEMENT_WITH_QUERY = /\/income-statement\?.+$/;
 
+export const SETTINGS_PATH = '/settings';
+
 export const SETTINGS_URL = /\/settings$/;
 
 export const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}$/;

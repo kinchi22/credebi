@@ -13,6 +13,7 @@ import {
   SIGNED_IN_HOME,
 } from '../server/return-path';
 import { useModalDialog } from './use-modal-dialog';
+import { useTopBarShown } from './use-top-bar-shown';
 
 export type SidebarProps = {
   readonly signOut: () => Promise<void>;
@@ -43,6 +44,8 @@ const QUIET_BUTTON = `${SIDEBAR_ITEM} w-full ${typeClasses['body-sm']} ${IDLE_TO
 const ICON_BUTTON = `-ml-2 inline-flex size-10 items-center justify-center rounded-control text-text-on-dark ${ON_DARK_FOCUS}`;
 const SIDEBAR = 'flex-col gap-7 bg-ground-dark px-3 pt-5 pb-4 text-text-on-dark';
 const WIDE_SIDEBAR = `hidden ${SIDEBAR} wide:sticky wide:top-0 wide:flex wide:h-screen wide:w-58 wide:shrink-0 wide:overflow-y-auto`;
+const TOP_BAR_HEIGHT = 'h-14';
+const TOP_BAR = `fixed inset-x-0 top-0 z-20 flex ${TOP_BAR_HEIGHT} items-center gap-2 bg-ground-dark px-4 transition-transform duration-200 ease-out motion-reduce:transition-none`;
 
 function SidebarNav({ signOut, className, focusTarget, onFollow }: SidebarNavProps): ReactNode {
   const t = useTranslations();
@@ -93,26 +96,34 @@ export function Sidebar({ signOut }: SidebarProps): ReactNode {
   const drawerId = useId();
   const drawer = useModalDialog();
   const drawerNav = useRef<HTMLElement>(null);
+  const topBarRef = useRef<HTMLDivElement>(null);
+  const topBar = useTopBarShown(topBarRef);
 
   return (
     <>
-      <div className="flex h-14 items-center gap-2 bg-ground-dark px-4 wide:hidden">
-        <button
-          type="button"
-          aria-label={t('sidebar.menu')}
-          aria-expanded={drawer.open}
-          aria-controls={drawerId}
-          onClick={(event) => {
-            drawer.show(event.currentTarget);
-            drawerNav.current?.focus();
-          }}
-          className={ICON_BUTTON}
+      <div className={`${TOP_BAR_HEIGHT} shrink-0 wide:hidden`}>
+        <div
+          ref={topBarRef}
+          onFocus={topBar.show}
+          className={`${TOP_BAR} ${topBar.shown ? 'translate-y-0' : '-translate-y-full'}`}
         >
-          <MenuIcon />
-        </button>
-        <span className={drawer.open ? 'invisible' : undefined}>
-          <Logo variant="horizontal" tone="reverse" name={t('app.name')} height={BAR_LOGO_HEIGHT} />
-        </span>
+          <button
+            type="button"
+            aria-label={t('sidebar.menu')}
+            aria-expanded={drawer.open}
+            aria-controls={drawerId}
+            onClick={(event) => {
+              drawer.show(event.currentTarget);
+              drawerNav.current?.focus();
+            }}
+            className={ICON_BUTTON}
+          >
+            <MenuIcon />
+          </button>
+          <span className={drawer.open ? 'invisible' : undefined}>
+            <Logo variant="horizontal" tone="reverse" name={t('app.name')} height={BAR_LOGO_HEIGHT} />
+          </span>
+        </div>
       </div>
       <SidebarNav signOut={signOut} className={WIDE_SIDEBAR} />
       <dialog

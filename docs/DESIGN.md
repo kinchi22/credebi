@@ -406,7 +406,7 @@ below and 56px at the sides.
 
 Each signed-in page is named by its one level-1 heading, `PAGE_HEADING` in
 `apps/web/components/text-classes.ts`: an `h1` in the `h1` step and `text`,
-first in `main` above the page's content, so it sits below the drawer bar under
+first in `main` above the page's content, so it sits below the Top bar under
 `wide` and beside the Sidebar from `wide` up. It reads `Entries`, `Entry search`,
 `Income statement` or `Settings`, as the Sidebar link to the page does. The page's content starts
 20px below it under `wide` and 24px below it from `wide` up, while the panels
@@ -440,6 +440,10 @@ utilities, `shadow-lift` and `shadow-lift-card`. The lint rule
 `repo/no-raw-shape` rejects a bare `shadow`, Tailwind's own shadows and an
 arbitrary one, and `repo/no-raw-color`, which reads the shadow names from the
 tokens module, rejects any other.
+
+Two layers stack over the page: a popover, such as a Help tip's panel or a
+menu, at `z-10`, and the Top bar at `z-20`, so a popover passes under the bar.
+A modal dialog sits in the browser's top layer, above both.
 
 ## Shapes
 
@@ -517,8 +521,8 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   as a Sidebar link is, and as wide as the Sidebar's links.
 - **Icon button on dark.** No fill and no border: a 40px square holding a
   stroke icon in `text-on-dark`, with the `focus-on-dark` ring and an accessible
-  name in place of text. It is `Menu`, a hamburger icon, in the bar that opens
-  the Sidebar drawer.
+  name in place of text. It is `Menu`, a hamburger icon, in the Top bar, where it
+  opens the Sidebar drawer.
 - **Segmented control.** A radiogroup drawn as one `surface` strip framed as
   a panel is, `PANEL_FRAME` in `packages/ui`: a `border` edge, the `panel`
   radius and the `lift` shadow, without a panel's padding. Each choice is a
@@ -929,10 +933,20 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   coloured edge. Sign out sits at the foot, below a `ground-dark-raised`
   hairline with 12px above it; from `wide` up the Sidebar is as
   tall as the viewport and stays in place as the page scrolls. Below `wide` it is
-  a drawer: a `ground-dark` bar holds `Menu` at its left and the logo after it,
-  and `Menu` opens the Sidebar as a modal dialog on the page's left edge over a
-  `ground-dark` scrim at 60%, with the same logo, links and Sign out.
-  The bar's logo hides while it is open, so one logo shows. Focus starts on the
+  a drawer: the Top bar, 56px tall, holds `Menu` at its left and the logo after
+  it, and `Menu` opens the Sidebar as a modal dialog on the page's left edge over
+  a `ground-dark` scrim at 60%, with the same logo, links and Sign out.
+  The Top bar's logo hides while it is open, so one logo shows. The Top bar is
+  fixed to the top of the viewport and drawn over the page, which keeps its
+  56px free above its content, so showing or hiding the bar never shifts the
+  content. It is shown while the page is scrolled no more than its height;
+  past that, a downward scroll hides it and any upward scroll shows it, with no
+  distance threshold, and a scroll position outside the page's range, as the
+  iOS overscroll bounce reports, changes nothing. Focus reaching `Menu`, or
+  anything else in the Top bar, shows it at once. It hides and shows by sliding
+  vertically past the top edge over 200ms, ease-out, both ways, without a fade,
+  and instantly under `prefers-reduced-motion: reduce`. This is the design's
+  only motion, so it has no token. Focus starts on the
   drawer, and Tab reaches `Entries` first. Escape, a click on the scrim or
   following a link closes it, and focus returns to `Menu`.
 - **Focus.** A 2px ring on every focusable element: `focus` on a light ground,
@@ -999,7 +1013,7 @@ or the offset between the halves, or rotate it.
 **Wordmark.** The Wordmark stays outlined Sora SemiBold, fixed apart from the
 face the UI is set in: it is glyph data in `packages/ui/src/wordmark.ts`, a
 drawing rather than text, so it looks the same wherever the logo shows -- the
-Sidebar, the drawer bar, the Sign in card and the share image. Sora's OFL
+Sidebar, the Top bar, the Sign in card and the share image. Sora's OFL
 licence stays in `apps/web/app/fonts/Sora-OFL.txt` for it; no Sora font file is
 served.
 
@@ -1036,3 +1050,4 @@ hidden.
 | Chip           | A choice drawn as a small inline box that sits beside others and wraps, rather than one per row; a chosen chip takes a fill and an edge. |
 | Scrim          | The `ground-dark` tint at 60% behind a modal dialog. A click on the scrim is a press that began on it as well as ended there: a press that began inside the dialog, as when selecting a field's text by dragging, and was released on the scrim closes nothing. |
 | Help tip       | A small question-mark button beside a short message, opening a panel that explains it and may link to where it is fixed. Hovering opens it; a click, a tap, Enter or Space toggles it; Escape or a click outside closes it, and one opened by a click stays open when the pointer leaves. The message stays short because the explanation lives here. |
+| Top bar        | The `ground-dark` bar across the top of the page below `wide`, holding `Menu` at its left and the logo after it. It is the only way to the Sidebar there, so it stays within reach as the page scrolls. |
