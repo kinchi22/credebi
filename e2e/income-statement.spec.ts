@@ -69,7 +69,12 @@ const spent = (day: string, memo: string, amount: string, account: LineAccount =
 const earned = (day: string, memo: string, amount: string, account: LineAccount = 'Sales'): TwoLineEntry =>
   entryOn(day, memo, 'Cash', account, amount);
 
-const statementLink = (page: Page): Locator => sidebar(page).locator(`a[href="${STATEMENT}"]`);
+const statementLinkIn = (navigation: Locator): Locator => navigation.locator(`a[href="${STATEMENT}"]`);
+
+const statementLink = (page: Page): Locator => statementLinkIn(sidebar(page));
+
+const koreanStatementLink = (page: Page): Locator =>
+  statementLinkIn(page.getByRole('navigation', { name: HANGUL }));
 
 const added = (name: string): LineAccount => ({ added: name });
 
@@ -241,7 +246,7 @@ test("shows the Income statement in the User's Language: its heading, title, tab
   await expect(heading).toHaveText(HANGUL);
   await expect(heading).not.toHaveText('Income statement');
   await expect(page).toHaveTitle(new RegExp(`\\p{Script=Hangul}.* ${MIDDLE_DOT} Credebi$`, 'u'));
-  await expect(statementLink(page)).toHaveText(HANGUL);
+  await expect(koreanStatementLink(page)).toHaveText(HANGUL);
 
   const tables = statementTables(page);
   await expect(tables).toHaveCount(3);
