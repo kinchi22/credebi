@@ -37,6 +37,7 @@ import {
   suggested,
   type Line,
   type MultiLineEntry,
+  type PickRole,
   type Side,
 } from './entries';
 import {
@@ -420,7 +421,7 @@ async function postGroceries(page: Page, run: string): Promise<void> {
 async function expectGroceriesSuggested(
   scope: Locator,
   pickers: (scope: Locator, side: Side) => Locator,
-  role: 'radio' | 'checkbox',
+  role: PickRole,
 ): Promise<void> {
   for (const side of SIDES) {
     await expectSuggested(pickers(scope, side), role, SUGGESTED[side]);
