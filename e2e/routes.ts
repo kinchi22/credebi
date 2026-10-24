@@ -8,4 +8,6 @@ export const ENTRY_SEARCH_WITHOUT_QUERY = /\/entries\/search$/;
 
 export const ENTRY_SEARCH_WITH_QUERY = /\/entries\/search\?.+$/;
 
+export const SETTINGS_PATH = '/settings';
+
 export const SETTINGS_URL = /\/settings$/;
