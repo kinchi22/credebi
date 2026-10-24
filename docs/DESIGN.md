@@ -407,8 +407,8 @@ below and 56px at the sides.
 Each signed-in page is named by its one level-1 heading, `PAGE_HEADING` in
 `apps/web/components/text-classes.ts`: an `h1` in the `h1` step and `text`,
 first in `main` above the page's content, so it sits below the Top bar under
-`wide` and beside the Sidebar from `wide` up. It reads `Entries`, `Entry search`,
-`Income statement` or `Settings`, as the Sidebar link to the page does. The page's content starts
+`wide` and beside the Sidebar from `wide` up. Its text matches the Sidebar link
+to the page. The page's content starts
 20px below it under `wide` and 24px below it from `wide` up, while the panels
 under it stay 16px apart. No other heading on a signed-in page is an `h1`: the
 Entries panel keeps its visually hidden `Entries` heading, which names its
@@ -845,6 +845,10 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   An Account group's row holds its name in medium and its subtotal, and its
   Accounts follow it, their names indented 16px; their hairlines and amounts
   are an Account row's.
+- **Assets and liabilities tables.** Use the Income statement tables' styling
+  and placement rule for `Totals`. Below `split`, stack `Assets`, `Liabilities`
+  and `Totals` in that order. From `split` up, put `Assets` on the left and
+  `Liabilities` on the right; equal row counts place `Totals` below `Liabilities`.
 - **Entry row actions.** At the end of each Entry's first row, after its
   total, `Edit` and then `Delete` are bare icon buttons, drawn as the Remove
   button: a stroke icon in `text-muted`, `text` under the pointer, no fill and
