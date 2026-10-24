@@ -2,6 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-09-18
+**Amended:** 2026-10-24, PR #541
 
 ## Problem
 
@@ -61,7 +62,12 @@ healthy, which is what ADR-0013's ordering relies on.
 
 `health.get` stays public and unauthenticated. It carries component names and
 booleans, never a connection string or an error message; why a probe failed is
-logged on the server instead (ADR-0018). When ADR-0017 is adopted, the procedure
+logged on the server instead (ADR-0018). It also carries the deployment's
+Deployment identity, `deployment: { id, commit, url }`, which the release
+tooling reads to bind each Smoke run to the commit it tests (ADR-0024). Those
+are a Vercel deployment id, a commit SHA of a public repository's `main` and a
+URL behind Deployment Protection, and they never change `status`: a deployment
+that cannot name itself reports `null` and is as healthy as before. When ADR-0017 is adopted, the procedure
 has to stay reachable signed out, or the smoke run needs a session of its own.
 
 A component added to the report tightens the assertion without editing the spec:

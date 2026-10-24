@@ -24,8 +24,9 @@ export {
   userIdSchema,
 } from './auth';
 
-export type { HealthComponent, HealthState, HealthStatus } from './health';
+export type { DeploymentIdentity, HealthComponent, HealthState, HealthStatus } from './health';
 export {
+  deploymentIdentitySchema,
   healthComponentSchema,
   healthStateSchema,
   healthStatusSchema,

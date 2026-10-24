@@ -27,7 +27,9 @@ jobs:
           node-version: 24
           package-manager-cache: false
       - name: Save status reporter
-        run: cp tools/candidate-smoke-status.ts "$RUNNER_TEMP/candidate-smoke-status.ts"
+        run: |
+          cp tools/candidate-smoke-status.ts "$RUNNER_TEMP/candidate-smoke-status.ts"
+          cp tools/production-release.ts "$RUNNER_TEMP/production-release.ts"
       - name: Publish pending status
         id: pending
         env:
@@ -56,6 +58,14 @@ jobs:
           done
           echo 'Timed out waiting for Production ready.' >&2
           exit 1
+      - name: Check the candidate reports the event SHA
+        env:
+          CANDIDATE_SHA: ${{ steps.pending.outputs.sha }}
+          CANDIDATE_URL: ${{ steps.pending.outputs.url }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: |
+          input=$(jq -nc --arg url "$CANDIDATE_URL" --arg commit "$CANDIDATE_SHA" '{url: $url, commit: $commit}')
+          node "$RUNNER_TEMP/production-release.ts" verify "$input"
       - uses: actions/checkout@v5
         with:
           ref: ${{ steps.pending.outputs.sha }}

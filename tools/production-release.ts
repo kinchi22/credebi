@@ -171,6 +171,117 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isOneOf = <T extends string>(value: unknown, choices: readonly T[]): value is T =>
   typeof value === 'string' && choices.includes(value as T);
 
+export const COMPATIBILITY_ATTEMPTS = 2;
+
+export type VerifiedDeployment = {
+  readonly id: string;
+  readonly commit: string;
+  readonly url: string;
+};
+
+export type DeploymentCheck =
+  | { readonly ok: true; readonly identity: VerifiedDeployment }
+  | { readonly ok: false; readonly reason: string };
+
+export const SMOKE_OUTCOMES = ['success', 'failure'] as const;
+
+export type CompatibilityInput = {
+  readonly attempt: number;
+  readonly target: VerifiedDeployment;
+  readonly smoke: (typeof SMOKE_OUTCOMES)[number];
+  readonly after: VerifiedDeployment | null;
+};
+
+export type CompatibilityDecision = {
+  readonly decision: 'pass' | 'fail' | 'rerun';
+  readonly reason: string;
+};
+
+const FULL_SHA = /^[0-9a-f]{40}$/;
+
+function isFixedUrl(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && url.host !== '' && `${url.protocol}//${url.host}` === value;
+  } catch {
+    return false;
+  }
+}
+
+export function readHealthDeployment(source: string, body: unknown): DeploymentCheck {
+  const result = isRecord(body) ? body['result'] : undefined;
+  const data = isRecord(result) ? result['data'] : undefined;
+  return verifyDeployment(source, isRecord(data) ? data['deployment'] : undefined);
+}
+
+export function verifyDeployment(source: string, deployment: unknown): DeploymentCheck {
+  if (!isRecord(deployment)) {
+    return { ok: false, reason: `${source} reports no deployment identity.` };
+  }
+  const { id, commit, url } = deployment;
+  if (typeof id !== 'string' || id === '') {
+    return { ok: false, reason: `${source} reports no deployment id.` };
+  }
+  if (typeof commit !== 'string' || !FULL_SHA.test(commit)) {
+    return { ok: false, reason: `${source} reports no full commit SHA.` };
+  }
+  if (!isFixedUrl(url)) {
+    return { ok: false, reason: `${source} reports no HTTPS fixed URL.` };
+  }
+  return { ok: true, identity: { id, commit, url } };
+}
+
+const sameIdentity = (left: VerifiedDeployment, right: VerifiedDeployment): boolean =>
+  left.id === right.id && left.commit === right.commit && left.url === right.url;
+
+export function crossCheckIdentity(domain: DeploymentCheck, fixed: DeploymentCheck): DeploymentCheck {
+  if (!domain.ok) return domain;
+  if (!fixed.ok) return fixed;
+  if (!sameIdentity(domain.identity, fixed.identity)) {
+    return {
+      ok: false,
+      reason: `${domain.identity.url} reports deployment ${fixed.identity.id} at ${fixed.identity.commit}, not the ${domain.identity.id} at ${domain.identity.commit} the production domain named.`,
+    };
+  }
+  return domain;
+}
+
+export function checkSelfReport(reported: DeploymentCheck, expectedCommit: string): DeploymentCheck {
+  if (!reported.ok) return reported;
+  if (reported.identity.commit !== expectedCommit) {
+    return {
+      ok: false,
+      reason: `${reported.identity.url} reports commit ${reported.identity.commit}, not ${expectedCommit}.`,
+    };
+  }
+  return reported;
+}
+
+export function decideCompatibility(input: CompatibilityInput): CompatibilityDecision {
+  if (input.after === null) {
+    return {
+      decision: 'fail',
+      reason: 'Current Production could not be identified again after its smoke run; the result is not accepted.',
+    };
+  }
+  if (!sameIdentity(input.target, input.after)) {
+    const change = `Current Production changed from ${input.target.id} at ${input.target.commit} to ${input.after.id} at ${input.after.commit} during its smoke run`;
+    return input.attempt < COMPATIBILITY_ATTEMPTS
+      ? { decision: 'rerun', reason: `${change}; smoking the new one.` }
+      : { decision: 'fail', reason: `${change} again; the result is not accepted.` };
+  }
+  return input.smoke === 'success'
+    ? {
+        decision: 'pass',
+        reason: `Current Production passed its own smoke specs at ${input.target.commit} on the resulting schema.`,
+      }
+    : {
+        decision: 'fail',
+        reason: `Current Production failed its own smoke specs at ${input.target.commit} on the resulting schema.`,
+      };
+}
+
 function parseInput(source: string | undefined): unknown {
   if (source === undefined || source.trim() === '') {
     throw new Error('Production release input must be a JSON argument.');
@@ -211,7 +322,65 @@ function isCurrentInput(value: unknown): value is { commit: string; mainHead?: s
     (value['mainHead'] === undefined || typeof value['mainHead'] === 'string');
 }
 
-function publish(result: ReleaseDecision | ReleaseQueueDecision | { current: boolean }): void {
+function isCompatibilityInput(value: unknown): value is CompatibilityInput {
+  return (
+    isRecord(value) &&
+    typeof value['attempt'] === 'number' &&
+    verifyDeployment('target', value['target']).ok &&
+    isOneOf(value['smoke'], SMOKE_OUTCOMES) &&
+    (value['after'] === null || verifyDeployment('after', value['after']).ok)
+  );
+}
+
+const isIdentifyInput = (value: unknown): value is { url: string } =>
+  isRecord(value) && typeof value['url'] === 'string';
+
+const isVerifyInput = (value: unknown): value is { url: string; commit: string } =>
+  isRecord(value) && typeof value['url'] === 'string' && typeof value['commit'] === 'string';
+
+async function fetchIdentity(url: string): Promise<DeploymentCheck> {
+  const endpoint = new URL('/api/trpc/health.get', url);
+  const bypass = process.env['VERCEL_AUTOMATION_BYPASS_SECRET'] ?? '';
+  try {
+    const response = await fetch(endpoint, {
+      headers: bypass === '' ? {} : { 'x-vercel-protection-bypass': bypass },
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!response.ok) {
+      return { ok: false, reason: `${url} answered health.get with HTTP ${String(response.status)}.` };
+    }
+    return readHealthDeployment(url, await response.json());
+  } catch (error) {
+    return {
+      ok: false,
+      reason: `${url} could not be asked for its identity: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+async function identify(url: string): Promise<DeploymentCheck> {
+  const domain = await fetchIdentity(url);
+  if (!domain.ok) return domain;
+  return crossCheckIdentity(domain, await fetchIdentity(domain.identity.url));
+}
+
+function publishDeployment(result: DeploymentCheck): void {
+  if (!result.ok) {
+    console.error(result.reason);
+    process.exitCode = 1;
+    return;
+  }
+  publish(result.identity);
+}
+
+function publish(
+  result:
+    | ReleaseDecision
+    | ReleaseQueueDecision
+    | CompatibilityDecision
+    | VerifiedDeployment
+    | { current: boolean },
+): void {
   console.log(JSON.stringify(result));
   const output = process.env['GITHUB_OUTPUT'];
   if (output !== undefined && output !== '') {
@@ -234,7 +403,15 @@ if (entryPoint !== undefined && pathToFileURL(path.resolve(entryPoint)).href ===
     publish(coalesceProductionReleases(input));
   } else if (command === 'current' && isCurrentInput(input)) {
     publish(selectReleaseCommit(input.commit, input.mainHead));
+  } else if (command === 'compatibility' && isCompatibilityInput(input)) {
+    publish(decideCompatibility(input));
+  } else if (command === 'identify' && isIdentifyInput(input)) {
+    publishDeployment(await identify(input.url));
+  } else if (command === 'verify' && isVerifyInput(input)) {
+    publishDeployment(checkSelfReport(await fetchIdentity(input.url), input.commit));
   } else {
-    throw new Error('Expected `decide`, `queue` or `current` and an input matching that command.');
+    throw new Error(
+      'Expected `decide`, `queue`, `current`, `compatibility`, `identify` or `verify` and an input matching that command.',
+    );
   }
 }

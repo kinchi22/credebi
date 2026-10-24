@@ -177,13 +177,42 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
-      - name: Smoke Current Production
+      # The release commit orchestrates; Current Production's own commit is the
+      # test revision, so a deployment is never held to specs it was not built
+      # to meet. The identity is read again after the run, and a change voids
+      # the result.
+      - name: Smoke Current Production at its own commit
         env:
-          E2E_BASE_URL: ${{ vars.PRODUCTION_URL }}
+          PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
           SMOKE_SESSION_TOKEN: ${{ secrets.SMOKE_SESSION_TOKEN }}
         run: |
-          test -n "$E2E_BASE_URL"
-          pnpm test:e2e --grep @smoke
+          test -n "$PRODUCTION_URL"
+          release="$GITHUB_WORKSPACE/tools/production-release.ts"
+          domain=$(jq -nc --arg url "$PRODUCTION_URL" '{url: $url}')
+          attempt=1
+          while :; do
+            target=$(node "$release" identify "$domain")
+            commit=$(jq -r .commit <<<"$target")
+            url=$(jq -r .url <<<"$target")
+            tree="$RUNNER_TEMP/current-production-$attempt"
+            git fetch --no-tags --depth=1 origin "$commit"
+            git worktree add --detach "$tree" "$commit"
+            smoke=failure
+            if (cd "$tree" &&
+                pnpm install --frozen-lockfile &&
+                pnpm exec playwright install --with-deps chromium &&
+                E2E_BASE_URL="$url" pnpm test:e2e --grep @smoke); then
+              smoke=success
+            fi
+            after=$(node "$release" identify "$domain" || echo null)
+            input=$(jq -nc --argjson attempt "$attempt" --argjson target "$target" \
+              --arg smoke "$smoke" --argjson after "$after" \
+              '{attempt: $attempt, target: $target, smoke: $smoke, after: $after}')
+            decision=$(node "$release" compatibility "$input" | jq -r .decision)
+            case "$decision" in
+              pass) exit 0 ;;
+              rerun) attempt=$((attempt + 1)) ;;
+              *) exit 1 ;;
+            esac
+          done

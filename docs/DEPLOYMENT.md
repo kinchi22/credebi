@@ -57,6 +57,10 @@ a Neon branch starts with its parent's data and its roles' passwords.
    that publishes it: a repository-dispatch run's check run lands on `main`'s
    head at the time, not on the candidate's commit, so a newer commit's run
    could satisfy an older deployment's check.
+8. System Environment Variables: keep "Automatically expose System Environment
+   Variables" on. `health.get` reads `VERCEL_DEPLOYMENT_ID`,
+   `VERCEL_GIT_COMMIT_SHA` and `VERCEL_URL` from them to report the Deployment
+   identity, and without it every compatibility run fails closed.
 
 No setting chooses pnpm. Vercel reads the major version from `packageManager`
 and installs with its own pnpm 11.x, so the pnpm 11 settings in
@@ -121,11 +125,24 @@ credential, so they could not clean up after themselves. The tag is a claim a
 person makes and no gate checks it, so review of `e2e/` is where a wrongly
 tagged write is caught.
 
+Each run tests a deployment with the specs of the commit it was built from,
+and first makes the deployment name itself through `health.get`'s
+`deployment` field. ADR-0024.
+
+The compatibility run asks `PRODUCTION_URL` for its Deployment identity, then
+asks the fixed URL it reports the same, and fails unless both name one
+deployment. It checks that deployment's commit out in a `git worktree`,
+installs it, and smokes the fixed URL with that commit's specs, so a spec a
+newer commit adds is never asked of it. Then it asks `PRODUCTION_URL` again. If
+the answer changed -- a Promotion or an Instant Rollback during the run -- the
+result is discarded and the run repeated once against the new deployment; a
+second change fails. A missing or malformed identity fails the run.
+
 The candidate run starts on Vercel's `vercel.deployment.ready` event for a
 Production deployment. It publishes `Candidate Production smoke` as `pending`
-on the event's SHA, waits for `Production ready` on that SHA, checks the SHA
-out and smokes the URL the event carries, then publishes `success` or
-`failure`. A Preview's ready event skips the run. An event with no environment
+on the event's SHA, waits for `Production ready` on that SHA, checks that the
+URL the event carries reports that SHA as its commit, checks the SHA out and
+smokes that URL, then publishes `success` or `failure`. A Preview's ready event skips the run. An event with no environment
 or no valid URL is published as a failure; one with no valid SHA cannot be
 attributed and fails the run.
 
@@ -134,8 +151,10 @@ repository-dispatch event, which Vercel sends only when a Production deployment
 becomes Current Production: previews, and Production deployments never
 promoted, send none. It checks out the SHA the event carries -- a missing or
 malformed SHA, or a missing environment, fails the run rather than smoking
-the default branch -- and tests `PRODUCTION_URL`. It publishes no
-status and changes nothing.
+the default branch -- checks that `PRODUCTION_URL` reports that SHA as its
+commit, and tests `PRODUCTION_URL`. A domain reporting another commit fails the
+run, but only after the smoke has run too. It publishes no status and changes
+nothing.
 
 Every URL tested sits behind Standard Protection's Vercel login.
 `playwright.config.ts` sends the bypass secret as the
@@ -346,6 +365,7 @@ skipped as success:
 | `PREVIEW_DATABASE_URL` | `Migrate preview` fails, so `Production ready` fails and nothing is promoted |
 | `PRODUCTION_DATABASE_URL` | `Apply migrations` fails when a migration is pending; `Production ready` fails |
 | `PRODUCTION_URL` | The compatibility smoke fails, so `Production ready` fails; the post-Promotion run fails too |
+| The Deployment identity, or Vercel's system environment variables | The compatibility smoke fails, so `Production ready` fails; the candidate and post-Promotion runs fail too |
 | `VERCEL_AUTOMATION_BYPASS_SECRET` | Every smoke run meets the Vercel login and fails |
 | `SMOKE_SESSION_TOKEN`, or an expired one | Every smoke run fails its signed-in specs |
 | The ready event | `Candidate Production smoke` never appears, and Promotion waits indefinitely |
@@ -390,8 +410,8 @@ until it is resolved and the release re-run.
 **Force Promote.** Vercel lets anyone with the dashboard promote a deployment
 past failed checks, and nothing here can remove that. It is prohibited while a
 migration is pending or has failed: the candidate would receive traffic against
-a schema it needs and does not have. Its one permitted use is an emergency
-roll-forward, when all three are true:
+a schema it needs and does not have. Beside the one-time bootstrap below, its
+one permitted use is an emergency roll-forward, when all three are true:
 
 1. `Apply migrations` succeeded for the candidate's commit.
 2. Current Production failed its compatibility smoke on that schema.
@@ -399,6 +419,25 @@ roll-forward, when all three are true:
 
 Promote that candidate, then open a Bug for the incompatible migration: it is a
 defect even though the roll-forward restored service.
+
+**Bootstrapping the Deployment identity.** A deployment built before
+`health.get` reported its Deployment identity cannot name itself, so the
+compatibility run fails closed against it, and the release that adds the
+identity cannot pass `Production ready` on its own. That release is promoted
+once by hand, and only when all of these hold:
+
+1. Its commit introduces the Deployment identity, and Current Production is
+   older than it.
+2. `Production ready` failed in the compatibility run only, because Current
+   Production reports no identity: `Gates`, `Integration` and `Migrate preview`
+   passed, and `Apply migrations` was skipped because nothing was pending.
+3. `E2E build` passed on the commit.
+
+`Candidate Production smoke` waits for `Production ready`, so it fails too and
+cannot be the evidence here. Force Promote the commit's Production deployment.
+Its post-Promotion run then checks that the production domain reports that
+commit and smokes it; read that run before closing the release. Every later
+release finds an identity and needs no hand.
 
 ## Local development database
 
@@ -443,6 +482,7 @@ portability rule below: the same migrations run here, on Neon, or on RDS.
 | `DATABASE_URL` | Vercel Preview + Production (pooled), and local `.env`; in CI, the migrate and `test:e2e` steps of `E2E build`, pointing at that job's service container | Postgres connection string. Required; must be `postgres://` or `postgresql://` with a host |
 | `E2E_BASE_URL` | The three smoke runs, and `pnpm verify:gates:e2e` | Target for Playwright; unset, it starts `next start` |
 | `PRODUCTION_URL` | GitHub repository variable, read by the compatibility and post-Promotion smoke runs | The production domain, which routes to Current Production |
+| `VERCEL_DEPLOYMENT_ID`, `VERCEL_GIT_COMMIT_SHA`, `VERCEL_URL` | Set by Vercel on every deployment, with system environment variables exposed | The Deployment identity `health.get` reports: the deployment id, its commit and its fixed URL, served as `https://` plus `VERCEL_URL`. Unset, each is `null` and health is unaffected |
 | `PRODUCTION_DATABASE_URL` | Secret of the GitHub environment `production-database` | Direct connection string the `Apply migrations` job applies migrations through |
 | `PREVIEW_DATABASE_URL` | Secret of the GitHub environment `preview-database` | Direct connection string the `Migrate preview` job applies migrations through |
 | `VERCEL_TOKEN` | Secret of the GitHub environment `Preview`, read only by the approved manual Preview deployment step | Team-scoped Vercel token; never used by Production release |

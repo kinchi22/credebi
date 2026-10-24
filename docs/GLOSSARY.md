@@ -34,6 +34,7 @@ no term is defined in more than one.
 | Current Production | The Production deployment the production domains route to, and so the one receiving production traffic. It changes only by Promotion or a rollback. ADR-0024. |
 | Deferred         | The status of an ADR whose decision is taken and deliberately not built. Not a rule, and not an open question. |
 | Deployment Check | A check Vercel requires on a Production deployment's commit before Promotion. A Vercel setting, seen by no gate here; `docs/ARCHITECTURE.md`, "How a release reaches Production", lists them. ADR-0024. |
+| Deployment identity | Which Production deployment answers: its Vercel deployment id, the commit it was built from and its own fixed URL, as the deployment reports them itself. A Smoke run that cannot establish it fails rather than guessing. ADR-0024. |
 | Domain error     | A failure value carrying a stable `DomainErrorCode`. Never an exception.     |
 | E2E liveness     | The check that every spec fails against an empty page, each on a line of its own, so a spec that asserts nothing cannot land green. Decided by `tools/verify-e2e-liveness.ts`, run in `Gate liveness`. ADR-0006. |
 | Entry            | One posting: a calendar day, an optional Title, an optional memo, and two or more Entry lines that balance. The memo is free-form context for a person and is never matched exactly. The brief's word "record" means this and is not used. |
@@ -73,7 +74,7 @@ no term is defined in more than one.
 | Server Action    | The app's write path. Parses input, invokes a use case through `createCaller`, invalidates what it made stale. |
 | Session          | A User's signed-in state: a random token in an `HttpOnly` cookie, stored in `sessions` only as its SHA-256 hash, with an expiry that slides, except the Smoke User's. Signing out deletes it. ADR-0021. |
 | Side             | The direction of an Entry line, `debit` or `credit`. The amount never carries it. |
-| Smoke run        | The Smoke-tagged specs against a deployed URL, at one of three seams: Current Production after a migration, a candidate Production deployment before Promotion, and Current Production after it. Not a merge gate; that is `E2E build`. ADR-0006, ADR-0024. |
+| Smoke run        | The Smoke-tagged specs against a deployed URL, at one of three seams: Current Production after a migration, a candidate Production deployment before Promotion, and Current Production after it. Each runs the specs of the commit the deployment it tests was built from, never a newer one, so a deployment is never held to a requirement it was not built to meet. Not a merge gate; that is `E2E build`. ADR-0006, ADR-0024. |
 | Smoke tag        | `{ tag: '@smoke' }` on a spec, the allowlist the Smoke run filters by. Only a read may carry it: an untagged spec never runs against Production. |
 | Smoke User       | The User the Smoke run reads Production as. It has no Identity, owns a fixed set of Entries, and its one Session is the `SMOKE_SESSION_TOKEN` secret. ADR-0021. |
 | Spec isolation   | The rule that one pull request changes `e2e/` or the rest of the repository, never both. Decided by `tools/check-pr-isolation.ts`. |
