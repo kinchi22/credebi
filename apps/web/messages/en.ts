@@ -230,7 +230,7 @@ export const en = {
     totals: 'Totals',
     totalRevenue: 'Total revenue',
     totalExpense: 'Total expense',
-    difference: 'Difference',
+    netIncome: 'Net income',
     refused:
       'That statement was not shown. Check the day range: each day is a calendar day, and From cannot be later than To.',
     unavailable: 'The statement could not be loaded just now. Press Show to try again.',

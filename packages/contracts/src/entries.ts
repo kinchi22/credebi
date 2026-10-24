@@ -219,7 +219,7 @@ export type StatementSectionOutput = z.infer<typeof statementSectionSchema>;
 export const incomeStatementSchema = z.object({
   revenue: statementSectionSchema,
   expense: statementSectionSchema,
-  difference: moneySchema,
+  netIncome: moneySchema,
 });
 
 export type IncomeStatementOutput = z.infer<typeof incomeStatementSchema>;
@@ -272,12 +272,12 @@ const toStatementSection = ({ total, rows }: BuiltStatementSection): StatementSe
 export function toIncomeStatement(statement: {
   readonly revenue: BuiltStatementSection;
   readonly expense: BuiltStatementSection;
-  readonly difference: Money;
+  readonly netIncome: Money;
 }): IncomeStatementOutput {
   return {
     revenue: toStatementSection(statement.revenue),
     expense: toStatementSection(statement.expense),
-    difference: statement.difference,
+    netIncome: statement.netIncome,
   };
 }
 
