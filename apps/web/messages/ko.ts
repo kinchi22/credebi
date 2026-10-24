@@ -337,6 +337,9 @@ export const ko = {
     find: '계정 검색',
     noMatch: '"{query}"에 맞는 계정이 없습니다.',
     suggested: '추천',
+    increase: '증가',
+    decrease: '감소',
+    typeDirection: '{type}, {direction}',
     noActiveAccount: '이 날짜에 사용하는 계정이 없습니다.',
     settingsLink: '설정에서 계정의 사용 기간 바꾸기',
     add: {

@@ -1,5 +1,7 @@
 export { ACCOUNT_TYPES } from './domain/account';
 export type { Account, AccountGroup, ChartNode } from './domain/account';
+export { balanceDirection } from './domain/balance-direction';
+export type { BalanceDirection } from './domain/balance-direction';
 export { DESCRIPTION_MAX_LENGTH, NAME_MAX_LENGTH } from './domain/account-details';
 export { endedLast, hasEndedBy, isActiveOn } from './domain/active-period';
 export type { ActivePeriod, ShownSpan } from './domain/active-period';

@@ -339,6 +339,9 @@ export const ja = {
     find: '勘定科目を検索',
     noMatch: '「{query}」に合う勘定科目はありません。',
     suggested: 'おすすめ',
+    increase: '増加',
+    decrease: '減少',
+    typeDirection: '{type}、{direction}',
     noActiveAccount: 'この日に使用できる勘定科目はありません。',
     settingsLink: '設定で勘定科目の使用期間を変更',
     add: {

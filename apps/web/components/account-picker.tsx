@@ -9,7 +9,7 @@ import {
   type ChartOutput,
   type Side,
 } from '@repo/contracts';
-import { ACCOUNT_TYPES } from '@repo/core/accounts';
+import { balanceDirection } from '@repo/core/accounts';
 import { ChevronIcon, SearchIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import Link from 'next/link';
@@ -32,6 +32,7 @@ import { CloseButton } from './close-button';
 import { SheetBar, SheetTabs } from './sheet';
 import { SIDES } from './entry-lines';
 import { SIDE_TONE } from './side-classes';
+import { SIDE_ORDER } from './side-order';
 import { NOTHING_SUGGESTED, type Suggested } from './suggested-accounts';
 import { LINK } from './text-classes';
 import { GroupFolder, TreeBranch } from './tree-branch';
@@ -445,16 +446,25 @@ function SideChoices({
           </div>
         </div>
       )}
-      {ACCOUNT_TYPES.map((type) => {
+      {SIDE_ORDER[side].map((type) => {
         const runs = runsOf(chart, type);
+        const direction = balanceDirection(type, side);
         return (
           <div
             key={type}
             role="group"
-            aria-labelledby={`${typeId}-${type}`}
+            aria-label={t('accountSheet.typeDirection', {
+              type: t(`accountTypes.${type}`),
+              direction: t(`accountSheet.${direction}`),
+            })}
             className={runs.some(isShown) ? 'flex flex-col gap-1' : 'hidden'}
           >
-            <Band accountType={type} id={`${typeId}-${type}`} className={BAND_PADDING} />
+            <Band
+              accountType={type}
+              id={`${typeId}-${type}`}
+              direction={direction}
+              className={BAND_PADDING}
+            />
             {look.groups === 'tree' ? treeOf(runs) : captionsOf(runs)}
           </div>
         );

@@ -9,6 +9,8 @@ export type { LogoProps } from './logo';
 export type { LogoTone, LogoVariant } from './logo-drawing';
 
 export {
+  ArrowDownIcon,
+  ArrowUpIcon,
   CalendarIcon,
   CheckIcon,
   ChevronIcon,

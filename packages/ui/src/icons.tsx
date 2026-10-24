@@ -162,6 +162,22 @@ export function ChevronIcon(): ReactNode {
   );
 }
 
+export function ArrowUpIcon(): ReactNode {
+  return (
+    <StrokeIcon size={14}>
+      <path d="M12 19V5M6 11l6-6 6 6" />
+    </StrokeIcon>
+  );
+}
+
+export function ArrowDownIcon(): ReactNode {
+  return (
+    <StrokeIcon size={14}>
+      <path d="M12 5v14M6 13l6 6 6-6" />
+    </StrokeIcon>
+  );
+}
+
 export function SearchIcon({ size }: { readonly size: 16 | 18 }): ReactNode {
   return (
     <StrokeIcon size={size}>

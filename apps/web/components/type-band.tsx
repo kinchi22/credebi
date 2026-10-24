@@ -1,6 +1,9 @@
 import { useTranslations } from 'next-intl';
 import { type AccountType } from '@repo/contracts';
+import { type BalanceDirection } from '@repo/core/accounts';
 import {
+  ArrowDownIcon,
+  ArrowUpIcon,
   FallingLineIcon,
   PieIcon,
   ReceiptIcon,
@@ -51,14 +54,33 @@ function Strip({ icon, name, id, className, children }: StripProps): ReactNode {
   );
 }
 
+const DIRECTION_ICON: Readonly<Record<BalanceDirection, () => ReactNode>> = {
+  increase: ArrowUpIcon,
+  decrease: ArrowDownIcon,
+};
+
 export type BandProps = {
   readonly accountType: AccountType;
   readonly id: string;
   readonly className: string;
+  readonly direction?: BalanceDirection;
   readonly children?: ReactNode;
 };
 
-export function Band({ accountType, id, className, children }: BandProps): ReactNode {
+function Hint({ direction }: { readonly direction: BalanceDirection }): ReactNode {
+  const t = useTranslations();
+  const Icon = DIRECTION_ICON[direction];
+  return (
+    <span
+      className={`flex shrink-0 items-center gap-1 ${typeClasses['body-sm']} text-text-muted`}
+    >
+      <Icon />
+      {t(`accountSheet.${direction}`)}
+    </span>
+  );
+}
+
+export function Band({ accountType, id, className, direction, children }: BandProps): ReactNode {
   const t = useTranslations();
   return (
     <Strip
@@ -67,6 +89,7 @@ export function Band({ accountType, id, className, children }: BandProps): React
       id={id}
       className={`bg-band ${className}`}
     >
+      {direction === undefined ? null : <Hint direction={direction} />}
       {children}
     </Strip>
   );
