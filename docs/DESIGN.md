@@ -631,8 +631,15 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   shown, so the browser's message is visible. From `split`
   up there are no tabs and the two Sides sit side by side, Credit's column
   behind a `border` hairline. Each Side is headed by its name in `label` and the
-  Side's colour over a 2px rule in that colour. Each Account type is a Band
-  inset in the Side's column, padded 6px 8px, and its Accounts sit after it as
+  Side's colour over a 2px rule in that colour. Each Side lists the Account
+  types in an order of its own, the types usually posted on that Side first:
+  Debit lists Expenses, Assets, Liabilities, Equity, Revenue, and Credit lists
+  Assets, Liabilities, Revenue, Equity, Expenses. Only the types move: within
+  each, the Accounts and Account groups keep the User's order, a search narrows
+  them without reordering, and a type with no Account on the Entry's day stays
+  hidden wherever it falls. Everywhere else, the Chart of accounts in Settings
+  and Entry search among them, the types keep their usual order. Each Account
+  type is a Band inset in the Side's column, padded 6px 8px, and its Accounts sit after it as
   chips that wrap, so many Accounts list across rather than down: a chip has no
   fill and a `border` edge, `border-control` under the pointer, and a chosen
   one a `surface-chosen` fill, `accent` at 12%, an `accent-text` edge and
@@ -677,7 +684,8 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   Multi-line mode, `Done`, a primary button, or in Two-line mode the close
   icon, as the Date presets sheet's; below it Debit and Credit are tabs drawn as
   the Date presets sheet's, then a `Find an account` search field, then the
-  shown Side's Accounts grouped by Account type, narrowed to those whose name
+  shown Side's Accounts grouped by Account type in that Side's order, as the
+  Account picker's, narrowed to those whose name
   holds the text typed, or `No account matches` and the text when none does.
   Each Account type is a Band, padded 6px 8px, and each Account is a
   row 32px tall; a chosen one is tinted `accent` at 15% and semibold. An
