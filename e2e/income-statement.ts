@@ -51,7 +51,7 @@ export type Statement = {
   readonly totalRevenue: string;
   readonly expenses: readonly StatementRow[];
   readonly totalExpense: string;
-  readonly difference: string;
+  readonly netIncome: string;
 };
 
 export async function expectStatement(page: Page, statement: Statement): Promise<void> {
@@ -66,6 +66,6 @@ export async function expectStatement(page: Page, statement: Statement): Promise
   await expectRows(statementTable(page, 'Totals'), [
     ['Total revenue', statement.totalRevenue],
     ['Total expense', statement.totalExpense],
-    ['Difference', statement.difference],
+    ['Net income', statement.netIncome],
   ]);
 }
