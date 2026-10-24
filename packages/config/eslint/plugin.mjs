@@ -69,6 +69,7 @@ const MARKUP_ATTRIBUTES = new Set([
   'method',
   'pattern',
   'role',
+  'scope',
   'tone',
   'type',
   'variant',

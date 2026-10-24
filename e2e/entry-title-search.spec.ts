@@ -19,7 +19,7 @@ import {
   titled,
 } from './entries';
 import { EARLIEST, fromField, LATEST, resultFor, results, search, toField } from './entry-search';
-import { ENTRY_SEARCH_PATH as SEARCH, ENTRY_SEARCH_WITH_QUERY } from './routes';
+import { ENTRY_SEARCH_PATH as SEARCH, ENTRY_SEARCH_WITH_QUERY, queryOf } from './routes';
 import { BOOKS_OPEN } from './accounts';
 import { signIn } from './session';
 import { setEntryFormMode } from './settings';
@@ -178,7 +178,7 @@ test("offers the User's Titles in the Title criterion, keeps the one searched wi
   await form.getByRole('button', { name: 'Search' }).click();
 
   await expect(page).toHaveURL(ENTRY_SEARCH_WITH_QUERY);
-  expect(new URL(page.url()).searchParams.get('title')).toBe('Salary');
+  expect(queryOf(page).get('title')).toBe('Salary');
   await expect(resultFor(page, pay)).toHaveCount(1);
   await expect(resultFor(page, flat)).toHaveCount(0);
 

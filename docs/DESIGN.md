@@ -407,8 +407,8 @@ below and 56px at the sides.
 Each signed-in page is named by its one level-1 heading, `PAGE_HEADING` in
 `apps/web/components/text-classes.ts`: an `h1` in the `h1` step and `text`,
 first in `main` above the page's content, so it sits below the Top bar under
-`wide` and beside the Sidebar from `wide` up. It reads `Entries`, `Entry search`
-or `Settings`, as the Sidebar link to the page does. The page's content starts
+`wide` and beside the Sidebar from `wide` up. It reads `Entries`, `Entry search`,
+`Income statement` or `Settings`, as the Sidebar link to the page does. The page's content starts
 20px below it under `wide` and 24px below it from `wide` up, while the panels
 under it stay 16px apart. No other heading on a signed-in page is an `h1`: the
 Entries panel keeps its visually hidden `Entries` heading, which names its
@@ -824,6 +824,27 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   technology. There is no shared header row: the first Entry's Side names are
   the table's `Debit` and `Credit` column headers, and every later Entry's are
   hidden from assistive technology.
+- **Income statement tables.** Below the `Statement period` form: `Revenue`,
+  `Expenses` and `Totals`, each table a panel of its own, the panels 16px
+  apart. Below `split` they stack in one column in that order. From `split` up
+  they sit in two equal columns, `Expenses` on the left and `Revenue` on the
+  right, their tops level, and `Totals` sits directly below whichever of the
+  two has fewer rows, in its column, or below `Revenue` when the counts are
+  equal. A section's rows are counted, not measured: each Account row, Account
+  group row and grouped Account row, and its total. The server decides from
+  those counts, so nothing moves after the page loads; the grid has rows
+  `auto 1fr`, the longer section spans both and the shorter one and `Totals`
+  take one each. Each table's caption is the panel's
+  title, `PANEL_TITLE`, on the left above the rows. In `body-sm`, each row holds
+  a name on the left, Regular in `text`, and one amount on the right in
+  `figure`, never wrapped; a long name wraps anywhere, so the row stays within
+  the screen at 390px. A `border` hairline parts each row from the one above. A
+  total row -- `Total revenue`, `Total expense`, and `Net income` in `Totals` --
+  is semibold above a 2px `border` rule. A negative amount keeps its minus sign
+  and its colour.
+  An Account group's row holds its name in medium and its subtotal, and its
+  Accounts follow it, their names indented 16px; their hairlines and amounts
+  are an Account row's.
 - **Entry row actions.** At the end of each Entry's first row, after its
   total, `Edit` and then `Delete` are bare icon buttons, drawn as the Remove
   button: a stroke icon in `text-muted`, `text` under the pointer, no fill and
@@ -904,7 +925,8 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   logo there is the horizontal Lockup in the reverse tone, inset 8px, with 28px
   below it before the links. Each link, 2px from the next, leads with an 18px
   stroke icon 10px before its text and is padded 8px by 10px with the `control`
-  radius: `Entries` a list, `Entry search` a magnifier, `Settings` sliders. An
+  radius: `Entries` a list, `Entry search` a magnifier, `Income statement` a
+  sheet, `Settings` sliders. An
   idle link is `text-muted-on-dark`, and under the pointer `text-on-dark` on a
   `ground-dark-hover` fill. The active link is `text-on-dark` in the medium
   weight on `ground-dark-raised`, its icon in `accent`. No link carries a
@@ -948,8 +970,8 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   falling line -- decoration too, so the Band is named by its type alone; the
   Suggested Band leads with a sparkle, a four-point star beside a small plus,
   and is named `Suggested` alone. Each
-  Sidebar link and Sign out leads with an 18px icon -- a list, a magnifier,
-  sliders and an exit -- so each is named by its text alone; the magnifier is
+  Sidebar link and Sign out leads with an 18px icon -- a list, a magnifier, a
+  sheet, sliders and an exit -- so each is named by its text alone; the magnifier is
   the Account picker's search icon at 18px rather than 16px.
 - **Status.** `positive` for healthy, `warning` for degraded, `danger` for a
   refusal or an error.
