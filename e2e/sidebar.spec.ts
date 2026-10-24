@@ -3,7 +3,7 @@ import { entryForm, entrySearchForm } from './entries';
 import { ENTRIES_URL, ENTRY_SEARCH_WITHOUT_QUERY, SETTINGS_URL, SIGN_IN_URL } from './routes';
 import { signIn } from './session';
 import { entryFormModes } from './settings';
-import { SIGNED_IN_PAGES, sidebar } from './sidebar';
+import { SIGNED_IN_PAGES, menu, sidebar } from './sidebar';
 import { PHONE } from './viewport';
 
 const sidebarLink = (page: Page, name: 'Entries' | 'Entry search' | 'Settings'): Locator =>
@@ -69,18 +69,17 @@ test('shows no Sidebar once the visitor is no longer signed in', async ({ page }
 
 test('puts the Sidebar behind a Menu button at 390px, whose drawer holds the links and Sign out', async ({ page }) => {
   await signIn(page);
-  const menu = page.getByRole('button', { name: 'Menu', exact: true });
   await expect(sidebar(page)).toBeVisible();
-  await expect(menu).toBeHidden();
+  await expect(menu(page)).toBeHidden();
 
   await page.setViewportSize(PHONE);
 
   for (const path of SIGNED_IN_PAGES) {
     await page.goto(path);
-    await expect(menu).toBeVisible();
+    await expect(menu(page)).toBeVisible();
     await expect(sidebar(page)).toBeHidden();
 
-    await menu.click();
+    await menu(page).click();
     await expect(sidebarLink(page, 'Entries')).toBeVisible();
     await expect(sidebarLink(page, 'Entry search')).toBeVisible();
     await expect(sidebarLink(page, 'Settings')).toBeVisible();
@@ -96,7 +95,7 @@ test('focuses the drawer, not a Sidebar link, when Menu opens it, and Tab then f
   await signIn(page);
   await page.setViewportSize(PHONE);
 
-  await page.getByRole('button', { name: 'Menu', exact: true }).click();
+  await menu(page).click();
   await expect(sidebar(page)).toBeFocused();
   await expect(sidebarLink(page, 'Entries')).not.toBeFocused();
   await expect(sidebarLink(page, 'Entry search')).not.toBeFocused();
