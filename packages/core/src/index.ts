@@ -53,7 +53,6 @@ export {
 } from './entries/index';
 
 export {
-  ACCOUNT_TYPES,
   DESCRIPTION_MAX_LENGTH,
   NAME_MAX_LENGTH,
   createAddAccount,
