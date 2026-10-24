@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { accountIdSchema, type AccountId } from './accounts';
+import {
+  accountGroupIdSchema,
+  accountIdSchema,
+  type AccountGroupId,
+  type AccountId,
+} from './accounts';
 import { type Brand } from './brand';
 import { domainError, type DomainError } from './errors';
 import { uuidV7Schema } from './id';
@@ -187,9 +192,26 @@ export const statementAccountSchema = z.object({
 
 export type StatementAccountOutput = z.infer<typeof statementAccountSchema>;
 
+export const statementGroupSchema = z.object({
+  kind: z.literal('group'),
+  group: accountGroupIdSchema,
+  name: z.string(),
+  total: moneySchema,
+  accounts: z.array(statementAccountSchema),
+});
+
+export type StatementGroupOutput = z.infer<typeof statementGroupSchema>;
+
+export const statementRowSchema = z.discriminatedUnion('kind', [
+  statementAccountSchema,
+  statementGroupSchema,
+]);
+
+export type StatementRowOutput = z.infer<typeof statementRowSchema>;
+
 export const statementSectionSchema = z.object({
   total: moneySchema,
-  rows: z.array(statementAccountSchema),
+  rows: z.array(statementRowSchema),
 });
 
 export type StatementSectionOutput = z.infer<typeof statementSectionSchema>;
@@ -202,24 +224,49 @@ export const incomeStatementSchema = z.object({
 
 export type IncomeStatementOutput = z.infer<typeof incomeStatementSchema>;
 
+type BuiltStatementAccount = {
+  readonly kind: 'account';
+  readonly account: AccountId;
+  readonly name: string;
+  readonly total: Money;
+};
+
+type BuiltStatementRow =
+  | BuiltStatementAccount
+  | {
+      readonly kind: 'group';
+      readonly group: AccountGroupId;
+      readonly name: string;
+      readonly total: Money;
+      readonly accounts: readonly BuiltStatementAccount[];
+    };
+
 type BuiltStatementSection = {
   readonly total: Money;
-  readonly rows: readonly {
-    readonly kind: 'account';
-    readonly account: AccountId;
-    readonly name: string;
-    readonly total: Money;
-  }[];
+  readonly rows: readonly BuiltStatementRow[];
 };
+
+const toStatementAccount = ({
+  kind,
+  account,
+  name,
+  total,
+}: BuiltStatementAccount): StatementAccountOutput => ({ kind, account, name, total });
+
+const toStatementRow = (row: BuiltStatementRow): StatementRowOutput =>
+  row.kind === 'account'
+    ? toStatementAccount(row)
+    : {
+        kind: row.kind,
+        group: row.group,
+        name: row.name,
+        total: row.total,
+        accounts: row.accounts.map(toStatementAccount),
+      };
 
 const toStatementSection = ({ total, rows }: BuiltStatementSection): StatementSectionOutput => ({
   total,
-  rows: rows.map(({ kind, account, name, total: accountTotal }) => ({
-    kind,
-    account,
-    name,
-    total: accountTotal,
-  })),
+  rows: rows.map(toStatementRow),
 });
 
 export function toIncomeStatement(statement: {

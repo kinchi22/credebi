@@ -43,9 +43,16 @@ function SectionTable({ caption, totalLabel, section }: SectionTableProps): Reac
       <table className={TABLE}>
         <caption className={CAPTION}>{caption}</caption>
         <tbody>
-          {section.rows.map((row) => (
-            <AmountRow key={row.account} label={row.name} amount={row.total} />
-          ))}
+          {section.rows.flatMap((row) =>
+            row.kind === 'account'
+              ? [<AmountRow key={row.account} label={row.name} amount={row.total} />]
+              : [
+                  <AmountRow key={row.group} label={row.name} amount={row.total} />,
+                  ...row.accounts.map((account) => (
+                    <AmountRow key={account.account} label={account.name} amount={account.total} />
+                  )),
+                ],
+          )}
         </tbody>
         <tfoot>
           <AmountRow label={totalLabel} amount={section.total} className={TOTAL_ROW} />
