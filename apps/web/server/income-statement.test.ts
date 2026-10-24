@@ -1,7 +1,11 @@
 import { domainError, incomeStatementSchema, type IncomeStatementQuery } from '@repo/contracts';
 import { describe, expect, it } from 'vitest';
 import { toTrpcError } from './domain-error';
-import { answerIncomeStatement, type ShowIncomeStatement } from './income-statement';
+import {
+  answerDefaultRangeStatement,
+  answerIncomeStatement,
+  type ShowIncomeStatement,
+} from './income-statement';
 
 const JUNE = { from: '2026-06-01', to: '2026-06-30' };
 
@@ -68,5 +72,51 @@ describe('answerIncomeStatement', () => {
     await expect(answerIncomeStatement(failing('NOT_FOUND'), JUNE)).rejects.toMatchObject({
       code: 'NOT_FOUND',
     });
+  });
+});
+
+describe('answerDefaultRangeStatement', () => {
+  it('answers with the statement for the range it was sent, and asks for nothing but that range', async () => {
+    const asked: IncomeStatementQuery[] = [];
+
+    const answer = await answerDefaultRangeStatement((period) => {
+      asked.push(period);
+      return Promise.resolve(STATEMENT);
+    }, { ...JUNE, memo: 'Office' });
+
+    expect(answer).toEqual({ outcome: 'answered', period: JUNE, statement: STATEMENT });
+    expect(asked).toEqual([JUNE]);
+  });
+
+  it.each([
+    ['nothing', undefined],
+    ['null', null],
+    ['a string', '2026-06-01'],
+    ['a range with no last day', { from: '2026-06-01' }],
+    ['a range with no first day', { to: '2026-06-30' }],
+    ['a range with days that are not strings', { from: ['2026-06-01'], to: 20260630 }],
+    ['a range whose day is not a calendar day', { from: '2026-02-30', to: '2026-03-01' }],
+  ])('refuses %s without asking for a statement', async (_case, range) => {
+    const asked: IncomeStatementQuery[] = [];
+
+    const answer = await answerDefaultRangeStatement((period) => {
+      asked.push(period);
+      return Promise.resolve(STATEMENT);
+    }, range);
+
+    expect(answer).toEqual({ outcome: 'refused', period: {} });
+    expect(asked).toEqual([]);
+  });
+
+  it('answers as the statement does when the procedure refuses or is unavailable', async () => {
+    const reversed = { from: '2026-06-30', to: '2026-06-01' };
+
+    await expect(answerDefaultRangeStatement(failing('INVALID_INPUT'), reversed)).resolves.toEqual({
+      outcome: 'refused',
+      period: reversed,
+    });
+    await expect(
+      answerDefaultRangeStatement(failing('DEPENDENCY_UNAVAILABLE'), JUNE),
+    ).resolves.toEqual({ outcome: 'unavailable', period: JUNE });
   });
 });

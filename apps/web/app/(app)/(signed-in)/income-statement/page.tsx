@@ -3,6 +3,7 @@ import { type Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 import { type ReactNode } from 'react';
+import { IncomeStatementColdVisit } from '../../../../components/income-statement-cold-visit';
 import { IncomeStatementForm } from '../../../../components/income-statement-form';
 import { IncomeStatementOutcome } from '../../../../components/income-statement-tables';
 import { PAGE_HEADING } from '../../../../components/text-classes';
@@ -11,6 +12,7 @@ import { answerIncomeStatement } from '../../../../server/income-statement';
 import { INCOME_STATEMENT_PATH, pathWithQuery, signInPath } from '../../../../server/return-path';
 import { createCaller } from '../../../../server/root-router';
 import { orSignIn } from '../../../../server/sign-in-redirect';
+import { showDefaultRange } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,7 +44,7 @@ export default async function IncomeStatementPage({
     return (
       <>
         {heading}
-        <IncomeStatementForm period={{}} />
+        <IncomeStatementColdVisit show={showDefaultRange} />
       </>
     );
   }
