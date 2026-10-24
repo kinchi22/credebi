@@ -213,10 +213,12 @@ export const ko = {
   entrySearchPage: {
     heading: '거래 검색',
   },
-  entrySearch: {
-    title: '거래 검색',
+  dayRange: {
     from: '시작일',
     to: '종료일',
+  },
+  entrySearch: {
+    title: '거래 검색',
     account: '계정',
     anyAccount: '모든 계정',
     accountOption: '{name}, {type}',
