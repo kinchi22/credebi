@@ -1,6 +1,13 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import { closeDialog } from './dialog';
-import { type ACCOUNT_TYPES, accountChoices, nameOf, type AddedAccount, type Side } from './entries';
+import {
+  type ACCOUNT_TYPES,
+  accountChoices,
+  nameOf,
+  typeGroupName,
+  type AddedAccount,
+  type Side,
+} from './entries';
 
 export type AccountType = (typeof ACCOUNT_TYPES)[number];
 
@@ -272,7 +279,7 @@ export async function dayInBrowser(page: Page, daysFromToday = 0): Promise<strin
 }
 
 export const offeredType = (form: Locator, side: Side, type: AccountType): Locator =>
-  accountChoices(form, side).getByRole('group', { name: type, exact: true });
+  accountChoices(form, side).getByRole('group', { name: typeGroupName(type) });
 
 export const BOOKS_OPEN = '2000-01-01';
 

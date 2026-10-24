@@ -77,8 +77,13 @@ export const entrySearchForm = (page: Page): Locator =>
 export const accountChoices = (form: Page | Locator, side: Side): Locator =>
   form.getByRole('radiogroup', { name: `${side} account`, exact: true });
 
+export const BALANCE_DIRECTIONS = ['Increase', 'Decrease'] as const;
+
+export const typeGroupName = (type: string): RegExp =>
+  new RegExp(`^(${type})(, (${BALANCE_DIRECTIONS.join('|')}))?$`);
+
 const chart = (picker: Locator): Locator =>
-  picker.getByRole('group', { name: new RegExp(`^(${ACCOUNT_TYPES.join('|')})$`) });
+  picker.getByRole('group', { name: typeGroupName(ACCOUNT_TYPES.join('|')) });
 
 export const accountChoice = (form: Locator, side: Side, account: string): Locator =>
   chart(accountChoices(form, side)).getByRole('radio', { name: account, exact: true });
