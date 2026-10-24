@@ -306,7 +306,8 @@ unit test checks every one:
   `text-muted-on-dark` on `ground-dark`, `ground-dark-raised` and
   `ground-dark-hover` (11.78:1 and 6.85:1 on `ink-mid`); `ink` on `mint`; `ink` on `fog`,
   which is `text` on a `band` (12.46:1); `mint-deeper` on `fog`, which is
-  `accent-text-hover` on a `band` (5.90:1); `ink` on `mint-fog`, which is
+  `accent-text-hover` on a `band` (5.90:1); `slate` on `fog`, which is
+  `text-muted` on a `band` (5.28:1); `ink` on `mint-fog`, which is
   `text` on a `band-suggested` (12.69:1); `ink`, `slate`, `cobalt` and `gold`
   on `mist-pale`, which is `text`, `text-muted`, `debit` and `credit` on
   `surface-hover` (14.32:1, 6.07:1, 5.57:1 and 5.30:1); `ink` on `mint-pale`,
@@ -639,7 +640,8 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   them without reordering, and a type with no Account on the Entry's day stays
   hidden wherever it falls. Everywhere else, the Chart of accounts in Settings
   and Entry search among them, the types keep their usual order. Each Account
-  type is a Band inset in the Side's column, padded 6px 8px, and its Accounts sit after it as
+  type is a Band inset in the Side's column, padded 6px 8px, carrying at its
+  right edge the type's Balance direction for that Side, and its Accounts sit after it as
   chips that wrap, so many Accounts list across rather than down: a chip has no
   fill and a `border` edge, `border-control` under the pointer, and a chosen
   one a `surface-chosen` fill, `accent` at 12%, an `accent-text` edge and
@@ -670,7 +672,8 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   that wrap in the picker, padded 6px above and below, rows in the sheet --
   with the same radio or checkbox, and a chosen one is shown chosen in both
   places. The section is gone while `Find an account` holds text, and absent
-  when the Title is empty or matches none.
+  when the Title is empty or matches none. The Suggested Band carries no
+  Balance direction, since it mixes Account types.
 - **Account sheet.** Below `wide` the Accounts leave the form
   and open `Choose accounts` as a modal dialog rising from the foot of the page
   to 64px below its top, on the `ground` over a `ground-dark` scrim at 60%. In
@@ -687,8 +690,9 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   shown Side's Accounts grouped by Account type in that Side's order, as the
   Account picker's, narrowed to those whose name
   holds the text typed, or `No account matches` and the text when none does.
-  Each Account type is a Band, padded 6px 8px, and each Account is a
-  row 32px tall; a chosen one is tinted `accent` at 15% and semibold. An
+  Each Account type is a Band, padded 6px 8px, carrying the type's Balance
+  direction for the shown Side at its right edge as the Account picker's does,
+  and each Account is a row 32px tall; a chosen one is tinted `accent` at 15% and semibold. An
   Account group's name, semibold, follows the folder icon, 14px in
   `text-muted`, and its Accounts hang from it by tree connectors as in the
   Accounts section: `├` before each but the last shown, `└` before the last
@@ -1053,7 +1057,7 @@ hidden.
 | Wordmark       | The name "Credebi" drawn as outlined glyphs, as the Wordmark paragraph under `Logo` states, with C and d in the accent colour of its tone. |
 | Lockup         | A fixed arrangement of the Mark and the Wordmark: horizontal or stacked. The Mark alone is also a variant of the logo. |
 | Semantic token | A colour named by its role, such as `text-muted` or `danger`, mapped onto a brand palette colour. Components use only these. |
-| Band           | A strip tinted `band` with the `control` radius behind an Account type's name, set in `body-sm`, semibold, in `text`, and led by the type's icon, so the Account types read apart from the groups and Accounts under them. It is drawn in the Accounts section, the Account picker and the Account sheet. The Suggested Band is one more, tinted `band-suggested` and led by a sparkle, over the Suggested accounts in the Account picker and the Account sheet. |
+| Band           | A strip tinted `band` with the `control` radius behind an Account type's name, set in `body-sm`, semibold, in `text`, and led by the type's icon, so the Account types read apart from the groups and Accounts under them. It is drawn in the Accounts section, the Account picker and the Account sheet. In the Account picker and the Account sheet it carries at its right edge the type's Balance direction for the Side: a 14px arrow, up for `Increase` and down for `Decrease`, then the word, in `body-sm` and `text-muted`, with no Side colour and no red or green, since neither direction is good or bad. The arrow is hidden from assistive technology, and the type's group is named by the type's name and the word, a transparent comma after the name between them, as `Assets, Increase`. The Suggested Band is one more, tinted `band-suggested` and led by a sparkle, over the Suggested accounts in the Account picker and the Account sheet. |
 | Tree connector | A 1px `border-control` line from an Account group's folder icon to the Accounts in it, in the Accounts section and the Account sheet: `├` before each Account shown but the last, `└`, its corner rounded by the `control` radius, before the last shown. It is decoration, hidden from assistive technology. |
 | Chip           | A choice drawn as a small inline box that sits beside others and wraps, rather than one per row; a chosen chip takes a fill and an edge. |
 | Scrim          | The `ground-dark` tint at 60% behind a modal dialog. A click on the scrim is a press that began on it as well as ended there: a press that began inside the dialog, as when selecting a field's text by dragging, and was released on the scrim closes nothing. |

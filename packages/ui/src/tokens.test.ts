@@ -62,7 +62,7 @@ describe('the declared pairs', () => {
     expect(foregroundsOn('ink-raised')).toEqual(['frost', 'sage']);
     expect(foregroundsOn('ink-mid')).toEqual(['frost', 'sage']);
     expect(foregroundsOn('mint')).toEqual(['ink']);
-    expect(foregroundsOn('fog')).toEqual(['ink', 'mint-deeper']);
+    expect(foregroundsOn('fog')).toEqual(['ink', 'mint-deeper', 'slate']);
     expect(foregroundsOn('mint-fog')).toEqual(['ink']);
     expect(foregroundsOn('mist-pale')).toEqual(['ink', 'slate', 'cobalt', 'gold']);
     expect(foregroundsOn('mint-pale')).toEqual(['ink']);

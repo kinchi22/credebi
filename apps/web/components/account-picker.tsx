@@ -9,6 +9,7 @@ import {
   type ChartOutput,
   type Side,
 } from '@repo/contracts';
+import { balanceDirection } from '@repo/core/accounts';
 import { ChevronIcon, SearchIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import Link from 'next/link';
@@ -35,7 +36,7 @@ import { SIDE_ORDER } from './side-order';
 import { NOTHING_SUGGESTED, type Suggested } from './suggested-accounts';
 import { LINK } from './text-classes';
 import { GroupFolder, TreeBranch } from './tree-branch';
-import { Band, SuggestedBand } from './type-band';
+import { Band, bandLabelledBy, SuggestedBand, type BandHint } from './type-band';
 import { useWide } from './use-wide';
 
 export type AccountChoice = Readonly<Record<Side, AccountOutput | undefined>>;
@@ -447,14 +448,16 @@ function SideChoices({
       )}
       {SIDE_ORDER[side].map((type) => {
         const runs = runsOf(chart, type);
+        const bandId = `${typeId}-${type}`;
+        const hint: BandHint = { id: `${bandId}-hint`, direction: balanceDirection(type, side) };
         return (
           <div
             key={type}
             role="group"
-            aria-labelledby={`${typeId}-${type}`}
+            aria-labelledby={bandLabelledBy(bandId, hint)}
             className={runs.some(isShown) ? 'flex flex-col gap-1' : 'hidden'}
           >
-            <Band accountType={type} id={`${typeId}-${type}`} className={BAND_PADDING} />
+            <Band accountType={type} id={bandId} hint={hint} className={BAND_PADDING} />
             {look.groups === 'tree' ? treeOf(runs) : captionsOf(runs)}
           </div>
         );

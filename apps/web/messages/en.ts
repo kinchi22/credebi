@@ -321,6 +321,8 @@ export const en = {
     find: 'Find an account',
     noMatch: 'No account matches "{query}".',
     suggested: 'Suggested',
+    increase: 'Increase',
+    decrease: 'Decrease',
     noActiveAccount: 'No account is active on this day.',
     settingsLink: 'Change when your accounts are active in Settings',
     add: {
