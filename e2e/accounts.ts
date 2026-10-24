@@ -178,7 +178,7 @@ export const NO_GROUP = 'No group';
 
 type Point = { readonly x: number; readonly y: number };
 
-type Box = { readonly x: number; readonly y: number; readonly width: number; readonly height: number };
+export type Box = { readonly x: number; readonly y: number; readonly width: number; readonly height: number };
 
 const centre = (box: Box): Point => ({ x: box.x + box.width / 2, y: box.y + box.height / 2 });
 
