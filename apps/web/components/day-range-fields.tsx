@@ -58,6 +58,7 @@ export function DayRangeFields({ names, from: initialFrom, to: initialTo, today,
             value={from}
             onChange={keepingADay(setFrom)}
             required
+            autoComplete="off"
             className={RANGE_DAY}
           />
         </div>
@@ -70,6 +71,7 @@ export function DayRangeFields({ names, from: initialFrom, to: initialTo, today,
             value={to}
             onChange={keepingADay(setTo)}
             required
+            autoComplete="off"
             className={RANGE_DAY}
           />
         </div>
