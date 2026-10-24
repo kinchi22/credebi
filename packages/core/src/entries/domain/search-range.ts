@@ -6,18 +6,13 @@ export type DayRange = {
   readonly to: string;
 };
 
-export type DayRangeDraft = {
-  readonly from: string;
-  readonly to: string;
-};
-
 export function reversedRange(from: string, to: string): Err<DomainError> {
   return err(
     domainError('INVALID_INPUT', `A day range cannot end (${to}) before it starts (${from}).`),
   );
 }
 
-export function makeDayRange({ from, to }: DayRangeDraft): Result<DayRange, DomainError> {
+export function makeDayRange({ from, to }: DayRange): Result<DayRange, DomainError> {
   const first = parseDay(from);
   if (!first.ok) {
     return first;

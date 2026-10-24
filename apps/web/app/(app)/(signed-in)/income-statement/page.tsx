@@ -1,4 +1,4 @@
-import { type SearchQuery } from '@repo/contracts';
+import { INCOME_STATEMENT_FIELDS, type SearchQuery } from '@repo/contracts';
 import { type Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
@@ -35,7 +35,10 @@ export default async function IncomeStatementPage({
     redirect(signInPath(path));
   }
 
-  if (path === INCOME_STATEMENT_PATH) {
+  if (
+    query[INCOME_STATEMENT_FIELDS.from] === undefined &&
+    query[INCOME_STATEMENT_FIELDS.to] === undefined
+  ) {
     return (
       <>
         {heading}

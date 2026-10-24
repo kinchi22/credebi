@@ -166,20 +166,20 @@ describe('checkKeepsShownEntries', () => {
 
 describe('isActiveWithin', () => {
   it('holds for a range that holds a day of the period, at either end or inside', () => {
-    expect(isActiveWithin(OLD_WALLET, '2026-07-01', '2026-08-01')).toBe(true);
-    expect(isActiveWithin(OLD_WALLET, '2026-08-31', '2026-09-30')).toBe(true);
-    expect(isActiveWithin(OLD_WALLET, '2026-08-10', '2026-08-20')).toBe(true);
-    expect(isActiveWithin(OLD_WALLET, '2026-07-01', '2026-09-30')).toBe(true);
+    expect(isActiveWithin(OLD_WALLET, { from: '2026-07-01', to: '2026-08-01' })).toBe(true);
+    expect(isActiveWithin(OLD_WALLET, { from: '2026-08-31', to: '2026-09-30' })).toBe(true);
+    expect(isActiveWithin(OLD_WALLET, { from: '2026-08-10', to: '2026-08-20' })).toBe(true);
+    expect(isActiveWithin(OLD_WALLET, { from: '2026-07-01', to: '2026-09-30' })).toBe(true);
   });
 
   it('does not hold for a range that ends before the period starts or starts after it ends', () => {
-    expect(isActiveWithin(OLD_WALLET, '2026-07-01', '2026-07-31')).toBe(false);
-    expect(isActiveWithin(OLD_WALLET, '2026-09-01', '2026-09-30')).toBe(false);
+    expect(isActiveWithin(OLD_WALLET, { from: '2026-07-01', to: '2026-07-31' })).toBe(false);
+    expect(isActiveWithin(OLD_WALLET, { from: '2026-09-01', to: '2026-09-30' })).toBe(false);
   });
 
   it('holds for any range that ends on or after the start day when there is no end day', () => {
-    expect(isActiveWithin(CASH, '9999-01-01', '9999-12-31')).toBe(true);
-    expect(isActiveWithin(CASH, '2026-08-01', '2026-09-01')).toBe(true);
-    expect(isActiveWithin(CASH, '2026-08-01', '2026-08-31')).toBe(false);
+    expect(isActiveWithin(CASH, { from: '9999-01-01', to: '9999-12-31' })).toBe(true);
+    expect(isActiveWithin(CASH, { from: '2026-08-01', to: '2026-09-01' })).toBe(true);
+    expect(isActiveWithin(CASH, { from: '2026-08-01', to: '2026-08-31' })).toBe(false);
   });
 });

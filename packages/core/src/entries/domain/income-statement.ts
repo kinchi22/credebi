@@ -63,7 +63,7 @@ function section(
     const named = sums.get(account.id);
     const listed =
       account.accountType === accountType &&
-      (named !== undefined || isActiveWithin(account, range.from, range.to));
+      (named !== undefined || isActiveWithin(account, range));
     if (listed) {
       const total = TOTAL_BY_TYPE[accountType](named ?? NO_SUMS);
       if (!total.ok) {

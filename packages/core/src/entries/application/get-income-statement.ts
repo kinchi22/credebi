@@ -2,7 +2,7 @@ import { type DomainError, type Result } from '@repo/contracts';
 import { type AccountRepository } from '../../accounts/ports/account-repository';
 import { requireUser, type AuthContext } from '../../auth/domain/auth-context';
 import { incomeStatement, type IncomeStatement } from '../domain/income-statement';
-import { makeDayRange, type DayRangeDraft } from '../domain/search-range';
+import { makeDayRange, type DayRange } from '../domain/search-range';
 import { type EntryRepository } from '../ports/entry-repository';
 
 export type GetIncomeStatementDependencies = {
@@ -12,7 +12,7 @@ export type GetIncomeStatementDependencies = {
 
 export type GetIncomeStatement = (
   auth: AuthContext,
-  range: DayRangeDraft,
+  range: DayRange,
 ) => Promise<Result<IncomeStatement, DomainError>>;
 
 export function createGetIncomeStatement({

@@ -202,7 +202,7 @@ export const incomeStatementSchema = z.object({
 
 export type IncomeStatementOutput = z.infer<typeof incomeStatementSchema>;
 
-type StatementSectionOf = {
+type BuiltStatementSection = {
   readonly total: Money;
   readonly rows: readonly {
     readonly kind: 'account';
@@ -212,7 +212,7 @@ type StatementSectionOf = {
   }[];
 };
 
-const toStatementSection = ({ total, rows }: StatementSectionOf): StatementSectionOutput => ({
+const toStatementSection = ({ total, rows }: BuiltStatementSection): StatementSectionOutput => ({
   total,
   rows: rows.map(({ kind, account, name, total: accountTotal }) => ({
     kind,
@@ -223,8 +223,8 @@ const toStatementSection = ({ total, rows }: StatementSectionOf): StatementSecti
 });
 
 export function toIncomeStatement(statement: {
-  readonly revenue: StatementSectionOf;
-  readonly expense: StatementSectionOf;
+  readonly revenue: BuiltStatementSection;
+  readonly expense: BuiltStatementSection;
   readonly difference: Money;
 }): IncomeStatementOutput {
   return {

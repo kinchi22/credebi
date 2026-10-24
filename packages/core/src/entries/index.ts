@@ -9,7 +9,7 @@ export { titleMatching } from './domain/title-match';
 export { NO_CRITERIA, makeSearchCriteria } from './domain/search-criteria';
 export type { SearchCriteria, SearchCriteriaDraft } from './domain/search-criteria';
 export { defaultSearchRange, makeDayRange } from './domain/search-range';
-export type { DayRange, DayRangeDraft } from './domain/search-range';
+export type { DayRange } from './domain/search-range';
 export { incomeStatement } from './domain/income-statement';
 export type {
   AccountSums,

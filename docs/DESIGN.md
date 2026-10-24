@@ -820,6 +820,16 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   technology. There is no shared header row: the first Entry's Side names are
   the table's `Debit` and `Credit` column headers, and every later Entry's are
   hidden from assistive technology.
+- **Income statement tables.** Laid out the same at every width, below the
+  `Statement period` form: `Revenue`, `Expenses` and `Totals`, each table a
+  panel of its own, the panels 16px apart. Each table's caption is the panel's
+  title, `PANEL_TITLE`, on the left above the rows. In `body-sm`, each row holds
+  a name on the left, Regular in `text`, and one amount on the right in
+  `figure`, never wrapped; a long name wraps anywhere, so the row stays within
+  the screen at 390px. A `border` hairline parts each row from the one above. A
+  total row -- `Total revenue`, `Total expense`, and `Difference` in `Totals` --
+  is semibold above a 2px `border` rule. A negative amount keeps its minus sign
+  and its colour.
 - **Entry row actions.** At the end of each Entry's first row, after its
   total, `Edit` and then `Delete` are bare icon buttons, drawn as the Remove
   button: a stroke icon in `text-muted`, `text` under the pointer, no fill and
