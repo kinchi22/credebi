@@ -12,6 +12,7 @@ import { type ReactNode } from 'react';
 import { type IncomeStatementAnswer } from '../server/income-statement';
 import { accountSearchPath } from '../server/return-path';
 import { formatAmount } from './amount';
+import { type StatementSectionName, totalsUnder } from './statement-columns';
 import { DANGER_TEXT, LINK, MUTED_TEXT } from './text-classes';
 
 const TABLE = `w-full border-collapse ${typeClasses['body-sm']}`;
@@ -20,6 +21,22 @@ const ROW = 'border-b border-border last:border-b-0';
 const LABEL = 'py-2 pr-3 text-left wrap-anywhere';
 const AMOUNT = `py-2 text-right whitespace-nowrap ${typeClasses.figure}`;
 const TOTAL_ROW = 'border-t-2 border-border font-semibold';
+const COLUMNS = 'flex flex-col gap-4 split:grid split:grid-cols-2 split:grid-rows-[auto_1fr] split:items-start';
+
+type Placement = { readonly revenue: string; readonly expense: string; readonly totals: string };
+
+const PLACEMENT: Readonly<Record<StatementSectionName, Placement>> = {
+  revenue: {
+    revenue: 'split:col-start-2 split:row-start-1',
+    expense: 'split:col-start-1 split:row-span-2 split:row-start-1',
+    totals: 'split:col-start-2 split:row-start-2',
+  },
+  expense: {
+    revenue: 'split:col-start-2 split:row-span-2 split:row-start-1',
+    expense: 'split:col-start-1 split:row-start-1',
+    totals: 'split:col-start-1 split:row-start-2',
+  },
+};
 
 type AmountRowVariant = 'account' | 'group' | 'grouped' | 'total';
 
@@ -60,11 +77,12 @@ type SectionTableProps = {
   readonly totalLabel: string;
   readonly section: StatementSectionOutput;
   readonly period: IncomeStatementQuery;
+  readonly placement: string;
 };
 
-function SectionTable({ caption, totalLabel, section, period }: SectionTableProps): ReactNode {
+function SectionTable({ caption, totalLabel, section, period, placement }: SectionTableProps): ReactNode {
   return (
-    <div className={PANEL}>
+    <div className={`${PANEL} ${placement}`}>
       <table className={TABLE}>
         <caption className={CAPTION}>{caption}</caption>
         <tbody>
@@ -112,12 +130,25 @@ export type IncomeStatementTablesProps = {
 
 export function IncomeStatementTables({ statement, period }: IncomeStatementTablesProps): ReactNode {
   const t = useTranslations('incomeStatement');
+  const placement = PLACEMENT[totalsUnder(statement)];
 
   return (
-    <>
-      <SectionTable caption={t('revenue')} totalLabel={t('totalRevenue')} section={statement.revenue} period={period} />
-      <SectionTable caption={t('expenses')} totalLabel={t('totalExpense')} section={statement.expense} period={period} />
-      <div className={PANEL}>
+    <div className={COLUMNS}>
+      <SectionTable
+        caption={t('revenue')}
+        totalLabel={t('totalRevenue')}
+        section={statement.revenue}
+        period={period}
+        placement={placement.revenue}
+      />
+      <SectionTable
+        caption={t('expenses')}
+        totalLabel={t('totalExpense')}
+        section={statement.expense}
+        period={period}
+        placement={placement.expense}
+      />
+      <div className={`${PANEL} ${placement.totals}`}>
         <table className={TABLE}>
           <caption className={CAPTION}>{t('totals')}</caption>
           <tbody>
@@ -127,7 +158,7 @@ export function IncomeStatementTables({ statement, period }: IncomeStatementTabl
           </tbody>
         </table>
       </div>
-    </>
+    </div>
   );
 }
 
