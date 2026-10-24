@@ -126,8 +126,10 @@ export function IncomeStatementOutcome({ answer }: IncomeStatementOutcomeProps):
 export function IncomeStatementPending(): ReactNode {
   const t = useTranslations('incomeStatement');
   return (
-    <p role="status" className={MUTED_TEXT}>
-      {t('loading')}
-    </p>
+    <section aria-busy className="flex flex-col gap-2">
+      <p role="status" className={MUTED_TEXT}>
+        {t('loading')}
+      </p>
+    </section>
   );
 }
