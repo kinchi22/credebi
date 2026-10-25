@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
+import { expectRows, namedTable, type ReportPanels, type ReportRow } from './report-tables';
 
 export const periodForm = (page: Page): Locator =>
   page.getByRole('form', { name: 'Statement period', exact: true });
@@ -26,30 +27,21 @@ export async function expectPeriod(page: Page, from: string, to: string): Promis
 
 export type StatementTable = 'Revenue' | 'Expenses' | 'Totals';
 
-export const statementTable = (page: Page, name: StatementTable): Locator =>
-  page.getByRole('main').getByRole('table', { name, exact: true });
-
-export const statementTables = (page: Page): Locator => page.getByRole('main').getByRole('table');
-
-const statementRow = (table: Locator, label: string): Locator =>
-  table.getByRole('row').filter({ has: table.page().getByRole('rowheader', { name: label, exact: true }) });
+export const statementTable = (page: Page, name: StatementTable): Locator => namedTable(page, name);
 
 export const accountLink = (page: Page, table: StatementTable, name: string): Locator =>
   statementTable(page, table).getByRole('link', { name, exact: true });
 
-export type StatementRow = readonly [label: string, amount: string];
-
-async function expectRows(table: Locator, rows: readonly StatementRow[]): Promise<void> {
-  await expect(table.getByRole('rowheader')).toHaveText(rows.map(([label]) => label));
-  for (const [label, amount] of rows) {
-    await expect(statementRow(table, label).getByRole('cell')).toHaveText([amount]);
-  }
-}
+export const statementPanels = (page: Page): ReportPanels => ({
+  left: statementTable(page, 'Expenses'),
+  right: statementTable(page, 'Revenue'),
+  totals: statementTable(page, 'Totals'),
+});
 
 export type Statement = {
-  readonly revenue: readonly StatementRow[];
+  readonly revenue: readonly ReportRow[];
   readonly totalRevenue: string;
-  readonly expenses: readonly StatementRow[];
+  readonly expenses: readonly ReportRow[];
   readonly totalExpense: string;
   readonly netIncome: string;
 };

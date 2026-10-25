@@ -1,9 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { type AccountType, addAccount, addGroup, BOOKS_OPEN, bottom, type Box, boxOf, dayInBrowser } from './accounts';
+import { addAccount, addAccounts, addGroup, BOOKS_OPEN, dayInBrowser } from './accounts';
 import { choosePreset, fixToday } from './date-presets';
 import {
+  added,
   deleteListed,
+  entryOn,
   type LineAccount,
   listedEntry,
   openEditEntry,
@@ -19,25 +21,30 @@ import {
   periodForm,
   type Statement,
   showStatement,
+  statementPanels,
   statementTable,
-  type StatementRow,
-  type StatementTable,
-  statementTables,
 } from './income-statement';
 import {
   ENTRY_SEARCH_PATH,
   INCOME_STATEMENT_PATH as STATEMENT,
-  INCOME_STATEMENT_WITH_QUERY,
   INCOME_STATEMENT_WITHOUT_QUERY,
   queryOf,
   SIGN_IN_URL,
   UUID_V7,
+  withQuery,
 } from './routes';
-import { CATALOGUE, documentLanguage, signUpAfterChoosing } from './language';
+import { CATALOGUE, documentLanguage, MIDDLE_DOT, pageTitle, signUpAfterChoosing } from './language';
+import {
+  expectOneColumn,
+  expectTotalsDirectlyBelowShorter,
+  expectTwoColumnsWithTotalsUnder,
+  reportTables as statementTables,
+  zeroRows,
+} from './report-tables';
 import { freshIdentifier, signIn, signInForSmoke, submitTestSignIn } from './session';
-import { SIGNED_IN_PAGES, sidebar } from './sidebar';
+import { linkTo, SIGNED_IN_PAGES, sidebar } from './sidebar';
 import { HANGUL } from './typed-text';
-import { expectWithinPhone, PHONE, WIDE_BELOW_SPLIT } from './viewport';
+import { expectWithinPhone, PHONE, WIDE, WIDE_BELOW_SPLIT } from './viewport';
 
 const TODAY = '2026-09-15';
 
@@ -49,21 +56,7 @@ const IN_JUNE = '2026-06-15';
 
 const REVERSED_JUNE = `${STATEMENT}?from=${JUNE_LAST}&to=${JUNE_FIRST}`;
 
-const SIDEBAR_LINKS = ['Entries', 'Entry search', 'Income statement', 'Settings'] as const;
-
-const WIDE = { width: 1280, height: 720 } as const;
-
-const MIDDLE_DOT = '\u00B7';
-
 const LONG_NAME = 'Memberships paid for every single month';
-
-const entryOn = (
-  day: string,
-  memo: string,
-  debitAccount: LineAccount,
-  creditAccount: LineAccount,
-  amount: string,
-): TwoLineEntry => ({ day, memo, debitAccount, creditAccount, amount });
 
 const spent = (day: string, memo: string, amount: string, account: LineAccount = 'Expenses'): TwoLineEntry =>
   entryOn(day, memo, account, 'Cash', amount);
@@ -71,14 +64,12 @@ const spent = (day: string, memo: string, amount: string, account: LineAccount =
 const earned = (day: string, memo: string, amount: string, account: LineAccount = 'Sales'): TwoLineEntry =>
   entryOn(day, memo, 'Cash', account, amount);
 
-const statementLinkIn = (navigation: Locator): Locator => navigation.locator(`a[href="${STATEMENT}"]`);
+const statementLinkIn = (navigation: Locator): Locator => linkTo(navigation, STATEMENT);
 
 const statementLink = (page: Page): Locator => statementLinkIn(sidebar(page));
 
 const koreanStatementLink = (page: Page): Locator =>
   statementLinkIn(page.getByRole('navigation', { name: HANGUL }));
-
-const added = (name: string): LineAccount => ({ added: name });
 
 const nothingCounted = {
   revenue: [['Sales', '0']],
@@ -97,59 +88,12 @@ const spentOnly = (amount: string): Statement => ({
 
 const rangeInUrl = (page: Page): Record<string, string> => Object.fromEntries(queryOf(page));
 
-type SectionTable = Exclude<StatementTable, 'Totals'>;
-
-const OTHER_SECTION: Record<SectionTable, SectionTable> = { Expenses: 'Revenue', Revenue: 'Expenses' };
-
 const THREE_EXPENSES = ['Rent', 'Travel', 'Utilities'] as const;
-
-const zeroRows = (first: string, names: readonly string[]): StatementRow[] =>
-  [first, ...names].map((name) => [name, '0'] as const);
-
-async function addAccounts(page: Page, type: AccountType, names: readonly string[]): Promise<void> {
-  for (const name of names) {
-    await addAccount(page, type, { name, activeFrom: BOOKS_OPEN });
-  }
-}
 
 async function showJuneAt1280(page: Page): Promise<void> {
   await page.setViewportSize(WIDE);
   await page.goto(STATEMENT);
   await showStatement(page, JUNE_FIRST, JUNE_LAST);
-}
-
-async function boxesOf(page: Page): Promise<Record<StatementTable, Box>> {
-  await expect(statementTables(page)).toHaveCount(3);
-  return {
-    Revenue: await boxOf(statementTable(page, 'Revenue'), 'the Revenue table'),
-    Expenses: await boxOf(statementTable(page, 'Expenses'), 'the Expenses table'),
-    Totals: await boxOf(statementTable(page, 'Totals'), 'the Totals table'),
-  };
-}
-
-async function expectTwoColumnsWithTotalsUnder(page: Page, section: SectionTable): Promise<Record<StatementTable, Box>> {
-  const boxes = await boxesOf(page);
-  const { Expenses: expenses, Revenue: revenue, Totals: totals } = boxes;
-  const under = boxes[section];
-  expect(expenses.x + expenses.width).toBeLessThanOrEqual(revenue.x);
-  expect(revenue.y).toBeCloseTo(expenses.y, 0);
-  expect(totals.x).toBeCloseTo(under.x, 0);
-  expect(totals.x + totals.width).toBeCloseTo(under.x + under.width, 0);
-  expect(totals.y).toBeGreaterThanOrEqual(bottom(under));
-  return boxes;
-}
-
-async function expectTotalsDirectlyBelowShorter(page: Page, shorter: SectionTable): Promise<void> {
-  const boxes = await expectTwoColumnsWithTotalsUnder(page, shorter);
-  expect(boxes.Totals.y).toBeLessThan(bottom(boxes[OTHER_SECTION[shorter]]));
-}
-
-async function expectOneColumn(page: Page): Promise<void> {
-  const { Revenue: revenue, Expenses: expenses, Totals: totals } = await boxesOf(page);
-  expect(expenses.x).toBeCloseTo(revenue.x, 0);
-  expect(totals.x).toBeCloseTo(revenue.x, 0);
-  expect(expenses.y).toBeGreaterThanOrEqual(bottom(revenue));
-  expect(totals.y).toBeGreaterThanOrEqual(bottom(expenses));
 }
 
 test('opens with no query on the calendar month holding the browser\'s day, filled into From and To, and counts only its Entries', async ({ page }) => {
@@ -195,12 +139,11 @@ test('puts a range chosen with From and To into the URL, which a reload and the 
   await expect(page).toHaveURL(INCOME_STATEMENT_WITHOUT_QUERY);
 
   await showStatement(page, JUNE_FIRST, JUNE_LAST);
-  await expect(page).toHaveURL(INCOME_STATEMENT_WITH_QUERY);
-  expect(rangeInUrl(page)).toMatchObject({ from: JUNE_FIRST, to: JUNE_LAST });
+  await expect(page).toHaveURL(withQuery(STATEMENT, { from: JUNE_FIRST, to: JUNE_LAST }));
   await expectStatement(page, june);
 
   await showStatement(page, '2026-07-01', '2026-07-31');
-  expect(rangeInUrl(page)).toMatchObject({ from: '2026-07-01', to: '2026-07-31' });
+  await expect(page).toHaveURL(withQuery(STATEMENT, { from: '2026-07-01', to: '2026-07-31' }));
   await expectStatement(page, july);
 
   await page.goBack();
@@ -208,7 +151,7 @@ test('puts a range chosen with From and To into the URL, which a reload and the 
   await expectStatement(page, june);
 
   await page.reload();
-  expect(rangeInUrl(page)).toMatchObject({ from: JUNE_FIRST, to: JUNE_LAST });
+  await expect(page).toHaveURL(withQuery(STATEMENT, { from: JUNE_FIRST, to: JUNE_LAST }));
   await expectPeriod(page, JUNE_FIRST, JUNE_LAST);
   await expectStatement(page, june);
 });
@@ -226,13 +169,12 @@ test('fills From and To from a date preset and shows the statement for it, with 
 
   await choosePreset(page, 'Month', 'Jun 2026');
   await expectPeriod(page, JUNE_FIRST, JUNE_LAST);
-  await expect(page).toHaveURL(INCOME_STATEMENT_WITH_QUERY);
-  expect(rangeInUrl(page)).toMatchObject({ from: JUNE_FIRST, to: JUNE_LAST });
+  await expect(page).toHaveURL(withQuery(STATEMENT, { from: JUNE_FIRST, to: JUNE_LAST }));
   await expectStatement(page, spentOnly('1,000'));
 
   await choosePreset(page, 'Year', '2025');
   await expectPeriod(page, '2025-01-01', '2025-12-31');
-  expect(rangeInUrl(page)).toMatchObject({ from: '2025-01-01', to: '2025-12-31' });
+  await expect(page).toHaveURL(withQuery(STATEMENT, { from: '2025-01-01', to: '2025-12-31' }));
   await expectStatement(page, spentOnly('2,000'));
 });
 
@@ -261,7 +203,10 @@ test('links to the Income statement from the Sidebar of every signed-in page, af
 
   for (const path of [...SIGNED_IN_PAGES, STATEMENT]) {
     await page.goto(path);
-    await expect(sidebar(page).getByRole('link')).toHaveText([...SIDEBAR_LINKS]);
+    await expect(statementLink(page)).toBeVisible();
+    const names = await sidebar(page).getByRole('link').allTextContents();
+    expect(names.slice(0, 3)).toEqual(['Entries', 'Entry search', 'Income statement']);
+    expect(names.at(-1)).toBe('Settings');
   }
 
   await page.goto('/entries');
@@ -291,7 +236,7 @@ test('names the Income statement by exactly one level-1 heading on a wide window
     await expect(page.getByRole('heading', { level: 1, name: 'Income statement', exact: true })).toBeVisible();
     await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
   }
-  await expect(page).toHaveTitle(`Income statement ${MIDDLE_DOT} Credebi`);
+  await expect(page).toHaveTitle(pageTitle('Income statement'));
 });
 
 test("shows the Income statement in the User's Language: its heading, title, tables, Sidebar link, Accounts and refusal", async ({ page }) => {
@@ -556,7 +501,7 @@ test('puts Expenses left of Revenue at 1280px, their tops level, and Totals dire
   await showJuneAt1280(page);
 
   await expectStatement(page, { ...nothingCounted, revenue: zeroRows('Sales', revenue) });
-  await expectTotalsDirectlyBelowShorter(page, 'Expenses');
+  await expectTotalsDirectlyBelowShorter(statementPanels(page), 'left');
 });
 
 test('puts Expenses left of Revenue at 1280px, their tops level, and Totals directly below Revenue when Revenue has fewer rows', async ({ page }) => {
@@ -567,7 +512,7 @@ test('puts Expenses left of Revenue at 1280px, their tops level, and Totals dire
   await showJuneAt1280(page);
 
   await expectStatement(page, { ...nothingCounted, expenses: zeroRows('Expenses', THREE_EXPENSES) });
-  await expectTotalsDirectlyBelowShorter(page, 'Revenue');
+  await expectTotalsDirectlyBelowShorter(statementPanels(page), 'right');
 });
 
 test("counts each Account group's row as a row at 1280px, so Totals goes directly below Expenses when only the group rows make Revenue longer", async ({ page }) => {
@@ -592,7 +537,7 @@ test("counts each Account group's row as a row at 1280px, so Totals goes directl
     revenue: zeroRows('Sales', groups.flat()),
     expenses: zeroRows('Expenses', THREE_EXPENSES),
   });
-  await expectTotalsDirectlyBelowShorter(page, 'Expenses');
+  await expectTotalsDirectlyBelowShorter(statementPanels(page), 'left');
 });
 
 test('puts Expenses left of Revenue at 1280px, their tops level, and Totals below Revenue when the two have the same number of rows', async ({ page }) => {
@@ -601,7 +546,7 @@ test('puts Expenses left of Revenue at 1280px, their tops level, and Totals belo
   await showJuneAt1280(page);
 
   await expectStatement(page, nothingCounted);
-  await expectTwoColumnsWithTotalsUnder(page, 'Revenue');
+  await expectTwoColumnsWithTotalsUnder(statementPanels(page), 'right');
 });
 
 test('stacks Revenue, Expenses and Totals in one column below 1280px and at 390px', async ({ page }) => {
@@ -615,7 +560,7 @@ test('stacks Revenue, Expenses and Totals in one column below 1280px and at 390p
     await showStatement(page, JUNE_FIRST, JUNE_LAST);
 
     await expectStatement(page, { ...nothingCounted, revenue: [['Sales', '0'], ['Interest', '0']] });
-    await expectOneColumn(page);
+    await expectOneColumn(statementTable(page, 'Revenue'), statementTable(page, 'Expenses'), statementTable(page, 'Totals'));
   }
 });
 
