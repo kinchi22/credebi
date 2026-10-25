@@ -30,7 +30,7 @@ const LINKS = [
   { href: SIGNED_IN_HOME, label: 'sidebar.entries', icon: <ListIcon /> },
   { href: ENTRY_SEARCH_PATH, label: 'sidebar.entrySearch', icon: <SearchIcon size={18} /> },
   { href: INCOME_STATEMENT_PATH, label: 'sidebar.incomeStatement', icon: <StatementIcon /> },
-  { href: ASSETS_AND_LIABILITIES_PATH, label: 'sidebar.assetsAndLiabilities', icon: <WalletIcon /> },
+  { href: ASSETS_AND_LIABILITIES_PATH, label: 'sidebar.assetsAndLiabilities', icon: <WalletIcon size={18} /> },
   { href: SETTINGS_PATH, label: 'sidebar.settings', icon: <SlidersIcon /> },
 ] as const;
 

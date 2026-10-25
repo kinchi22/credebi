@@ -987,8 +987,9 @@ light ground is 36px tall, `controlHeight` in the tokens module and
   Suggested Band leads with a sparkle, a four-point star beside a small plus,
   and is named `Suggested` alone. Each
   Sidebar link and Sign out leads with an 18px icon -- a list, a magnifier, a
-  sheet, sliders and an exit -- so each is named by its text alone; the magnifier is
-  the Account picker's search icon at 18px rather than 16px.
+  sheet, a wallet, sliders and an exit -- so each is named by its text alone; the
+  magnifier is the Account picker's search icon and the wallet, for Assets and
+  liabilities, the Assets Band's icon, each at 18px rather than 16px.
 - **Status.** `positive` for healthy, `warning` for degraded, `danger` for a
   refusal or an error.
 

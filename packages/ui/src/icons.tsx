@@ -77,9 +77,9 @@ export function FolderIcon({ size }: { readonly size: 14 | 16 }): ReactNode {
   );
 }
 
-export function WalletIcon(): ReactNode {
+export function WalletIcon({ size }: { readonly size: 16 | 18 }): ReactNode {
   return (
-    <StrokeIcon size={16}>
+    <StrokeIcon size={size}>
       <rect x="3" y="6" width="18" height="14" rx="2" />
       <path d="M16 13h2M3 10h18M6 6V4h11v2" />
     </StrokeIcon>
