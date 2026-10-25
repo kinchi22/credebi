@@ -72,9 +72,6 @@
   --text-date: 13px;
   --text-date--line-height: 20px;
   --text-date--font-weight: 400;
-  --text-input: 16px;
-  --text-input--line-height: 20px;
-  --text-input--font-weight: 400;
   --breakpoint-wide: 45rem;
   --breakpoint-split: 80rem;
   --radius-control: 6px;
@@ -83,6 +80,7 @@
   --shadow-lift: 0 1px 2px rgb(11 43 42 / 0.05), 0 1px 3px rgb(11 43 42 / 0.04);
   --shadow-lift-card: 0 1px 2px rgb(11 43 42 / 0.05), 0 12px 32px rgb(11 43 42 / 0.08);
   --height-control: 36px;
+  --text-control: 16px;
 }
 
 @layer base {

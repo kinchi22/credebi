@@ -155,8 +155,7 @@ export type TypeStepName =
   | 'body-dense'
   | 'label'
   | 'figure'
-  | 'date'
-  | 'input';
+  | 'date';
 
 export const typeScale: Readonly<Record<TypeStepName, TypeStep>> = {
   display: {
@@ -243,14 +242,6 @@ export const typeScale: Readonly<Record<TypeStepName, TypeStep>> = {
     caps: false,
     tabularNumerals: true,
   },
-  input: {
-    fontFamily: fontFaces.sans,
-    fontSize: 16,
-    lineHeight: 20,
-    fontWeight: 400,
-    caps: false,
-    tabularNumerals: false,
-  },
 };
 
 export const breakpoints = {
@@ -267,6 +258,12 @@ export const radii: Readonly<Record<RadiusName, number>> = {
 };
 
 export const controlHeight = 36;
+
+export const controlFontSize = 16;
+
+export const textSizeTokens: Readonly<Record<'control', number>> = {
+  control: controlFontSize,
+};
 
 export type ShadowLayer = {
   readonly offsetY: number;
@@ -370,6 +367,10 @@ export function themeDeclarations(): Readonly<Record<string, string>> {
     `--radius-${name}`,
     px(radius),
   ]);
+  const sizes = Object.entries(textSizeTokens).map(([name, size]): [string, string] => [
+    `--text-${name}`,
+    px(size),
+  ]);
   const lifts = Object.entries(shadows).map(([name, shadow]): [string, string] => [
     `--shadow-${name}`,
     shadowValue(shadow),
@@ -382,5 +383,6 @@ export function themeDeclarations(): Readonly<Record<string, string>> {
     ...corners,
     ...lifts,
     ['--height-control', px(controlHeight)],
+    ...sizes,
   ]);
 }
