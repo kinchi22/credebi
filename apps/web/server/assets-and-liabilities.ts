@@ -8,42 +8,42 @@ import {
 import { unanswered, type Unanswered } from './report-outcome';
 
 export type ShowAssetsAndLiabilities = (
-  asked: AssetsAndLiabilitiesQuery,
+  day: AssetsAndLiabilitiesQuery,
 ) => Promise<AssetsAndLiabilitiesOutput>;
 
-export type ReportDate = Partial<AssetsAndLiabilitiesQuery>;
+export type ReportDay = Partial<AssetsAndLiabilitiesQuery>;
 
 export type AssetsAndLiabilitiesAnswer =
   | {
       readonly outcome: 'answered';
-      readonly asked: AssetsAndLiabilitiesQuery;
+      readonly day: AssetsAndLiabilitiesQuery;
       readonly report: AssetsAndLiabilitiesOutput;
     }
-  | { readonly outcome: Unanswered; readonly asked: ReportDate };
+  | { readonly outcome: Unanswered; readonly day: ReportDay };
 
 export async function answerAssetsAndLiabilities(
   show: ShowAssetsAndLiabilities,
   query: SearchQuery,
 ): Promise<AssetsAndLiabilitiesAnswer> {
-  const asked = parseAssetsAndLiabilitiesQuery(query);
-  if (!asked.ok) {
-    return { outcome: 'refused', asked: {} };
+  const day = parseAssetsAndLiabilitiesQuery(query);
+  if (!day.ok) {
+    return { outcome: 'refused', day: {} };
   }
 
   try {
-    return { outcome: 'answered', asked: asked.value, report: await show(asked.value) };
+    return { outcome: 'answered', day: day.value, report: await show(day.value) };
   } catch (thrown) {
-    return { outcome: unanswered(thrown), asked: asked.value };
+    return { outcome: unanswered(thrown), day: day.value };
   }
 }
 
-export async function answerDefaultDayReport(
+export async function answerDefaultDayAssetsAndLiabilities(
   show: ShowAssetsAndLiabilities,
   day: unknown,
 ): Promise<AssetsAndLiabilitiesAnswer> {
   const parsed = assetsAndLiabilitiesQuerySchema.safeParse(day);
   if (!parsed.success) {
-    return { outcome: 'refused', asked: {} };
+    return { outcome: 'refused', day: {} };
   }
   return answerAssetsAndLiabilities(show, parsed.data);
 }
