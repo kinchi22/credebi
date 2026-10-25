@@ -63,7 +63,8 @@ function repositoryOver(rows: StoredEntry[]): EntryRepository {
     accountTotals: (userId, range): Promise<Result<readonly AccountSums[], DomainError>> => {
       const totals = new Map<AccountId, AccountSums>();
       for (const entry of shownOf(userId)) {
-        if ((range.from ?? entry.entryDate) <= entry.entryDate && entry.entryDate <= range.to) {
+        const started = range.from === undefined || range.from <= entry.entryDate;
+        if (started && entry.entryDate <= range.to) {
           for (const line of entry.lines) {
             const held = totals.get(line.account) ?? {
               account: line.account,

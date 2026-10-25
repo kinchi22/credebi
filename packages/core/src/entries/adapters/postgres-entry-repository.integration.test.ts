@@ -1021,6 +1021,23 @@ describe('accountTotals', () => {
     ]);
   });
 
+  it('leaves out a deleted Entry and its Reversal, and the Entry a Correction replaced, while counting the replacement, when the range has no first day', async () => {
+    const deleted = entry({ entryDate: '2001-01-01', lines: lines(EXPENSES, CASH, 2000) });
+    const corrected = entry({ entryDate: '2001-01-02', lines: lines(EXPENSES, CASH, 4000) });
+    const replacement = entry({ entryDate: '2001-01-02', lines: lines(EXPENSES, CASH, 3000) });
+    await repository.save(ADA, entry({ entryDate: '2001-01-01', lines: lines(EXPENSES, CASH, 10) }));
+    await repository.save(ADA, deleted);
+    await repository.save(ADA, corrected);
+    await repository.saveReversal(ADA, reversalOf(deleted));
+    await repository.saveReversal(ADA, reversalOf(corrected));
+    await repository.save(ADA, replacement);
+
+    expect(await totals(ADA, { to: '2026-06-30' })).toEqual([
+      { account: CASH, debit: 0, credit: 3010 },
+      { account: EXPENSES, debit: 3010, credit: 0 },
+    ]);
+  });
+
   it('leaves out a deleted Entry and its Reversal, and the Entry a Correction replaced', async () => {
     const deleted = entry({ entryDate: '2026-06-15', lines: lines(EXPENSES, CASH, 2000) });
     const corrected = entry({ entryDate: '2026-06-15', lines: lines(EXPENSES, CASH, 4000) });

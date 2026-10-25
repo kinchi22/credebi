@@ -152,6 +152,26 @@ describe('createGetAssetsAndLiabilities', () => {
     });
   });
 
+  it('leaves out the Entry a Correction replaced and counts its replacement', async () => {
+    const corrected = entry('2026-06-15', EXPENSES, CASH, 4000);
+    const { accounts, stored } = await booksOf(ADA, [entry('2026-06-10', CASH, CAPITAL, 10000), corrected]);
+    await stored.entries.saveReversal(
+      ADA,
+      makeReversal(corrected, {
+        id: '01920000-0000-7000-8000-0000000000fe' as EntryId,
+        createdAt: new Date('2026-10-02T00:00:00.000Z'),
+      }),
+    );
+    await stored.entries.save(ADA, entry('2026-06-15', EXPENSES, CASH, 3000));
+    const getAssetsAndLiabilities = createGetAssetsAndLiabilities({ entries: stored.entries, accounts });
+
+    expect(totalsOf(await getAssetsAndLiabilities({ userId: ADA }, JUNE_LAST))).toEqual({
+      assets: 7000,
+      liabilities: 0,
+      netWorth: 7000,
+    });
+  });
+
   it("counts no other User's Entries", async () => {
     const { accounts, stored } = await booksOf(ADA, [entry('2026-06-15', CASH, CAPITAL, 500)]);
     const getAssetsAndLiabilities = createGetAssetsAndLiabilities({ entries: stored.entries, accounts });
