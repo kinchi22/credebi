@@ -139,7 +139,7 @@ jobs:
         env:
           DATABASE_URL: postgres://e2e:e2e@127.0.0.1:5432/e2e
 
-      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec playwright install --with-deps chromium webkit
 
       # No DATABASE_URL here, as in `Gates`: the build must not need it
       # (ADR-0005), and turbo hashes it into the build task.
