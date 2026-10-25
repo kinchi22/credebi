@@ -93,6 +93,7 @@ export const en = {
     entries: 'Entries',
     entrySearch: 'Entry search',
     incomeStatement: 'Income statement',
+    assetsAndLiabilities: 'Assets and liabilities',
     settings: 'Settings',
     signOut: 'Sign out',
   },
@@ -237,6 +238,7 @@ export const en = {
     netWorth: 'Net worth',
     refused: 'That report was not shown. Check the date: it must be a single calendar day.',
     unavailable: 'The report could not be loaded just now. Press Show to try again.',
+    loading: "Loading today's balances...",
   },
   incomeStatement: {
     period: 'Statement period',

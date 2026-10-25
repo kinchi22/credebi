@@ -3,7 +3,7 @@ import { type AssetsAndLiabilitiesOutput } from '@repo/contracts';
 import { type ReactNode } from 'react';
 import { type AssetsAndLiabilitiesAnswer } from '../server/assets-and-liabilities';
 import { StatementTables } from './statement-tables';
-import { DANGER_TEXT } from './text-classes';
+import { DANGER_TEXT, MUTED_TEXT } from './text-classes';
 
 type AssetsAndLiabilitiesTablesProps = {
   readonly report: AssetsAndLiabilitiesOutput;
@@ -41,5 +41,16 @@ export function AssetsAndLiabilitiesOutcome({ answer }: AssetsAndLiabilitiesOutc
     <p role="alert" className={DANGER_TEXT}>
       {t(answer.outcome)}
     </p>
+  );
+}
+
+export function AssetsAndLiabilitiesPending(): ReactNode {
+  const t = useTranslations('assetsAndLiabilities');
+  return (
+    <section aria-busy className="flex flex-col gap-2">
+      <p role="status" className={MUTED_TEXT}>
+        {t('loading')}
+      </p>
+    </section>
   );
 }

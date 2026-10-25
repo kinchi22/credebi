@@ -10,7 +10,7 @@ import { type EntryControls } from './entry-list';
 import { EntrySearchForm } from './entry-search-form';
 import { EntrySearchOutcome, EntrySearchPending } from './entry-search-results';
 import { DANGER_TEXT } from './text-classes';
-import { UNAVAILABLE, useDefaultRangeAnswer } from './use-default-range-answer';
+import { UNAVAILABLE, useDefaultAnswer } from './use-default-answer';
 
 export type SearchDefaultRange = (range: DayRange) => Promise<EntrySearchAnswer>;
 
@@ -44,7 +44,7 @@ function ColdVisitOutcome({
 
 export function EntrySearchColdVisit({ search, controls }: EntrySearchColdVisitProps): ReactNode {
   const [revision, setRevision] = useState(0);
-  const { range, rangeKey, answer } = useDefaultRangeAnswer(defaultSearchRange, search, revision);
+  const { asked: range, todayKey, answer } = useDefaultAnswer(defaultSearchRange, search, revision);
   const { deleteEntry, editEntry } = controls;
   const deleteAndSearchAgain = useCallback<DeleteEntryAction>(
     async (id) => {
@@ -70,7 +70,7 @@ export function EntrySearchColdVisit({ search, controls }: EntrySearchColdVisitP
   return (
     <>
       <EntrySearchForm
-        key={rangeKey}
+        key={todayKey}
         criteria={range ?? {}}
         chart={controls.chart}
         titles={controls.titles}

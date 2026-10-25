@@ -1,4 +1,5 @@
 import {
+  assetsAndLiabilitiesQuerySchema,
   parseAssetsAndLiabilitiesQuery,
   type AssetsAndLiabilitiesOutput,
   type AssetsAndLiabilitiesQuery,
@@ -34,4 +35,15 @@ export async function answerAssetsAndLiabilities(
   } catch (thrown) {
     return { outcome: unanswered(thrown), asked: asked.value };
   }
+}
+
+export async function answerDefaultDayReport(
+  show: ShowAssetsAndLiabilities,
+  day: unknown,
+): Promise<AssetsAndLiabilitiesAnswer> {
+  const parsed = assetsAndLiabilitiesQuerySchema.safeParse(day);
+  if (!parsed.success) {
+    return { outcome: 'refused', asked: {} };
+  }
+  return answerAssetsAndLiabilities(show, parsed.data);
 }

@@ -1,33 +1,32 @@
-import { type DayRange } from '@repo/core/entries';
 import { useEffect, useMemo, useState } from 'react';
 import { useBrowserToday } from './use-browser-today';
 
 export const UNAVAILABLE = 'unavailable';
 
-export type DefaultRangeAnswer<Answer> = {
-  readonly range: DayRange | undefined;
-  readonly rangeKey: string;
+export type DefaultAnswer<Asked, Answer> = {
+  readonly asked: Asked | undefined;
+  readonly todayKey: string;
   readonly answer: Answer | typeof UNAVAILABLE | undefined;
 };
 
-export function useDefaultRangeAnswer<Answer>(
-  rangeOf: (today: string) => DayRange,
-  ask: (range: DayRange) => Promise<Answer>,
+export function useDefaultAnswer<Asked, Answer>(
+  askedOf: (today: string) => Asked,
+  ask: (asked: Asked) => Promise<Answer>,
   revision = 0,
-): DefaultRangeAnswer<Answer> {
+): DefaultAnswer<Asked, Answer> {
   const today = useBrowserToday();
-  const range = useMemo(
-    () => (today === undefined ? undefined : rangeOf(today)),
-    [today, rangeOf],
+  const asked = useMemo(
+    () => (today === undefined ? undefined : askedOf(today)),
+    [today, askedOf],
   );
   const [answer, setAnswer] = useState<Answer | typeof UNAVAILABLE>();
 
   useEffect(() => {
-    if (range === undefined) {
+    if (asked === undefined) {
       return undefined;
     }
     let current = true;
-    ask(range).then(
+    ask(asked).then(
       (found) => {
         if (current) {
           setAnswer(found);
@@ -42,11 +41,7 @@ export function useDefaultRangeAnswer<Answer>(
     return () => {
       current = false;
     };
-  }, [range, ask, revision]);
+  }, [asked, ask, revision]);
 
-  return {
-    range,
-    rangeKey: range === undefined ? 'today-unknown' : `${range.from}/${range.to}`,
-    answer,
-  };
+  return { asked, todayKey: today ?? 'today-unknown', answer };
 }

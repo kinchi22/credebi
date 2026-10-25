@@ -3,6 +3,7 @@ import { type Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 import { type ReactNode } from 'react';
+import { AssetsAndLiabilitiesColdVisit } from '../../../../components/assets-and-liabilities-cold-visit';
 import { AssetsAndLiabilitiesForm } from '../../../../components/assets-and-liabilities-form';
 import { AssetsAndLiabilitiesOutcome } from '../../../../components/assets-and-liabilities-tables';
 import { PAGE_HEADING } from '../../../../components/text-classes';
@@ -15,6 +16,7 @@ import {
 } from '../../../../server/return-path';
 import { createCaller } from '../../../../server/root-router';
 import { orSignIn } from '../../../../server/sign-in-redirect';
+import { showDefaultDay } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,7 +45,7 @@ export default async function AssetsAndLiabilitiesPage({
     return (
       <>
         {heading}
-        <AssetsAndLiabilitiesForm asked={{}} />
+        <AssetsAndLiabilitiesColdVisit show={showDefaultDay} />
       </>
     );
   }
