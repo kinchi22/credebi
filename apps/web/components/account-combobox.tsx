@@ -111,14 +111,21 @@ export function AccountCombobox({ id, name, label, accounts, defaultValue }: Acc
             <CloseIcon />
           </button>
         )}
-        <select aria-hidden tabIndex={-1} className={`${CONTROL} invisible block max-h-0 max-w-full border-y-0`}>
-          <option>{t('anyAccount')}</option>
-          {accounts.map((account) => (
-            <option key={account.id}>{account.name}</option>
-          ))}
-        </select>
+        <ClosedSelectWidth choices={[t('anyAccount'), ...accounts.map((account) => account.name)]} />
       </div>
       <input type="hidden" name={name} value={settled.outcome === 'account' ? settled.account.id : ''} />
+    </div>
+  );
+}
+
+function ClosedSelectWidth({ choices }: { readonly choices: readonly string[] }): ReactNode {
+  return (
+    <div aria-hidden className="h-0 overflow-hidden">
+      <select tabIndex={-1} className={`${CONTROL} block max-w-full`}>
+        {choices.map((choice, index) => (
+          <option key={index}>{choice}</option>
+        ))}
+      </select>
     </div>
   );
 }
