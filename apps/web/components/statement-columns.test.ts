@@ -1,4 +1,4 @@
-import { incomeStatementSchema } from '@repo/contracts';
+import { statementSectionSchema } from '@repo/contracts';
 import { describe, expect, it } from 'vitest';
 import { totalsUnder } from './statement-columns';
 
@@ -19,37 +19,32 @@ const group = (tail: number, accounts: readonly number[]) => ({
   accounts: accounts.map(account),
 });
 
-const statement = (revenue: readonly object[], expense: readonly object[]) =>
-  incomeStatementSchema.parse({
-    revenue: { total: 0, rows: revenue },
-    expense: { total: 0, rows: expense },
-    netIncome: 0,
-  });
+const section = (...rows: readonly object[]) => statementSectionSchema.parse({ total: 0, rows });
 
 describe('totalsUnder', () => {
-  it('puts Totals under Expenses when Expenses has fewer Account rows', () => {
-    expect(totalsUnder(statement([account(1), account(2)], [account(3)]))).toBe('expense');
+  it('puts Totals under the left section when it has fewer Account rows', () => {
+    expect(totalsUnder(section(account(3)), section(account(1), account(2)))).toBe('left');
   });
 
-  it('puts Totals under Revenue when Revenue has fewer Account rows', () => {
-    expect(totalsUnder(statement([account(1)], [account(2), account(3)]))).toBe('revenue');
+  it('puts Totals under the right section when it has fewer Account rows', () => {
+    expect(totalsUnder(section(account(2), account(3)), section(account(1)))).toBe('right');
   });
 
-  it('puts Totals under Revenue when the two have the same number of rows', () => {
-    expect(totalsUnder(statement([account(1)], [account(2)]))).toBe('revenue');
+  it('puts Totals under the right section when the two have the same number of rows', () => {
+    expect(totalsUnder(section(account(2)), section(account(1)))).toBe('right');
   });
 
-  it('puts Totals under Revenue when both sections are empty', () => {
-    expect(totalsUnder(statement([], []))).toBe('revenue');
+  it('puts Totals under the right section when both sections are empty', () => {
+    expect(totalsUnder(section(), section())).toBe('right');
   });
 
   it("counts an Account group's own row, so a group of one is two rows", () => {
-    expect(totalsUnder(statement([group(1, [2])], [account(3)]))).toBe('expense');
-    expect(totalsUnder(statement([group(1, [2])], [account(3), account(4)]))).toBe('revenue');
+    expect(totalsUnder(section(account(3)), section(group(1, [2])))).toBe('left');
+    expect(totalsUnder(section(account(3), account(4)), section(group(1, [2])))).toBe('right');
   });
 
   it("counts each of an Account group's Accounts as a row", () => {
-    expect(totalsUnder(statement([group(1, [2, 3])], [account(4), account(5)]))).toBe('expense');
-    expect(totalsUnder(statement([account(4), account(5), account(6)], [group(1, [2, 3])]))).toBe('revenue');
+    expect(totalsUnder(section(account(4), account(5)), section(group(1, [2, 3])))).toBe('left');
+    expect(totalsUnder(section(group(1, [2, 3])), section(account(4), account(5), account(6)))).toBe('right');
   });
 });

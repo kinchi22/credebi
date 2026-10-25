@@ -6,7 +6,8 @@ import {
   type Money,
 } from '@repo/contracts';
 import { type Account, type AccountGroup, type Chart } from '../../accounts/domain/account';
-import { incomeStatement, type AccountSums, type IncomeStatement } from './income-statement';
+import { incomeStatement, type IncomeStatement } from './income-statement';
+import { type AccountSums } from './statement';
 
 const JUNE = { from: '2026-06-01', to: '2026-06-30' };
 

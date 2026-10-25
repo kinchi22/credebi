@@ -239,6 +239,22 @@ export const ko = {
   incomeStatementPage: {
     title: '손익계산서',
   },
+  assetsAndLiabilitiesPage: {
+    title: '자산·부채',
+  },
+  assetsAndLiabilities: {
+    reportDate: '기준일',
+    date: '날짜',
+    show: '조회',
+    assets: '자산',
+    liabilities: '부채',
+    totals: '합계',
+    totalAssets: '자산 합계',
+    totalLiabilities: '부채 합계',
+    netWorth: '순자산',
+    refused: '자산·부채를 표시하지 않았습니다. 날짜를 확인하세요. 달력상의 하루여야 합니다.',
+    unavailable: '지금은 자산·부채를 불러올 수 없습니다. 조회를 눌러 다시 시도해 주세요.',
+  },
   incomeStatement: {
     period: '조회 기간',
     show: '조회',
@@ -413,7 +429,7 @@ export const ko = {
   accountTypes: {
     asset: '자산',
     liability: '부채',
-    equity: '순자산',
+    equity: '자본',
     revenue: '수익',
     expense: '비용',
   },

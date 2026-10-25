@@ -34,10 +34,10 @@ import { describeError } from '../../logging/domain/describe-error';
 import { type Logger } from '../../logging/ports/logger';
 import { money, MONEY_ZERO } from '../../money/domain/money';
 import { makeEntry, notInChart, type Entry, type EntryDraft } from '../domain/entry';
-import { type AccountSums } from '../domain/income-statement';
+import { type AccountSums } from '../domain/statement';
 import { type TitledEntry, type TitledLine } from '../domain/offered-titles';
 import { type SearchCriteria } from '../domain/search-criteria';
-import { type DayRange } from '../domain/search-range';
+import { type OpenDayRange } from '../domain/search-range';
 import { reversedAlready, type Reversal } from '../domain/reversal';
 import { reversed, shownEntry } from './shown-entry';
 import { type EntryRepository, type FoundEntry } from '../ports/entry-repository';
@@ -270,7 +270,7 @@ export function postgresEntriesOn(database: PostgresExecutor, logger: Logger): E
 
     accountTotals: async (
       userId: UserId,
-      range: DayRange,
+      range: OpenDayRange,
     ): Promise<Result<readonly AccountSums[], DomainError>> => {
       let rows: { readonly accountId: string; readonly side: string; readonly amount: string }[];
       try {
@@ -286,7 +286,7 @@ export function postgresEntriesOn(database: PostgresExecutor, logger: Logger): E
             and(
               eq(schema.entries.userId, userId),
               shownEntry(),
-              gte(schema.entries.entryDate, range.from),
+              range.from === undefined ? undefined : gte(schema.entries.entryDate, range.from),
               lte(schema.entries.entryDate, range.to),
             ),
           )
