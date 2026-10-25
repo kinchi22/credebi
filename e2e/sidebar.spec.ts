@@ -106,3 +106,69 @@ test('focuses the drawer, not a Sidebar link, when Menu opens it, and Tab then f
   await expect(entries).toBeFocused();
   await expect(entries.and(page.locator(':focus-visible'))).toBeVisible();
 });
+
+const FOCUS_VISIBLE_ON_FOCUS = 'data-focus-visible-on-focus';
+
+type FocusableElement = {
+  readonly addEventListener: (type: 'focus', listener: () => void) => void;
+  readonly setAttribute: (name: string, value: string) => void;
+  readonly matches: (selector: string) => boolean;
+};
+
+async function recordFocusVisibleOnFocus(target: Locator): Promise<void> {
+  await target.evaluate((element: FocusableElement, attribute) => {
+    element.addEventListener('focus', () => {
+      element.setAttribute(attribute, String(element.matches(':focus-visible')));
+    });
+  }, FOCUS_VISIBLE_ON_FOCUS);
+}
+
+async function openDrawerWithKeyboard(page: Page): Promise<void> {
+  await menu(page).focus();
+  await page.keyboard.press('Enter');
+  await expect(sidebar(page)).toBeFocused();
+}
+
+test.describe('on a touch phone', () => {
+  test.use({ viewport: PHONE, hasTouch: true });
+
+  test('returns focus to Menu without a ring when the User taps the current page in the drawer', { tag: '@webkit' }, async ({ page }) => {
+    await signIn(page);
+
+    await menu(page).tap();
+    await expect(sidebarLink(page, 'Entries')).toBeVisible();
+    await recordFocusVisibleOnFocus(menu(page));
+
+    await sidebarLink(page, 'Entries').tap();
+    await expect(sidebar(page)).toBeHidden();
+    await expect(menu(page)).toHaveAttribute(FOCUS_VISIBLE_ON_FOCUS, 'false');
+  });
+});
+
+test.describe('on a phone', () => {
+  test.use({ viewport: PHONE });
+
+  test('returns focus to Menu with a ring when the User follows a drawer link with Enter', { tag: '@webkit' }, async ({ page }) => {
+    await signIn(page);
+
+    await openDrawerWithKeyboard(page);
+    await recordFocusVisibleOnFocus(menu(page));
+    await sidebarLink(page, 'Entries').focus();
+    await expect(sidebarLink(page, 'Entries')).toBeFocused();
+
+    await page.keyboard.press('Enter');
+    await expect(sidebar(page)).toBeHidden();
+    await expect(menu(page)).toHaveAttribute(FOCUS_VISIBLE_ON_FOCUS, 'true');
+  });
+
+  test('returns focus to Menu with a ring when the User dismisses the drawer with Escape', { tag: '@webkit' }, async ({ page }) => {
+    await signIn(page);
+
+    await openDrawerWithKeyboard(page);
+    await recordFocusVisibleOnFocus(menu(page));
+
+    await page.keyboard.press('Escape');
+    await expect(sidebar(page)).toBeHidden();
+    await expect(menu(page)).toHaveAttribute(FOCUS_VISIBLE_ON_FOCUS, 'true');
+  });
+});
