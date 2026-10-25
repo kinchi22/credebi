@@ -34,7 +34,7 @@ describe('answerAssetsAndLiabilities', () => {
       return Promise.resolve(REPORT);
     }, { ...JUNE_LAST, other: 'ignored' });
 
-    expect(answer).toEqual({ outcome: 'answered', asked: JUNE_LAST, report: REPORT });
+    expect(answer).toEqual({ outcome: 'answered', day: JUNE_LAST, report: REPORT });
     expect(asked).toEqual([JUNE_LAST]);
   });
 
@@ -52,20 +52,20 @@ describe('answerAssetsAndLiabilities', () => {
       return Promise.resolve(REPORT);
     }, query);
 
-    expect(answer).toEqual({ outcome: 'refused', asked: {} });
+    expect(answer).toEqual({ outcome: 'refused', day: {} });
     expect(asked).toEqual([]);
   });
 
   it('refuses a day the procedure refuses, and keeps the day that produced it', async () => {
     const answer = await answerAssetsAndLiabilities(failing('INVALID_INPUT'), JUNE_LAST);
 
-    expect(answer).toEqual({ outcome: 'refused', asked: JUNE_LAST });
+    expect(answer).toEqual({ outcome: 'refused', day: JUNE_LAST });
   });
 
   it('answers that the report is unavailable when a dependency is, keeping the day', async () => {
     const answer = await answerAssetsAndLiabilities(failing('DEPENDENCY_UNAVAILABLE'), JUNE_LAST);
 
-    expect(answer).toEqual({ outcome: 'unavailable', asked: JUNE_LAST });
+    expect(answer).toEqual({ outcome: 'unavailable', day: JUNE_LAST });
   });
 
   it('lets any other failure through, a redirect to sign in included', async () => {
@@ -89,7 +89,7 @@ describe('answerDefaultDayReport', () => {
       return Promise.resolve(REPORT);
     }, { ...JUNE_LAST, memo: 'Office' });
 
-    expect(answer).toEqual({ outcome: 'answered', asked: JUNE_LAST, report: REPORT });
+    expect(answer).toEqual({ outcome: 'answered', day: JUNE_LAST, report: REPORT });
     expect(asked).toEqual([JUNE_LAST]);
   });
 
@@ -109,17 +109,16 @@ describe('answerDefaultDayReport', () => {
       return Promise.resolve(REPORT);
     }, day);
 
-    expect(answer).toEqual({ outcome: 'refused', asked: {} });
+    expect(answer).toEqual({ outcome: 'refused', day: {} });
     expect(asked).toEqual([]);
   });
 
   it('answers as the report does when the procedure refuses or is unavailable', async () => {
-    await expect(answerDefaultDayReport(failing('INVALID_INPUT'), JUNE_LAST)).resolves.toEqual({
-      outcome: 'refused',
-      asked: JUNE_LAST,
-    });
+    await expect(
+      answerDefaultDayReport(failing('INVALID_INPUT'), JUNE_LAST),
+    ).resolves.toEqual({ outcome: 'refused', day: JUNE_LAST });
     await expect(
       answerDefaultDayReport(failing('DEPENDENCY_UNAVAILABLE'), JUNE_LAST),
-    ).resolves.toEqual({ outcome: 'unavailable', asked: JUNE_LAST });
+    ).resolves.toEqual({ outcome: 'unavailable', day: JUNE_LAST });
   });
 });

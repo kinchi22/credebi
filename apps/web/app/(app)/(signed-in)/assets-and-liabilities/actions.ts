@@ -12,7 +12,7 @@ import { orSignIn } from '../../../../server/sign-in-redirect';
 export async function showDefaultDay(day: unknown): Promise<AssetsAndLiabilitiesAnswer> {
   const caller = createCaller(await createContext());
   return answerDefaultDayReport(
-    (asked) => orSignIn(caller.entries.assetsAndLiabilities(asked), ASSETS_AND_LIABILITIES_PATH),
+    (query) => orSignIn(caller.entries.assetsAndLiabilities(query), ASSETS_AND_LIABILITIES_PATH),
     day,
   );
 }

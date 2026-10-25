@@ -51,14 +51,14 @@ export default async function AssetsAndLiabilitiesPage({
   }
 
   const answer = await answerAssetsAndLiabilities(
-    (asked) => orSignIn(caller.entries.assetsAndLiabilities(asked), path),
+    (day) => orSignIn(caller.entries.assetsAndLiabilities(day), path),
     query,
   );
 
   return (
     <>
       {heading}
-      <AssetsAndLiabilitiesForm key={answer.asked.date ?? ''} asked={answer.asked} />
+      <AssetsAndLiabilitiesForm key={answer.day.date ?? ''} day={answer.day} />
       <AssetsAndLiabilitiesOutcome answer={answer} />
     </>
   );
