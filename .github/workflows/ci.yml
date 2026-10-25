@@ -156,7 +156,7 @@ jobs:
       # a spec that asserts nothing is caught while it is being reviewed, not
       # after a milestone has been built on it. It needs no build and no server
       # beyond the one the script starts.
-      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec playwright install --with-deps chromium webkit
 
       - name: E2E specs fail against an empty page
         run: pnpm verify:gates:e2e

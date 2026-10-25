@@ -64,6 +64,7 @@ status in the ADR itself.
 | [ADR-0026: Keep a chart of accounts per User](adr/0026-keep-a-chart-of-accounts-per-user.md) | Accepted |
 | [ADR-0027: Total by Account, and name an Entry by its Title](adr/0027-total-by-account-and-name-an-entry-by-its-title.md) | Accepted |
 | [ADR-0028: Remove an Account no shown Entry names](adr/0028-remove-an-account-no-shown-entry-names.md) | Accepted |
+| [ADR-0029: Run the engine-dependent specs in mobile WebKit too](adr/0029-run-engine-dependent-specs-in-mobile-webkit.md) | Accepted |
 
 ## Package layout
 
@@ -469,7 +470,8 @@ can have written, such as a memo carrying a fresh UUID, never by counting rows
 or by position in a list. Where order is the subject, it reads position only
 among the rows it wrote itself, after asserting how many there are. Which specs
 may run against Production is the Smoke tag's rule (`docs/GLOSSARY.md`).
-ADR-0012.
+ADR-0012. Which specs also run in mobile WebKit is the WebKit tag's rule.
+ADR-0029.
 
 A spec of a criterion a milestone does not yet meet goes in a spec file of its
 own, never appended to an existing one: the advisory run classifies by file, so

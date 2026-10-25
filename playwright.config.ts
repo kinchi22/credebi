@@ -1,4 +1,5 @@
 import { defineConfig, devices, type PlaywrightTestConfig } from '@playwright/test';
+import { PHONE } from './e2e/viewport.ts';
 
 const externalUrl = process.env['E2E_BASE_URL'];
 const baseURL = externalUrl ?? 'http://127.0.0.1:3000';
@@ -40,6 +41,13 @@ export default defineConfig({
     trace: isAdvisory ? 'retain-on-first-failure' : 'on-first-retry',
     ...protectionBypass,
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    {
+      name: 'mobile-webkit',
+      grep: /@webkit/,
+      use: { ...devices['iPhone 14'], viewport: PHONE },
+    },
+  ],
   ...localServer,
 });

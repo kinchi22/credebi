@@ -89,6 +89,7 @@ no term is defined in more than one.
 | Unbalanced       | The `DomainErrorCode` for an Entry whose debits and credits differ. The one broken Entry rule with a code of its own, so the form can say the balance is what is wrong; every other broken rule is `INVALID_INPUT`. Mapped to `UNPROCESSABLE_CONTENT`. |
 | User             | A person who keeps books here, created the first time they sign in. Every Entry belongs to one User, and no User sees another's. ADR-0021. |
 | Use case         | One application operation. Owns orchestration, and any transaction boundary wider than one Aggregate. ADR-0011. |
+| WebKit tag       | `{ tag: '@webkit' }` on a spec, which runs it in mobile WebKit at the phone viewport as well as in Chromium. Carried only by a spec whose behaviour depends on the engine, and never beside the Smoke tag. ADR-0029. |
 
 ## Naming rules
 

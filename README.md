@@ -104,8 +104,9 @@ Run in this order; any failure blocks a merge.
 
 `pnpm gates` runs everything except E2E, and except `pnpm verify:gates:e2e`,
 which runs the specs against an empty page and fails unless every one of them
-fails. Both need a browser (`pnpm exec playwright install chromium`); CI runs
-them in `E2E build` and `Gate liveness`. ADR-0006.
+fails. Both need browsers (`pnpm exec playwright install chromium webkit`): a
+spec tagged `@webkit` runs in mobile WebKit as well as Chromium (ADR-0029). CI
+runs them in `E2E build` and `Gate liveness`. ADR-0006.
 
 CI runs one more check that has no local form. `Spec isolation` fails a pull
 request that changes `e2e/` and anything else in the same change: the specs are
