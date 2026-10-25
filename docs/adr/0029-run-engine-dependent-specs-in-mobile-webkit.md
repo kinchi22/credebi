@@ -43,8 +43,7 @@ outside `chromium`.
 Chromium:** `Gate liveness` in `ci.yml`, and `E2E build` with both advisory
 legs in `e2e-build.yml`. The Smoke runs -- `candidate-production-smoke.yml`,
 `promoted-production-smoke.yml` and the compatibility run in
-`production-release.yml` -- keep installing Chromium alone. The same gate test
-asserts each workflow's install line.
+`production-release.yml` -- keep installing Chromium alone.
 
 The liveness rule of ADR-0006 and the advisory groups need no change: each reads
 a spec's tests whatever their project, so a tagged spec must fail against the

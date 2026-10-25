@@ -81,8 +81,8 @@ the test-collection gate excludes this directory too.
 | `migration/schema-with-a-table.ts`          | migration drift (`pnpm db:drift`)           |
 | `e2e-liveness/no-assertions.spec.ts`        | E2E liveness (passes against an empty page) |
 | `e2e-liveness/browser-failure.spec.ts`      | E2E liveness (browser never launches)       |
-| `e2e-projects/tagged.spec.ts`               | Playwright projects (a `@webkit` spec runs in Chromium alone) |
-| `e2e-projects/untagged.spec.ts`             | Playwright projects (an untagged spec runs in mobile WebKit) |
+| `e2e-projects/tagged.spec.ts`               | Playwright projects (listed in mobile WebKit as well as Chromium) |
+| `e2e-projects/untagged.spec.ts`             | Playwright projects (listed in Chromium alone) |
 
 The two E2E liveness fixtures import the shared Playwright configuration and run
 in `vitest.e2e-liveness.config.ts`, which is called by `pnpm verify:gates:e2e`
