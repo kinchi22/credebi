@@ -37,7 +37,7 @@ export async function answerAssetsAndLiabilities(
   }
 }
 
-export async function answerDefaultDayAssetsAndLiabilities(
+export async function answerDefaultDayReport(
   show: ShowAssetsAndLiabilities,
   day: unknown,
 ): Promise<AssetsAndLiabilitiesAnswer> {

@@ -6,7 +6,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import {
   answerAssetsAndLiabilities,
-  answerDefaultDayAssetsAndLiabilities,
+  answerDefaultDayReport,
   type ShowAssetsAndLiabilities,
 } from './assets-and-liabilities';
 import { toTrpcError } from './domain-error';
@@ -80,11 +80,11 @@ describe('answerAssetsAndLiabilities', () => {
   });
 });
 
-describe('answerDefaultDayAssetsAndLiabilities', () => {
+describe('answerDefaultDayReport', () => {
   it('answers with the report for the day it was sent, and asks for nothing but that day', async () => {
     const asked: AssetsAndLiabilitiesQuery[] = [];
 
-    const answer = await answerDefaultDayAssetsAndLiabilities((day) => {
+    const answer = await answerDefaultDayReport((day) => {
       asked.push(day);
       return Promise.resolve(REPORT);
     }, { ...JUNE_LAST, memo: 'Office' });
@@ -104,7 +104,7 @@ describe('answerDefaultDayAssetsAndLiabilities', () => {
   ])('refuses %s without asking for a report', async (_case, day) => {
     const asked: AssetsAndLiabilitiesQuery[] = [];
 
-    const answer = await answerDefaultDayAssetsAndLiabilities((sent) => {
+    const answer = await answerDefaultDayReport((sent) => {
       asked.push(sent);
       return Promise.resolve(REPORT);
     }, day);
@@ -115,10 +115,10 @@ describe('answerDefaultDayAssetsAndLiabilities', () => {
 
   it('answers as the report does when the procedure refuses or is unavailable', async () => {
     await expect(
-      answerDefaultDayAssetsAndLiabilities(failing('INVALID_INPUT'), JUNE_LAST),
+      answerDefaultDayReport(failing('INVALID_INPUT'), JUNE_LAST),
     ).resolves.toEqual({ outcome: 'refused', day: JUNE_LAST });
     await expect(
-      answerDefaultDayAssetsAndLiabilities(failing('DEPENDENCY_UNAVAILABLE'), JUNE_LAST),
+      answerDefaultDayReport(failing('DEPENDENCY_UNAVAILABLE'), JUNE_LAST),
     ).resolves.toEqual({ outcome: 'unavailable', day: JUNE_LAST });
   });
 });
