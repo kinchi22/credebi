@@ -33,6 +33,28 @@ export async function signIn(
   await expect(page).toHaveURL(ENTRIES_URL);
 }
 
+const issuedSession = (setCookie: string | null): string | undefined =>
+  new RegExp(`(?:^|\\n)${SESSION_COOKIE}=([^;]*)`).exec(setCookie ?? '')?.[1];
+
+export async function signInKeepingSessionOverHttp(
+  page: Page,
+  options: SignInOptions = {},
+): Promise<void> {
+  if (page.context().browser()?.browserType().name() !== 'webkit') {
+    await signIn(page, options);
+    return;
+  }
+  const issuing = page.waitForResponse(async (response) =>
+    issuedSession(await response.headerValue('set-cookie')) !== undefined,
+  );
+  await signIn(page, options);
+  const session = issuedSession(await (await issuing).headerValue('set-cookie'));
+  expect(session, 'signing in issues a session cookie').toBeDefined();
+  await page.context().addCookies([
+    { name: SESSION_COOKIE, value: session ?? '', url: page.url(), httpOnly: true, sameSite: 'Lax', secure: false },
+  ]);
+}
+
 export async function signInForSmoke(
   page: Page,
   context: BrowserContext,

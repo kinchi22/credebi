@@ -1,7 +1,15 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { addAccount, BOOKS_OPEN, bottom, boxOf, dayInBrowser, OLD_WALLET } from './accounts';
-import { AMOUNT, entrySearchForm, type LineAccount, nameOf, postEntries, type TwoLineEntry } from './entries';
+import {
+  AMOUNT,
+  entrySearchForm,
+  type LineAccount,
+  nameOf,
+  postEntries,
+  titleField,
+  type TwoLineEntry,
+} from './entries';
 import {
   accountField,
   accountList,
@@ -25,7 +33,7 @@ import {
   queryOf,
   UUID_V7,
 } from './routes';
-import { signIn } from './session';
+import { signIn, signInKeepingSessionOverHttp } from './session';
 import {
   finishComposing,
   HANGUL,
@@ -36,7 +44,7 @@ import {
   SUTABA,
   SUTABA_IN_HIRAGANA,
 } from './typed-text';
-import { expectWithinPhone, PHONE } from './viewport';
+import { expectWithinPhone, PHONE, WIDE } from './viewport';
 
 const STARTING: readonly OfferedAccount[] = [
   ['Cash', 'Assets'],
@@ -98,6 +106,11 @@ async function openSearch(page: Page): Promise<Locator> {
   await fromField(page).fill(EARLIEST);
   await toField(page).fill(LATEST);
   return accountField(page);
+}
+
+async function edgesOf(locator: Locator): Promise<{ readonly top: number; readonly bottom: number }> {
+  const box = await locator.boundingBox();
+  return box === null ? { top: Number.NaN, bottom: Number.NaN } : { top: Math.round(box.y), bottom: Math.round(bottom(box)) };
 }
 
 async function typeAccount(field: Locator, typed: string): Promise<void> {
@@ -456,4 +469,34 @@ test('opens the list at 390px just below the Account field and as wide as it, wr
   await expect(field).toHaveValue(LONG_NAME);
   await searchButton(page).click();
   await expectListed(page, [saved], [paid]);
+});
+
+test('lines the Account field up with the Title field, top and bottom, where the two share a row', { tag: '@webkit' }, async ({ page }) => {
+  await page.setViewportSize(WIDE);
+  await signInKeepingSessionOverHttp(page);
+  await page.goto(SEARCH);
+
+  await expect
+    .poll(async () => {
+      const account = await edgesOf(accountField(page));
+      const title = await edgesOf(titleField(entrySearchForm(page)));
+      return { top: title.top - account.top, bottom: title.bottom - account.bottom };
+    })
+    .toEqual({ top: 0, bottom: 0 });
+});
+
+test('leaves the same gap below the Account field as below the Title field where the fields stack at 390px', { tag: '@webkit' }, async ({ page }) => {
+  await page.setViewportSize(PHONE);
+  await signInKeepingSessionOverHttp(page);
+  await page.goto(SEARCH);
+
+  await expect
+    .poll(async () => {
+      const account = await edgesOf(accountField(page));
+      const title = await edgesOf(titleField(entrySearchForm(page)));
+      const memo = await edgesOf(entrySearchForm(page).getByLabel('Memo', { exact: true }));
+      const belowAccount = title.top - account.bottom;
+      return { stacked: belowAccount > 0, gapDifference: belowAccount - (memo.top - title.bottom) };
+    })
+    .toEqual({ stacked: true, gapDifference: 0 });
 });
