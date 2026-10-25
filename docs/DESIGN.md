@@ -118,6 +118,11 @@ typography:
     fontWeight: 400
     lineHeight: 20px
     fontFeature: '"tnum" 1'
+  input:
+    fontFamily: IBM Plex Sans
+    fontSize: 16px
+    fontWeight: 400
+    lineHeight: 20px
 rounded:
   control: 6px
   panel: 8px
@@ -352,6 +357,7 @@ Difference that is not zero, is IBM Plex Mono Medium, weight 500
 | `label`      | IBM Plex Sans SemiBold | 11.5 / 16          | 0.04em         | capitals         |
 | `figure`     | IBM Plex Mono Regular  | 14 / 20            |                | tabular numerals |
 | `date`       | IBM Plex Mono Regular  | 13 / 20            |                | tabular numerals |
+| `input`      | IBM Plex Sans Regular  | 16 / 20            |                |                  |
 
 Each step is a Tailwind `text-<step>` utility, which sets its size, line height,
 weight and letter spacing. The face, the capitals and the tabular numerals are
@@ -362,7 +368,9 @@ step's full set, and a component takes a step from it: a date, shown or typed,
 is `typeClasses.date`, an amount `typeClasses.figure`, a section label or a
 Side's name `typeClasses.label`, and a panel's visible title
 `typeClasses.title`. `body-dense` is the entry form's step, so the form stays
-short. The fonts are served from the repository, never fetched from a font
+short. Below `wide`, a typed control is set in `input`, its `text-input` size
+alone, so a phone does not zoom in on focus and a date or an amount keeps IBM
+Plex Mono and its numerals. The fonts are served from the repository, never fetched from a font
 service at build or run time. The font files and their OFL licences are in
 `apps/web/app/fonts/`: the pages load IBM Plex Sans 400, 500 and 600 and IBM
 Plex Mono 400 and 500 as Latin woff2 files through `next/font/local`, and the

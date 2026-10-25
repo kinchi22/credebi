@@ -72,6 +72,9 @@
   --text-date: 13px;
   --text-date--line-height: 20px;
   --text-date--font-weight: 400;
+  --text-input: 16px;
+  --text-input--line-height: 20px;
+  --text-input--font-weight: 400;
   --breakpoint-wide: 45rem;
   --breakpoint-split: 80rem;
   --radius-control: 6px;
