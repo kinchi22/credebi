@@ -59,6 +59,7 @@ export function useModalDialog({ closesWhenWide }: ModalDialogOptions = SHEET): 
     setOpen(false);
     const from = opener.current;
     opener.current = null;
+    if (focus.focusVisible === false) from?.blur();
     from?.focus(focus);
   }, []);
 
