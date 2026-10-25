@@ -13,3 +13,12 @@ export async function expectWithinPhone(page: Page, locator: Locator): Promise<v
   const scrollWidth = Number(await page.evaluate('document.documentElement.scrollWidth'));
   expect(scrollWidth).toBeLessThanOrEqual(PHONE.width);
 }
+
+const AT_LEAST_16PX = /^(?:1[6-9]|[2-9]\d|\d{3,})(?:\.\d+)?px$/;
+
+export async function expectTypedWithoutZoom(control: Locator): Promise<void> {
+  await expect(control, 'a control smaller than 16px makes iOS Safari zoom in on focus').toHaveCSS(
+    'font-size',
+    AT_LEAST_16PX,
+  );
+}
