@@ -111,12 +111,14 @@ export function AccountCombobox({ id, name, label, accounts, defaultValue }: Acc
             <CloseIcon />
           </button>
         )}
-        <select aria-hidden tabIndex={-1} className={`${CONTROL} invisible block max-h-0 max-w-full border-y-0`}>
-          <option>{t('anyAccount')}</option>
-          {accounts.map((account) => (
-            <option key={account.id}>{account.name}</option>
-          ))}
-        </select>
+        <div aria-hidden className="h-0 overflow-hidden">
+          <select tabIndex={-1} className={`${CONTROL} invisible block max-w-full`}>
+            <option>{t('anyAccount')}</option>
+            {accounts.map((account) => (
+              <option key={account.id}>{account.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
       <input type="hidden" name={name} value={settled.outcome === 'account' ? settled.account.id : ''} />
     </div>
