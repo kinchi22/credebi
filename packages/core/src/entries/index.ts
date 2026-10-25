@@ -10,15 +10,17 @@ export { NO_CRITERIA, makeSearchCriteria } from './domain/search-criteria';
 export type { SearchCriteria, SearchCriteriaDraft } from './domain/search-criteria';
 export { calendarMonth, defaultSearchRange, makeDayRange } from './domain/search-range';
 export type { DayRange } from './domain/search-range';
-export { incomeStatement } from './domain/income-statement';
 export type {
   AccountSums,
-  IncomeStatement,
   StatementAccount,
   StatementGroup,
   StatementRow,
   StatementSection,
-} from './domain/income-statement';
+} from './domain/statement';
+export { incomeStatement } from './domain/income-statement';
+export type { IncomeStatement } from './domain/income-statement';
+export { assetsAndLiabilities } from './domain/assets-and-liabilities';
+export type { AssetsAndLiabilities } from './domain/assets-and-liabilities';
 export {
   RELATIVE_DIRECTIONS,
   currentPeriod,
@@ -55,6 +57,12 @@ export type {
   GetIncomeStatement,
   GetIncomeStatementDependencies,
 } from './application/get-income-statement';
+
+export { createGetAssetsAndLiabilities } from './application/get-assets-and-liabilities';
+export type {
+  GetAssetsAndLiabilities,
+  GetAssetsAndLiabilitiesDependencies,
+} from './application/get-assets-and-liabilities';
 
 export { createGetTitles } from './application/get-titles';
 export type { GetTitles, GetTitlesDependencies } from './application/get-titles';

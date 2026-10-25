@@ -48,6 +48,9 @@ export {
   createGetIncomeStatement,
   type GetIncomeStatement,
   type GetIncomeStatementDependencies,
+  createGetAssetsAndLiabilities,
+  type GetAssetsAndLiabilities,
+  type GetAssetsAndLiabilitiesDependencies,
   type EntryRepository,
   type UnitOfWork,
 } from './entries/index';

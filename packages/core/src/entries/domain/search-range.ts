@@ -6,6 +6,8 @@ export type DayRange = {
   readonly to: string;
 };
 
+export type OpenDayRange = Partial<Pick<DayRange, 'from'>> & Pick<DayRange, 'to'>;
+
 export function reversedRange(from: string, to: string): Err<DomainError> {
   return err(
     domainError('INVALID_INPUT', `A day range cannot end (${to}) before it starts (${from}).`),

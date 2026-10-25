@@ -14,12 +14,23 @@ export const INCOME_STATEMENT_PATH = '/income-statement';
 
 export const INCOME_STATEMENT_WITHOUT_QUERY = /\/income-statement$/;
 
-export const INCOME_STATEMENT_WITH_QUERY = /\/income-statement\?.+$/;
+export const ASSETS_AND_LIABILITIES_PATH = '/assets-and-liabilities';
+
+export const ASSETS_AND_LIABILITIES_WITHOUT_QUERY = /\/assets-and-liabilities$/;
 
 export const SETTINGS_PATH = '/settings';
 
 export const SETTINGS_URL = /\/settings$/;
 
 export const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+export const withQuery =
+  (path: string, expected: Readonly<Record<string, string>>) =>
+  (url: URL): boolean =>
+    url.pathname === path &&
+    Object.entries(expected).every(([name, value]) => {
+      const values = url.searchParams.getAll(name);
+      return values.length === 1 && values[0] === value;
+    });
 
 export const queryOf = (page: Page): URLSearchParams => new URL(page.url()).searchParams;

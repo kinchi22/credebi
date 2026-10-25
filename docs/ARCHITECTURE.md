@@ -250,18 +250,22 @@ travel in the URL's query and the page reads them on the render path: a search
 is reloadable, bookmarkable and walkable with the back button, and no Server
 Action is involved.
 
-Two reads are the exception, because only the browser knows today: the server
+Three reads are the exception, because only the browser knows today: the server
 has no clock that is the User's calendar day. A visit with no query to Entry
-search searches the last month, and one to the Income statement shows the
-calendar month holding the browser's day; each leaves its URL as it is. The page
-checks the session itself and sends a signed-out visit to sign-in, then the
-browser computes the range -- `defaultSearchRange` for Entry search,
-`calendarMonth` for the Income statement -- and fetches the answer through a
-Server Action, `searchDefaultRange` or `showDefaultRange`. The action parses its
-argument as any action does and calls the same procedure as the render path,
-`entries.search` or `entries.incomeStatement`. Both pages share
-`useDefaultRangeAnswer` for this. Pressing Search or Show puts the range into the
-query, and from there the page reads it on the render path as above.
+search searches the last month, one to the Income statement shows the calendar
+month holding the browser's day, and one to Assets and liabilities shows the
+browser's day itself; each leaves its URL as it is. The page checks the session
+itself and sends a signed-out visit to sign-in, then the browser computes what
+to ask -- `defaultSearchRange` for Entry search, `calendarMonth` for the Income
+statement, the day alone for Assets and liabilities -- and fetches the answer
+through a Server Action, `searchDefaultRange`, `showDefaultRange` or
+`showDefaultDay`. The action parses its argument as any action does and calls
+the same procedure as the render path, `entries.search`,
+`entries.incomeStatement` or `entries.assetsAndLiabilities`. The three pages
+share `useDefaultAnswer` for this. Only an absent query is defaulted: one that
+is present but empty, malformed or repeated is refused on the render path.
+Pressing Search or Show puts the range or day into the query, and from there the
+page reads it on the render path as above.
 
 A date preset is the same `GET`. The browser computes each preset's range from
 its own day with the preset functions of `@repo/core/entries`, and choosing one

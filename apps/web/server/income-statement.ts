@@ -1,18 +1,15 @@
 import {
   incomeStatementQuerySchema,
   parseIncomeStatementQuery,
-  type DomainErrorCode,
   type IncomeStatementOutput,
   type IncomeStatementQuery,
   type SearchQuery,
 } from '@repo/contracts';
-import { fromTrpcError } from './domain-error';
+import { unanswered, type Unanswered } from './report-outcome';
 
 export type ShowIncomeStatement = (period: IncomeStatementQuery) => Promise<IncomeStatementOutput>;
 
 export type StatementPeriod = Partial<IncomeStatementQuery>;
-
-type Unanswered = 'refused' | 'unavailable';
 
 export type IncomeStatementAnswer =
   | {
@@ -21,11 +18,6 @@ export type IncomeStatementAnswer =
       readonly statement: IncomeStatementOutput;
     }
   | { readonly outcome: Unanswered; readonly period: StatementPeriod };
-
-const UNANSWERED: Partial<Record<DomainErrorCode, Unanswered>> = {
-  INVALID_INPUT: 'refused',
-  DEPENDENCY_UNAVAILABLE: 'unavailable',
-};
 
 export async function answerIncomeStatement(
   show: ShowIncomeStatement,
@@ -39,11 +31,7 @@ export async function answerIncomeStatement(
   try {
     return { outcome: 'answered', period: period.value, statement: await show(period.value) };
   } catch (thrown) {
-    const outcome = UNANSWERED[fromTrpcError(thrown).code];
-    if (outcome === undefined) {
-      throw thrown;
-    }
-    return { outcome, period: period.value };
+    return { outcome: unanswered(thrown), period: period.value };
   }
 }
 

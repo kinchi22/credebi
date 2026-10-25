@@ -1,10 +1,10 @@
 import { type DomainError, type EntryId, type Result, type UserId } from '@repo/contracts';
 import { type Entry } from '../domain/entry';
-import { type AccountSums } from '../domain/income-statement';
+import { type AccountSums } from '../domain/statement';
 import { type TitledEntry } from '../domain/offered-titles';
 import { type Reversal } from '../domain/reversal';
 import { type SearchCriteria } from '../domain/search-criteria';
-import { type DayRange } from '../domain/search-range';
+import { type OpenDayRange } from '../domain/search-range';
 
 export type FoundEntry = {
   readonly entry: Entry;
@@ -24,7 +24,7 @@ export type EntryRepository = {
   ) => Promise<Result<readonly Entry[], DomainError>>;
   readonly accountTotals: (
     userId: UserId,
-    range: DayRange,
+    range: OpenDayRange,
   ) => Promise<Result<readonly AccountSums[], DomainError>>;
   readonly titledEntries: (
     userId: UserId,

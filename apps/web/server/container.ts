@@ -24,6 +24,7 @@ import {
   createFinishGoogleSignIn,
   createGetChart,
   createGetHealth,
+  createGetAssetsAndLiabilities,
   createGetIncomeStatement,
   createGetSettings,
   createGetTitles,
@@ -47,6 +48,7 @@ import {
   type FinishGoogleSignIn,
   type GetChart,
   type GetHealth,
+  type GetAssetsAndLiabilities,
   type GetIncomeStatement,
   type GetSettings,
   type GetTitles,
@@ -78,6 +80,7 @@ export type Container = {
   readonly postEntry: PostEntry;
   readonly searchEntries: SearchEntries;
   readonly getIncomeStatement: GetIncomeStatement;
+  readonly getAssetsAndLiabilities: GetAssetsAndLiabilities;
   readonly getTitles: GetTitles;
   readonly editEntry: EditEntry;
   readonly deleteEntry: DeleteEntry;
@@ -138,6 +141,7 @@ export function createContainer({ databaseUrl, google, testSignIn, deployment }:
     }),
     searchEntries: createSearchEntries({ entries, accounts }),
     getIncomeStatement: createGetIncomeStatement({ entries, accounts }),
+    getAssetsAndLiabilities: createGetAssetsAndLiabilities({ entries, accounts }),
     getTitles: createGetTitles({ entries, now: () => new Date() }),
     editEntry: createEditEntry({
       entries,

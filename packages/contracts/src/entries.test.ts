@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  assetsAndLiabilitiesSchema,
   deleteEntryInputSchema,
   editEntryInputSchema,
   entryDateSchema,
@@ -10,12 +11,14 @@ import {
   parseEntryForm,
   parseMultiLineEntryForm,
   parseTwoLineEntryForm,
+  parseAssetsAndLiabilitiesQuery,
   parseIncomeStatementQuery,
   parseSearchQuery,
   postEntryInputSchema,
   postedEntrySchema,
   searchCriteriaSchema,
   sideSchema,
+  toAssetsAndLiabilities,
   toIncomeStatement,
   toPostedEntry,
   type EntryId,
@@ -734,6 +737,67 @@ describe('parseIncomeStatementQuery', () => {
       code: 'INVALID_INPUT',
       message: 'The statement period is malformed.',
     });
+  });
+});
+
+describe('parseAssetsAndLiabilitiesQuery', () => {
+  it('reads the report date out of the query', () => {
+    expect(parseAssetsAndLiabilitiesQuery({ date: '2030-01-15', other: 'x' })).toEqual({
+      ok: true,
+      value: { date: '2030-01-15' },
+    });
+  });
+
+  it.each([
+    ['no date', {}],
+    ['an empty date', { date: '' }],
+    ['a date that is no calendar day', { date: '2026-02-30' }],
+    ['a date written day first', { date: '30-06-2026' }],
+    ['a date given twice', { date: ['2026-06-30', '2026-07-31'] }],
+  ])('refuses a query with %s as malformed', (_case, query) => {
+    const asked = parseAssetsAndLiabilitiesQuery(query);
+
+    expect(isErr(asked) && asked.error).toEqual({
+      code: 'INVALID_INPUT',
+      message: 'The report date is malformed.',
+    });
+  });
+});
+
+describe('toAssetsAndLiabilities', () => {
+  it('carries each section with its rows and total, and Net worth', () => {
+    const banks = '01920000-0000-7000-8000-00000000f001' as AccountGroupId;
+    const cash = { kind: 'account', account: CASH, name: 'Cash', total: 9000 as Money } as const;
+    const checking = { ...cash, account: SALES, name: 'Checking', total: -2000 as Money };
+    const payable = { ...cash, name: 'Accounts payable', total: 400 as Money };
+
+    const report = toAssetsAndLiabilities({
+      assets: {
+        total: 7000 as Money,
+        rows: [cash, { kind: 'group', group: banks, name: 'Banks', total: -2000 as Money, accounts: [checking] }],
+      },
+      liabilities: { total: 400 as Money, rows: [payable] },
+      netWorth: 6600 as Money,
+    });
+
+    expect(report).toEqual({
+      assets: {
+        total: 7000,
+        rows: [
+          { kind: 'account', account: CASH, name: 'Cash', total: 9000 },
+          {
+            kind: 'group',
+            group: banks,
+            name: 'Banks',
+            total: -2000,
+            accounts: [{ kind: 'account', account: SALES, name: 'Checking', total: -2000 }],
+          },
+        ],
+      },
+      liabilities: { total: 400, rows: [{ kind: 'account', account: CASH, name: 'Accounts payable', total: 400 }] },
+      netWorth: 6600,
+    });
+    expect(assetsAndLiabilitiesSchema.parse(report)).toEqual(report);
   });
 });
 

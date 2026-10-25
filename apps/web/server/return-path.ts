@@ -11,6 +11,8 @@ export const ENTRY_SEARCH_PATH = '/entries/search';
 
 export const INCOME_STATEMENT_PATH = '/income-statement';
 
+export const ASSETS_AND_LIABILITIES_PATH = '/assets-and-liabilities';
+
 export const SETTINGS_PATH = '/settings';
 
 const PROBE = 'http://return-path.invalid';
