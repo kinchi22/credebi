@@ -87,6 +87,8 @@ export {
 } from './accounts';
 
 export type {
+  AssetsAndLiabilitiesOutput,
+  AssetsAndLiabilitiesQuery,
   DeleteEntryInput,
   EditEntryInput,
   EntryId,
@@ -109,10 +111,13 @@ export type {
   SubmittedFields,
 } from './entries';
 export {
+  ASSETS_AND_LIABILITIES_FIELDS,
   ENTRY_FORM_FIELDS,
   INCOME_STATEMENT_FIELDS,
   SEARCH_CRITERIA_FIELDS,
   amountTextSchema,
+  assetsAndLiabilitiesQuerySchema,
+  assetsAndLiabilitiesSchema,
   deleteEntryInputSchema,
   editEntryInputSchema,
   entryDateSchema,
@@ -122,6 +127,7 @@ export {
   incomeStatementSchema,
   offeredTitleSchema,
   titleLineSchema,
+  parseAssetsAndLiabilitiesQuery,
   parseEntryForm,
   parseIncomeStatementQuery,
   parseSearchQuery,
@@ -134,6 +140,7 @@ export {
   statementGroupSchema,
   statementRowSchema,
   statementSectionSchema,
+  toAssetsAndLiabilities,
   toIncomeStatement,
   toPostedEntry,
 } from './entries';

@@ -10,7 +10,7 @@ import {
 } from '@repo/contracts';
 import { addMoney, MONEY_ZERO } from '../../money/domain/money';
 import { type Entry } from '../domain/entry';
-import { type AccountSums } from '../domain/income-statement';
+import { type AccountSums } from '../domain/statement';
 import { type EntryRepository, type FoundEntry } from '../ports/entry-repository';
 import { type UnitOfWork } from '../ports/unit-of-work';
 
@@ -63,7 +63,7 @@ function repositoryOver(rows: StoredEntry[]): EntryRepository {
     accountTotals: (userId, range): Promise<Result<readonly AccountSums[], DomainError>> => {
       const totals = new Map<AccountId, AccountSums>();
       for (const entry of shownOf(userId)) {
-        if (range.from <= entry.entryDate && entry.entryDate <= range.to) {
+        if ((range.from ?? entry.entryDate) <= entry.entryDate && entry.entryDate <= range.to) {
           for (const line of entry.lines) {
             const held = totals.get(line.account) ?? {
               account: line.account,

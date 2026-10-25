@@ -16,6 +16,7 @@ import { type LogFields, type Logger } from '../../logging/ports/logger';
 import { makeEntry, type Entry, type EntryDraft } from '../domain/entry';
 import { makeReversal, type Reversal } from '../domain/reversal';
 import { NO_CRITERIA, type SearchCriteria } from '../domain/search-criteria';
+import { type OpenDayRange } from '../domain/search-range';
 import { createPostgresEntryRepository } from './postgres-entry-repository';
 import { createPostgresUnitOfWork } from './postgres-unit-of-work';
 
@@ -975,7 +976,7 @@ describe('accountTotals', () => {
     { account: credit, side: 'credit', amount: amount as Money },
   ];
 
-  async function totals(userId: UserId = ADA, range = JUNE) {
+  async function totals(userId: UserId = ADA, range: OpenDayRange = JUNE) {
     const result = await repository.accountTotals(userId, range);
     expect(isOk(result)).toBe(true);
     return isOk(result)
@@ -1005,6 +1006,18 @@ describe('accountTotals', () => {
     expect(await totals()).toEqual([
       { account: CASH, debit: 0, credit: 320 },
       { account: EXPENSES, debit: 320, credit: 0 },
+    ]);
+  });
+
+  it('counts every shown Entry dated up to the last day, however early, when the range has no first day', async () => {
+    await repository.save(ADA, entry({ entryDate: '1970-01-01', lines: lines(EXPENSES, CASH, 1) }));
+    await repository.save(ADA, entry({ entryDate: '2026-06-30', lines: lines(EXPENSES, CASH, 20) }));
+    await repository.save(ADA, entry({ entryDate: '2026-07-01', lines: lines(EXPENSES, CASH, 300) }));
+    await repository.save(GRACE, entry({ entryDate: '2026-06-15', lines: lines(EXPENSES, CASH, 4000) }));
+
+    expect(await totals(ADA, { to: '2026-06-30' })).toEqual([
+      { account: CASH, debit: 0, credit: 21 },
+      { account: EXPENSES, debit: 21, credit: 0 },
     ]);
   });
 

@@ -183,6 +183,28 @@ export function parseIncomeStatementQuery(
     : err(domainError('INVALID_INPUT', 'The statement period is malformed.'));
 }
 
+export const ASSETS_AND_LIABILITIES_FIELDS = {
+  date: 'date',
+} as const;
+
+export const assetsAndLiabilitiesQuerySchema = z.object({
+  date: entryDateSchema,
+});
+
+export type AssetsAndLiabilitiesQuery = z.infer<typeof assetsAndLiabilitiesQuerySchema>;
+
+export function parseAssetsAndLiabilitiesQuery(
+  query: SearchQuery,
+): Result<AssetsAndLiabilitiesQuery, DomainError> {
+  const parsed = assetsAndLiabilitiesQuerySchema.safeParse({
+    date: query[ASSETS_AND_LIABILITIES_FIELDS.date],
+  });
+
+  return parsed.success
+    ? ok(parsed.data)
+    : err(domainError('INVALID_INPUT', 'The report date is malformed.'));
+}
+
 export const statementAccountSchema = z.object({
   kind: z.literal('account'),
   account: accountIdSchema,
@@ -223,6 +245,14 @@ export const incomeStatementSchema = z.object({
 });
 
 export type IncomeStatementOutput = z.infer<typeof incomeStatementSchema>;
+
+export const assetsAndLiabilitiesSchema = z.object({
+  assets: statementSectionSchema,
+  liabilities: statementSectionSchema,
+  netWorth: moneySchema,
+});
+
+export type AssetsAndLiabilitiesOutput = z.infer<typeof assetsAndLiabilitiesSchema>;
 
 type BuiltStatementAccount = {
   readonly kind: 'account';
@@ -278,6 +308,18 @@ export function toIncomeStatement(statement: {
     revenue: toStatementSection(statement.revenue),
     expense: toStatementSection(statement.expense),
     netIncome: statement.netIncome,
+  };
+}
+
+export function toAssetsAndLiabilities(report: {
+  readonly assets: BuiltStatementSection;
+  readonly liabilities: BuiltStatementSection;
+  readonly netWorth: Money;
+}): AssetsAndLiabilitiesOutput {
+  return {
+    assets: toStatementSection(report.assets),
+    liabilities: toStatementSection(report.liabilities),
+    netWorth: report.netWorth,
   };
 }
 
