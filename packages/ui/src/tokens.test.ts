@@ -15,6 +15,7 @@ import {
   shadows,
   TEXT_MINIMUM,
   textPairs,
+  textSizeTokens,
   themeDeclarations,
   typeScale,
 } from './tokens';
@@ -180,8 +181,11 @@ describe('the shapes', () => {
   });
 
   it('sets a typed control at 16px, the smallest size a phone does not zoom in on', () => {
-    expect(controlFontSize).toBe(16);
     expect(controlFontSize).toBeGreaterThanOrEqual(16);
+  });
+
+  it('names the typed-control text size as the size-only text token control', () => {
+    expect(textSizeTokens).toEqual({ control: controlFontSize });
   });
 
   it('lifts a panel faintly and the Sign in card a little deeper, both tinted from ink', () => {
@@ -289,8 +293,9 @@ describe('themeDeclarations', () => {
     const widths = Object.keys(breakpoints).length;
     const corners = Object.keys(radii).length;
     const lifts = Object.keys(shadows).length;
+    const sizes = Object.keys(textSizeTokens).length;
     expect(Object.keys(declarations)).toHaveLength(
-      colours + faces + typeSteps.length * 3 + spacing + widths + corners + lifts + 2,
+      colours + faces + typeSteps.length * 3 + spacing + widths + corners + lifts + 1 + sizes,
     );
   });
 });

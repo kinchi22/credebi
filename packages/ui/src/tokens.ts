@@ -261,6 +261,10 @@ export const controlHeight = 36;
 
 export const controlFontSize = 16;
 
+export const textSizeTokens: Readonly<Record<'control', number>> = {
+  control: controlFontSize,
+};
+
 export type ShadowLayer = {
   readonly offsetY: number;
   readonly blur: number;
@@ -363,6 +367,10 @@ export function themeDeclarations(): Readonly<Record<string, string>> {
     `--radius-${name}`,
     px(radius),
   ]);
+  const sizes = Object.entries(textSizeTokens).map(([name, size]): [string, string] => [
+    `--text-${name}`,
+    px(size),
+  ]);
   const lifts = Object.entries(shadows).map(([name, shadow]): [string, string] => [
     `--shadow-${name}`,
     shadowValue(shadow),
@@ -375,6 +383,6 @@ export function themeDeclarations(): Readonly<Record<string, string>> {
     ...corners,
     ...lifts,
     ['--height-control', px(controlHeight)],
-    ['--text-control', px(controlFontSize)],
+    ...sizes,
   ]);
 }
