@@ -4,6 +4,7 @@ import {
   breakpoints,
   CONTROL_EDGE_MINIMUM,
   controlEdgePairs,
+  controlFontSize,
   controlHeight,
   fontDeclarations,
   fontFaces,
@@ -178,6 +179,11 @@ describe('the shapes', () => {
     expect(controlHeight).toBe(36);
   });
 
+  it('sets a typed control at 16px, the smallest size a phone does not zoom in on', () => {
+    expect(controlFontSize).toBe(16);
+    expect(controlFontSize).toBeGreaterThanOrEqual(16);
+  });
+
   it('lifts a panel faintly and the Sign in card a little deeper, both tinted from ink', () => {
     expect(shadows).toEqual({
       lift: {
@@ -267,7 +273,14 @@ describe('themeDeclarations', () => {
     expect(themeDeclarations()['--height-control']).toBe('36px');
   });
 
-  it('declares nothing but the colours, the faces, the type scale, the breakpoints, the radii, the shadows and the control height', () => {
+  it('declares the typed-control text size in px, with no line height or weight of its own', () => {
+    const declarations = themeDeclarations();
+    expect(declarations['--text-control']).toBe('16px');
+    expect(declarations['--text-control--line-height']).toBeUndefined();
+    expect(declarations['--text-control--font-weight']).toBeUndefined();
+  });
+
+  it('declares nothing but the colours, the faces, the type scale, the breakpoints, the radii, the shadows, the control height and the control text size', () => {
     const declarations = themeDeclarations();
     const colours = Object.keys(semanticColors).length;
     const faces = Object.keys(fontFaces).length;
@@ -277,7 +290,7 @@ describe('themeDeclarations', () => {
     const corners = Object.keys(radii).length;
     const lifts = Object.keys(shadows).length;
     expect(Object.keys(declarations)).toHaveLength(
-      colours + faces + typeSteps.length * 3 + spacing + widths + corners + lifts + 1,
+      colours + faces + typeSteps.length * 3 + spacing + widths + corners + lifts + 2,
     );
   });
 });
@@ -317,12 +330,7 @@ describe('the type scale', () => {
       },
       figure: { ...mono, fontSize: 14, lineHeight: 20 },
       date: { ...mono, fontSize: 13, lineHeight: 20 },
-      input: { ...sans, fontSize: 16, lineHeight: 20, fontWeight: 400 },
     });
-  });
-
-  it('sets a typed control at 16px, the smallest size a phone does not zoom in on', () => {
-    expect(typeScale.input.fontSize).toBeGreaterThanOrEqual(16);
   });
 });
 

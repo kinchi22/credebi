@@ -7,7 +7,7 @@ export const DENSE_FIELD = `${FIELD_LAYOUT} ${typeClasses['body-dense']}`;
 const CONTROL_SHAPE = 'h-control rounded-control border';
 const CONTROL_FRAME = `${CONTROL_SHAPE} border-border-control bg-surface text-text`;
 const FOCUS_HALO = 'focus-visible:ring-3 focus-visible:ring-accent/25';
-const TYPED_CONTROL = `px-2 max-wide:text-input ${FOCUS_HALO}`;
+const TYPED_CONTROL = `px-2 max-wide:text-control ${FOCUS_HALO}`;
 
 export const CONTROL = `${CONTROL_FRAME} ${TYPED_CONTROL}`;
 export const SEARCH_ON_STRIP = `${CONTROL_SHAPE} border-transparent bg-ground text-text ${TYPED_CONTROL}`;

@@ -155,8 +155,7 @@ export type TypeStepName =
   | 'body-dense'
   | 'label'
   | 'figure'
-  | 'date'
-  | 'input';
+  | 'date';
 
 export const typeScale: Readonly<Record<TypeStepName, TypeStep>> = {
   display: {
@@ -243,14 +242,6 @@ export const typeScale: Readonly<Record<TypeStepName, TypeStep>> = {
     caps: false,
     tabularNumerals: true,
   },
-  input: {
-    fontFamily: fontFaces.sans,
-    fontSize: 16,
-    lineHeight: 20,
-    fontWeight: 400,
-    caps: false,
-    tabularNumerals: false,
-  },
 };
 
 export const breakpoints = {
@@ -267,6 +258,8 @@ export const radii: Readonly<Record<RadiusName, number>> = {
 };
 
 export const controlHeight = 36;
+
+export const controlFontSize = 16;
 
 export type ShadowLayer = {
   readonly offsetY: number;
@@ -382,5 +375,6 @@ export function themeDeclarations(): Readonly<Record<string, string>> {
     ...corners,
     ...lifts,
     ['--height-control', px(controlHeight)],
+    ['--text-control', px(controlFontSize)],
   ]);
 }

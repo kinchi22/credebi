@@ -11,5 +11,4 @@ export const typeClasses: Readonly<Record<TypeStepName, string>> = {
   label: 'text-label font-sans uppercase',
   figure: 'text-figure font-mono tabular-nums',
   date: 'text-date font-mono tabular-nums',
-  input: 'text-input font-sans',
 };

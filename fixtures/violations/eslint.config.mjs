@@ -5,7 +5,7 @@ export default createEslintConfig({
   tsconfigRootDir: import.meta.dirname,
   tokens: {
     colors: Object.keys(semanticColors),
-    textSizes: Object.keys(typeScale),
+    textSizes: [...Object.keys(typeScale), 'control'],
     shadows: Object.keys(shadows),
     radii: Object.keys(radii),
   },
