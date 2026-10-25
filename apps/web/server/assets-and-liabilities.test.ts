@@ -6,6 +6,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import {
   answerAssetsAndLiabilities,
+  answerDefaultDayReport,
   type ShowAssetsAndLiabilities,
 } from './assets-and-liabilities';
 import { toTrpcError } from './domain-error';
@@ -76,5 +77,49 @@ describe('answerAssetsAndLiabilities', () => {
     await expect(answerAssetsAndLiabilities(failing('NOT_FOUND'), JUNE_LAST)).rejects.toMatchObject({
       code: 'NOT_FOUND',
     });
+  });
+});
+
+describe('answerDefaultDayReport', () => {
+  it('answers with the report for the day it was sent, and asks for nothing but that day', async () => {
+    const asked: AssetsAndLiabilitiesQuery[] = [];
+
+    const answer = await answerDefaultDayReport((day) => {
+      asked.push(day);
+      return Promise.resolve(REPORT);
+    }, { ...JUNE_LAST, memo: 'Office' });
+
+    expect(answer).toEqual({ outcome: 'answered', asked: JUNE_LAST, report: REPORT });
+    expect(asked).toEqual([JUNE_LAST]);
+  });
+
+  it.each([
+    ['nothing', undefined],
+    ['null', null],
+    ['a bare day', '2026-06-30'],
+    ['a day held under no date', {}],
+    ['an empty date', { date: '' }],
+    ['a repeated date', { date: ['2026-06-30', '2026-07-31'] }],
+    ['a date that is not a calendar day', { date: '2026-02-30' }],
+  ])('refuses %s without asking for a report', async (_case, day) => {
+    const asked: AssetsAndLiabilitiesQuery[] = [];
+
+    const answer = await answerDefaultDayReport((sent) => {
+      asked.push(sent);
+      return Promise.resolve(REPORT);
+    }, day);
+
+    expect(answer).toEqual({ outcome: 'refused', asked: {} });
+    expect(asked).toEqual([]);
+  });
+
+  it('answers as the report does when the procedure refuses or is unavailable', async () => {
+    await expect(answerDefaultDayReport(failing('INVALID_INPUT'), JUNE_LAST)).resolves.toEqual({
+      outcome: 'refused',
+      asked: JUNE_LAST,
+    });
+    await expect(
+      answerDefaultDayReport(failing('DEPENDENCY_UNAVAILABLE'), JUNE_LAST),
+    ).resolves.toEqual({ outcome: 'unavailable', asked: JUNE_LAST });
   });
 });

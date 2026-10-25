@@ -15,7 +15,7 @@ import { typeClasses } from '@repo/ui/type-classes';
 import { type ReactNode } from 'react';
 
 const TYPE_ICON: Readonly<Record<AccountType, () => ReactNode>> = {
-  asset: WalletIcon,
+  asset: () => <WalletIcon size={16} />,
   liability: ReceiptIcon,
   equity: PieIcon,
   revenue: RisingLineIcon,

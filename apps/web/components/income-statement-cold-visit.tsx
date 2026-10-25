@@ -5,7 +5,7 @@ import { type ReactNode } from 'react';
 import { type IncomeStatementAnswer } from '../server/income-statement';
 import { IncomeStatementForm } from './income-statement-form';
 import { IncomeStatementOutcome, IncomeStatementPending } from './income-statement-tables';
-import { UNAVAILABLE, useDefaultRangeAnswer } from './use-default-range-answer';
+import { UNAVAILABLE, useDefaultAnswer } from './use-default-answer';
 
 export type ShowDefaultRange = (range: DayRange) => Promise<IncomeStatementAnswer>;
 
@@ -14,12 +14,12 @@ export type IncomeStatementColdVisitProps = {
 };
 
 export function IncomeStatementColdVisit({ show }: IncomeStatementColdVisitProps): ReactNode {
-  const { range, rangeKey, answer } = useDefaultRangeAnswer(calendarMonth, show);
+  const { asked: range, todayKey, answer } = useDefaultAnswer(calendarMonth, show);
   const period = range ?? {};
 
   return (
     <>
-      <IncomeStatementForm key={rangeKey} period={period} />
+      <IncomeStatementForm key={todayKey} period={period} />
       {answer === undefined ? (
         <IncomeStatementPending />
       ) : (
