@@ -7,6 +7,7 @@ import {
   type PointerEvent,
   type RefObject,
 } from 'react';
+import { focusAfterClick } from './focus-after-click';
 import { scrimPress } from './scrim-press';
 import { WIDE_QUERY } from './use-wide';
 
@@ -14,6 +15,7 @@ export type ModalDialog = {
   readonly open: boolean;
   readonly show: (opener: HTMLElement | null) => boolean;
   readonly close: () => void;
+  readonly closeAfterClick: (event: MouseEvent) => void;
   readonly scrimClicked: (event: MouseEvent<HTMLDialogElement>) => boolean;
   readonly closeOnScrim: (event: MouseEvent<HTMLDialogElement>) => void;
   readonly dialogProps: {
@@ -52,13 +54,17 @@ export function useModalDialog({ closesWhenWide }: ModalDialogOptions = SHEET): 
   const opener = useRef<HTMLElement | null>(null);
   const [press] = useState(scrimPress);
 
-  const close = useCallback((): void => {
+  const closeFocusing = useCallback((focus: FocusOptions): void => {
     dialog.current?.close();
     setOpen(false);
     const from = opener.current;
     opener.current = null;
-    from?.focus();
+    from?.focus(focus);
   }, []);
+
+  const close = useCallback((): void => {
+    closeFocusing({});
+  }, [closeFocusing]);
 
   useCloseWhenWide(close, closesWhenWide);
 
@@ -76,6 +82,9 @@ export function useModalDialog({ closesWhenWide }: ModalDialogOptions = SHEET): 
       return true;
     },
     close,
+    closeAfterClick: (event) => {
+      closeFocusing(focusAfterClick(event.detail));
+    },
     scrimClicked,
     closeOnScrim: (event) => {
       if (scrimClicked(event)) close();

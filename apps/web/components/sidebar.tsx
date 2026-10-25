@@ -5,7 +5,7 @@ import { ListIcon, Logo, MenuIcon, SearchIcon, SignOutIcon, SlidersIcon, Stateme
 import { typeClasses } from '@repo/ui/type-classes';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { type ReactNode, type RefObject, useId, useRef } from 'react';
+import { type MouseEvent, type ReactNode, type RefObject, useId, useRef } from 'react';
 import {
   ASSETS_AND_LIABILITIES_PATH,
   ENTRY_SEARCH_PATH,
@@ -23,7 +23,7 @@ export type SidebarProps = {
 type SidebarNavProps = SidebarProps & {
   readonly className: string;
   readonly focusTarget?: RefObject<HTMLElement | null>;
-  readonly onFollow?: () => void;
+  readonly onFollow?: (event: MouseEvent) => void;
 };
 
 const LINKS = [
@@ -72,8 +72,8 @@ function SidebarNav({ signOut, className, focusTarget, onFollow }: SidebarNavPro
                 href={link.href}
                 aria-current={current ? 'page' : undefined}
                 className={current ? ACTIVE_LINK : IDLE_LINK}
-                onClick={() => {
-                  onFollow?.();
+                onClick={(event) => {
+                  onFollow?.(event);
                 }}
               >
                 <span className={current ? 'flex text-accent' : 'flex'}>{link.icon}</span>
@@ -138,7 +138,7 @@ export function Sidebar({ signOut }: SidebarProps): ReactNode {
           signOut={signOut}
           className={`flex h-full ${SIDEBAR} overflow-y-auto ${ON_DARK_FOCUS}`}
           focusTarget={drawerNav}
-          onFollow={drawer.close}
+          onFollow={drawer.closeAfterClick}
         />
       </dialog>
     </>
