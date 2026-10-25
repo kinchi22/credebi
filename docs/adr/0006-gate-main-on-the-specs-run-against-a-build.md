@@ -4,6 +4,7 @@
 **Date:** 2026-09-14
 **Amended:** 2026-09-22, PR #77
 **Amended:** 2026-10-01, PR #165
+**Amended:** 2026-10-25, PR #575
 
 ## Problem
 
@@ -49,7 +50,7 @@ enforces validating the environment at first use rather than at import.
 **`E2E build` is the merge gate.** It is the one job in
 `.github/workflows/e2e-build.yml`, a workflow triggered by `pull_request` with
 `branches: [main]` and by push to `main` and to `milestone/**`: install, install
-chromium, `pnpm build`, then `pnpm test:e2e`. `playwright.config.ts` already
+Chromium and WebKit (ADR-0029), `pnpm build`, then `pnpm test:e2e`. `playwright.config.ts` already
 starts `next start` when `E2E_BASE_URL` is unset, so no server step is added.
 The job depends on no deployment.
 
@@ -124,8 +125,9 @@ install took 24 seconds, `pnpm build` 10 and `pnpm test:e2e` 4, three passed and
 none retried; in `Gate liveness`, the chromium install took 22 seconds and the
 liveness run 32. Locally the same build takes 70 seconds and the liveness run 36.
 The build in `E2E build` had the same turbo hash as the one in `Gates`, which is
-the evidence that no `DATABASE_URL` reached it. Chromium is installed twice for a
-pull request into `main`, once per job, uncached. Before PR #165, a missing
+the evidence that no `DATABASE_URL` reached it. Chromium, and WebKit since
+ADR-0029, are installed twice for a pull request into `main`, once per job,
+uncached. Before PR #165, a missing
 element could consume a spec's full timeout. The action limit now bounds those
 element waits, while test budgets still bound hooks and other waits.
 
