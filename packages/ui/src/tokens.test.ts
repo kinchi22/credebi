@@ -317,7 +317,12 @@ describe('the type scale', () => {
       },
       figure: { ...mono, fontSize: 14, lineHeight: 20 },
       date: { ...mono, fontSize: 13, lineHeight: 20 },
+      input: { ...sans, fontSize: 16, lineHeight: 20, fontWeight: 400 },
     });
+  });
+
+  it('sets a typed control at 16px, the smallest size a phone does not zoom in on', () => {
+    expect(typeScale.input.fontSize).toBeGreaterThanOrEqual(16);
   });
 });
 

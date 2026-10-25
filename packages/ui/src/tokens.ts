@@ -155,7 +155,8 @@ export type TypeStepName =
   | 'body-dense'
   | 'label'
   | 'figure'
-  | 'date';
+  | 'date'
+  | 'input';
 
 export const typeScale: Readonly<Record<TypeStepName, TypeStep>> = {
   display: {
@@ -241,6 +242,14 @@ export const typeScale: Readonly<Record<TypeStepName, TypeStep>> = {
     fontWeight: 400,
     caps: false,
     tabularNumerals: true,
+  },
+  input: {
+    fontFamily: fontFaces.sans,
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: 400,
+    caps: false,
+    tabularNumerals: false,
   },
 };
 
