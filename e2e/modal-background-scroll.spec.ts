@@ -43,17 +43,21 @@ const wheel: ScrollBy = async (page, at, distance) => {
   await settled(page);
 };
 
+const SWIPE_STEPS = 10;
+
 const swipe: ScrollBy = async (page, at, distance) => {
   const cdp = await page.context().newCDPSession(page);
+  const height = page.viewportSize()?.height ?? 0;
+  const touchAt = (y: number): { x: number; y: number }[] => [{ x: at.x, y: Math.min(Math.max(y, 1), height - 1) }];
   try {
-    await cdp.send('Input.synthesizeScrollGesture', {
-      x: at.x,
-      y: at.y,
-      yDistance: -distance,
-      gestureSourceType: 'touch',
-      preventFling: true,
-      speed: 1200,
-    });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: touchAt(at.y) });
+    for (let step = 1; step <= SWIPE_STEPS; step += 1) {
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: touchAt(at.y - (distance * step) / SWIPE_STEPS),
+      });
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   } finally {
     await cdp.detach();
   }
@@ -89,8 +93,10 @@ async function scrollPageToStart(page: Page): Promise<void> {
 
 async function expectBackgroundStill(page: Page, at: Point, inputs: readonly ScrollBy[]): Promise<void> {
   for (const input of inputs) {
-    await input(page, at, DISTANCE);
-    expect(await scrollY(page)).toBe(START);
+    for (const distance of [DISTANCE, -DISTANCE]) {
+      await input(page, at, distance);
+      expect(await scrollY(page)).toBe(START);
+    }
   }
 }
 
