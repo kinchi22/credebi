@@ -444,7 +444,11 @@ tokens module, rejects any other.
 
 Two layers stack over the page: a popover, such as a Help tip's panel or a
 menu, at `z-10`, and the Top bar at `z-20`, so a popover passes under the bar.
-A modal dialog sits in the browser's top layer, above both.
+A modal dialog sits in the browser's top layer, above both. On a touch device
+the page behind an open modal dialog stays still, so a swipe over the scrim
+moves nothing; with a mouse it keeps scrolling, since hiding a scrollbar that
+takes space would shift the page and the dialog sideways. Scrolling inside a
+dialog stops at its ends on every device rather than passing to the page.
 
 ## Shapes
 

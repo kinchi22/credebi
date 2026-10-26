@@ -89,6 +89,17 @@
     --font-mono: var(--font-ibm-plex-mono), "Hiragino Sans", "Yu Gothic", "Apple SD Gothic Neo", "Malgun Gothic";
   }
 
+  @media (pointer: coarse) {
+    :root:has(dialog:modal) {
+      overflow: hidden;
+    }
+  }
+
+  dialog,
+  dialog * {
+    overscroll-behavior: contain;
+  }
+
   :focus-visible {
     outline: 2px solid var(--color-focus);
     outline-offset: 2px;
