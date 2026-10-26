@@ -89,8 +89,10 @@
     --font-mono: var(--font-ibm-plex-mono), "Hiragino Sans", "Yu Gothic", "Apple SD Gothic Neo", "Malgun Gothic";
   }
 
-  :root:has(dialog:modal) {
-    overflow: hidden;
+  @media (pointer: coarse) {
+    :root:has(dialog:modal) {
+      overflow: hidden;
+    }
   }
 
   dialog,
