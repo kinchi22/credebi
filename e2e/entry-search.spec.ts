@@ -10,7 +10,7 @@ import {
   type TwoLineEntry,
 } from './entries';
 import { accountField, fromField, resultFor, results, search, toField } from './entry-search';
-import { CATEGORIES, category, choosePreset, datePresets, fixToday, presetChoice } from './date-presets';
+import { CATEGORIES, category, choosePeriod, choosePreset, datePresets, fixToday, periodSheet, presetChoice } from './date-presets';
 import { ENTRY_SEARCH_PATH as SEARCH, ENTRY_SEARCH_WITH_QUERY, ENTRY_SEARCH_WITHOUT_QUERY } from './routes';
 import { BOOKS_OPEN } from './accounts';
 import { signIn, signInForSmoke } from './session';
@@ -325,8 +325,8 @@ test('opens the presets at 390px from Choose a period, as a full-screen sheet wi
   await expect(entrySearchForm(page)).toBeVisible();
   await expect(datePresets(page)).toBeHidden();
 
-  await page.getByRole('button', { name: 'Choose a period', exact: true }).click();
-  const sheet = page.getByRole('dialog', { name: 'Choose a period', exact: true });
+  await choosePeriod(page).click();
+  const sheet = periodSheet(page);
   await expect(sheet).toBeVisible();
   const box = await sheet.boundingBox();
   expect(box?.x ?? Number.NaN).toBeCloseTo(0, 0);

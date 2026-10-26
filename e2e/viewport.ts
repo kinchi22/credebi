@@ -1,10 +1,21 @@
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type Locator, type Page, type ViewportSize } from '@playwright/test';
 
 export const PHONE = { width: 390, height: 844 } as const;
 
 export const WIDE = { width: 1280, height: 720 } as const;
 
 export const WIDE_BELOW_SPLIT = { width: 1024, height: 720 } as const;
+
+export function viewportOf(page: Page): ViewportSize {
+  const viewport = page.viewportSize();
+  if (viewport === null) throw new Error('the page has no viewport');
+  return viewport;
+}
+
+export const scrollY = async (page: Page): Promise<number> => Number(await page.evaluate('window.scrollY'));
+
+export const scrollEnd = async (page: Page): Promise<number> =>
+  Number(await page.evaluate('document.documentElement.scrollHeight - window.innerHeight'));
 
 export async function expectWithinPhone(page: Page, locator: Locator): Promise<void> {
   const box = await locator.boundingBox();

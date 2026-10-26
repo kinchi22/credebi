@@ -14,6 +14,12 @@ export const datePresets = (page: Page): Locator =>
 export const category = (page: Page, name: Category): Locator =>
   datePresets(page).getByRole('button', { name, exact: true });
 
+export const choosePeriod = (page: Page): Locator =>
+  page.getByRole('button', { name: 'Choose a period', exact: true });
+
+export const periodSheet = (page: Page): Locator =>
+  page.getByRole('dialog', { name: 'Choose a period', exact: true });
+
 export const presetChoice = (scope: Page | Locator, name: string): Locator =>
   scope.getByRole('button', { name, exact: true });
 

@@ -8,6 +8,7 @@ import {
   type AddedAccount,
   type Side,
 } from './entries';
+import { viewportOf } from './viewport';
 
 export type { AccountType };
 
@@ -189,11 +190,11 @@ export async function expectInGroup(
 
 export const NO_GROUP = 'No group';
 
-type Point = { readonly x: number; readonly y: number };
+export type Point = { readonly x: number; readonly y: number };
 
 export type Box = { readonly x: number; readonly y: number; readonly width: number; readonly height: number };
 
-const centre = (box: Box): Point => ({ x: box.x + box.width / 2, y: box.y + box.height / 2 });
+export const centre = (box: Box): Point => ({ x: box.x + box.width / 2, y: box.y + box.height / 2 });
 
 export const bottom = (box: Box): number => box.y + box.height;
 
@@ -206,9 +207,7 @@ export async function boxOf(locator: Locator, what: string): Promise<Box> {
 const DND_KIT_DEFAULT_AUTO_SCROLL_EDGE_SHARE = 0.2;
 
 function viewportHeight(page: Page): number {
-  const viewport = page.viewportSize();
-  if (viewport === null) throw new Error('the page has no viewport to scroll');
-  return viewport.height;
+  return viewportOf(page).height;
 }
 
 async function centreInViewport(page: Page, from: Point, to: Point): Promise<void> {

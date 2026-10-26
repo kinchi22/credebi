@@ -1,18 +1,19 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { accountsSection, BOOKS_OPEN, boxOf, openAdd } from './accounts';
+import { accountsSection, BOOKS_OPEN, boxOf, centre, openAdd, type Point } from './accounts';
+import { choosePeriod, periodSheet } from './date-presets';
 import { closeDialog, discardChanges, discardDialog, keepEditing } from './dialog';
 import { listedEntry, openEditEntry, postEntries, twoLine } from './entries';
 import { ENTRY_SEARCH_PATH, SETTINGS_PATH } from './routes';
 import { signIn } from './session';
 import { menu, sidebar } from './sidebar';
-import { PHONE, WIDE } from './viewport';
+import { PHONE, scrollEnd, scrollY, viewportOf, WIDE } from './viewport';
 
 const SHORT_PHONE = { width: PHONE.width, height: 400 } as const;
 
 const SHORT_WIDE = { width: WIDE.width, height: 480 } as const;
 
-const START = 60;
+const PAGE_SCROLLED_TO = 60;
 
 const DISTANCE = 200;
 
@@ -20,35 +21,28 @@ const SCRIM_GAP = 8;
 
 const EDGE_INSET = 8;
 
-type Point = { readonly x: number; readonly y: number };
-
-type ScrollBy = (page: Page, at: Point, distance: number) => Promise<void>;
-
-const scrollY = async (page: Page): Promise<number> => Number(await page.evaluate('window.scrollY'));
-
-const scrollEnd = async (page: Page): Promise<number> =>
-  Number(await page.evaluate('document.documentElement.scrollHeight - window.innerHeight'));
-
-const SETTLE_FRAMES = 10;
-
-async function settled(page: Page): Promise<void> {
-  await page.evaluate(
-    `new Promise((resolve) => { let left = ${String(SETTLE_FRAMES)}; const next = () => { left -= 1; if (left === 0) resolve(); else requestAnimationFrame(next); }; requestAnimationFrame(next); })`,
-  );
-}
-
-const wheel: ScrollBy = async (page, at, distance) => {
-  await page.mouse.move(at.x, at.y);
-  await page.mouse.wheel(0, distance);
-  await settled(page);
-};
+const FRAMES_AFTER_INPUT = 10;
 
 const SWIPE_STEPS = 10;
 
-const swipe: ScrollBy = async (page, at, distance) => {
+type ScrollBy = (page: Page, at: Point, distance: number) => Promise<void>;
+
+async function waitFramesAfterInput(page: Page): Promise<void> {
+  await page.evaluate(
+    `new Promise((resolve) => { let left = ${String(FRAMES_AFTER_INPUT)}; const next = () => { left -= 1; if (left === 0) resolve(); else requestAnimationFrame(next); }; requestAnimationFrame(next); })`,
+  );
+}
+
+async function wheel(page: Page, at: Point, distance: number): Promise<void> {
+  await page.mouse.move(at.x, at.y);
+  await page.mouse.wheel(0, distance);
+  await waitFramesAfterInput(page);
+}
+
+async function swipe(page: Page, at: Point, distance: number): Promise<void> {
   const cdp = await page.context().newCDPSession(page);
-  const height = page.viewportSize()?.height ?? 0;
-  const touchAt = (y: number): { x: number; y: number }[] => [{ x: at.x, y: Math.min(Math.max(y, 1), height - 1) }];
+  const { height } = viewportOf(page);
+  const touchAt = (y: number): Point[] => [{ x: at.x, y: Math.min(Math.max(y, 1), height - 1) }];
   try {
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: touchAt(at.y) });
     for (let step = 1; step <= SWIPE_STEPS; step += 1) {
@@ -61,18 +55,14 @@ const swipe: ScrollBy = async (page, at, distance) => {
   } finally {
     await cdp.detach();
   }
-  await settled(page);
-};
+  await waitFramesAfterInput(page);
+}
 
-const middleOf = async (locator: Locator): Promise<Point> => {
-  const box = await boxOf(locator, 'the element to scroll over');
-  return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
-};
+const SWIPE_AND_WHEEL: readonly ScrollBy[] = [swipe, wheel];
 
 async function scrimBeside(page: Page, modal: Locator): Promise<Point> {
   const box = await boxOf(modal, 'the modal');
-  const viewport = page.viewportSize();
-  if (viewport === null) throw new Error('the page has no viewport');
+  const viewport = viewportOf(page);
   const gaps = [
     { size: box.x, at: { x: box.x / 2, y: viewport.height / 2 } },
     {
@@ -85,22 +75,20 @@ async function scrimBeside(page: Page, modal: Locator): Promise<Point> {
   return widest.at;
 }
 
-async function scrollPageToStart(page: Page): Promise<void> {
-  expect(await scrollEnd(page), 'the page behind the modal can scroll').toBeGreaterThan(START);
-  await page.evaluate(`window.scrollTo(0, ${String(START)})`);
-  await expect.poll(() => scrollY(page)).toBe(START);
+async function scrollPageBehindModal(page: Page): Promise<void> {
+  expect(await scrollEnd(page), 'the page behind the modal can scroll').toBeGreaterThan(PAGE_SCROLLED_TO);
+  await page.evaluate(`window.scrollTo(0, ${String(PAGE_SCROLLED_TO)})`);
+  await expect.poll(() => scrollY(page)).toBe(PAGE_SCROLLED_TO);
 }
 
-async function expectBackgroundStill(page: Page, at: Point, inputs: readonly ScrollBy[]): Promise<void> {
+async function expectPageStill(page: Page, at: Point, inputs: readonly ScrollBy[]): Promise<void> {
   for (const input of inputs) {
     for (const distance of [DISTANCE, -DISTANCE]) {
       await input(page, at, distance);
-      expect(await scrollY(page)).toBe(START);
+      expect(await scrollY(page)).toBe(PAGE_SCROLLED_TO);
     }
   }
 }
-
-const TOUCH_INPUT = [swipe, wheel] as const;
 
 async function openSettings(page: Page): Promise<void> {
   await signIn(page);
@@ -116,9 +104,9 @@ test.describe('on a touch phone', () => {
   test('keeps the page still under a swipe or a wheel over the scrim while Add account is open at 390px', async ({ page }) => {
     await openSettings(page);
     const dialog = await openAdd(page, 'Assets', 'account');
-    await scrollPageToStart(page);
+    await scrollPageBehindModal(page);
 
-    await expectBackgroundStill(page, await scrimBeside(page, dialog), TOUCH_INPUT);
+    await expectPageStill(page, await scrimBeside(page, dialog), SWIPE_AND_WHEEL);
     await expect(dialog).toBeVisible();
   });
 
@@ -126,9 +114,9 @@ test.describe('on a touch phone', () => {
     await openSettings(page);
     await menu(page).click();
     await expect(sidebar(page)).toBeVisible();
-    await scrollPageToStart(page);
+    await scrollPageBehindModal(page);
 
-    await expectBackgroundStill(page, await scrimBeside(page, sidebar(page)), TOUCH_INPUT);
+    await expectPageStill(page, await scrimBeside(page, sidebar(page)), SWIPE_AND_WHEEL);
     await expect(sidebar(page)).toBeVisible();
   });
 
@@ -137,22 +125,22 @@ test.describe('on a touch phone', () => {
     const dialog = await openAdd(page, 'Assets', 'account');
     const draft = `Draft ${randomUUID()}`;
     await nameField(dialog).fill(draft);
-    await scrollPageToStart(page);
+    await scrollPageBehindModal(page);
     const scrim = await scrimBeside(page, dialog);
 
     await closeDialog(dialog);
     await expect(discardDialog(page)).toBeVisible();
-    await expectBackgroundStill(page, scrim, TOUCH_INPUT);
+    await expectPageStill(page, scrim, SWIPE_AND_WHEEL);
 
     await keepEditing(dialog, nameField(dialog), draft);
-    await expectBackgroundStill(page, scrim, TOUCH_INPUT);
+    await expectPageStill(page, scrim, SWIPE_AND_WHEEL);
 
     await closeDialog(dialog);
     await discardChanges(dialog);
-    expect(await scrollY(page)).toBe(START);
+    expect(await scrollY(page)).toBe(PAGE_SCROLLED_TO);
 
     await swipe(page, scrim, DISTANCE);
-    await expect.poll(() => scrollY(page)).toBeGreaterThan(START);
+    await expect.poll(() => scrollY(page)).toBeGreaterThan(PAGE_SCROLLED_TO);
   });
 
   test('hides the page overflow while the Sidebar drawer is open, and shows it again once the drawer closes', { tag: '@webkit' }, async ({ page }) => {
@@ -177,29 +165,30 @@ test.describe('on a short touch phone', () => {
   test('keeps the page still under a swipe or a wheel over the header of Choose a period at 390px', async ({ page }) => {
     await signIn(page);
     await page.goto(ENTRY_SEARCH_PATH);
-    await page.getByRole('button', { name: 'Choose a period', exact: true }).click();
-    const sheet = page.getByRole('dialog', { name: 'Choose a period', exact: true });
+    await choosePeriod(page).click();
+    const sheet = periodSheet(page);
     await expect(sheet).toBeVisible();
-    await scrollPageToStart(page);
+    await scrollPageBehindModal(page);
 
     const header = sheet.getByRole('heading', { name: 'Choose a period', exact: true });
-    await expectBackgroundStill(page, await middleOf(header), TOUCH_INPUT);
+    await expectPageStill(page, centre(await boxOf(header, 'the header of Choose a period')), SWIPE_AND_WHEEL);
     await expect(sheet).toBeVisible();
   });
 });
 
 type Scroller = { readonly scrollTop: number; readonly scrollHeight: number; readonly clientHeight: number };
 
-const formScroller = (form: Locator): Locator => form.locator('xpath=..');
+const formBody = (dialog: Locator): Locator =>
+  dialog.locator('div').filter({ has: dialog.page().getByRole('form') }).last();
 
-const formTop = (form: Locator): Promise<number> =>
-  formScroller(form).evaluate((scroller: Scroller) => Math.round(scroller.scrollTop));
+const formTop = (body: Locator): Promise<number> =>
+  body.evaluate((scroller: Scroller) => Math.round(scroller.scrollTop));
 
-const formEnd = (form: Locator): Promise<number> =>
-  formScroller(form).evaluate((scroller: Scroller) => Math.round(scroller.scrollHeight - scroller.clientHeight));
+const formEnd = (body: Locator): Promise<number> =>
+  body.evaluate((scroller: Scroller) => Math.round(scroller.scrollHeight - scroller.clientHeight));
 
-async function formEdge(form: Locator): Promise<Point> {
-  const box = await boxOf(formScroller(form), 'the scrolling body of Edit entry');
+async function formEdge(body: Locator): Promise<Point> {
+  const box = await boxOf(body, 'the scrolling body of Edit entry');
   return { x: box.x + box.width - EDGE_INSET, y: box.y + box.height / 2 };
 }
 
@@ -209,10 +198,10 @@ const DEVICES = [
 ] as const;
 
 for (const { name, viewport, hasTouch, input } of DEVICES) {
-  test(`scrolls the form inside Edit entry on ${name}, and leaves the page still when it scrolls past either end`, async ({ browser }) => {
-    const context = await browser.newContext({ viewport: WIDE, hasTouch });
-    try {
-      const page = await context.newPage();
+  test.describe(`on ${name}`, () => {
+    test.use({ viewport: WIDE, hasTouch });
+
+    test(`scrolls the form inside Edit entry on ${name}, and leaves the page still when it scrolls past either end`, async ({ page }) => {
       await signIn(page, { accountsStartOn: BOOKS_OPEN });
       const memo = `Edit entry scroll ${randomUUID()}`;
       await postEntries(page, [twoLine({ day: '2026-09-15', memo })]);
@@ -220,51 +209,63 @@ for (const { name, viewport, hasTouch, input } of DEVICES) {
       await page.goto('/entries');
 
       const dialog = await openEditEntry(listedEntry(page, memo));
-      const form = dialog.getByRole('form');
-      await scrollPageToStart(page);
-      const end = await formEnd(form);
-      const edge = await formEdge(form);
+      const body = formBody(dialog);
+      await scrollPageBehindModal(page);
+      const end = await formEnd(body);
+      const edge = await formEdge(body);
       expect(end, 'the form is taller than Edit entry').toBeGreaterThan(0);
 
       await input(page, edge, Math.min(DISTANCE / 4, end));
-      await expect.poll(() => formTop(form)).toBeGreaterThan(0);
-      expect(await scrollY(page)).toBe(START);
+      await expect.poll(() => formTop(body)).toBeGreaterThan(0);
+      expect(await scrollY(page)).toBe(PAGE_SCROLLED_TO);
 
       await expect(async () => {
         await input(page, edge, DISTANCE);
-        expect(await formTop(form)).toBe(end);
+        expect(await formTop(body)).toBe(end);
       }).toPass();
       await input(page, edge, DISTANCE);
-      expect(await scrollY(page)).toBe(START);
-      expect(await formTop(form)).toBe(end);
+      expect(await scrollY(page)).toBe(PAGE_SCROLLED_TO);
+      expect(await formTop(body)).toBe(end);
 
       await expect(async () => {
         await input(page, edge, -DISTANCE);
-        expect(await formTop(form)).toBe(0);
+        expect(await formTop(body)).toBe(0);
       }).toPass();
       await input(page, edge, -DISTANCE);
-      expect(await scrollY(page)).toBe(START);
+      expect(await scrollY(page)).toBe(PAGE_SCROLLED_TO);
       await expect(dialog).toBeVisible();
-    } finally {
-      await context.close();
-    }
+    });
   });
 }
 
-test('keeps the page in place sideways while Add account opens and closes on a fine pointer at 1280px', async ({ page }) => {
-  await page.setViewportSize(WIDE);
-  await openSettings(page);
-  const section = accountsSection(page);
-  const before = await boxOf(section, 'the Accounts section');
-  const width = async (): Promise<number> => Number(await page.evaluate('document.documentElement.clientWidth'));
-  const widthBefore = await width();
+test.describe('on a fine pointer at 1280px', () => {
+  test.use({ viewport: WIDE, hasTouch: false });
 
-  const dialog = await openAdd(page, 'Assets', 'account');
-  expect((await boxOf(section, 'the Accounts section')).x).toBe(before.x);
-  expect(await width()).toBe(widthBefore);
+  test('keeps the page in place sideways while Add account opens and closes', async ({ page }) => {
+    await openSettings(page);
+    const section = accountsSection(page);
+    const sectionX = async (): Promise<number> => (await boxOf(section, 'the Accounts section')).x;
+    const width = async (): Promise<number> => Number(await page.evaluate('document.documentElement.clientWidth'));
+    const xBefore = await sectionX();
+    const widthBefore = await width();
 
-  await closeDialog(dialog);
-  await expect(dialog).toBeHidden();
-  expect((await boxOf(section, 'the Accounts section')).x).toBe(before.x);
-  expect(await width()).toBe(widthBefore);
+    const dialog = await openAdd(page, 'Assets', 'account');
+    expect(await sectionX()).toBe(xBefore);
+    expect(await width()).toBe(widthBefore);
+
+    await closeDialog(dialog);
+    await expect(dialog).toBeHidden();
+    expect(await sectionX()).toBe(xBefore);
+    expect(await width()).toBe(widthBefore);
+  });
+
+  test('lets the page scroll under a wheel over the scrim while Add account is open', async ({ page }) => {
+    await openSettings(page);
+    const dialog = await openAdd(page, 'Assets', 'account');
+    await scrollPageBehindModal(page);
+
+    await wheel(page, await scrimBeside(page, dialog), DISTANCE);
+    await expect.poll(() => scrollY(page)).toBeGreaterThan(PAGE_SCROLLED_TO);
+    await expect(dialog).toBeVisible();
+  });
 });
