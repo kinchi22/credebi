@@ -68,17 +68,17 @@ test('offers every Account as a checkbox on each Side, and ticking, unticking or
   }
   await expect(lineGroups(form)).toHaveCount(0);
 
-  await accountTick(form, 'Debit', 'Expenses').check();
-  const expenses = lineGroup(form, 'Debit', 'Expenses');
+  await accountTick(form, 'Debit', 'Food').check();
+  const expenses = lineGroup(form, 'Debit', 'Food');
   await expect(expenses).toBeVisible();
-  await expect(lineAmount(form, 'Debit', 'Expenses')).toBeVisible();
+  await expect(lineAmount(form, 'Debit', 'Food')).toBeVisible();
   await expect(expenses.getByRole('button', { name: 'Remove', exact: true })).toBeVisible();
 
   await accountTick(form, 'Credit', 'Cash').check();
   await expect(lineGroup(form, 'Credit', 'Cash')).toBeVisible();
   await expect(lineGroups(form)).toHaveCount(2);
 
-  await accountTick(form, 'Debit', 'Expenses').uncheck();
+  await accountTick(form, 'Debit', 'Food').uncheck();
   await expect(expenses).toHaveCount(0);
   await expect(lineGroup(form, 'Credit', 'Cash')).toBeVisible();
 
@@ -99,7 +99,7 @@ test('shows the debit total, the credit total and their difference while the Use
   await expect(creditTotal).toHaveText(amountShown('0'));
   await expect(difference).toHaveText(amountShown('0'));
 
-  await addLine(form, { side: 'Debit', account: 'Expenses', amount: '12500' });
+  await addLine(form, { side: 'Debit', account: 'Food', amount: '12500' });
   await expect(debitTotal).toHaveText(TWELVE_THOUSAND_FIVE_HUNDRED);
   await expect(creditTotal).toHaveText(amountShown('0'));
   await expect(difference).toHaveText(TWELVE_THOUSAND_FIVE_HUNDRED);
@@ -109,15 +109,15 @@ test('shows the debit total, the credit total and their difference while the Use
   await expect(creditTotal).toHaveText(amountShown('12,000'));
   await expect(difference).toHaveText(amountShown('500'));
 
-  await addLine(form, { side: 'Credit', account: 'Accounts payable', amount: '500' });
+  await addLine(form, { side: 'Credit', account: 'Credit card payable', amount: '500' });
   await expect(creditTotal).toHaveText(TWELVE_THOUSAND_FIVE_HUNDRED);
   await expect(difference).toHaveText(amountShown('0'));
 
-  await lineAmount(form, 'Credit', 'Accounts payable').fill('1000');
+  await lineAmount(form, 'Credit', 'Credit card payable').fill('1000');
   await expect(creditTotal).toHaveText(amountShown('13,000'));
   await expect(difference).toHaveText(amountShown('-500'));
 
-  await accountTick(form, 'Credit', 'Accounts payable').uncheck();
+  await accountTick(form, 'Credit', 'Credit card payable').uncheck();
   await expect(creditTotal).toHaveText(amountShown('12,000'));
   await expect(difference).toHaveText(amountShown('500'));
 });
@@ -130,9 +130,9 @@ test('lists a posted Entry with its debits first, then its credits, each in the 
     day: DAY,
     memo,
     lines: [
-      { side: 'Credit', account: 'Sales', amount: '5000' },
-      { side: 'Debit', account: 'Expenses', amount: '7000' },
-      { side: 'Credit', account: 'Accounts payable', amount: '7500' },
+      { side: 'Credit', account: 'Salary', amount: '5000' },
+      { side: 'Debit', account: 'Food', amount: '7000' },
+      { side: 'Credit', account: 'Credit card payable', amount: '7500' },
       { side: 'Debit', account: 'Cash', amount: '5500' },
     ],
   });
@@ -144,13 +144,13 @@ test('lists a posted Entry with its debits first, then its credits, each in the 
 
     const lines = entry.getByTestId('entry-line');
     await expect(lines).toHaveCount(4);
-    await expect(lines.nth(0)).toContainText('Expenses');
+    await expect(lines.nth(0)).toContainText('Food');
     await expect(lines.nth(0)).toContainText(amountShown('7,000'));
     await expect(lines.nth(1)).toContainText('Cash');
     await expect(lines.nth(1)).toContainText(amountShown('5,500'));
-    await expect(lines.nth(2)).toContainText('Sales');
+    await expect(lines.nth(2)).toContainText('Salary');
     await expect(lines.nth(2)).toContainText(amountShown('5,000'));
-    await expect(lines.nth(3)).toContainText('Accounts payable');
+    await expect(lines.nth(3)).toContainText('Credit card payable');
     await expect(lines.nth(3)).toContainText(amountShown('7,500'));
 
     await expect(entry.getByTestId('entry-total')).toContainText(TWELVE_THOUSAND_FIVE_HUNDRED);
@@ -170,7 +170,7 @@ test('refuses an Entry whose debits and credits differ', async ({ page }) => {
     day: DAY,
     memo,
     lines: [
-      { side: 'Debit', account: 'Expenses', amount: '12500' },
+      { side: 'Debit', account: 'Food', amount: '12500' },
       { side: 'Credit', account: 'Cash', amount: '12000' },
     ],
   });
@@ -197,10 +197,10 @@ test('hides the Account checkboxes at 390px until Add debit account or Add credi
   await expect(sheet.getByText('Recent')).toHaveCount(0);
   await expect(accountTicks(sheet, 'Credit')).toBeHidden();
 
-  await findAnAccount(sheet).fill('es');
+  await findAnAccount(sheet).fill('ar');
   await expect(accountTicks(sheet, 'Debit').getByRole('checkbox')).toHaveCount(2);
-  await expect(accountTick(sheet, 'Debit', 'Sales')).toBeVisible();
-  await expect(accountTick(sheet, 'Debit', 'Expenses')).toBeVisible();
+  await expect(accountTick(sheet, 'Debit', 'Credit card payable')).toBeVisible();
+  await expect(accountTick(sheet, 'Debit', 'Salary')).toBeVisible();
 
   await pressDone(sheet);
   const reopened = await openAccountSheet(form, 'Credit');
@@ -219,18 +219,18 @@ test('keeps the tab on the ticked Side at 390px, whether or not the other Side h
 
   await sheetTab(sheet, 'Debit').click();
   await expectSheetOnSide(sheet, 'Debit');
-  await accountTick(sheet, 'Debit', 'Expenses').check();
-  await expect(accountTick(sheet, 'Debit', 'Expenses')).toBeChecked();
+  await accountTick(sheet, 'Debit', 'Food').check();
+  await expect(accountTick(sheet, 'Debit', 'Food')).toBeChecked();
   await expectSheetOnSide(sheet, 'Debit');
-  await accountTick(sheet, 'Debit', 'Capital').check();
-  await expect(accountTick(sheet, 'Debit', 'Capital')).toBeChecked();
+  await accountTick(sheet, 'Debit', 'Opening balance equity').check();
+  await expect(accountTick(sheet, 'Debit', 'Opening balance equity')).toBeChecked();
   await expectSheetOnSide(sheet, 'Debit');
 
   await pressDone(sheet);
   await expect(lineGroups(form)).toHaveCount(3);
   await expect(lineGroup(form, 'Credit', 'Cash')).toBeVisible();
-  await expect(lineGroup(form, 'Debit', 'Expenses')).toBeVisible();
-  await expect(lineGroup(form, 'Debit', 'Capital')).toBeVisible();
+  await expect(lineGroup(form, 'Debit', 'Food')).toBeVisible();
+  await expect(lineGroup(form, 'Debit', 'Opening balance equity')).toBeVisible();
 });
 
 test('lists a Multi-line mode Entry added at 390px through Choose accounts', async ({ page }) => {
@@ -242,9 +242,9 @@ test('lists a Multi-line mode Entry added at 390px through Choose accounts', asy
     day: DAY,
     memo,
     lines: [
-      { side: 'Debit', account: 'Expenses', amount: '12500' },
+      { side: 'Debit', account: 'Food', amount: '12500' },
       { side: 'Credit', account: 'Cash', amount: '12000' },
-      { side: 'Credit', account: 'Accounts payable', amount: '500' },
+      { side: 'Credit', account: 'Credit card payable', amount: '500' },
     ],
   });
 
@@ -259,24 +259,24 @@ test('keeps the tab on the ticked Side at 1024px, whether or not the other Side 
   await page.setViewportSize(WIDE_BELOW_SPLIT);
   await expectPickerOnSide(form, 'Debit', accountTicks);
 
-  await accountTick(form, 'Debit', 'Expenses').check();
-  await expect(accountTick(form, 'Debit', 'Expenses')).toBeChecked();
+  await accountTick(form, 'Debit', 'Food').check();
+  await expect(accountTick(form, 'Debit', 'Food')).toBeChecked();
   await expectPickerOnSide(form, 'Debit', accountTicks);
 
   await sheetTab(form, 'Credit').click();
   await accountTick(form, 'Credit', 'Cash').check();
   await expect(accountTick(form, 'Credit', 'Cash')).toBeChecked();
   await expectPickerOnSide(form, 'Credit', accountTicks);
-  await accountTick(form, 'Credit', 'Accounts payable').check();
-  await expect(accountTick(form, 'Credit', 'Accounts payable')).toBeChecked();
+  await accountTick(form, 'Credit', 'Credit card payable').check();
+  await expect(accountTick(form, 'Credit', 'Credit card payable')).toBeChecked();
   await expectPickerOnSide(form, 'Credit', accountTicks);
 
   await expect(lineGroups(form)).toHaveCount(3);
 });
 
-const ALL_LINES: readonly LineAccount[] = ['Expenses', OLD_WALLET, 'Cash'];
+const ALL_LINES: readonly LineAccount[] = ['Food', OLD_WALLET, 'Cash'];
 
-const WITHOUT_WALLET: readonly LineAccount[] = ['Expenses', 'Cash'];
+const WITHOUT_WALLET: readonly LineAccount[] = ['Food', 'Cash'];
 
 async function openMultiLineFormWithOldWallet(page: Page): Promise<Locator> {
   return openMultiLineForm(page, addOldWallet);
@@ -285,21 +285,21 @@ async function openMultiLineFormWithOldWallet(page: Page): Promise<Locator> {
 async function fillWalletLines(form: Locator, memo: string, expenses: string): Promise<void> {
   await form.getByLabel('Date').fill(WALLET_IN_USE);
   await form.getByLabel('Memo').fill(memo);
-  await addLine(form, { side: 'Debit', account: 'Expenses', amount: expenses });
+  await addLine(form, { side: 'Debit', account: 'Food', amount: expenses });
   await addLine(form, { side: 'Debit', account: OLD_WALLET, amount: '500' });
   await addLine(form, { side: 'Credit', account: 'Cash', amount: '12500' });
 }
 
 async function expectWalletAmounts(form: Locator, expenses: string): Promise<void> {
   await expect(lineGroups(form, OLD_WALLET)).toHaveCount(3);
-  await expect(lineAmount(form, 'Debit', 'Expenses')).toHaveValue(expenses);
+  await expect(lineAmount(form, 'Debit', 'Food')).toHaveValue(expenses);
   await expect(lineAmount(form, 'Debit', OLD_WALLET)).toHaveValue('500');
   await expect(lineAmount(form, 'Credit', 'Cash')).toHaveValue('12500');
 }
 
 async function expectWalletLineMarked(form: Locator, expenses: string): Promise<void> {
   await expect(notActiveMark(lineGroup(form, 'Debit', OLD_WALLET))).toBeVisible();
-  await expect(notActiveMark(lineGroup(form, 'Debit', 'Expenses'))).toHaveCount(0);
+  await expect(notActiveMark(lineGroup(form, 'Debit', 'Food'))).toHaveCount(0);
   await expect(notActiveMark(lineGroup(form, 'Credit', 'Cash'))).toHaveCount(0);
   await expectWalletAmounts(form, expenses);
 }
@@ -404,7 +404,7 @@ async function editPostedWalletEntry(page: Page, memo: string): Promise<Locator>
   await expectWalletAmounts(dialog, '12000');
 
   await dialog.getByLabel('Date').fill(WALLET_ENDED);
-  await lineAmount(dialog, 'Debit', 'Expenses').fill('12500');
+  await lineAmount(dialog, 'Debit', 'Food').fill('12500');
   await expectWalletLineMarked(dialog, '12500');
   await expect(dialog.getByTestId('difference')).toHaveText(amountShown('0'));
 
@@ -431,7 +431,7 @@ test('keeps every line of an edited Entry when a day on which the marked line\'s
   const dialog = await editPostedWalletEntry(page, memo);
 
   await dialog.getByLabel('Date').fill(WALLET_STILL_IN_USE);
-  await lineAmount(dialog, 'Debit', 'Expenses').fill('12000');
+  await lineAmount(dialog, 'Debit', 'Food').fill('12000');
   await expect(notActiveMark(lineGroup(dialog, 'Debit', OLD_WALLET))).toHaveCount(0);
   await submit(dialog, 'Save');
   await expect(dialog).toBeHidden();

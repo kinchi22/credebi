@@ -50,7 +50,7 @@ const button = (scope: Locator, name: string): Locator =>
 async function rewriteTwoLine(dialog: Locator, memo: string): Promise<void> {
   await dialog.getByLabel('Date').fill(EDITED_DAY);
   await dialog.getByLabel('Memo').fill(memo);
-  await accountChoice(dialog, 'Credit', 'Accounts payable').check();
+  await accountChoice(dialog, 'Credit', 'Credit card payable').check();
   await dialog.getByLabel('Amount').fill('8000');
 }
 
@@ -62,14 +62,14 @@ type Shown = {
 
 const AS_POSTED: Shown = { day: DAY, creditAccount: 'Cash', total: TWELVE_THOUSAND_FIVE_HUNDRED };
 
-const REWRITTEN: Shown = { day: EDITED_DAY, creditAccount: 'Accounts payable', total: amountShown('8,000') };
+const REWRITTEN: Shown = { day: EDITED_DAY, creditAccount: 'Credit card payable', total: amountShown('8,000') };
 
 async function expectShown(entry: Locator, shown: Shown): Promise<void> {
   await expect(entry).toHaveCount(1);
   await expect(entry).toContainText(shown.day);
   const lines = entry.getByTestId('entry-line');
   await expect(lines).toHaveCount(2);
-  await expect(lines.nth(0)).toContainText('Expenses');
+  await expect(lines.nth(0)).toContainText('Food');
   await expect(lines.nth(1)).toContainText(shown.creditAccount);
   await expect(entry.getByTestId('entry-total')).toContainText(shown.total);
 }
@@ -163,7 +163,7 @@ test('opens Edit entry in Two-line mode, filled with the Entry, for a Two-line m
   await expectTwoLineMode(dialog);
   await expect(dialog.getByLabel('Date')).toHaveValue(DAY);
   await expect(dialog.getByLabel('Memo')).toHaveValue(memo);
-  await expect(accountChoice(dialog, 'Debit', 'Expenses')).toBeChecked();
+  await expect(accountChoice(dialog, 'Debit', 'Food')).toBeChecked();
   await expect(accountChoice(dialog, 'Credit', 'Cash')).toBeChecked();
   await expect(dialog.getByLabel('Amount')).toHaveValue(AMOUNT);
 });
@@ -175,9 +175,9 @@ test('opens Edit entry in Multi-line mode, filled with every line, for a Two-lin
     day: DAY,
     memo,
     lines: [
-      { side: 'Debit', account: 'Expenses', amount: '12500' },
+      { side: 'Debit', account: 'Food', amount: '12500' },
       { side: 'Credit', account: 'Cash', amount: '12000' },
-      { side: 'Credit', account: 'Accounts payable', amount: '500' },
+      { side: 'Credit', account: 'Credit card payable', amount: '500' },
     ],
   });
   await setEntryFormMode(page, 'Two-line mode');
@@ -188,9 +188,9 @@ test('opens Edit entry in Multi-line mode, filled with every line, for a Two-lin
   await expectMultiLineMode(dialog, 3);
   await expect(dialog.getByLabel('Date')).toHaveValue(DAY);
   await expect(dialog.getByLabel('Memo')).toHaveValue(memo);
-  await expect(lineAmount(dialog, 'Debit', 'Expenses')).toHaveValue('12500');
+  await expect(lineAmount(dialog, 'Debit', 'Food')).toHaveValue('12500');
   await expect(lineAmount(dialog, 'Credit', 'Cash')).toHaveValue('12000');
-  await expect(lineAmount(dialog, 'Credit', 'Accounts payable')).toHaveValue('500');
+  await expect(lineAmount(dialog, 'Credit', 'Credit card payable')).toHaveValue('500');
 });
 
 test('opens Edit entry in Multi-line mode, filled with the Entry, for a Multi-line mode User and an Entry of one debit and one credit line', async ({ page }) => {
@@ -205,7 +205,7 @@ test('opens Edit entry in Multi-line mode, filled with the Entry, for a Multi-li
   await expectMultiLineMode(dialog, 2);
   await expect(dialog.getByLabel('Date')).toHaveValue(DAY);
   await expect(dialog.getByLabel('Memo')).toHaveValue(memo);
-  await expect(lineAmount(dialog, 'Debit', 'Expenses')).toHaveValue(AMOUNT);
+  await expect(lineAmount(dialog, 'Debit', 'Food')).toHaveValue(AMOUNT);
   await expect(lineAmount(dialog, 'Credit', 'Cash')).toHaveValue(AMOUNT);
 });
 
@@ -297,7 +297,7 @@ test('keeps Edit entry open with the input and says the balance is wrong when an
     day: DAY,
     memo,
     lines: [
-      { side: 'Debit', account: 'Expenses', amount: AMOUNT },
+      { side: 'Debit', account: 'Food', amount: AMOUNT },
       { side: 'Credit', account: 'Cash', amount: AMOUNT },
     ],
   });

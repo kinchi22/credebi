@@ -48,8 +48,8 @@ async function postJuneAndLastYear(page: Page, run: string): Promise<{ june: str
   const june = `June ${run}`;
   const lastYear = `Last year ${run}`;
   await postEntries(page, [
-    { day: '2026-06-10', memo: june, ...posting('Expenses', 'Cash') },
-    { day: '2025-12-31', memo: lastYear, ...posting('Expenses', 'Cash') },
+    { day: '2026-06-10', memo: june, ...posting('Food', 'Cash') },
+    { day: '2025-12-31', memo: lastYear, ...posting('Food', 'Cash') },
   ]);
   return { june, lastYear };
 }
@@ -69,10 +69,10 @@ test('opens with no query on the month up to today, filled into From and To, and
 
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [
-    { day: '2026-08-15', memo: before, ...posting('Expenses', 'Cash') },
-    { day: '2026-08-16', memo: opening, ...posting('Expenses', 'Cash') },
-    { day: '2026-09-15', memo: today, ...posting('Expenses', 'Cash') },
-    { day: '2026-09-16', memo: after, ...posting('Expenses', 'Cash') },
+    { day: '2026-08-15', memo: before, ...posting('Food', 'Cash') },
+    { day: '2026-08-16', memo: opening, ...posting('Food', 'Cash') },
+    { day: '2026-09-15', memo: today, ...posting('Food', 'Cash') },
+    { day: '2026-09-16', memo: after, ...posting('Food', 'Cash') },
   ]);
 
   await fixToday(page, TODAY);
@@ -102,8 +102,8 @@ test('opens on 31 March with a range from 1 March, as a month back has no 31st',
 
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [
-    { day: '2026-02-28', memo: february, ...posting('Expenses', 'Cash') },
-    { day: '2026-03-01', memo: march, ...posting('Expenses', 'Cash') },
+    { day: '2026-02-28', memo: february, ...posting('Food', 'Cash') },
+    { day: '2026-03-01', memo: march, ...posting('Food', 'Cash') },
   ]);
 
   await fixToday(page, '2026-03-31');
@@ -121,8 +121,8 @@ test('puts the criteria into the query when the User searches, and a reload keep
 
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [
-    { day: '2026-06-15', memo: june, ...posting('Expenses', 'Cash') },
-    { day: '2026-07-15', memo: july, ...posting('Expenses', 'Cash') },
+    { day: '2026-06-15', memo: june, ...posting('Food', 'Cash') },
+    { day: '2026-07-15', memo: july, ...posting('Food', 'Cash') },
   ]);
 
   await fixToday(page, TODAY);
@@ -150,9 +150,9 @@ test('never searches with From or To emptied', async ({ page }) => {
 
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [
-    { day: '2026-09-01', memo: recent, ...posting('Expenses', 'Cash') },
-    { day: '2020-01-01', memo: old, ...posting('Expenses', 'Cash') },
-    { day: '2030-01-01', memo: future, ...posting('Expenses', 'Cash') },
+    { day: '2026-09-01', memo: recent, ...posting('Food', 'Cash') },
+    { day: '2020-01-01', memo: old, ...posting('Food', 'Cash') },
+    { day: '2030-01-01', memo: future, ...posting('Food', 'Cash') },
   ]);
 
   await fixToday(page, TODAY);
@@ -362,10 +362,10 @@ test('narrows the results to a day range, both of whose ends are included', asyn
 
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [
-    { day: '2026-05-31', memo: before, ...posting('Expenses', 'Cash') },
-    { day: '2026-06-01', memo: opening, ...posting('Expenses', 'Cash') },
-    { day: '2026-06-30', memo: closing, ...posting('Expenses', 'Cash') },
-    { day: '2026-07-01', memo: after, ...posting('Expenses', 'Cash') },
+    { day: '2026-05-31', memo: before, ...posting('Food', 'Cash') },
+    { day: '2026-06-01', memo: opening, ...posting('Food', 'Cash') },
+    { day: '2026-06-30', memo: closing, ...posting('Food', 'Cash') },
+    { day: '2026-07-01', memo: after, ...posting('Food', 'Cash') },
   ]);
 
   await page.goto(SEARCH);
@@ -386,9 +386,9 @@ test('matches an Entry through either of its Entry lines', async ({ page }) => {
 
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [
-    { day: '2026-06-10', memo: debited, ...posting('Cash', 'Sales') },
-    { day: '2026-06-11', memo: credited, ...posting('Expenses', 'Cash') },
-    { day: '2026-06-12', memo: untouched, ...posting('Expenses', 'Accounts payable') },
+    { day: '2026-06-10', memo: debited, ...posting('Cash', 'Salary') },
+    { day: '2026-06-11', memo: credited, ...posting('Food', 'Cash') },
+    { day: '2026-06-12', memo: untouched, ...posting('Food', 'Credit card payable') },
   ]);
 
   await page.goto(SEARCH);
@@ -406,8 +406,8 @@ test('narrows the results to a memo substring, ignoring case', async ({ page }) 
 
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [
-    { day: '2026-06-10', memo: beans, ...posting('Expenses', 'Cash') },
-    { day: '2026-06-11', memo: fare, ...posting('Expenses', 'Cash') },
+    { day: '2026-06-10', memo: beans, ...posting('Food', 'Cash') },
+    { day: '2026-06-11', memo: fare, ...posting('Food', 'Cash') },
   ]);
 
   await page.goto(SEARCH);
@@ -427,10 +427,10 @@ test('narrows with the day range, the Account and the memo together', async ({ p
 
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [
-    { day: '2026-06-15', memo: matching, ...posting('Expenses', 'Cash') },
-    { day: '2026-07-15', memo: wrongDay, ...posting('Expenses', 'Cash') },
-    { day: '2026-06-15', memo: wrongAccount, ...posting('Expenses', 'Accounts payable') },
-    { day: '2026-06-15', memo: wrongMemo, ...posting('Expenses', 'Cash') },
+    { day: '2026-06-15', memo: matching, ...posting('Food', 'Cash') },
+    { day: '2026-07-15', memo: wrongDay, ...posting('Food', 'Cash') },
+    { day: '2026-06-15', memo: wrongAccount, ...posting('Food', 'Credit card payable') },
+    { day: '2026-06-15', memo: wrongMemo, ...posting('Food', 'Cash') },
   ]);
 
   await page.goto(SEARCH);
@@ -448,7 +448,7 @@ test('keeps the criteria it searched with filled into the form', async ({ page }
 
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [
-    { day: '2026-06-15', memo, ...posting('Expenses', 'Cash') },
+    { day: '2026-06-15', memo, ...posting('Food', 'Cash') },
   ]);
 
   await page.goto(SEARCH);
@@ -468,7 +468,7 @@ test('says that nothing matched, rather than rendering an empty region', async (
 
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [
-    { day: '2026-06-15', memo, ...posting('Expenses', 'Cash') },
+    { day: '2026-06-15', memo, ...posting('Food', 'Cash') },
   ]);
 
   await page.goto(SEARCH);
@@ -484,7 +484,7 @@ test('refuses a reversed day range, explains itself, and shows no list', async (
 
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [
-    { day: '2026-06-15', memo, ...posting('Expenses', 'Cash') },
+    { day: '2026-06-15', memo, ...posting('Food', 'Cash') },
   ]);
 
   await page.goto(SEARCH);
@@ -501,7 +501,7 @@ test("never shows one User's Entry in another User's results", async ({ browser 
   const ownerPage = await owner.newPage();
   await signIn(ownerPage, { accountsStartOn: BOOKS_OPEN });
   await postEntries(ownerPage, [
-    { day: '2026-06-15', memo, ...posting('Expenses', 'Cash') },
+    { day: '2026-06-15', memo, ...posting('Food', 'Cash') },
   ]);
   await ownerPage.goto(SEARCH);
   await search(ownerPage, { memo });
@@ -529,9 +529,9 @@ test('orders the results as `/entries` does: latest day first, and within a day 
 
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [
-    { day: '2026-06-10', memo: writtenFirst, ...posting('Expenses', 'Cash') },
-    { day: '2026-06-10', memo: writtenSecond, ...posting('Expenses', 'Cash') },
-    { day: '2026-06-11', memo: laterDay, ...posting('Expenses', 'Cash') },
+    { day: '2026-06-10', memo: writtenFirst, ...posting('Food', 'Cash') },
+    { day: '2026-06-10', memo: writtenSecond, ...posting('Food', 'Cash') },
+    { day: '2026-06-11', memo: laterDay, ...posting('Food', 'Cash') },
   ]);
 
   await page.goto(SEARCH);

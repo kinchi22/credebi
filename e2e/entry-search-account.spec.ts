@@ -40,10 +40,13 @@ import { expectWithinPhone, PHONE } from './viewport';
 
 const STARTING: readonly OfferedAccount[] = [
   ['Cash', 'Assets'],
-  ['Accounts payable', 'Liabilities'],
-  ['Capital', 'Equity'],
-  ['Sales', 'Revenue'],
-  ['Expenses', 'Expenses'],
+  ['Bank deposits', 'Assets'],
+  ['Credit card payable', 'Liabilities'],
+  ['Opening balance equity', 'Equity'],
+  ['Salary', 'Revenue'],
+  ['Food', 'Expenses'],
+  ['Transportation', 'Expenses'],
+  ['Other living expenses', 'Expenses'],
 ];
 
 const ANY_ACCOUNT = 'Any account';
@@ -73,7 +76,7 @@ const DAY = '2026-06-15';
 const paidFrom = (memo: string, creditAccount: LineAccount, day = DAY): TwoLineEntry => ({
   day,
   memo,
-  debitAccount: 'Expenses',
+  debitAccount: 'Food',
   creditAccount,
   amount: AMOUNT,
 });
@@ -145,11 +148,11 @@ test('narrows the Accounts to those containing the typed text, ignoring case, an
   const field = await openSearch(page);
 
   await typeAccount(field, 'CA');
-  await expectOfferedAccounts(page, [['Cash', 'Assets'], ['Capital', 'Equity']]);
+  await expectOfferedAccounts(page, [['Cash', 'Assets'], ['Credit card payable', 'Liabilities']]);
   await expect(noAccountMatches(page)).toHaveCount(0);
 
   await field.fill('payable');
-  await expectOfferedAccounts(page, [['Accounts payable', 'Liabilities']]);
+  await expectOfferedAccounts(page, [['Credit card payable', 'Liabilities']]);
 
   await field.fill(`absent ${randomUUID()}`);
   await expect(offeredAccounts(page)).toHaveCount(0);
@@ -213,7 +216,7 @@ test('chooses an Account by click, or by the arrow keys and Enter, fills the fie
   const paid = `Paid ${run}`;
   const owed = `Owed ${run}`;
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await postEntries(page, [paidFrom(paid, 'Cash'), paidFrom(owed, 'Accounts payable')]);
+  await postEntries(page, [paidFrom(paid, 'Cash'), paidFrom(owed, 'Credit card payable')]);
 
   const field = await openSearch(page);
   await field.click();
@@ -226,9 +229,9 @@ test('chooses an Account by click, or by the arrow keys and Enter, fills the fie
 
   await typeAccount(field, 'payab');
   await field.press('ArrowDown');
-  await expect(offeredAccount(page, 'Accounts payable', 'Liabilities')).toHaveAttribute('aria-selected', 'true');
+  await expect(offeredAccount(page, 'Credit card payable', 'Liabilities')).toHaveAttribute('aria-selected', 'true');
   await field.press('Enter');
-  await expect(field).toHaveValue('Accounts payable');
+  await expect(field).toHaveValue('Credit card payable');
   await expect(accountList(page)).toBeHidden();
   await searchButton(page).click();
   await expectListed(page, [owed], [paid]);
@@ -240,7 +243,7 @@ test('searches every Account once the clear button is pressed, or the field is e
   const paid = `Paid ${run}`;
   const owed = `Owed ${run}`;
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await postEntries(page, [paidFrom(paid, 'Cash'), paidFrom(owed, 'Accounts payable')]);
+  await postEntries(page, [paidFrom(paid, 'Cash'), paidFrom(owed, 'Credit card payable')]);
 
   const field = await openSearch(page);
   await chooseAccount(page, 'Cash');
@@ -276,7 +279,7 @@ test('takes text that is an Account name, ignoring case, as that Account even wh
   await postEntries(page, [
     paidFrom(paid, 'Cash'),
     paidFrom(petty, { added: PETTY_CASH }),
-    paidFrom(owed, 'Accounts payable'),
+    paidFrom(owed, 'Credit card payable'),
   ]);
 
   const field = await openSearch(page);
@@ -289,7 +292,7 @@ test('takes text that is an Account name, ignoring case, as that Account even wh
 
   await typeAccount(field, 'payab');
   await field.press('Tab');
-  await expect(field).toHaveValue('Accounts payable');
+  await expect(field).toHaveValue('Credit card payable');
   await searchButton(page).click();
   await expectListed(page, [owed], [paid, petty]);
 
@@ -348,11 +351,11 @@ test('closes the list on Escape keeping the text, and on a second Escape puts ba
   await expect(field).toHaveValue('');
 
   await chooseAccount(page, 'Cash');
-  await field.fill('Acc');
+  await field.fill('Cre');
   await expect(accountList(page)).toBeVisible();
   await field.press('Escape');
   await expect(accountList(page)).toBeHidden();
-  await expect(field).toHaveValue('Acc');
+  await expect(field).toHaveValue('Cre');
   await field.press('Escape');
   await expect(field).toHaveValue('Cash');
 });
@@ -370,32 +373,32 @@ test('selects the chosen Account name when the field is opened, so typing replac
   await expect.poll(() => selection(field)).toEqual([0, 'Cash'.length]);
   await page.keyboard.type('Sal');
   await expect(field).toHaveValue('Sal');
-  await expectOfferedAccounts(page, [['Sales', 'Revenue']]);
+  await expectOfferedAccounts(page, [['Salary', 'Revenue']]);
 });
 
 test('chooses no Account, keeps the list open and searches nothing when Enter or Escape is pressed while an Account name is being composed', async ({ page }) => {
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   const field = await openSearch(page);
-  const payable = offeredAccount(page, 'Accounts payable', 'Liabilities');
+  const payable = offeredAccount(page, 'Credit card payable', 'Liabilities');
 
-  await typeAccount(field, 'Acc');
-  await expectOfferedAccounts(page, [['Accounts payable', 'Liabilities']]);
+  await typeAccount(field, 'Cre');
+  await expectOfferedAccounts(page, [['Credit card payable', 'Liabilities']]);
   await field.press('ArrowDown');
   await expect(payable).toHaveAttribute('aria-selected', 'true');
 
-  const cdp = await startComposing(page, 'o');
-  await expect(field).toHaveValue('Acco');
+  const cdp = await startComposing(page, 'd');
+  await expect(field).toHaveValue('Cred');
 
   for (const key of ['Enter', 'Escape']) {
     await page.keyboard.press(key);
     await expect(accountList(page)).toBeVisible();
-    await expect(field).toHaveValue('Acco');
+    await expect(field).toHaveValue('Cred');
     await expect(page).toHaveURL(ENTRY_SEARCH_WITHOUT_QUERY);
   }
 
-  await finishComposing(cdp, 'o');
-  await expect(field).toHaveValue('Acco');
-  await expectOfferedAccounts(page, [['Accounts payable', 'Liabilities']]);
+  await finishComposing(cdp, 'd');
+  await expect(field).toHaveValue('Cred');
+  await expectOfferedAccounts(page, [['Credit card payable', 'Liabilities']]);
   await expect(page).toHaveURL(ENTRY_SEARCH_WITHOUT_QUERY);
 });
 
@@ -405,7 +408,7 @@ test('keeps the chosen Account in the URL by its id, and fills the field with it
   const paid = `Paid ${run}`;
   const owed = `Owed ${run}`;
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await postEntries(page, [paidFrom(paid, 'Cash'), paidFrom(owed, 'Accounts payable')]);
+  await postEntries(page, [paidFrom(paid, 'Cash'), paidFrom(owed, 'Credit card payable')]);
 
   await openSearch(page);
   await chooseAccount(page, 'Cash');

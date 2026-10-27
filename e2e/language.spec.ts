@@ -25,6 +25,7 @@ import {
   tabTo,
   type Language,
 } from './language';
+import { INITIAL_CHART, namesOf } from './initial-chart';
 import { ENTRIES_URL, SIGN_IN_URL } from './routes';
 import { freshIdentifier, signIn } from './session';
 import { SIGNED_IN_PAGES } from './sidebar';
@@ -103,10 +104,10 @@ for (const language of ['ko', 'ja'] as const) {
       if (other !== language) await expect(languageChoice(page, language, other)).not.toBeChecked();
     }
     const main = page.getByRole('main');
-    for (const name of CATALOGUE[language].startingAccounts) {
+    for (const name of namesOf(INITIAL_CHART[language])) {
       await expect(main.getByRole('listitem').getByText(name, { exact: true })).toBeVisible();
     }
-    for (const name of CATALOGUE.en.startingAccounts) {
+    for (const name of namesOf(INITIAL_CHART.en)) {
       await expect(main.getByRole('listitem').getByText(name, { exact: true })).toHaveCount(0);
     }
   });
@@ -218,7 +219,7 @@ test('shows an Account name, Title and memo the User typed the same in every Lan
   await page.goto('/settings');
   await addAccount(page, 'Assets', { name: account, activeFrom: BOOKS_OPEN });
   await postEntries(page, [
-    { day: DAY, title, memo, debitAccount: 'Expenses', creditAccount: { added: account }, amount: AMOUNT },
+    { day: DAY, title, memo, debitAccount: 'Food', creditAccount: { added: account }, amount: AMOUNT },
   ]);
 
   let shown: Language = 'en';

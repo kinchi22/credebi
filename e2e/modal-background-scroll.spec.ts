@@ -1,6 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { accountsSection, BOOKS_OPEN, boxOf, centre, openAdd, type Point } from './accounts';
+import {
+  accountsSection,
+  BOOKS_OPEN,
+  boxOf,
+  centre,
+  nameField,
+  openAdd,
+  type Point,
+} from './accounts';
 import { choosePeriod, periodSheet } from './date-presets';
 import { closeDialog, discardChanges, discardDialog, keepEditing } from './dialog';
 import { accountChoices, listedEntry, openEditEntry, postEntries, twoLine } from './entries';
@@ -95,8 +103,6 @@ async function openSettings(page: Page): Promise<void> {
   await page.goto(SETTINGS_PATH);
   await expect(accountsSection(page)).toBeVisible();
 }
-
-const nameField = (dialog: Locator): Locator => dialog.getByLabel('Name', { exact: true });
 
 test.describe('on a touch phone', () => {
   test.use({ viewport: PHONE, hasTouch: true });
