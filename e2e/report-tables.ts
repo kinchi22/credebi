@@ -8,8 +8,9 @@ export const reportTables = (page: Page): Locator => page.getByRole('main').getB
 export const namedTable = (page: Page, name: string): Locator =>
   page.getByRole('main').getByRole('table', { name, exact: true });
 
-export const zeroRows = (first: string, names: readonly string[]): ReportRow[] =>
-  [first, ...names].map((name) => [name, '0'] as const);
+export const atZero = (names: readonly string[]): ReportRow[] => names.map((name) => [name, '0'] as const);
+
+export const zeroRows = (first: string, names: readonly string[]): ReportRow[] => atZero([first, ...names]);
 
 const reportRow = (table: Locator, label: string): Locator =>
   table.getByRole('row').filter({ has: table.page().getByRole('rowheader', { name: label, exact: true }) });

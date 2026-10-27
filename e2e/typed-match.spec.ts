@@ -49,7 +49,7 @@ async function openSearchTitle(page: Page): Promise<Locator> {
 async function expectNarrowedToStarbucks(picker: Locator): Promise<void> {
   await expect(accountChoices(picker, 'Debit').getByRole('radio')).toHaveCount(1);
   await expect(accountChoice(picker, 'Debit', STARBUCKS)).toBeVisible();
-  for (const account of [SHINHAN_CARD, 'Cash', 'Expenses'] as const) {
+  for (const account of [SHINHAN_CARD, 'Cash', 'Food'] as const) {
     await expect(accountChoice(picker, 'Debit', account)).toBeHidden();
   }
 }

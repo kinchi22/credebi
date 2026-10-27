@@ -1,5 +1,4 @@
 import { expect, type Locator, type Page } from '@playwright/test';
-import { ACCOUNTS } from './entries';
 import { ENTRIES_URL } from './routes';
 import { freshIdentifier } from './session';
 
@@ -17,7 +16,6 @@ export type CatalogueText = {
   readonly google: string;
   readonly settings: string;
   readonly signOut: string;
-  readonly startingAccounts: readonly string[];
 };
 
 export const CATALOGUE: Readonly<Record<Language, CatalogueText>> = {
@@ -27,7 +25,6 @@ export const CATALOGUE: Readonly<Record<Language, CatalogueText>> = {
     google: 'Sign in with Google',
     settings: 'Settings',
     signOut: 'Sign out',
-    startingAccounts: ACCOUNTS,
   },
   ko: {
     language: '\uC5B8\uC5B4',
@@ -35,13 +32,6 @@ export const CATALOGUE: Readonly<Record<Language, CatalogueText>> = {
     google: 'Google\uB85C \uB85C\uADF8\uC778',
     settings: '\uC124\uC815',
     signOut: '\uB85C\uADF8\uC544\uC6C3',
-    startingAccounts: [
-      '\uD604\uAE08',
-      '\uB9E4\uC785\uCC44\uBB34',
-      '\uC790\uBCF8\uAE08',
-      '\uB9E4\uCD9C',
-      '\uBE44\uC6A9',
-    ],
   },
   ja: {
     language: '\u8A00\u8A9E',
@@ -49,13 +39,6 @@ export const CATALOGUE: Readonly<Record<Language, CatalogueText>> = {
     google: 'Google\u3067\u30ED\u30B0\u30A4\u30F3',
     settings: '\u8A2D\u5B9A',
     signOut: '\u30ED\u30B0\u30A2\u30A6\u30C8',
-    startingAccounts: [
-      '\u73FE\u91D1',
-      '\u8CB7\u639B\u91D1',
-      '\u8CC7\u672C\u91D1',
-      '\u58F2\u4E0A',
-      '\u8CBB\u7528',
-    ],
   },
 };
 

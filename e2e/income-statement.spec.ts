@@ -33,12 +33,15 @@ import {
   UUID_V7,
   withQuery,
 } from './routes';
-import { CATALOGUE, documentLanguage, MIDDLE_DOT, pageTitle, signUpAfterChoosing } from './language';
+import { INITIAL_CHART } from './initial-chart';
+import { documentLanguage, MIDDLE_DOT, pageTitle, signUpAfterChoosing } from './language';
 import {
   expectOneColumn,
   expectTotalsDirectlyBelowShorter,
   expectTwoColumnsWithTotalsUnder,
   reportTables as statementTables,
+  type ReportRow,
+  atZero,
   zeroRows,
 } from './report-tables';
 import { freshIdentifier, signIn, signInForSmoke, submitTestSignIn } from './session';
@@ -58,10 +61,10 @@ const REVERSED_JUNE = `${STATEMENT}?from=${JUNE_LAST}&to=${JUNE_FIRST}`;
 
 const LONG_NAME = 'Memberships paid for every single month';
 
-const spent = (day: string, memo: string, amount: string, account: LineAccount = 'Expenses'): TwoLineEntry =>
+const spent = (day: string, memo: string, amount: string, account: LineAccount = 'Food'): TwoLineEntry =>
   entryOn(day, memo, account, 'Cash', amount);
 
-const earned = (day: string, memo: string, amount: string, account: LineAccount = 'Sales'): TwoLineEntry =>
+const earned = (day: string, memo: string, amount: string, account: LineAccount = 'Salary'): TwoLineEntry =>
   entryOn(day, memo, 'Cash', account, amount);
 
 const statementLinkIn = (navigation: Locator): Locator => linkTo(navigation, STATEMENT);
@@ -71,17 +74,24 @@ const statementLink = (page: Page): Locator => statementLinkIn(sidebar(page));
 const koreanStatementLink = (page: Page): Locator =>
   statementLinkIn(page.getByRole('navigation', { name: HANGUL }));
 
-const nothingCounted = {
-  revenue: [['Sales', '0']],
+const livingExpenses = (food: string): readonly ReportRow[] => [
+  ['Living expenses', food],
+  ['Food', food],
+  ['Transportation', '0'],
+  ['Other living expenses', '0'],
+];
+
+const nothingCounted: Statement = {
+  revenue: [['Salary', '0']],
   totalRevenue: '0',
-  expenses: [['Expenses', '0']],
+  expenses: livingExpenses('0'),
   totalExpense: '0',
   netIncome: '0',
-} as const;
+};
 
 const spentOnly = (amount: string): Statement => ({
   ...nothingCounted,
-  expenses: [['Expenses', amount]],
+  expenses: livingExpenses(amount),
   totalExpense: amount,
   netIncome: `-${amount}`,
 });
@@ -89,6 +99,8 @@ const spentOnly = (amount: string): Statement => ({
 const rangeInUrl = (page: Page): Record<string, string> => Object.fromEntries(queryOf(page));
 
 const THREE_EXPENSES = ['Rent', 'Travel', 'Utilities'] as const;
+
+const THREE_REVENUES = ['Interest', 'Royalties', 'Tips'] as const;
 
 async function showJuneAt1280(page: Page): Promise<void> {
   await page.setViewportSize(WIDE);
@@ -255,8 +267,10 @@ test("shows the Income statement in the User's Language: its heading, title, tab
   for (const index of [0, 1, 2]) {
     await expect(tables.nth(index)).toHaveAccessibleName(HANGUL);
   }
-  const [, , , sales, expenses] = CATALOGUE.ko.startingAccounts;
-  for (const name of [sales ?? '', expenses ?? '']) {
+  const statementAccounts = [...INITIAL_CHART.ko.Revenue, ...INITIAL_CHART.ko.Expenses].flatMap((node) =>
+    node.kind === 'group' ? node.members : [node],
+  );
+  for (const { name } of statementAccounts) {
     await expect(page.getByRole('main').getByRole('link', { name, exact: true })).toBeVisible();
   }
 
@@ -275,9 +289,9 @@ test('totals a revenue Account as its credits less its debits and an expense Acc
   await addAccount(page, 'Expenses', { name: 'Travel', activeFrom: BOOKS_OPEN });
   await postEntries(page, [
     earned(IN_JUNE, `Sale ${run}`, '12500'),
-    entryOn(IN_JUNE, `Sale returned ${run}`, 'Sales', 'Cash', '3000'),
+    entryOn(IN_JUNE, `Sale returned ${run}`, 'Salary', 'Cash', '3000'),
     spent(IN_JUNE, `Supplies ${run}`, '4000'),
-    entryOn(IN_JUNE, `Supplies refunded ${run}`, 'Cash', 'Expenses', '1000'),
+    entryOn(IN_JUNE, `Supplies refunded ${run}`, 'Cash', 'Food', '1000'),
     entryOn(IN_JUNE, `Fare refunded ${run}`, 'Cash', travel, '5000'),
   ]);
 
@@ -285,9 +299,9 @@ test('totals a revenue Account as its credits less its debits and an expense Acc
   await showStatement(page, JUNE_FIRST, JUNE_LAST);
 
   await expectStatement(page, {
-    revenue: [['Sales', '9,500']],
+    revenue: [['Salary', '9,500']],
     totalRevenue: '9,500',
-    expenses: [['Expenses', '3,000'], ['Travel', '-5,000']],
+    expenses: [...livingExpenses('3,000'), ['Travel', '-5,000']],
     totalExpense: '-2,000',
     netIncome: '11,500',
   });
@@ -349,9 +363,9 @@ test('lists each revenue and expense Account whose Active period overlaps the ra
   await showStatement(page, JUNE_FIRST, JUNE_LAST);
 
   await expectStatement(page, {
-    revenue: [['Sales', '0'], ['New sales', '0']],
+    revenue: [['Salary', '0'], ['New sales', '0']],
     totalRevenue: '0',
-    expenses: [['Expenses', '0'], ['Ends on the first', '0'], ['Starts on the last', '0']],
+    expenses: [...livingExpenses('0'), ['Ends on the first', '0'], ['Starts on the last', '0']],
     totalExpense: '0',
     netIncome: '0',
   });
@@ -362,11 +376,11 @@ test('puts each Account under its Account group with the group\'s subtotal, in C
   const run = randomUUID();
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await page.goto('/settings');
-  await addGroup(page, 'Revenue', { name: 'Salary' });
-  await addAccount(page, 'Revenue', { name: 'Base pay', group: 'Salary', activeFrom: BOOKS_OPEN });
-  await addGroup(page, 'Expenses', { name: 'Food' });
-  await addAccount(page, 'Expenses', { name: 'Groceries', group: 'Food', activeFrom: BOOKS_OPEN });
-  await addAccount(page, 'Expenses', { name: 'Dining', group: 'Food', activeFrom: BOOKS_OPEN });
+  await addGroup(page, 'Revenue', { name: 'Pay' });
+  await addAccount(page, 'Revenue', { name: 'Base pay', group: 'Pay', activeFrom: BOOKS_OPEN });
+  await addGroup(page, 'Expenses', { name: 'Eating' });
+  await addAccount(page, 'Expenses', { name: 'Groceries', group: 'Eating', activeFrom: BOOKS_OPEN });
+  await addAccount(page, 'Expenses', { name: 'Dining', group: 'Eating', activeFrom: BOOKS_OPEN });
   await addGroup(page, 'Expenses', { name: 'Empty' });
   await addGroup(page, 'Expenses', { name: 'Retired' });
   await addAccount(page, 'Expenses', {
@@ -387,11 +401,11 @@ test('puts each Account under its Account group with the group\'s subtotal, in C
   await showStatement(page, JUNE_FIRST, JUNE_LAST);
 
   await expectStatement(page, {
-    revenue: [['Sales', '0'], ['Salary', '10,000'], ['Base pay', '10,000']],
+    revenue: [['Salary', '0'], ['Pay', '10,000'], ['Base pay', '10,000']],
     totalRevenue: '10,000',
     expenses: [
-      ['Expenses', '1,000'],
-      ['Food', '5,000'],
+      ...livingExpenses('1,000'),
+      ['Eating', '5,000'],
       ['Groceries', '2,000'],
       ['Dining', '3,000'],
       ['Rent', '0'],
@@ -399,9 +413,11 @@ test('puts each Account under its Account group with the group\'s subtotal, in C
     totalExpense: '6,000',
     netIncome: '4,000',
   });
-  await expect(statementTable(page, 'Revenue').getByRole('link')).toHaveText(['Sales', 'Base pay']);
+  await expect(statementTable(page, 'Revenue').getByRole('link')).toHaveText(['Salary', 'Base pay']);
   await expect(statementTable(page, 'Expenses').getByRole('link')).toHaveText([
-    'Expenses',
+    'Food',
+    'Transportation',
+    'Other living expenses',
     'Groceries',
     'Dining',
     'Rent',
@@ -483,7 +499,7 @@ test('shows each Account with one amount within the screen at 390px', async ({ p
 
   await expectStatement(page, {
     ...nothingCounted,
-    expenses: [['Expenses', '0'], [LONG_NAME, '1,234,567']],
+    expenses: [...livingExpenses('0'), [LONG_NAME, '1,234,567']],
     totalExpense: '1,234,567',
     netIncome: '-1,234,567',
   });
@@ -493,14 +509,14 @@ test('shows each Account with one amount within the screen at 390px', async ({ p
 });
 
 test('puts Expenses left of Revenue at 1280px, their tops level, and Totals directly below Expenses when Expenses has fewer rows', async ({ page }) => {
-  const revenue = ['Interest', 'Royalties', 'Tips'] as const;
+  const revenue = [...THREE_REVENUES, 'Refunds', 'Prizes', 'Dividends'] as const;
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await page.goto('/settings');
   await addAccounts(page, 'Revenue', revenue);
 
   await showJuneAt1280(page);
 
-  await expectStatement(page, { ...nothingCounted, revenue: zeroRows('Sales', revenue) });
+  await expectStatement(page, { ...nothingCounted, revenue: zeroRows('Salary', revenue) });
   await expectTotalsDirectlyBelowShorter(statementPanels(page), 'left');
 });
 
@@ -511,41 +527,45 @@ test('puts Expenses left of Revenue at 1280px, their tops level, and Totals dire
 
   await showJuneAt1280(page);
 
-  await expectStatement(page, { ...nothingCounted, expenses: zeroRows('Expenses', THREE_EXPENSES) });
+  await expectStatement(page, { ...nothingCounted, expenses: [...livingExpenses('0'), ...atZero(THREE_EXPENSES)] });
   await expectTotalsDirectlyBelowShorter(statementPanels(page), 'right');
 });
 
 test("counts each Account group's row as a row at 1280px, so Totals goes directly below Expenses when only the group rows make Revenue longer", async ({ page }) => {
   test.slow();
   const groups = [
-    ['Salary', 'Base pay'],
+    ['Pay', 'Base pay'],
     ['Bonus', 'Year-end bonus'],
     ['Gifts', 'Birthday gifts'],
+    ['Rentals', 'Room let'],
   ] as const;
+  const expenses = THREE_EXPENSES.slice(0, 2);
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await page.goto('/settings');
   for (const [group, name] of groups) {
     await addGroup(page, 'Revenue', { name: group });
     await addAccount(page, 'Revenue', { name, group, activeFrom: BOOKS_OPEN });
   }
-  await addAccounts(page, 'Expenses', THREE_EXPENSES);
+  await addAccounts(page, 'Expenses', expenses);
 
   await showJuneAt1280(page);
 
   await expectStatement(page, {
     ...nothingCounted,
-    revenue: zeroRows('Sales', groups.flat()),
-    expenses: zeroRows('Expenses', THREE_EXPENSES),
+    revenue: zeroRows('Salary', groups.flat()),
+    expenses: [...livingExpenses('0'), ...atZero(expenses)],
   });
   await expectTotalsDirectlyBelowShorter(statementPanels(page), 'left');
 });
 
 test('puts Expenses left of Revenue at 1280px, their tops level, and Totals below Revenue when the two have the same number of rows', async ({ page }) => {
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
+  await page.goto('/settings');
+  await addAccounts(page, 'Revenue', THREE_REVENUES);
 
   await showJuneAt1280(page);
 
-  await expectStatement(page, nothingCounted);
+  await expectStatement(page, { ...nothingCounted, revenue: zeroRows('Salary', THREE_REVENUES) });
   await expectTwoColumnsWithTotalsUnder(statementPanels(page), 'right');
 });
 
@@ -559,7 +579,7 @@ test('stacks Revenue, Expenses and Totals in one column below 1280px and at 390p
     await page.goto(STATEMENT);
     await showStatement(page, JUNE_FIRST, JUNE_LAST);
 
-    await expectStatement(page, { ...nothingCounted, revenue: [['Sales', '0'], ['Interest', '0']] });
+    await expectStatement(page, { ...nothingCounted, revenue: [['Salary', '0'], ['Interest', '0']] });
     await expectOneColumn(statementTable(page, 'Revenue'), statementTable(page, 'Expenses'), statementTable(page, 'Totals'));
   }
 });

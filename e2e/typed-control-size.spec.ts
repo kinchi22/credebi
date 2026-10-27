@@ -52,14 +52,14 @@ test('sets Date, Title, Memo, every line Amount and Find an account in the multi
 
   const debit = await openAccountSheet(form, 'Debit');
   await expectTypedWithoutZoom(findAnAccount(debit));
-  await accountTick(debit, 'Debit', 'Expenses').check();
+  await accountTick(debit, 'Debit', 'Food').check();
   await pressDone(debit);
 
   const credit = await openAccountSheet(form, 'Credit');
   await accountTick(credit, 'Credit', 'Cash').check();
   await pressDone(credit);
 
-  await expectTypedWithoutZoom(lineAmount(form, 'Debit', 'Expenses'));
+  await expectTypedWithoutZoom(lineAmount(form, 'Debit', 'Food'));
   await expectTypedWithoutZoom(lineAmount(form, 'Credit', 'Cash'));
 });
 

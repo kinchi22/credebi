@@ -32,12 +32,15 @@ import {
   saveEdit,
   type TwoLineEntry,
 } from './entries';
-import { CATALOGUE, documentLanguage, pageTitle, signUpAfterChoosing } from './language';
+import { flattened, INITIAL_CHART } from './initial-chart';
+import { documentLanguage, pageTitle, signUpAfterChoosing, type Language } from './language';
 import {
   expectOneColumn,
   expectTotalsDirectlyBelowShorter,
   expectTwoColumnsWithTotalsUnder,
   reportTables,
+  type ReportRow,
+  atZero,
   zeroRows,
 } from './report-tables';
 import {
@@ -83,11 +86,18 @@ const LONG_NAME = 'Savings kept for every single rainy day';
 
 const THREE_ACCOUNTS = ['First', 'Second', 'Third'] as const;
 
+const FIVE_ACCOUNTS = [...THREE_ACCOUNTS, 'Fourth', 'Fifth'] as const;
+
 const intoCash = (day: string, memo: string, amount: string): TwoLineEntry =>
-  entryOn(day, memo, 'Cash', 'Capital', amount);
+  entryOn(day, memo, 'Cash', 'Opening balance equity', amount);
 
 const outOfCash = (day: string, memo: string, amount: string): TwoLineEntry =>
-  entryOn(day, memo, 'Expenses', 'Cash', amount);
+  entryOn(day, memo, 'Food', 'Cash', amount);
+
+const balanceSheetNames = (language: Language): readonly string[] =>
+  [...flattened(INITIAL_CHART[language].Assets), ...flattened(INITIAL_CHART[language].Liabilities)].map(
+    ({ name }) => name,
+  );
 
 const reportLinkIn = (navigation: Locator): Locator => linkTo(navigation, REPORT);
 
@@ -95,17 +105,23 @@ const reportLink = (page: Page): Locator => reportLinkIn(sidebar(page));
 
 const dated = (day: string): string => `${REPORT}?date=${day}`;
 
+const cashAndDeposits = (cash: string): readonly ReportRow[] => [
+  ['Cash and deposits', cash],
+  ['Cash', cash],
+  ['Bank deposits', '0'],
+];
+
 const nothingCounted: Report = {
-  assets: [['Cash', '0']],
+  assets: cashAndDeposits('0'),
   totalAssets: '0',
-  liabilities: [['Accounts payable', '0']],
+  liabilities: [['Credit card payable', '0']],
   totalLiabilities: '0',
   netWorth: '0',
 };
 
 const cashOnly = (amount: string): Report => ({
   ...nothingCounted,
-  assets: [['Cash', amount]],
+  assets: cashAndDeposits(amount),
   totalAssets: amount,
   netWorth: amount,
 });
@@ -286,18 +302,18 @@ test('balances an asset Account as its debits less its credits and a liability A
   await postEntries(page, [
     intoCash(IN_JUNE, `Paid in ${run}`, '5000'),
     outOfCash(IN_JUNE, `Spent ${run}`, '1000'),
-    entryOn(IN_JUNE, `Overdrawn ${run}`, 'Expenses', bank, '2500'),
-    entryOn(IN_JUNE, `Charged ${run}`, 'Expenses', card, '9000'),
+    entryOn(IN_JUNE, `Overdrawn ${run}`, 'Food', bank, '2500'),
+    entryOn(IN_JUNE, `Charged ${run}`, 'Food', card, '9000'),
     entryOn(IN_JUNE, `Card repaid ${run}`, card, 'Cash', '500'),
-    entryOn(IN_JUNE, `Overpaid supplier ${run}`, 'Accounts payable', 'Capital', '1200'),
+    entryOn(IN_JUNE, `Overpaid supplier ${run}`, 'Credit card payable', 'Opening balance equity', '1200'),
   ]);
 
   await page.goto(dated(JUNE_LAST));
 
   await expectReport(page, {
-    assets: [['Cash', '3,500'], ['Overdrawn bank', '-2,500']],
+    assets: [...cashAndDeposits('3,500'), ['Overdrawn bank', '-2,500']],
     totalAssets: '1,000',
-    liabilities: [['Accounts payable', '-1,200'], ['Card', '8,500']],
+    liabilities: [['Credit card payable', '-1,200'], ['Card', '8,500']],
     totalLiabilities: '7,300',
     netWorth: '-6,300',
   });
@@ -310,8 +326,8 @@ test('lists an Account on the first and last days of its Active period, at zero 
   await addAccount(page, 'Liabilities', { name: 'Tab', activeFrom: '2026-06-10', activeUntil: '2026-06-20' });
   const listed: Report = {
     ...nothingCounted,
-    assets: [['Cash', '0'], ['Wallet', '0']],
-    liabilities: [['Accounts payable', '0'], ['Tab', '0']],
+    assets: [...cashAndDeposits('0'), ['Wallet', '0']],
+    liabilities: [['Credit card payable', '0'], ['Tab', '0']],
   };
 
   await page.goto(REPORT);
@@ -336,25 +352,25 @@ test('leaves an ended Account with a balance out of its row, its group subtotal,
   await addAccount(page, 'Assets', { name: 'Fund', group: 'Savings', activeFrom: BOOKS_OPEN });
   await addAccount(page, 'Liabilities', { name: 'Old loan', activeFrom: BOOKS_OPEN, activeUntil: JUNE_LAST });
   await postEntries(page, [
-    entryOn(IN_JUNE, `Deposited ${run}`, added('Deposit'), 'Capital', '4000'),
-    entryOn(IN_JUNE, `Invested ${run}`, added('Fund'), 'Capital', '1000'),
-    entryOn(IN_JUNE, `Borrowed ${run}`, 'Expenses', added('Old loan'), '3000'),
+    entryOn(IN_JUNE, `Deposited ${run}`, added('Deposit'), 'Opening balance equity', '4000'),
+    entryOn(IN_JUNE, `Invested ${run}`, added('Fund'), 'Opening balance equity', '1000'),
+    entryOn(IN_JUNE, `Borrowed ${run}`, 'Food', added('Old loan'), '3000'),
   ]);
 
   await page.goto(dated(JUNE_LAST));
   await expectReport(page, {
-    assets: [['Cash', '0'], ['Savings', '5,000'], ['Deposit', '4,000'], ['Fund', '1,000']],
+    assets: [...cashAndDeposits('0'), ['Savings', '5,000'], ['Deposit', '4,000'], ['Fund', '1,000']],
     totalAssets: '5,000',
-    liabilities: [['Accounts payable', '0'], ['Old loan', '3,000']],
+    liabilities: [['Credit card payable', '0'], ['Old loan', '3,000']],
     totalLiabilities: '3,000',
     netWorth: '2,000',
   });
 
   await page.goto(dated('2026-07-01'));
   await expectReport(page, {
-    assets: [['Cash', '0'], ['Savings', '1,000'], ['Fund', '1,000']],
+    assets: [...cashAndDeposits('0'), ['Savings', '1,000'], ['Fund', '1,000']],
     totalAssets: '1,000',
-    liabilities: [['Accounts payable', '0']],
+    liabilities: [['Credit card payable', '0']],
     totalLiabilities: '0',
     netWorth: '1,000',
   });
@@ -396,8 +412,8 @@ test("puts each Account under its Account group with the group's subtotal, in Ch
   await addGroup(page, 'Liabilities', { name: 'Loans' });
   await addAccount(page, 'Liabilities', { name: 'Mortgage', group: 'Loans', activeFrom: BOOKS_OPEN });
   await postEntries(page, [
-    entryOn(IN_JUNE, `Checking ${run}`, added('Checking'), 'Capital', '2000'),
-    entryOn(IN_JUNE, `Saved ${run}`, added('Savings account'), 'Sales', '3000'),
+    entryOn(IN_JUNE, `Checking ${run}`, added('Checking'), 'Opening balance equity', '2000'),
+    entryOn(IN_JUNE, `Saved ${run}`, added('Savings account'), 'Salary', '3000'),
     entryOn(IN_JUNE, `Mortgaged ${run}`, 'Cash', added('Mortgage'), '10000'),
     outOfCash(IN_JUNE, `Spent ${run}`, '1000'),
   ]);
@@ -406,14 +422,14 @@ test("puts each Account under its Account group with the group's subtotal, in Ch
 
   await expectReport(page, {
     assets: [
-      ['Cash', '9,000'],
+      ...cashAndDeposits('9,000'),
       ['Banks', '5,000'],
       ['Checking', '2,000'],
       ['Savings account', '3,000'],
       ['Wallet', '0'],
     ],
     totalAssets: '14,000',
-    liabilities: [['Accounts payable', '0'], ['Loans', '10,000'], ['Mortgage', '10,000']],
+    liabilities: [['Credit card payable', '0'], ['Loans', '10,000'], ['Mortgage', '10,000']],
     totalLiabilities: '10,000',
     netWorth: '4,000',
   });
@@ -425,13 +441,13 @@ test("shows a past day's balances under each Account's current name and Account 
   await page.goto(SETTINGS_PATH);
   await addAccounts(page, 'Assets', ['Wallet', 'Bank']);
   await postEntries(page, [
-    entryOn(IN_JUNE, `Pocketed ${run}`, added('Wallet'), 'Capital', '2000'),
-    entryOn(IN_JUNE, `Banked ${run}`, added('Bank'), 'Capital', '3000'),
+    entryOn(IN_JUNE, `Pocketed ${run}`, added('Wallet'), 'Opening balance equity', '2000'),
+    entryOn(IN_JUNE, `Banked ${run}`, added('Bank'), 'Opening balance equity', '3000'),
   ]);
   await page.goto(dated(JUNE_LAST));
   await expectReport(page, {
     ...nothingCounted,
-    assets: [['Cash', '0'], ['Wallet', '2,000'], ['Bank', '3,000']],
+    assets: [...cashAndDeposits('0'), ['Wallet', '2,000'], ['Bank', '3,000']],
     totalAssets: '5,000',
     netWorth: '5,000',
   });
@@ -442,13 +458,20 @@ test("shows a past day's balances under each Account's current name and Account 
   await addGroup(page, 'Assets', { name: 'Banks' });
   await editAccount(page, 'Assets', 'Bank', { group: 'Banks' });
   await drag(page, grip(assets, 'Pocket money'), grip(assets, 'Cash'));
-  await expectOrder(assets, ['Pocket money', 'Cash', 'Banks', 'Bank']);
+  await expectOrder(assets, ['Cash and deposits', 'Pocket money', 'Cash', 'Bank deposits', 'Banks', 'Bank']);
 
   await page.goto(dated(JUNE_LAST));
 
   await expectReport(page, {
     ...nothingCounted,
-    assets: [['Pocket money', '2,000'], ['Cash', '0'], ['Banks', '3,000'], ['Bank', '3,000']],
+    assets: [
+      ['Cash and deposits', '2,000'],
+      ['Pocket money', '2,000'],
+      ['Cash', '0'],
+      ['Bank deposits', '0'],
+      ['Banks', '3,000'],
+      ['Bank', '3,000'],
+    ],
     totalAssets: '5,000',
     netWorth: '5,000',
   });
@@ -489,13 +512,13 @@ test("counts no other User's Accounts or Entries in a User's balances, subtotals
   await addAccount(ownerPage, 'Assets', { name: safe, activeFrom: BOOKS_OPEN });
   await postEntries(ownerPage, [
     intoCash(IN_JUNE, `Private cash ${run}`, '1000'),
-    entryOn(IN_JUNE, `Private debt ${run}`, 'Expenses', 'Accounts payable', '2000'),
+    entryOn(IN_JUNE, `Private debt ${run}`, 'Food', 'Credit card payable', '2000'),
   ]);
   await ownerPage.goto(dated(JUNE_LAST));
   await expectReport(ownerPage, {
-    assets: [['Cash', '1,000'], [safe, '0']],
+    assets: [...cashAndDeposits('1,000'), [safe, '0']],
     totalAssets: '1,000',
-    liabilities: [['Accounts payable', '2,000']],
+    liabilities: [['Credit card payable', '2,000']],
     totalLiabilities: '2,000',
     netWorth: '-1,000',
   });
@@ -580,8 +603,7 @@ test("shows Assets and liabilities in the User's Language: its heading, title, S
     await expect(tables.nth(index)).not.toHaveAccessibleName(/Assets|Liabilities|Totals/);
   }
   await expect(page.getByRole('main').getByRole('rowheader', { name: KOREAN_NET_WORTH, exact: true })).toBeVisible();
-  const [cash, payable] = CATALOGUE.ko.startingAccounts;
-  for (const name of [cash ?? '', payable ?? '']) {
+  for (const name of balanceSheetNames('ko')) {
     await expect(page.getByRole('main').getByRole('rowheader', { name, exact: true })).toBeVisible();
   }
 
@@ -612,8 +634,7 @@ test("shows Assets and liabilities in Japanese when that is the User's Language:
     await expect(tables.nth(index)).not.toHaveAccessibleName(/Assets|Liabilities|Totals/);
   }
   await expect(page.getByRole('main').getByRole('rowheader', { name: JAPANESE_NET_WORTH, exact: true })).toBeVisible();
-  const [cash, payable] = CATALOGUE.ja.startingAccounts;
-  for (const name of [cash ?? '', payable ?? '']) {
+  for (const name of balanceSheetNames('ja')) {
     await expect(page.getByRole('main').getByRole('rowheader', { name, exact: true })).toBeVisible();
   }
 });
@@ -639,13 +660,13 @@ test('shows each Account with one whole, grouped amount within the screen at 390
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await page.goto(SETTINGS_PATH);
   await addAccount(page, 'Assets', { name: LONG_NAME, activeFrom: BOOKS_OPEN });
-  await postEntries(page, [entryOn(IN_JUNE, `Saved up ${randomUUID()}`, added(LONG_NAME), 'Capital', '1234567')]);
+  await postEntries(page, [entryOn(IN_JUNE, `Saved up ${randomUUID()}`, added(LONG_NAME), 'Opening balance equity', '1234567')]);
 
   await showJuneLastAt(page, PHONE);
 
   await expectReport(page, {
     ...nothingCounted,
-    assets: [['Cash', '0'], [LONG_NAME, '1,234,567']],
+    assets: [...cashAndDeposits('0'), [LONG_NAME, '1,234,567']],
     totalAssets: '1,234,567',
     netWorth: '1,234,567',
   });
@@ -657,11 +678,11 @@ test('shows each Account with one whole, grouped amount within the screen at 390
 test('puts Assets left of Liabilities at 1280px, their tops level, and Totals directly below Assets when Assets has fewer rows', async ({ page }) => {
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await page.goto(SETTINGS_PATH);
-  await addAccounts(page, 'Liabilities', THREE_ACCOUNTS);
+  await addAccounts(page, 'Liabilities', FIVE_ACCOUNTS);
 
   await showJuneLastAt(page, WIDE);
 
-  await expectReport(page, { ...nothingCounted, liabilities: zeroRows('Accounts payable', THREE_ACCOUNTS) });
+  await expectReport(page, { ...nothingCounted, liabilities: zeroRows('Credit card payable', FIVE_ACCOUNTS) });
   await expectTotalsDirectlyBelowShorter(reportPanels(page), 'left');
 });
 
@@ -672,7 +693,7 @@ test('puts Assets left of Liabilities at 1280px, their tops level, and Totals di
 
   await showJuneLastAt(page, WIDE);
 
-  await expectReport(page, { ...nothingCounted, assets: zeroRows('Cash', THREE_ACCOUNTS) });
+  await expectReport(page, { ...nothingCounted, assets: [...cashAndDeposits('0'), ...atZero(THREE_ACCOUNTS)] });
   await expectTotalsDirectlyBelowShorter(reportPanels(page), 'right');
 });
 
@@ -682,6 +703,7 @@ test("counts each Account group's row as a row at 1280px, so Totals goes directl
     ['Loans', 'Car loan'],
     ['Cards', 'Credit card'],
     ['Family', 'Owed to parents'],
+    ['Tax', 'Tax owed'],
   ] as const;
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await page.goto(SETTINGS_PATH);
@@ -695,18 +717,21 @@ test("counts each Account group's row as a row at 1280px, so Totals goes directl
 
   await expectReport(page, {
     ...nothingCounted,
-    assets: zeroRows('Cash', THREE_ACCOUNTS),
-    liabilities: zeroRows('Accounts payable', groups.flat()),
+    assets: [...cashAndDeposits('0'), ...atZero(THREE_ACCOUNTS)],
+    liabilities: zeroRows('Credit card payable', groups.flat()),
   });
   await expectTotalsDirectlyBelowShorter(reportPanels(page), 'left');
 });
 
 test('puts Assets left of Liabilities at 1280px, their tops level, and Totals below Liabilities when the two have the same number of rows', async ({ page }) => {
+  const twoMore = THREE_ACCOUNTS.slice(0, 2);
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
+  await page.goto(SETTINGS_PATH);
+  await addAccounts(page, 'Liabilities', twoMore);
 
   await showJuneLastAt(page, WIDE);
 
-  await expectReport(page, nothingCounted);
+  await expectReport(page, { ...nothingCounted, liabilities: zeroRows('Credit card payable', twoMore) });
   await expectTwoColumnsWithTotalsUnder(reportPanels(page), 'right');
 });
 
@@ -718,7 +743,7 @@ test('stacks Assets, Liabilities and Totals in one column below 1280px and at 39
   for (const viewport of [WIDE_BELOW_SPLIT, PHONE]) {
     await showJuneLastAt(page, viewport);
 
-    await expectReport(page, { ...nothingCounted, assets: [['Cash', '0'], ['Wallet', '0']] });
+    await expectReport(page, { ...nothingCounted, assets: [...cashAndDeposits('0'), ['Wallet', '0']] });
     await expectOneColumn(reportTable(page, 'Assets'), reportTable(page, 'Liabilities'), reportTable(page, 'Totals'));
   }
 });

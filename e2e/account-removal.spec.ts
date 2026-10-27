@@ -35,8 +35,11 @@ import {
 } from './entries';
 import { accountField, offeredAccount, results, search } from './entry-search';
 import { ENTRY_SEARCH_PATH, ENTRY_SEARCH_WITH_QUERY } from './routes';
+import { initialNames } from './initial-chart';
 import { signIn } from './session';
 import { expectWithinPhone, PHONE } from './viewport';
+
+const ASSETS = initialNames('Assets');
 
 const PETTY_CASH: AddedAccount = { added: 'Petty cash' };
 
@@ -67,7 +70,7 @@ async function signInWithPettyCash(page: Page, fields: Omit<AccountFields, 'name
 
 async function postNamingPettyCashAndDelete(page: Page): Promise<void> {
   const memo = `Mistaken ${randomUUID()}`;
-  await postToday(page, [{ memo, debitAccount: 'Expenses', creditAccount: PETTY_CASH }]);
+  await postToday(page, [{ memo, debitAccount: 'Food', creditAccount: PETTY_CASH }]);
   await deleteEntry(page, memo);
   await page.goto('/settings');
 }
@@ -79,9 +82,9 @@ async function addPostAndDelete(page: Page): Promise<void> {
 
 async function expectNotInChart(page: Page): Promise<void> {
   const assets = accountType(page, 'Assets');
-  await expectOrder(assets, ['Cash']);
+  await expectOrder(assets, ASSETS);
   await showEndedAccounts(page).check();
-  await expectOrder(assets, ['Cash']);
+  await expectOrder(assets, ASSETS);
 }
 
 test('removes an Account no Entry names and one named only by a deleted Entry, and refuses one a shown Entry names, saying so and offering an end day instead', async ({ page }) => {
@@ -90,8 +93,8 @@ test('removes an Account no Entry names and one named only by a deleted Entry, a
   const deleted = `Deleted ${run}`;
   await signIn(page);
   await postToday(page, [
-    { memo: kept, debitAccount: 'Expenses', creditAccount: 'Cash' },
-    { memo: deleted, debitAccount: 'Cash', creditAccount: 'Sales' },
+    { memo: kept, debitAccount: 'Food', creditAccount: 'Cash' },
+    { memo: deleted, debitAccount: 'Cash', creditAccount: 'Salary' },
   ]);
   await deleteEntry(page, deleted);
 
@@ -101,12 +104,12 @@ test('removes an Account no Entry names and one named only by a deleted Entry, a
   const cancelled = await openDelete(page, 'Assets', nameOf(PETTY_CASH));
   await cancelled.getByRole('button', { name: 'Cancel', exact: true }).click();
   await expect(cancelled).toBeHidden();
-  await expectOrder(accountType(page, 'Assets'), ['Cash', nameOf(PETTY_CASH)]);
+  await expectOrder(accountType(page, 'Assets'), [...ASSETS, nameOf(PETTY_CASH)]);
 
   await remove(page, 'Assets', nameOf(PETTY_CASH));
-  await expectOrder(accountType(page, 'Assets'), ['Cash']);
+  await expectOrder(accountType(page, 'Assets'), ASSETS);
 
-  await remove(page, 'Revenue', 'Sales');
+  await remove(page, 'Revenue', 'Salary');
   await expectOrder(accountType(page, 'Revenue'), []);
 
   const named = await openDelete(page, 'Assets', 'Cash');
@@ -119,7 +122,7 @@ test('removes an Account no Entry names and one named only by a deleted Entry, a
 
   await page.reload();
   await expect(accountsSection(page)).toBeVisible();
-  await expectOrder(accountType(page, 'Assets'), ['Cash']);
+  await expectOrder(accountType(page, 'Assets'), ASSETS);
   await expectOrder(accountType(page, 'Revenue'), []);
 
   await page.goto('/entries');
@@ -158,19 +161,19 @@ test('removes an Account named only by a deleted Entry from the Suggested accoun
   const kept = `Kept float ${run}`;
   await signInWithPettyCash(page);
   await postToday(page, [
-    { title: 'Float', memo: deleted, debitAccount: 'Expenses', creditAccount: PETTY_CASH },
-    { title: 'Float', memo: kept, debitAccount: 'Expenses', creditAccount: 'Cash' },
+    { title: 'Float', memo: deleted, debitAccount: 'Food', creditAccount: PETTY_CASH },
+    { title: 'Float', memo: kept, debitAccount: 'Food', creditAccount: 'Cash' },
   ]);
   await deleteEntry(page, deleted);
 
   await page.goto('/settings');
   await remove(page, 'Assets', nameOf(PETTY_CASH));
-  await expectOrder(accountType(page, 'Assets'), ['Cash']);
+  await expectOrder(accountType(page, 'Assets'), ASSETS);
 
   const form = await openEntryForm(page, 'Two-line mode');
   await titleField(form).fill('Float');
   await expectSuggested(accountChoices(form, 'Credit'), 'radio', ['Cash']);
-  await expectSuggested(accountChoices(form, 'Debit'), 'radio', ['Expenses']);
+  await expectSuggested(accountChoices(form, 'Debit'), 'radio', ['Food']);
 });
 
 test('refuses an Entry search whose URL names a removed Account, as one naming an Account the chart does not hold', async ({ page }) => {
@@ -183,7 +186,7 @@ test('refuses an Entry search whose URL names a removed Account, as one naming a
 
   await postNamingPettyCashAndDelete(page);
   await remove(page, 'Assets', nameOf(PETTY_CASH));
-  await expectOrder(accountType(page, 'Assets'), ['Cash']);
+  await expectOrder(accountType(page, 'Assets'), ASSETS);
 
   await page.goto(naming);
   await expect(page.getByRole('main').getByRole('alert')).toContainText(/account/i);
@@ -193,7 +196,7 @@ test('refuses an Entry search whose URL names a removed Account, as one naming a
 test('removes an Account after a Correction moves the only Entry naming it to another Account, and keeps the corrected Entry on that Account', async ({ page }) => {
   const memo = `Corrected ${randomUUID()}`;
   await signInWithPettyCash(page);
-  await postToday(page, [{ memo, debitAccount: 'Expenses', creditAccount: PETTY_CASH }]);
+  await postToday(page, [{ memo, debitAccount: 'Food', creditAccount: PETTY_CASH }]);
 
   await page.goto('/entries');
   const dialog = await openEditEntry(listedEntry(page, memo));
@@ -204,7 +207,7 @@ test('removes an Account after a Correction moves the only Entry naming it to an
   await page.goto('/settings');
   await remove(page, 'Assets', nameOf(PETTY_CASH));
   await page.reload();
-  await expectOrder(accountType(page, 'Assets'), ['Cash']);
+  await expectOrder(accountType(page, 'Assets'), ASSETS);
 
   await page.goto('/entries');
   const lines = listedEntry(page, memo).getByTestId('entry-line');
@@ -218,17 +221,17 @@ test('takes a removed Account out of its Account group, so the group can then be
   await page.goto('/settings');
   await addGroup(page, 'Assets', { name: 'Bank' });
   await addAccount(page, 'Assets', { name: nameOf(PETTY_CASH), group: 'Bank' });
-  await expectOrder(accountType(page, 'Assets'), ['Cash', 'Bank', nameOf(PETTY_CASH)]);
+  await expectOrder(accountType(page, 'Assets'), [...ASSETS, 'Bank', nameOf(PETTY_CASH)]);
   await postNamingPettyCashAndDelete(page);
 
   await remove(page, 'Assets', nameOf(PETTY_CASH));
   await page.reload();
-  await expectOrder(accountType(page, 'Assets'), ['Cash', 'Bank']);
+  await expectOrder(accountType(page, 'Assets'), [...ASSETS, 'Bank']);
 
   await remove(page, 'Assets', 'Bank', 'group');
 
   await page.reload();
-  await expectOrder(accountType(page, 'Assets'), ['Cash']);
+  await expectOrder(accountType(page, 'Assets'), ASSETS);
 });
 
 test('gives a new Account the name of a removed Account, ignoring case', async ({ page }) => {
@@ -237,10 +240,10 @@ test('gives a new Account the name of a removed Account, ignoring case', async (
   await remove(page, 'Assets', nameOf(PETTY_CASH));
 
   await addAccount(page, 'Assets', { name: reused });
-  await expectOrder(accountType(page, 'Assets'), ['Cash', reused]);
+  await expectOrder(accountType(page, 'Assets'), [...ASSETS, reused]);
 
   await page.reload();
-  await expectOrder(accountType(page, 'Assets'), ['Cash', reused]);
+  await expectOrder(accountType(page, 'Assets'), [...ASSETS, reused]);
 
   const form = await openEntryForm(page, 'Two-line mode');
   await expect(accountChoice(form, 'Credit', reused)).toHaveCount(1);
@@ -255,6 +258,6 @@ test('removes an Account whose only Entry was deleted at 390px', async ({ page }
   await expectWithinPhone(page, dialog);
   await confirmDelete(dialog);
   await expect(dialog).toBeHidden();
-  await expectOrder(accountType(page, 'Assets'), ['Cash']);
+  await expectOrder(accountType(page, 'Assets'), ASSETS);
   await expectWithinPhone(page, accountsSection(page));
 });
