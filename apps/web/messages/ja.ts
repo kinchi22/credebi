@@ -423,12 +423,47 @@ export const ja = {
       MEMO_TOO_LONG: entryNotDeleted,
     },
   },
-  startingAccounts: {
-    asset: '現金',
-    liability: '買掛金',
-    equity: '資本金',
-    revenue: '売上',
-    expense: '費用',
+  startingChart: {
+    cashAndDeposits: {
+      name: '現金・預金',
+      description: '現金と銀行預金をまとめて見るグループ',
+    },
+    cash: {
+      name: '現金',
+      description: '財布などに保管している現金',
+    },
+    bankDeposits: {
+      name: '銀行預金',
+      description: '銀行口座に預けているお金',
+    },
+    creditCardPayable: {
+      name: 'クレジットカード未払金',
+      description: 'クレジットカードで使い、まだ返済していない金額',
+    },
+    openingBalanceEquity: {
+      name: '開始残高',
+      description: '記録を始めたときの資産と負債の差額',
+    },
+    salary: {
+      name: '給与',
+      description: '働いた対価として受け取った給与',
+    },
+    livingExpenses: {
+      name: '生活費',
+      description: '日常生活にかかった費用をまとめて見るグループ',
+    },
+    food: {
+      name: '食費',
+      description: '食材の購入と外食に使ったお金',
+    },
+    transportation: {
+      name: '交通費',
+      description: '公共交通機関など移動に使ったお金',
+    },
+    otherLivingExpenses: {
+      name: 'その他の生活費',
+      description: '個別の勘定科目に分けていない生活の支出',
+    },
   },
   accountTypes: {
     asset: '資産',

@@ -51,7 +51,43 @@ export type NamedAccount = {
 
 export type AccountNames = ReadonlyMap<string, NamedAccount>;
 
-export type StartingAccountNames = Readonly<Record<AccountType, string>>;
+export type StartingNode =
+  | 'cashAndDeposits'
+  | 'cash'
+  | 'bankDeposits'
+  | 'creditCardPayable'
+  | 'openingBalanceEquity'
+  | 'salary'
+  | 'livingExpenses'
+  | 'food'
+  | 'transportation'
+  | 'otherLivingExpenses';
+
+export type StartingNodeCopy = {
+  readonly name: string;
+  readonly description: string;
+};
+
+export type StartingChartCopy = Readonly<Record<StartingNode, StartingNodeCopy>>;
+
+export type StartingChartIds = {
+  readonly newAccountId: () => AccountId;
+  readonly newAccountGroupId: () => AccountGroupId;
+};
+
+type StartingPlacement =
+  | { readonly kind: 'account'; readonly node: StartingNode }
+  | { readonly kind: 'group'; readonly node: StartingNode; readonly accounts: readonly StartingNode[] };
+
+const STARTING_LAYOUT: Readonly<Record<AccountType, readonly StartingPlacement[]>> = {
+  asset: [{ kind: 'group', node: 'cashAndDeposits', accounts: ['cash', 'bankDeposits'] }],
+  liability: [{ kind: 'account', node: 'creditCardPayable' }],
+  equity: [{ kind: 'account', node: 'openingBalanceEquity' }],
+  revenue: [{ kind: 'account', node: 'salary' }],
+  expense: [
+    { kind: 'group', node: 'livingExpenses', accounts: ['food', 'transportation', 'otherLivingExpenses'] },
+  ],
+};
 
 export function dayOf(instant: Date): string {
   return instant.toISOString().slice(0, 10);
@@ -66,19 +102,47 @@ export function parseDay(text: string): Result<string, DomainError> {
 
 export function startingChart(
   startsOn: string,
-  names: StartingAccountNames,
-  newAccountId: () => AccountId,
-): readonly Account[] {
-  return ACCOUNT_TYPES.map((accountType) => ({
+  copy: StartingChartCopy,
+  { newAccountId, newAccountGroupId }: StartingChartIds,
+): Chart {
+  const startingAccount = (
+    accountType: AccountType,
+    groupId: AccountGroupId | null,
+    node: StartingNode,
+    position: number,
+  ): Account => ({
     id: newAccountId(),
     accountType,
-    groupId: null,
-    name: names[accountType],
-    description: null,
-    position: 0,
+    groupId,
+    name: copy[node].name,
+    description: copy[node].description,
+    position,
     activeFrom: startsOn,
     activeUntil: null,
-  }));
+  });
+
+  const placed = ACCOUNT_TYPES.flatMap((accountType) =>
+    STARTING_LAYOUT[accountType].map((placement, position): Chart => {
+      if (placement.kind === 'account') {
+        return { groups: [], accounts: [startingAccount(accountType, null, placement.node, position)] };
+      }
+      const group: AccountGroup = {
+        id: newAccountGroupId(),
+        accountType,
+        name: copy[placement.node].name,
+        description: copy[placement.node].description,
+        position,
+      };
+      return {
+        groups: [group],
+        accounts: placement.accounts.map((node, index) => startingAccount(accountType, group.id, node, index)),
+      };
+    }),
+  );
+  return {
+    accounts: placed.flatMap(({ accounts }) => accounts),
+    groups: placed.flatMap(({ groups }) => groups),
+  };
 }
 
 const byPosition = <Placed extends { readonly position: number }>(
