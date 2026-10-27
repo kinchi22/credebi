@@ -38,7 +38,7 @@ async function expectListedAsSubmitted(entry: Locator): Promise<void> {
 
   const lines = entry.getByTestId('entry-line');
   await expect(lines).toHaveCount(2);
-  await expect(lines.nth(0)).toContainText('Expenses');
+  await expect(lines.nth(0)).toContainText('Food');
   await expect(lines.nth(0)).toContainText(TWELVE_THOUSAND_FIVE_HUNDRED);
   await expect(lines.nth(1)).toContainText('Cash');
   await expect(lines.nth(1)).toContainText(TWELVE_THOUSAND_FIVE_HUNDRED);
@@ -87,7 +87,7 @@ test('lists a Two-line mode Entry as one debit and one credit line of its amount
   const form = await openTwoLineForm(page);
 
   await expect(form.getByLabel('Amount')).toHaveCount(1);
-  await submitTwoLineEntry(form, { day: DAY, memo, debitAccount: 'Expenses', creditAccount: 'Cash', amount: AMOUNT });
+  await submitTwoLineEntry(form, { day: DAY, memo, debitAccount: 'Food', creditAccount: 'Cash', amount: AMOUNT });
 
   const entry = listedEntry(page, memo);
   await expectListedAsSubmitted(entry);
@@ -112,14 +112,14 @@ test('offers every Account as a radio on each Side in Two-line mode, and choosin
   await accountChoice(form, 'Debit', 'Cash').check();
   await expect(accountChoice(form, 'Debit', 'Cash')).toBeChecked();
 
-  await accountChoice(form, 'Debit', 'Expenses').check();
-  await expect(accountChoice(form, 'Debit', 'Expenses')).toBeChecked();
+  await accountChoice(form, 'Debit', 'Food').check();
+  await expect(accountChoice(form, 'Debit', 'Food')).toBeChecked();
   await expect(accountChoice(form, 'Debit', 'Cash')).not.toBeChecked();
   await expect(accountChoices(form, 'Debit').getByRole('radio', { checked: true })).toHaveCount(1);
 
-  await accountChoice(form, 'Credit', 'Expenses').check();
-  await expect(accountChoice(form, 'Credit', 'Expenses')).toBeChecked();
-  await expect(accountChoice(form, 'Debit', 'Expenses')).toBeChecked();
+  await accountChoice(form, 'Credit', 'Food').check();
+  await expect(accountChoice(form, 'Credit', 'Food')).toBeChecked();
+  await expect(accountChoice(form, 'Debit', 'Food')).toBeChecked();
 });
 
 test('shows the Debit and Credit pickers side by side on a wide window, with no tabs and no Add account buttons', async ({ page }) => {
@@ -188,13 +188,13 @@ test('narrows the Accounts in Choose accounts at 390px to those whose name conta
   await page.setViewportSize(PHONE);
 
   const sheet = await openTwoLineAccountSheet(form, 'Debit');
-  await findAnAccount(sheet).fill('es');
+  await findAnAccount(sheet).fill('ar');
 
   const debit = accountChoices(sheet, 'Debit');
   await expect(debit.getByRole('radio')).toHaveCount(2);
-  await expect(accountChoice(sheet, 'Debit', 'Sales')).toBeVisible();
-  await expect(accountChoice(sheet, 'Debit', 'Expenses')).toBeVisible();
-  for (const account of ['Cash', 'Accounts payable', 'Capital'] as const) {
+  await expect(accountChoice(sheet, 'Debit', 'Credit card payable')).toBeVisible();
+  await expect(accountChoice(sheet, 'Debit', 'Salary')).toBeVisible();
+  for (const account of ['Cash', 'Bank deposits', 'Opening balance equity', 'Food', 'Transportation', 'Other living expenses'] as const) {
     await expect(accountChoice(sheet, 'Debit', account)).toBeHidden();
   }
 });
@@ -207,9 +207,9 @@ test('selects the Credit tab at 390px once a Debit Account is chosen while Credi
   await accountChoice(sheet, 'Debit', 'Cash').check();
   await expectSheetOnSide(sheet, 'Credit');
 
-  await accountChoice(sheet, 'Credit', 'Expenses').check();
+  await accountChoice(sheet, 'Credit', 'Food').check();
   await expect(sheet).toBeHidden();
-  await expectRows(form, { Debit: 'Cash', Credit: 'Expenses' });
+  await expectRows(form, { Debit: 'Cash', Credit: 'Food' });
 });
 
 test('selects the Debit tab at 390px once a Credit Account is chosen while Debit has none', async ({ page }) => {
@@ -217,12 +217,12 @@ test('selects the Debit tab at 390px once a Credit Account is chosen while Debit
   await page.setViewportSize(PHONE);
 
   const sheet = await openTwoLineAccountSheet(form, 'Credit');
-  await accountChoice(sheet, 'Credit', 'Sales').check();
+  await accountChoice(sheet, 'Credit', 'Salary').check();
   await expectSheetOnSide(sheet, 'Debit');
 
   await accountChoice(sheet, 'Debit', 'Cash').check();
   await expect(sheet).toBeHidden();
-  await expectRows(form, { Debit: 'Cash', Credit: 'Sales' });
+  await expectRows(form, { Debit: 'Cash', Credit: 'Salary' });
 });
 
 test('closes Choose accounts at 390px when an Account is changed on one Side while both Sides already have one', async ({ page }) => {
@@ -231,21 +231,21 @@ test('closes Choose accounts at 390px when an Account is changed on one Side whi
 
   const first = await openTwoLineAccountSheet(form, 'Debit');
   await accountChoice(first, 'Debit', 'Cash').check();
-  await accountChoice(first, 'Credit', 'Expenses').check();
+  await accountChoice(first, 'Credit', 'Food').check();
   await expect(first).toBeHidden();
 
   const debit = await openTwoLineAccountSheet(form, 'Debit');
   await expectSheetOnSide(debit, 'Debit');
   await expect(accountChoice(debit, 'Debit', 'Cash')).toBeChecked();
-  await accountChoice(debit, 'Debit', 'Sales').check();
+  await accountChoice(debit, 'Debit', 'Salary').check();
   await expect(debit).toBeHidden();
-  await expectRows(form, { Debit: 'Sales', Credit: 'Expenses' });
+  await expectRows(form, { Debit: 'Salary', Credit: 'Food' });
 
   const credit = await openTwoLineAccountSheet(form, 'Credit');
   await expectSheetOnSide(credit, 'Credit');
-  await accountChoice(credit, 'Credit', 'Capital').check();
+  await accountChoice(credit, 'Credit', 'Opening balance equity').check();
   await expect(credit).toBeHidden();
-  await expectRows(form, { Debit: 'Sales', Credit: 'Capital' });
+  await expectRows(form, { Debit: 'Salary', Credit: 'Opening balance equity' });
 });
 
 test('lists a Two-line mode Entry added at 390px through Choose accounts', async ({ page }) => {
@@ -253,7 +253,7 @@ test('lists a Two-line mode Entry added at 390px through Choose accounts', async
   const form = await openTwoLineForm(page);
   await page.setViewportSize(PHONE);
 
-  await submitTwoLineEntryOnPhone(form, { day: DAY, memo, debitAccount: 'Expenses', creditAccount: 'Cash', amount: AMOUNT });
+  await submitTwoLineEntryOnPhone(form, { day: DAY, memo, debitAccount: 'Food', creditAccount: 'Cash', amount: AMOUNT });
 
   await expectListedAsSubmitted(listedEntry(page, memo));
 });
@@ -271,7 +271,7 @@ test('shows the Credit tab at 1024px once a Debit Account is chosen while Credit
   await accountChoice(form, 'Debit', 'Cash').check();
   await expectPickerOnSide(form, 'Credit');
 
-  await accountChoice(form, 'Credit', 'Expenses').check();
+  await accountChoice(form, 'Credit', 'Food').check();
   await expectPickerOnSide(form, 'Credit');
   await sheetTab(form, 'Debit').click();
   await expect(accountChoice(form, 'Debit', 'Cash')).toBeChecked();
@@ -282,30 +282,30 @@ test('shows the Debit tab at 1024px once a Credit Account is chosen while Debit 
 
   await sheetTab(form, 'Credit').click();
   await expectPickerOnSide(form, 'Credit');
-  await accountChoice(form, 'Credit', 'Sales').check();
+  await accountChoice(form, 'Credit', 'Salary').check();
   await expectPickerOnSide(form, 'Debit');
 
   await accountChoice(form, 'Debit', 'Cash').check();
   await expectPickerOnSide(form, 'Debit');
   await sheetTab(form, 'Credit').click();
-  await expect(accountChoice(form, 'Credit', 'Sales')).toBeChecked();
+  await expect(accountChoice(form, 'Credit', 'Salary')).toBeChecked();
 });
 
 test('keeps the tab at 1024px when an Account is chosen on one Side while both Sides already have one', async ({ page }) => {
   const form = await openTabbedTwoLineForm(page);
   await accountChoice(form, 'Debit', 'Cash').check();
   await sheetTab(form, 'Credit').click();
-  await accountChoice(form, 'Credit', 'Expenses').check();
+  await accountChoice(form, 'Credit', 'Food').check();
 
   await sheetTab(form, 'Debit').click();
-  await accountChoice(form, 'Debit', 'Sales').check();
+  await accountChoice(form, 'Debit', 'Salary').check();
   await expectPickerOnSide(form, 'Debit');
-  await expect(accountChoice(form, 'Debit', 'Sales')).toBeChecked();
+  await expect(accountChoice(form, 'Debit', 'Salary')).toBeChecked();
 
   await sheetTab(form, 'Credit').click();
-  await accountChoice(form, 'Credit', 'Capital').check();
+  await accountChoice(form, 'Credit', 'Opening balance equity').check();
   await expectPickerOnSide(form, 'Credit');
-  await expect(accountChoice(form, 'Credit', 'Capital')).toBeChecked();
+  await expect(accountChoice(form, 'Credit', 'Opening balance equity')).toBeChecked();
 });
 
 test('renders the entry form and the list of entries', { tag: '@smoke' }, async ({ page, context, baseURL }) => {
@@ -327,7 +327,7 @@ test("does not show one User's Entries to another", async ({ browser }) => {
   await submitTwoLineEntry(entryForm(ownerPage), {
     day: DAY,
     memo,
-    debitAccount: 'Expenses',
+    debitAccount: 'Food',
     creditAccount: 'Cash',
     amount: AMOUNT,
   });

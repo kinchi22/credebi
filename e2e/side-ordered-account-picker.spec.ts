@@ -43,11 +43,11 @@ const BALANCE_DIRECTION: Readonly<Record<AccountType, Readonly<Record<Side, Bala
 };
 
 const CHART: Readonly<Record<AccountType, readonly string[]>> = {
-  Assets: ['Cash'],
-  Liabilities: ['Accounts payable'],
-  Equity: ['Capital'],
-  Revenue: ['Sales'],
-  Expenses: ['Expenses', 'Rent', 'Hotels', 'Meals'],
+  Assets: ['Cash', 'Bank deposits'],
+  Liabilities: ['Credit card payable'],
+  Equity: ['Opening balance equity'],
+  Revenue: ['Salary'],
+  Expenses: ['Food', 'Transportation', 'Other living expenses', 'Rent', 'Hotels', 'Meals'],
 };
 
 const TITLE = 'Groceries';

@@ -8,6 +8,7 @@ import {
   type AddedAccount,
   type Side,
 } from './entries';
+import { CATALOGUE, type Language } from './language';
 import { viewportOf } from './viewport';
 
 export type { AccountType };
@@ -27,23 +28,25 @@ export type GroupFields = {
   readonly description?: string;
 };
 
-export const accountsSection = (page: Page): Locator =>
-  page.getByRole('region', { name: 'Accounts', exact: true });
+const textIn = (shown: Language): (typeof CATALOGUE)[Language]['accounts'] => CATALOGUE[shown].accounts;
 
-export const accountType = (page: Page, type: AccountType): Locator =>
-  accountsSection(page).getByRole('group', { name: type, exact: true });
+export const accountsSection = (page: Page, shown: Language = 'en'): Locator =>
+  page.getByRole('region', { name: textIn(shown).section, exact: true });
+
+export const accountType = (page: Page, type: AccountType, shown: Language = 'en'): Locator =>
+  accountsSection(page, shown).getByRole('group', { name: textIn(shown).types[type], exact: true });
 
 export const showEndedAccounts = (page: Page): Locator =>
   accountsSection(page).getByRole('checkbox', { name: 'Show ended accounts', exact: true });
 
-export const grip = (scope: Locator | Page, name: string): Locator =>
-  scope.getByRole('button', { name: `Move ${name}`, exact: true });
+export const grip = (scope: Locator | Page, name: string, shown: Language = 'en'): Locator =>
+  scope.getByRole('button', { name: textIn(shown).move(name), exact: true });
 
-export const grips = (scope: Locator | Page): Locator =>
-  scope.getByRole('button', { name: /^Move / });
+export const grips = (scope: Locator | Page, shown: Language = 'en'): Locator =>
+  scope.getByRole('button', { name: textIn(shown).anyMove });
 
-export const row = (scope: Locator, name: string): Locator =>
-  scope.getByRole('listitem').filter({ has: grip(scope.page(), name) }).last();
+export const row = (scope: Locator, name: string, shown: Language = 'en'): Locator =>
+  scope.getByRole('listitem').filter({ has: grip(scope.page(), name, shown) }).last();
 
 const button = (scope: Locator, name: string): Locator =>
   scope.getByRole('button', { name, exact: true });
@@ -57,15 +60,20 @@ const dialogNamed = (page: Page, name: string): Locator =>
 const addDialog = (page: Page, kind: Kind): Locator =>
   dialogNamed(page, `Add ${kind}`);
 
-const editDialog = (page: Page, kind: Kind): Locator =>
-  dialogNamed(page, `Edit ${kind}`);
-
 const deleteDialog = (page: Page, kind: Kind): Locator =>
   dialogNamed(page, `Delete ${kind}`);
 
-const groupField = (dialog: Locator): Locator => dialog.getByLabel('Group', { exact: true });
+const groupField = (dialog: Locator, shown: Language = 'en'): Locator =>
+  dialog.getByLabel(textIn(shown).group, { exact: true });
 
-export const chosenGroup = (dialog: Locator): Locator => groupField(dialog).locator('option:checked');
+export const chosenGroup = (dialog: Locator, shown: Language = 'en'): Locator =>
+  groupField(dialog, shown).locator('option:checked');
+
+export const nameField = (dialog: Locator, shown: Language = 'en'): Locator =>
+  dialog.getByLabel(textIn(shown).name, { exact: true });
+
+export const descriptionField = (dialog: Locator, shown: Language = 'en'): Locator =>
+  dialog.getByLabel(textIn(shown).description, { exact: true });
 
 export const activeFrom = (dialog: Locator): Locator =>
   dialog.getByLabel('Active from', { exact: true });
@@ -74,10 +82,8 @@ export const activeUntil = (dialog: Locator): Locator =>
   dialog.getByLabel('Active until', { exact: true });
 
 async function fill(dialog: Locator, fields: AccountFields): Promise<void> {
-  if (fields.name !== undefined) await dialog.getByLabel('Name', { exact: true }).fill(fields.name);
-  if (fields.description !== undefined) {
-    await dialog.getByLabel('Description', { exact: true }).fill(fields.description);
-  }
+  if (fields.name !== undefined) await nameField(dialog).fill(fields.name);
+  if (fields.description !== undefined) await descriptionField(dialog).fill(fields.description);
   if (fields.group !== undefined) await groupField(dialog).selectOption({ label: fields.group });
   if (fields.activeFrom !== undefined) await activeFrom(dialog).fill(fields.activeFrom);
   if (fields.activeUntil !== undefined) await activeUntil(dialog).fill(fields.activeUntil);
@@ -136,10 +142,7 @@ export async function openEdit(
   name: string,
   kind: Kind = 'account',
 ): Promise<Locator> {
-  await rowButton(accountType(page, type), name, 'Edit').click();
-  const dialog = editDialog(page, kind);
-  await expect(dialog).toBeVisible();
-  return dialog;
+  return openEditIn(page, 'en', type, name, kind);
 }
 
 export async function editAccount(
@@ -169,11 +172,31 @@ export async function confirmDelete(dialog: Locator): Promise<void> {
   await button(dialog, 'Delete').click();
 }
 
-export async function expectOrder(scope: Locator, names: readonly string[]): Promise<void> {
-  await expect(grips(scope)).toHaveCount(names.length);
+export async function expectOrder(scope: Locator, names: readonly string[], shown: Language = 'en'): Promise<void> {
+  await expect(grips(scope, shown)).toHaveCount(names.length);
   for (const [index, name] of names.entries()) {
-    await expect(grips(scope).nth(index)).toHaveAccessibleName(`Move ${name}`);
+    await expect(grips(scope, shown).nth(index)).toHaveAccessibleName(textIn(shown).move(name));
   }
+}
+
+export async function openEditIn(
+  page: Page,
+  shown: Language,
+  type: AccountType,
+  name: string,
+  kind: Kind,
+): Promise<Locator> {
+  const text = textIn(shown);
+  await button(row(accountType(page, type, shown), name, shown), text.edit).first().click();
+  const dialog = dialogNamed(page, text.editTitle[kind]);
+  await expect(dialog).toBeVisible();
+  return dialog;
+}
+
+export async function remove(page: Page, type: AccountType, name: string, kind: Kind = 'account'): Promise<void> {
+  const dialog = await openDelete(page, type, name, kind);
+  await confirmDelete(dialog);
+  await expect(dialog).toBeHidden();
 }
 
 export async function expectInGroup(

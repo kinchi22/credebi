@@ -10,6 +10,8 @@ import {
   type Account,
   type AccountGroup,
   type ChartNode,
+  type StartingChartCopy,
+  type StartingNodeCopy,
 } from './account';
 
 const idOf = (n: number): AccountId =>
@@ -64,27 +66,88 @@ describe('parseDay', () => {
   });
 });
 
+const STARTING_COPY: StartingChartCopy = {
+  cashAndDeposits: { name: 'Cash and deposits', description: 'Cash and bank deposits together' },
+  cash: { name: 'Cash', description: 'Cash in a wallet' },
+  bankDeposits: { name: 'Bank deposits', description: 'Money in bank accounts' },
+  creditCardPayable: { name: 'Credit card payable', description: 'Card spending not yet repaid' },
+  openingBalanceEquity: { name: 'Opening balance equity', description: 'Net worth at the start' },
+  salary: { name: 'Salary', description: 'Pay for work' },
+  livingExpenses: { name: 'Living expenses', description: 'Everyday spending together' },
+  food: { name: 'Food', description: 'Groceries and eating out' },
+  transportation: { name: 'Transportation', description: 'Getting around' },
+  otherLivingExpenses: { name: 'Other living expenses', description: 'Everything else' },
+};
+
 describe('startingChart', () => {
-  it('starts a User with one Account under each Account type, in Account type order, named as given, from the given day', () => {
-    let issued = 0;
-    const names = {
-      expense: 'Expenses',
-      revenue: 'Sales',
-      equity: 'Capital',
-      liability: 'Accounts payable',
-      asset: 'Cash',
-    };
-    const chart = startingChart('2026-09-18', names, () => {
+  let issued = 0;
+  const ids = {
+    newAccountId: (): AccountId => {
       issued += 1;
       return idOf(issued);
-    });
+    },
+    newAccountGroupId: (): AccountGroupId => {
+      issued += 1;
+      return groupIdOf(issued);
+    },
+  };
 
-    expect(chart).toEqual([
-      { ...account(1, 'asset', 0, 'Cash'), activeFrom: '2026-09-18' },
-      { ...account(2, 'liability', 0, 'Accounts payable'), activeFrom: '2026-09-18' },
-      { ...account(3, 'equity', 0, 'Capital'), activeFrom: '2026-09-18' },
-      { ...account(4, 'revenue', 0, 'Sales'), activeFrom: '2026-09-18' },
-      { ...account(5, 'expense', 0, 'Expenses'), activeFrom: '2026-09-18' },
+  it('starts a User with two Account groups and eight Accounts for personal living expenses, described as given, from the given day', () => {
+    issued = 0;
+
+    const chart = startingChart('2026-09-18', STARTING_COPY, ids);
+
+    const starting = (
+      n: number,
+      accountType: Account['accountType'],
+      group: number | null,
+      position: number,
+      { name, description }: StartingNodeCopy,
+    ): Account => ({
+      id: idOf(n),
+      accountType,
+      groupId: group === null ? null : groupIdOf(group),
+      name,
+      description,
+      position,
+      activeFrom: '2026-09-18',
+      activeUntil: null,
+    });
+    expect(chart).toEqual({
+      groups: [
+        { id: groupIdOf(1), accountType: 'asset', position: 0, ...STARTING_COPY.cashAndDeposits },
+        { id: groupIdOf(7), accountType: 'expense', position: 0, ...STARTING_COPY.livingExpenses },
+      ],
+      accounts: [
+        starting(2, 'asset', 1, 0, STARTING_COPY.cash),
+        starting(3, 'asset', 1, 1, STARTING_COPY.bankDeposits),
+        starting(4, 'liability', null, 0, STARTING_COPY.creditCardPayable),
+        starting(5, 'equity', null, 0, STARTING_COPY.openingBalanceEquity),
+        starting(6, 'revenue', null, 0, STARTING_COPY.salary),
+        starting(8, 'expense', 7, 0, STARTING_COPY.food),
+        starting(9, 'expense', 7, 1, STARTING_COPY.transportation),
+        starting(10, 'expense', 7, 2, STARTING_COPY.otherLivingExpenses),
+      ],
+    });
+  });
+
+  it('lays the starting chart out in Account type order, each group holding its Accounts in order', () => {
+    issued = 0;
+
+    const nodes = chartInOrder(startingChart('2026-09-18', STARTING_COPY, ids));
+
+    expect(
+      nodes.map((node) =>
+        node.kind === 'account'
+          ? node.account.name
+          : [node.group.name, node.accounts.map(({ name }) => name)],
+      ),
+    ).toEqual([
+      ['Cash and deposits', ['Cash', 'Bank deposits']],
+      'Credit card payable',
+      'Opening balance equity',
+      'Salary',
+      ['Living expenses', ['Food', 'Transportation', 'Other living expenses']],
     ]);
   });
 });

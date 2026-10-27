@@ -45,7 +45,7 @@ async function postInMode(
   await submitMultiLineEntry(form, {
     ...heading,
     lines: [
-      { side: 'Debit', account: 'Expenses', amount: AMOUNT },
+      { side: 'Debit', account: 'Food', amount: AMOUNT },
       { side: 'Credit', account: 'Cash', amount: AMOUNT },
     ],
   });

@@ -10,7 +10,18 @@ export const TWELVE_THOUSAND_FIVE_HUNDRED = amountShown('12,500');
 
 export const DAY = '2026-09-15';
 
-export const ACCOUNTS = ['Cash', 'Accounts payable', 'Capital', 'Sales', 'Expenses'] as const;
+export const ACCOUNTS = [
+  'Cash',
+  'Bank deposits',
+  'Credit card payable',
+  'Opening balance equity',
+  'Salary',
+  'Food',
+  'Transportation',
+  'Other living expenses',
+] as const;
+
+export const ACCOUNT_GROUPS = ['Cash and deposits', 'Living expenses'] as const;
 
 export type Account = (typeof ACCOUNTS)[number];
 
@@ -73,7 +84,7 @@ export const MEMO_MAX = 200;
 
 export const twoLine = (heading: Heading, creditAccount: Account = 'Cash'): TwoLineEntry => ({
   ...heading,
-  debitAccount: 'Expenses',
+  debitAccount: 'Food',
   creditAccount,
   amount: AMOUNT,
 });

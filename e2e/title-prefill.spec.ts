@@ -130,15 +130,15 @@ async function expectListed(
 }
 
 const SALARY_LINES: readonly Line[] = [
-  { side: 'Credit', account: 'Sales', amount: '12500' },
+  { side: 'Credit', account: 'Salary', amount: '12500' },
   { side: 'Debit', account: 'Cash', amount: '9000' },
-  { side: 'Debit', account: 'Expenses', amount: '3500' },
+  { side: 'Debit', account: 'Food', amount: '3500' },
 ];
 
 const SALARY_LISTED: readonly Listed[] = [
   { account: 'Cash', amount: '9,000' },
-  { account: 'Expenses', amount: '3,500' },
-  { account: 'Sales', amount: '12,500' },
+  { account: 'Food', amount: '3,500' },
+  { account: 'Salary', amount: '12,500' },
 ];
 
 async function postSalary(page: Page, memo: string): Promise<void> {
@@ -149,20 +149,20 @@ test('fills empty Two-line mode lines from the Entry carrying the chosen Title, 
   const run = randomUUID();
   const memo = `Second coffee ${run}`;
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await postEntries(page, [titled('Starbucks', `First coffee ${run}`, DAY, 'Accounts payable')]);
+  await postEntries(page, [titled('Starbucks', `First coffee ${run}`, DAY, 'Credit card payable')]);
 
   const form = await openEntryForm(page, 'Two-line mode');
   await fillHeading(form, { day: LATER_DAY, memo: memo });
   await chooseTitle(form, 'Starbucks');
 
-  await expectTwoLine(form, 'Expenses', 'Accounts payable', '12500');
+  await expectTwoLine(form, 'Food', 'Credit card payable', '12500');
   await expect(form.getByLabel('Date')).toHaveValue(LATER_DAY);
   await expect(form.getByLabel('Memo')).toHaveValue(memo);
 
   await submit(form);
   await expectListed(page, memo, LATER_DAY, [
-    { account: 'Expenses', amount: '12,500' },
-    { account: 'Accounts payable', amount: '12,500' },
+    { account: 'Food', amount: '12,500' },
+    { account: 'Credit card payable', amount: '12,500' },
   ]);
 });
 
@@ -192,26 +192,26 @@ test('fills from the most recently created shown Entry carrying the Title, whate
   const second = `Second coffee ${run}`;
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [
-    titled('COFFEE', oldest, '2026-09-10', 'Capital'),
+    titled('COFFEE', oldest, '2026-09-10', 'Opening balance equity'),
     titled('Coffee', first, '2026-09-20', 'Cash'),
-    titled('coffee', second, '2026-09-01', 'Accounts payable'),
+    titled('coffee', second, '2026-09-01', 'Credit card payable'),
   ]);
 
   await chooseTitle(await openEntryForm(page, 'Two-line mode'), 'coffee');
-  await expectTwoLine(entryForm(page), 'Expenses', 'Accounts payable', '12500');
+  await expectTwoLine(entryForm(page), 'Food', 'Credit card payable', '12500');
 
   await correctAmount(page, first, '8000');
   await chooseTitle(entryForm(page), 'Coffee');
-  await expectTwoLine(entryForm(page), 'Expenses', 'Cash', '8000');
+  await expectTwoLine(entryForm(page), 'Food', 'Cash', '8000');
 
   await deleteAndReload(page, first);
   await chooseTitle(entryForm(page), 'coffee');
-  await expectTwoLine(entryForm(page), 'Expenses', 'Accounts payable', '12500');
+  await expectTwoLine(entryForm(page), 'Food', 'Credit card payable', '12500');
 
   await correctAmount(page, second, '7000');
   await deleteAndReload(page, second);
   await chooseTitle(entryForm(page), 'COFFEE');
-  await expectTwoLine(entryForm(page), 'Expenses', 'Capital', '12500');
+  await expectTwoLine(entryForm(page), 'Food', 'Opening balance equity', '12500');
 });
 
 async function correctAmount(page: Page, memo: string, amount: string): Promise<void> {
@@ -252,9 +252,9 @@ test('leaves Two-line mode lines as they are when a Title is chosen while the fo
 
   await page.reload();
   const withAccount = entryForm(page);
-  await accountChoice(withAccount, 'Debit', 'Sales').check();
+  await accountChoice(withAccount, 'Debit', 'Salary').check();
   await chooseTitle(withAccount, 'Rent');
-  await expectTwoLine(withAccount, 'Sales', undefined, '');
+  await expectTwoLine(withAccount, 'Salary', undefined, '');
 });
 
 test('leaves Multi-line mode lines as they are when a Title is chosen while the form holds a line', async ({ page }) => {
@@ -262,10 +262,10 @@ test('leaves Multi-line mode lines as they are when a Title is chosen while the 
   await postSalary(page, `Pay ${randomUUID()}`);
 
   const form = await openEntryForm(page, 'Multi-line mode');
-  await accountTick(form, 'Debit', 'Capital').check();
+  await accountTick(form, 'Debit', 'Opening balance equity').check();
   await chooseTitle(form, 'Salary');
 
-  await expectLines(form, [{ side: 'Debit', account: 'Capital', amount: '' }]);
+  await expectLines(form, [{ side: 'Debit', account: 'Opening balance equity', amount: '' }]);
 });
 
 test('fills nothing in Two-line mode from an Entry with more than one line on a Side, says it needs Multi-line mode with a Help tip linking to Settings that stays within the screen at 390px, clears that when the Title changes, and keeps the Entry form mode', async ({ page }) => {
@@ -291,7 +291,7 @@ test('fills nothing in Two-line mode from an Entry with more than one line on a 
   await expect(message).toBeHidden();
 
   await chooseTitle(form, 'Rent');
-  await expectTwoLine(form, 'Expenses', 'Cash', '12500');
+  await expectTwoLine(form, 'Food', 'Cash', '12500');
   await expect(message).toBeHidden();
 
   await page.setViewportSize(PHONE);
@@ -307,7 +307,7 @@ test('fills nothing in Two-line mode from an Entry with more than one line on a 
 });
 
 const WALLET_LINES: readonly Line[] = [
-  { side: 'Debit', account: 'Expenses', amount: '12000' },
+  { side: 'Debit', account: 'Food', amount: '12000' },
   { side: 'Debit', account: OLD_WALLET, amount: '500' },
   { side: 'Credit', account: 'Cash', amount: '12500' },
 ];
@@ -322,7 +322,7 @@ async function prefillWalletLines(page: Page, memo: string): Promise<Locator> {
   await chooseTitle(form, 'Allowance');
   await expectLines(form, WALLET_LINES);
   await expect(notActiveMark(lineGroup(form, 'Debit', OLD_WALLET))).toBeVisible();
-  await expect(notActiveMark(lineGroup(form, 'Debit', 'Expenses'))).toHaveCount(0);
+  await expect(notActiveMark(lineGroup(form, 'Debit', 'Food'))).toHaveCount(0);
 
   await submit(form);
   await expect(form.getByRole('alert')).toBeVisible();
@@ -336,11 +336,11 @@ test('keeps a filled line whose Account is not active on the day, marked under i
   const form = await prefillWalletLines(page, memo);
 
   await lineGroup(form, 'Debit', OLD_WALLET).getByRole('button', { name: 'Remove', exact: true }).click();
-  await lineAmount(form, 'Debit', 'Expenses').fill('12500');
+  await lineAmount(form, 'Debit', 'Food').fill('12500');
   await submit(form);
 
   await expectListed(page, memo, WALLET_ENDED, [
-    { account: 'Expenses', amount: '12,500' },
+    { account: 'Food', amount: '12,500' },
     { account: 'Cash', amount: '12,500' },
   ]);
 });
@@ -354,7 +354,7 @@ test('posts every filled line once the day changes to one on which the marked li
   await submit(form);
 
   await expectListed(page, memo, WALLET_STILL_IN_USE, [
-    { account: 'Expenses', amount: '12,000' },
+    { account: 'Food', amount: '12,000' },
     { account: WALLET, amount: '500' },
     { account: 'Cash', amount: '12,500' },
   ]);
@@ -366,7 +366,7 @@ test('leaves the corrected Entry\'s lines as they are when a Title is chosen in 
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postSalary(page, `Pay ${run}`);
   const lunchLines: readonly Line[] = [
-    { side: 'Debit', account: 'Expenses', amount: '8000' },
+    { side: 'Debit', account: 'Food', amount: '8000' },
     { side: 'Credit', account: 'Cash', amount: '8000' },
   ];
   await postMultiLine(page, { day: DAY, title: 'Lunch', memo: lunch, lines: lunchLines });
@@ -388,16 +388,16 @@ test('leaves the corrected Entry\'s lines as they are when a Title is chosen in 
 });
 
 const GROCERIES: readonly [Account, Account][] = [
-  ['Capital', 'Cash'],
-  ['Expenses', 'Accounts payable'],
-  ['Sales', 'Cash'],
-  ['Expenses', 'Sales'],
-  ['Accounts payable', 'Capital'],
+  ['Opening balance equity', 'Cash'],
+  ['Food', 'Credit card payable'],
+  ['Salary', 'Cash'],
+  ['Food', 'Salary'],
+  ['Credit card payable', 'Opening balance equity'],
 ];
 
 const SUGGESTED: Readonly<Record<Side, readonly Account[]>> = {
-  Debit: ['Expenses', 'Accounts payable', 'Sales'],
-  Credit: ['Cash', 'Capital', 'Sales'],
+  Debit: ['Food', 'Credit card payable', 'Salary'],
+  Credit: ['Cash', 'Opening balance equity', 'Salary'],
 };
 
 async function postGroceries(page: Page, run: string): Promise<void> {
@@ -444,10 +444,10 @@ test('suggests up to three Accounts per Side while the typed Title matches ignor
     }
   }
 
-  const sales = suggested(accountChoices(form, 'Debit')).getByRole('radio', { name: 'Sales', exact: true });
+  const sales = suggested(accountChoices(form, 'Debit')).getByRole('radio', { name: 'Salary', exact: true });
   await sales.check();
-  await expect(accountChoice(form, 'Debit', 'Sales')).toBeChecked();
-  await accountChoice(form, 'Debit', 'Expenses').check();
+  await expect(accountChoice(form, 'Debit', 'Salary')).toBeChecked();
+  await accountChoice(form, 'Debit', 'Food').check();
   await expect(sales).not.toBeChecked();
 
   await titleField(form).fill('Grocer');
@@ -494,7 +494,7 @@ test('suggests only Accounts active on the form\'s day, following a change of da
   const form = await openEntryForm(page, 'Multi-line mode');
   await form.getByLabel('Date').fill(WALLET_ENDED);
   await titleField(form).fill('Allowance');
-  await expectSuggested(accountTicks(form, 'Debit'), 'checkbox', ['Expenses']);
+  await expectSuggested(accountTicks(form, 'Debit'), 'checkbox', ['Food']);
 
   await expectSuggested(accountTicks(form, 'Credit'), 'checkbox', ['Cash']);
 
@@ -509,7 +509,7 @@ test('offers a Title and suggests by it only while an Entry carrying it was crea
   const old = `Old habit ${run}`;
   const recent = `Recent habit ${run}`;
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await postEntries(page, [titled('Gym', old), titled('Pool', recent, DAY, 'Accounts payable')]);
+  await postEntries(page, [titled('Gym', old), titled('Pool', recent, DAY, 'Credit card payable')]);
   await backdateEntry(old, TWO_YEARS_AND_A_DAY);
   await backdateEntry(recent, TWO_YEARS_LESS_A_DAY);
 
@@ -518,19 +518,19 @@ test('offers a Title and suggests by it only while an Entry carrying it was crea
   await expectOffered(page, ['Pool']);
 
   await titleField(form).fill('Pool');
-  await expectSuggested(accountChoices(form, 'Credit'), 'radio', ['Accounts payable']);
+  await expectSuggested(accountChoices(form, 'Credit'), 'radio', ['Credit card payable']);
   await titleField(form).fill('Gym');
   await expectOffered(page, []);
   await expectSuggested(accountChoices(form, 'Credit'), 'radio', []);
   await expectSuggested(accountChoices(form, 'Debit'), 'radio', []);
 
   await chooseTitle(form, 'Pool');
-  await expectTwoLine(form, 'Expenses', 'Accounts payable', '12500');
+  await expectTwoLine(form, 'Food', 'Credit card payable', '12500');
 });
 
 async function chooseWalletInTwoLine(form: Locator, memo: string): Promise<void> {
   await fillHeading(form, { day: WALLET_IN_USE, memo: memo });
-  await accountChoice(form, 'Debit', 'Expenses').check();
+  await accountChoice(form, 'Debit', 'Food').check();
   await accountChoice(form, 'Credit', WALLET).check();
   await form.getByLabel('Amount').fill('12500');
 }
@@ -540,8 +540,8 @@ async function expectWalletSlotMarked(form: Locator): Promise<Locator> {
   await expect(slot).toBeVisible();
   await expect(slot).toContainText(WALLET);
   await expect(notActiveMark(slot)).toBeVisible();
-  await expect(accountChoice(form, 'Debit', 'Expenses')).toBeChecked();
-  await expect(notActiveMark(lineGroup(form, 'Debit', 'Expenses'))).toHaveCount(0);
+  await expect(accountChoice(form, 'Debit', 'Food')).toBeChecked();
+  await expect(notActiveMark(lineGroup(form, 'Debit', 'Food'))).toHaveCount(0);
   await expect(form.getByLabel('Amount')).toHaveValue('12500');
   return slot;
 }
@@ -550,11 +550,11 @@ async function expectWalletChosenAgain(form: Locator, day: string): Promise<void
   await form.getByLabel('Date').fill(day);
   await expect(notActiveMark(lineGroup(form, 'Credit', OLD_WALLET))).toHaveCount(0);
   await expect(accountChoice(form, 'Credit', WALLET)).toBeChecked();
-  await expect(accountChoice(form, 'Debit', 'Expenses')).toBeChecked();
+  await expect(accountChoice(form, 'Debit', 'Food')).toBeChecked();
 }
 
 const WALLET_TWO_LINE: readonly Listed[] = [
-  { account: 'Expenses', amount: '12,500' },
+  { account: 'Food', amount: '12,500' },
   { account: WALLET, amount: '12,500' },
 ];
 

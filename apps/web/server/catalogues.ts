@@ -5,5 +5,5 @@ import { ko } from '../messages/ko';
 
 export const CATALOGUES: Readonly<Record<Language, Catalogue>> = { en, ko, ja };
 
-export const startingAccountNames = (language: Language): Catalogue['startingAccounts'] =>
-  CATALOGUES[language].startingAccounts;
+export const startingChartCopy = (language: Language): Catalogue['startingChart'] =>
+  CATALOGUES[language].startingChart;

@@ -45,7 +45,7 @@ const SMOKE_USER_ID = '01920000-0000-7000-8000-00000000000a' as UserId;
 
 beforeEach(async () => {
   await database.execute(sql`truncate table users cascade`);
-  await users.add(ADA, { provider: 'google', subject: 'google-ada' }, [], DEFAULT_SETTINGS);
+  await users.add(ADA, { provider: 'google', subject: 'google-ada' }, { accounts: [], groups: [] }, DEFAULT_SETTINGS);
   await database.execute(
     sql`insert into users (id, email, created_at) values (${SMOKE_USER_ID}, 'smoke@test.invalid', now())`,
   );

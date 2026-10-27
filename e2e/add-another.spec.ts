@@ -2,34 +2,36 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   accountsSection,
   accountType,
+  type AccountType,
   activeFrom,
   activeUntil,
   addGroup,
   chosenGroup,
   dayInBrowser,
+  descriptionField,
   expectInGroup,
   expectOrder,
   expectRefused,
+  type Kind,
+  nameField,
   openAdd,
   openEdit,
   pressSave,
   save,
-  type AccountType,
-  type Kind,
 } from './accounts';
 import { clickScrim, closeDialog, discardChanges, discardDialog, keepEditing } from './dialog';
+import { initialNames } from './initial-chart';
 import { signIn } from './session';
 import { expectWithinPhone, PHONE } from './viewport';
+
+const ASSETS = initialNames('Assets');
+
+const EXPENSES = initialNames('Expenses');
 
 const KINDS: readonly Kind[] = ['account', 'group'];
 
 const addAnother = (dialog: Locator): Locator =>
   dialog.getByRole('checkbox', { name: 'Add another', exact: true });
-
-const nameField = (dialog: Locator): Locator => dialog.getByLabel('Name', { exact: true });
-
-const descriptionField = (dialog: Locator): Locator =>
-  dialog.getByLabel('Description', { exact: true });
 
 const saveButton = (dialog: Locator): Locator =>
   dialog.getByRole('button', { name: 'Save', exact: true });
@@ -101,7 +103,7 @@ test('shows Add another unchecked at the start of the last row of Add account an
   await save(toggled);
 
   await expectOrder(accountType(page, 'Assets'), [
-    'Cash',
+    ...ASSETS,
     'Unchecked account',
     'Unchecked group',
     'Toggled account',
@@ -130,7 +132,7 @@ test('keeps Add account open on Save while Add another is checked, emptying Name
   await expect(activeUntil(dialog)).toHaveValue(until);
   await expect(nameField(dialog)).toBeFocused();
   await expect(addAnother(dialog)).toBeChecked();
-  await expectOrder(accountType(page, 'Assets'), ['Cash', 'Bank', 'ABC Bank']);
+  await expectOrder(accountType(page, 'Assets'), [...ASSETS, 'Bank', 'ABC Bank']);
 
   await closeDialog(dialog);
   await expect(dialog).toBeHidden();
@@ -148,7 +150,7 @@ test('lists both Accounts after two kept-open saves in Add account, and shows on
 
   await expect(confirmation(dialog)).toHaveText(added('Mastercard'));
   await expect(dialog.getByText(added('Visa'))).toHaveCount(0);
-  await expectOrder(accountType(page, 'Liabilities'), ['Accounts payable', 'Cards', 'Visa', 'Mastercard']);
+  await expectOrder(accountType(page, 'Liabilities'), ['Credit card payable', 'Cards', 'Visa', 'Mastercard']);
 
   await closeDialog(dialog);
   await expect(dialog).toBeHidden();
@@ -168,11 +170,11 @@ test('keeps Add group open on Save while Add another is checked, emptying Name a
   await expect(descriptionField(dialog)).toHaveValue('');
   await expect(nameField(dialog)).toBeFocused();
   await expect(addAnother(dialog)).toBeChecked();
-  await expectOrder(accountType(page, 'Expenses'), ['Expenses', 'Travel']);
+  await expectOrder(accountType(page, 'Expenses'), [...EXPENSES, 'Travel']);
 
   await saveKeepingOpen(dialog, 'Office');
   await expect(dialog.getByText(added('Travel'))).toHaveCount(0);
-  await expectOrder(accountType(page, 'Expenses'), ['Expenses', 'Travel', 'Office']);
+  await expectOrder(accountType(page, 'Expenses'), [...EXPENSES, 'Travel', 'Office']);
 });
 
 test('shows a refusal in place of the confirmation when a save after a kept-open save is refused, and keeps the typed input', async ({ page }) => {
@@ -197,7 +199,7 @@ test('shows a refusal in place of the confirmation when a save after a kept-open
     await discardChanges(dialog);
   }
 
-  await expectOrder(accountType(page, 'Assets'), ['Cash', 'First account', 'First group']);
+  await expectOrder(accountType(page, 'Assets'), [...ASSETS, 'First account', 'First group']);
 });
 
 const CLOSERS: readonly { readonly how: string; readonly close: (dialog: Locator) => Promise<void> }[] = [
@@ -224,7 +226,7 @@ test('closes Add account and Add group at once by Close, Escape or a click on th
     }
   }
 
-  await expectOrder(accountType(page, 'Assets'), ['Cash', ...names]);
+  await expectOrder(accountType(page, 'Assets'), [...ASSETS, ...names]);
 });
 
 test('asks Discard changes when a name is typed after a kept-open save, and not when only Add another is toggled', async ({ page }) => {
@@ -253,7 +255,7 @@ test('asks Discard changes when a name is typed after a kept-open save, and not 
   }
 
   await expectOrder(accountType(page, 'Assets'), [
-    'Cash',
+    ...ASSETS,
     'Saved account',
     'Toggled account',
     'Saved group',
@@ -280,7 +282,7 @@ test('reopens Add account and Add group with Add another unchecked and no confir
   }
 
   await expectOrder(accountType(page, 'Revenue'), [
-    'Sales',
+    'Salary',
     'Reopened account',
     'Single account',
     'Reopened group',
@@ -330,5 +332,5 @@ test('fits the last row of Add account and Add group, Add another and Save, with
     await expect(dialog).toBeHidden();
   }
 
-  await expectOrder(accountType(page, 'Assets'), ['Cash', 'Phone account', 'Phone group']);
+  await expectOrder(accountType(page, 'Assets'), [...ASSETS, 'Phone account', 'Phone group']);
 });

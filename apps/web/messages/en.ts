@@ -405,12 +405,47 @@ export const en = {
       MEMO_TOO_LONG: 'This entry could not be deleted. Reload the page and try again.',
     },
   },
-  startingAccounts: {
-    asset: 'Cash',
-    liability: 'Accounts payable',
-    equity: 'Capital',
-    revenue: 'Sales',
-    expense: 'Expenses',
+  startingChart: {
+    cashAndDeposits: {
+      name: 'Cash and deposits',
+      description: 'A group for viewing cash and bank deposits together',
+    },
+    cash: {
+      name: 'Cash',
+      description: 'Cash kept in a wallet or elsewhere',
+    },
+    bankDeposits: {
+      name: 'Bank deposits',
+      description: 'Money held in bank accounts',
+    },
+    creditCardPayable: {
+      name: 'Credit card payable',
+      description: 'Credit card spending that has not yet been repaid',
+    },
+    openingBalanceEquity: {
+      name: 'Opening balance equity',
+      description: 'The difference between assets and liabilities when recordkeeping begins',
+    },
+    salary: {
+      name: 'Salary',
+      description: 'Salary received for work',
+    },
+    livingExpenses: {
+      name: 'Living expenses',
+      description: 'A group for viewing everyday living expenses together',
+    },
+    food: {
+      name: 'Food',
+      description: 'Money spent on groceries and eating out',
+    },
+    transportation: {
+      name: 'Transportation',
+      description: 'Money spent on getting around, including public transport',
+    },
+    otherLivingExpenses: {
+      name: 'Other living expenses',
+      description: 'Living expenses not assigned to a separate account',
+    },
   },
   accountTypes: {
     asset: 'Assets',

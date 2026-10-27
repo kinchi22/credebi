@@ -113,7 +113,7 @@ test('narrows with the Title, the day range, the Account and the memo together, 
   await postEntries(page, [
     titled('Rent', matching, '2026-06-15'),
     titled('Rent', wrongDay, '2026-07-15'),
-    titled('Rent', wrongAccount, '2026-06-15', 'Accounts payable'),
+    titled('Rent', wrongAccount, '2026-06-15', 'Credit card payable'),
     titled('Rent', wrongMemo, '2026-06-15'),
     titled('Fuel', wrongTitle, '2026-06-15'),
   ]);
