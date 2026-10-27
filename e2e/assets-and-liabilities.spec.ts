@@ -32,8 +32,8 @@ import {
   saveEdit,
   type TwoLineEntry,
 } from './entries';
-import { flattened, INITIAL_CHART } from './initial-chart';
-import { documentLanguage, pageTitle, signUpAfterChoosing, type Language } from './language';
+import { INITIAL_CHART, namesOf } from './initial-chart';
+import { documentLanguage, pageTitle, signUpAfterChoosing } from './language';
 import {
   expectOneColumn,
   expectTotalsDirectlyBelowShorter,
@@ -93,11 +93,6 @@ const intoCash = (day: string, memo: string, amount: string): TwoLineEntry =>
 
 const outOfCash = (day: string, memo: string, amount: string): TwoLineEntry =>
   entryOn(day, memo, 'Food', 'Cash', amount);
-
-const balanceSheetNames = (language: Language): readonly string[] =>
-  [...flattened(INITIAL_CHART[language].Assets), ...flattened(INITIAL_CHART[language].Liabilities)].map(
-    ({ name }) => name,
-  );
 
 const reportLinkIn = (navigation: Locator): Locator => linkTo(navigation, REPORT);
 
@@ -305,7 +300,7 @@ test('balances an asset Account as its debits less its credits and a liability A
     entryOn(IN_JUNE, `Overdrawn ${run}`, 'Food', bank, '2500'),
     entryOn(IN_JUNE, `Charged ${run}`, 'Food', card, '9000'),
     entryOn(IN_JUNE, `Card repaid ${run}`, card, 'Cash', '500'),
-    entryOn(IN_JUNE, `Overpaid supplier ${run}`, 'Credit card payable', 'Opening balance equity', '1200'),
+    entryOn(IN_JUNE, `Card overpaid ${run}`, 'Credit card payable', 'Opening balance equity', '1200'),
   ]);
 
   await page.goto(dated(JUNE_LAST));
@@ -603,7 +598,7 @@ test("shows Assets and liabilities in the User's Language: its heading, title, S
     await expect(tables.nth(index)).not.toHaveAccessibleName(/Assets|Liabilities|Totals/);
   }
   await expect(page.getByRole('main').getByRole('rowheader', { name: KOREAN_NET_WORTH, exact: true })).toBeVisible();
-  for (const name of balanceSheetNames('ko')) {
+  for (const name of namesOf(INITIAL_CHART.ko, ['Assets', 'Liabilities'])) {
     await expect(page.getByRole('main').getByRole('rowheader', { name, exact: true })).toBeVisible();
   }
 
@@ -634,7 +629,7 @@ test("shows Assets and liabilities in Japanese when that is the User's Language:
     await expect(tables.nth(index)).not.toHaveAccessibleName(/Assets|Liabilities|Totals/);
   }
   await expect(page.getByRole('main').getByRole('rowheader', { name: JAPANESE_NET_WORTH, exact: true })).toBeVisible();
-  for (const name of balanceSheetNames('ja')) {
+  for (const name of namesOf(INITIAL_CHART.ja, ['Assets', 'Liabilities'])) {
     await expect(page.getByRole('main').getByRole('rowheader', { name, exact: true })).toBeVisible();
   }
 });

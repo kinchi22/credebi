@@ -2,20 +2,22 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   accountsSection,
   accountType,
+  type AccountType,
   activeFrom,
   activeUntil,
   addGroup,
   chosenGroup,
   dayInBrowser,
+  descriptionField,
   expectInGroup,
   expectOrder,
   expectRefused,
+  type Kind,
+  nameField,
   openAdd,
   openEdit,
   pressSave,
   save,
-  type AccountType,
-  type Kind,
 } from './accounts';
 import { clickScrim, closeDialog, discardChanges, discardDialog, keepEditing } from './dialog';
 import { initialNames } from './initial-chart';
@@ -30,11 +32,6 @@ const KINDS: readonly Kind[] = ['account', 'group'];
 
 const addAnother = (dialog: Locator): Locator =>
   dialog.getByRole('checkbox', { name: 'Add another', exact: true });
-
-const nameField = (dialog: Locator): Locator => dialog.getByLabel('Name', { exact: true });
-
-const descriptionField = (dialog: Locator): Locator =>
-  dialog.getByLabel('Description', { exact: true });
 
 const saveButton = (dialog: Locator): Locator =>
   dialog.getByRole('button', { name: 'Save', exact: true });

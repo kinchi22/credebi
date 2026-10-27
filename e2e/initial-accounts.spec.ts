@@ -1,25 +1,23 @@
 import { randomUUID } from 'node:crypto';
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import {
   accountsSection,
   accountType,
   activeFrom,
   activeUntil,
-  chosenGroup,
-  confirmDelete,
+  descriptionField,
   drag,
   editAccount,
   expectInGroup,
   expectOrder,
   grip,
+  nameField,
   NO_GROUP,
-  openDelete,
   openEdit,
-  row,
+  remove,
   save,
   showEndedAccounts,
   type AccountType,
-  type Kind,
 } from './accounts';
 import { expectReport, showReport } from './assets-and-liabilities';
 import { closeDialog } from './dialog';
@@ -40,7 +38,7 @@ import {
   type TwoLineEntry,
 } from './entries';
 import { expectStatement, showStatement } from './income-statement';
-import { expectChartInSettings, INITIAL_CHART, type InitialChart } from './initial-chart';
+import { expectChartInSettings, INITIAL_CHART, nodesInOrder } from './initial-chart';
 import { languageChoice, signOutIn, signUpAfterChoosing, type Language } from './language';
 import { ASSETS_AND_LIABILITIES_PATH, INCOME_STATEMENT_PATH, SETTINGS_PATH } from './routes';
 import { freshIdentifier, signIn } from './session';
@@ -51,27 +49,11 @@ const STARTS_EARLIER = '2026-01-01';
 
 const utcDay = (): string => new Date().toISOString().slice(0, 10);
 
-const nameField = (dialog: Locator): Locator => dialog.getByLabel('Name', { exact: true });
-
-const descriptionField = (dialog: Locator): Locator => dialog.getByLabel('Description', { exact: true });
-
-type Placed = { readonly type: AccountType; readonly kind: Kind; readonly name: string; readonly description: string; readonly group: string };
-
-const placed = (chart: InitialChart): readonly Placed[] =>
-  ACCOUNT_TYPES.flatMap((type) =>
-    chart[type].flatMap((node) =>
-      node.kind === 'group'
-        ? [
-            { type, kind: 'group' as const, name: node.name, description: node.description, group: '' },
-            ...node.members.map((member) => ({ ...member, type, group: node.name })),
-          ]
-        : [{ type, kind: 'account' as const, name: node.name, description: node.description, group: NO_GROUP }],
-    ),
-  );
-
-const PLACED = placed(INITIAL_CHART.en);
-
-const PLACED_ACCOUNTS = PLACED.filter(({ kind }) => kind === 'account');
+const INITIAL_ACCOUNTS = ACCOUNT_TYPES.flatMap((type) =>
+  nodesInOrder(INITIAL_CHART.en[type])
+    .filter(({ kind }) => kind === 'account')
+    .map(({ name }) => ({ type, name })),
+);
 
 async function openChart(page: Page): Promise<void> {
   await page.goto(SETTINGS_PATH);
@@ -83,7 +65,7 @@ async function expectInitialChart(page: Page): Promise<void> {
   await expectChartInSettings(page, 'en', INITIAL_CHART.en);
 }
 
-test('gives a new User two Account groups and eight Accounts, under their Account types and groups, in order, at Settings, and keeps them after a reload', async ({ page }) => {
+test('gives a new User two Account groups and eight Accounts, under their Account types and groups, in order, each described and editable as its kind, at Settings, and keeps them after a reload', async ({ page }) => {
   await signIn(page);
   await expectInitialChart(page);
 
@@ -92,20 +74,6 @@ test('gives a new User two Account groups and eight Accounts, under their Accoun
   await expect(showEndedAccounts(page)).not.toBeChecked();
   await showEndedAccounts(page).check();
   await expectChartInSettings(page, 'en', INITIAL_CHART.en);
-});
-
-test('shows the name, description and Account group of each initial Account and Account group in its Edit dialog', async ({ page }) => {
-  await signIn(page);
-  await openChart(page);
-
-  for (const node of PLACED) {
-    const dialog = await openEdit(page, node.type, node.name, node.kind);
-    await expect(nameField(dialog), node.name).toHaveValue(node.name);
-    await expect(descriptionField(dialog), node.name).toHaveValue(node.description);
-    if (node.kind === 'account') await expect(chosenGroup(dialog), node.name).toHaveText(node.group);
-    await closeDialog(dialog);
-    await expect(dialog).toBeHidden();
-  }
 });
 
 for (const language of ['en', 'ko', 'ja'] as const) {
@@ -185,7 +153,7 @@ test('starts each initial Account on the UTC calendar day the User is created, w
   const after = utcDay();
   await openChart(page);
 
-  for (const { type, name } of PLACED_ACCOUNTS) {
+  for (const { type, name } of INITIAL_ACCOUNTS) {
     const dialog = await openEdit(page, type, name);
     expect([before, after], name).toContain(await activeFrom(dialog).inputValue());
     await expect(activeUntil(dialog), name).toHaveValue('');
@@ -297,52 +265,54 @@ test('offers every initial Account and no Account group as a choice on either Si
 });
 
 const EDITED: Readonly<Record<AccountType, readonly string[]>> = {
-  Assets: ['Cash and deposits', 'Bank deposits', 'Cash'],
+  Assets: ['Money', 'Bank deposits', 'Cash'],
   Liabilities: ['Credit card payable'],
   Equity: [],
   Revenue: ['Salary'],
-  Expenses: ['Living expenses', 'Groceries', 'Transportation'],
+  Expenses: ['Groceries'],
 };
 
 async function expectEditedChart(page: Page): Promise<void> {
   for (const type of ACCOUNT_TYPES) {
     await expectOrder(accountType(page, type), EDITED[type]);
   }
-  await expect(row(accountType(page, 'Expenses'), 'Groceries')).toContainText('Supermarket runs');
-  await expect(row(accountType(page, 'Expenses'), 'Living expenses')).toContainText('Spending from day to day');
-  await expectInGroup(page, 'Expenses', 'Groceries', 'Living expenses');
-  await expectInGroup(page, 'Expenses', 'Transportation', NO_GROUP);
-  await expectInGroup(page, 'Assets', 'Cash', 'Cash and deposits');
+  const money = await openEdit(page, 'Assets', 'Money', 'group');
+  await expect(descriptionField(money)).toHaveValue('Spending money');
+  await page.keyboard.press('Escape');
+  await expect(money).toBeHidden();
+  const groceries = await openEdit(page, 'Expenses', 'Groceries');
+  await expect(descriptionField(groceries)).toHaveValue('Supermarket runs');
+  await page.keyboard.press('Escape');
+  await expect(groceries).toBeHidden();
+  await expectInGroup(page, 'Assets', 'Cash', 'Money');
+  await expectInGroup(page, 'Assets', 'Bank deposits', 'Money');
+  await expectInGroup(page, 'Expenses', 'Groceries', NO_GROUP);
   await showEndedAccounts(page).check();
   for (const type of ACCOUNT_TYPES) {
     await expectOrder(accountType(page, type), EDITED[type]);
   }
 }
 
-async function remove(page: Page, type: AccountType, name: string): Promise<void> {
-  const dialog = await openDelete(page, type, name);
-  await confirmDelete(dialog);
-  await expect(dialog).toBeHidden();
-}
-
-test('keeps an initial chart the User renamed, described, moved, reordered and removed from after a reload and after signing in again, recreating nothing', async ({ page }) => {
+test('keeps an initial chart the User renamed, described, moved, reordered and removed from, groups included, after a reload and after signing in again, recreating nothing', async ({ page }) => {
   test.slow();
   const identifier = freshIdentifier();
   await signIn(page, { identifier });
   await openChart(page);
 
-  await editAccount(page, 'Expenses', 'Food', { name: 'Groceries', description: 'Supermarket runs' });
-  const group = await openEdit(page, 'Expenses', 'Living expenses', 'group');
-  await descriptionField(group).fill('Spending from day to day');
+  const group = await openEdit(page, 'Assets', 'Cash and deposits', 'group');
+  await nameField(group).fill('Money');
+  await descriptionField(group).fill('Spending money');
   await save(group);
-  await editAccount(page, 'Expenses', 'Transportation', { group: NO_GROUP });
   const assets = accountType(page, 'Assets');
   await drag(page, grip(assets, 'Bank deposits'), grip(assets, 'Cash'));
   await expect(async () => {
     await page.reload();
     await expectOrder(assets, EDITED.Assets);
   }).toPass({ timeout: 15_000 });
+  await editAccount(page, 'Expenses', 'Food', { name: 'Groceries', description: 'Supermarket runs', group: NO_GROUP });
+  await remove(page, 'Expenses', 'Transportation');
   await remove(page, 'Expenses', 'Other living expenses');
+  await remove(page, 'Expenses', 'Living expenses', 'group');
   await remove(page, 'Equity', 'Opening balance equity');
 
   await page.reload();

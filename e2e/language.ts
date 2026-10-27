@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
+import { type AccountType } from './entries';
 import { ENTRIES_URL } from './routes';
 import { freshIdentifier } from './session';
 
@@ -10,7 +11,21 @@ export const LANGUAGE_NAMES: Readonly<Record<Language, string>> = {
   ja: '\u65E5\u672C\u8A9E',
 };
 
+export type AccountsText = {
+  readonly section: string;
+  readonly types: Readonly<Record<AccountType, string>>;
+  readonly move: (name: string) => string;
+  readonly anyMove: RegExp;
+  readonly edit: string;
+  readonly editTitle: Readonly<Record<'account' | 'group', string>>;
+  readonly name: string;
+  readonly description: string;
+  readonly group: string;
+  readonly noGroup: string;
+};
+
 export type CatalogueText = {
+  readonly accounts: AccountsText;
   readonly language: string;
   readonly signIn: string;
   readonly google: string;
@@ -20,6 +35,18 @@ export type CatalogueText = {
 
 export const CATALOGUE: Readonly<Record<Language, CatalogueText>> = {
   en: {
+    accounts: {
+      section: 'Accounts',
+      types: { Assets: 'Assets', Liabilities: 'Liabilities', Equity: 'Equity', Revenue: 'Revenue', Expenses: 'Expenses' },
+      move: (name) => `Move ${name}`,
+      anyMove: /^Move /,
+      edit: 'Edit',
+      editTitle: { account: 'Edit account', group: 'Edit group' },
+      name: 'Name',
+      description: 'Description',
+      group: 'Group',
+      noGroup: 'No group',
+    },
     language: 'Language',
     signIn: 'Sign in',
     google: 'Sign in with Google',
@@ -27,6 +54,18 @@ export const CATALOGUE: Readonly<Record<Language, CatalogueText>> = {
     signOut: 'Sign out',
   },
   ko: {
+    accounts: {
+      section: '\uACC4\uC815',
+      types: { Assets: '\uC790\uC0B0', Liabilities: '\uBD80\uCC44', Equity: '\uC790\uBCF8', Revenue: '\uC218\uC775', Expenses: '\uBE44\uC6A9' },
+      move: (name) => `${name} \uC774\uB3D9`,
+      anyMove: / \uC774\uB3D9$/,
+      edit: '\uC218\uC815',
+      editTitle: { account: '\uACC4\uC815 \uC218\uC815', group: '\uADF8\uB8F9 \uC218\uC815' },
+      name: '\uC774\uB984',
+      description: '\uC124\uBA85',
+      group: '\uADF8\uB8F9',
+      noGroup: '\uADF8\uB8F9 \uC5C6\uC74C',
+    },
     language: '\uC5B8\uC5B4',
     signIn: '\uB85C\uADF8\uC778',
     google: 'Google\uB85C \uB85C\uADF8\uC778',
@@ -34,6 +73,18 @@ export const CATALOGUE: Readonly<Record<Language, CatalogueText>> = {
     signOut: '\uB85C\uADF8\uC544\uC6C3',
   },
   ja: {
+    accounts: {
+      section: '\u52D8\u5B9A\u79D1\u76EE',
+      types: { Assets: '\u8CC7\u7523', Liabilities: '\u8CA0\u50B5', Equity: '\u8CC7\u672C', Revenue: '\u53CE\u76CA', Expenses: '\u8CBB\u7528' },
+      move: (name) => `${name}\u3092\u79FB\u52D5`,
+      anyMove: /\u3092\u79FB\u52D5$/,
+      edit: '\u7DE8\u96C6',
+      editTitle: { account: '\u52D8\u5B9A\u79D1\u76EE\u3092\u7DE8\u96C6', group: '\u30B0\u30EB\u30FC\u30D7\u3092\u7DE8\u96C6' },
+      name: '\u540D\u524D',
+      description: '\u8AAC\u660E',
+      group: '\u30B0\u30EB\u30FC\u30D7',
+      noGroup: '\u30B0\u30EB\u30FC\u30D7\u306A\u3057',
+    },
     language: '\u8A00\u8A9E',
     signIn: '\u30ED\u30B0\u30A4\u30F3',
     google: 'Google\u3067\u30ED\u30B0\u30A4\u30F3',

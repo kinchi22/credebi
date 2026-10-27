@@ -1,6 +1,16 @@
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
+import {
+  accountType,
+  chosenGroup,
+  descriptionField,
+  expectOrder,
+  grips,
+  nameField,
+  openEditIn,
+  row,
+} from './accounts';
 import { type AccountType, ACCOUNT_TYPES } from './entries';
-import { type Language } from './language';
+import { CATALOGUE, type Language } from './language';
 
 export type InitialAccount = {
   readonly kind: 'account';
@@ -90,82 +100,41 @@ export const INITIAL_CHART: Readonly<Record<Language, InitialChart>> = {
   },
 };
 
-export const flattened = (nodes: readonly InitialNode[]): readonly InitialNode[] =>
+export const nodesInOrder = (nodes: readonly InitialNode[]): readonly InitialNode[] =>
   nodes.flatMap((node) => (node.kind === 'group' ? [node, ...node.members] : [node]));
 
-export const initialAccounts = (chart: InitialChart): readonly InitialAccount[] =>
-  ACCOUNT_TYPES.flatMap((type) =>
-    flattened(chart[type]).filter((node): node is InitialAccount => node.kind === 'account'),
-  );
+export const namesOf = (chart: InitialChart, types: readonly AccountType[] = ACCOUNT_TYPES): readonly string[] =>
+  types.flatMap((type) => nodesInOrder(chart[type]).map(({ name }) => name));
 
-export const initialGroups = (chart: InitialChart): readonly InitialGroup[] =>
-  ACCOUNT_TYPES.flatMap((type) => chart[type].filter((node): node is InitialGroup => node.kind === 'group'));
+export const initialNames = (type: AccountType): readonly string[] => namesOf(INITIAL_CHART.en, [type]);
 
-type SettingsText = {
-  readonly section: string;
-  readonly types: Readonly<Record<AccountType, string>>;
-  readonly move: (name: string) => string;
-  readonly anyMove: RegExp;
-};
-
-const SETTINGS_TEXT: Readonly<Record<Language, SettingsText>> = {
-  en: {
-    section: 'Accounts',
-    types: { Assets: 'Assets', Liabilities: 'Liabilities', Equity: 'Equity', Revenue: 'Revenue', Expenses: 'Expenses' },
-    move: (name) => `Move ${name}`,
-    anyMove: /^Move /,
-  },
-  ko: {
-    section: '\uACC4\uC815',
-    types: { Assets: '\uC790\uC0B0', Liabilities: '\uBD80\uCC44', Equity: '\uC790\uBCF8', Revenue: '\uC218\uC775', Expenses: '\uBE44\uC6A9' },
-    move: (name) => `${name} \uC774\uB3D9`,
-    anyMove: / \uC774\uB3D9$/,
-  },
-  ja: {
-    section: '\u52D8\u5B9A\u79D1\u76EE',
-    types: { Assets: '\u8CC7\u7523', Liabilities: '\u8CA0\u50B5', Equity: '\u8CC7\u672C', Revenue: '\u53CE\u76CA', Expenses: '\u8CBB\u7528' },
-    move: (name) => `${name}\u3092\u79FB\u52D5`,
-    anyMove: /\u3092\u79FB\u52D5$/,
-  },
-};
-
-const typeIn = (page: Page, shown: Language, type: AccountType): Locator => {
-  const text = SETTINGS_TEXT[shown];
-  return page
-    .getByRole('region', { name: text.section, exact: true })
-    .getByRole('group', { name: text.types[type], exact: true });
-};
-
-const gripIn = (scope: Locator | Page, shown: Language, name: string): Locator =>
-  scope.getByRole('button', { name: SETTINGS_TEXT[shown].move(name), exact: true });
-
-const nodeRow = (scope: Locator, shown: Language, name: string): Locator =>
-  scope.getByRole('listitem').filter({ has: gripIn(scope.page(), shown, name) }).last();
+async function expectNodeInDialog(
+  page: Page,
+  shown: Language,
+  type: AccountType,
+  node: InitialNode,
+  group: string,
+): Promise<void> {
+  const dialog = await openEditIn(page, shown, type, node.name, node.kind);
+  await expect(nameField(dialog, shown), node.name).toHaveValue(node.name);
+  await expect(descriptionField(dialog, shown), node.name).toHaveValue(node.description);
+  if (node.kind === 'account') await expect(chosenGroup(dialog, shown), node.name).toHaveText(group);
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+}
 
 export async function expectChartInSettings(page: Page, shown: Language, chart: InitialChart): Promise<void> {
-  const text = SETTINGS_TEXT[shown];
+  const noGroup = CATALOGUE[shown].accounts.noGroup;
   for (const type of ACCOUNT_TYPES) {
-    const scope = typeIn(page, shown, type);
-    const nodes = flattened(chart[type]);
-    const grips = scope.getByRole('button', { name: text.anyMove });
-    await expect(grips, type).toHaveCount(nodes.length);
-    for (const [index, node] of nodes.entries()) {
-      await expect(grips.nth(index)).toHaveAccessibleName(text.move(node.name));
-      await expect(nodeRow(scope, shown, node.name)).toContainText(node.description);
-    }
+    const scope = accountType(page, type, shown);
+    await expectOrder(scope, namesOf(chart, [type]), shown);
     for (const node of chart[type]) {
-      const held = node.kind === 'group' ? node.members : [];
-      const nodeScope = nodeRow(scope, shown, node.name);
-      await expect(nodeScope.getByRole('button', { name: text.anyMove })).toHaveCount(1 + held.length);
-      for (const member of held) {
-        await expect(gripIn(nodeScope, shown, member.name)).toHaveCount(1);
+      const members = node.kind === 'group' ? node.members : [];
+      await expect(grips(row(scope, node.name, shown), shown), node.name).toHaveCount(1 + members.length);
+      await expectNodeInDialog(page, shown, type, node, noGroup);
+      for (const member of members) {
+        await expectNodeInDialog(page, shown, type, member, node.name);
       }
     }
   }
 }
-
-export const initialNames = (type: AccountType): readonly string[] =>
-  flattened(INITIAL_CHART.en[type]).map(({ name }) => name);
-
-export const chartNames = (language: Language): readonly string[] =>
-  ACCOUNT_TYPES.flatMap((type) => flattened(INITIAL_CHART[language][type]).map(({ name }) => name));

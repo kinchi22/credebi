@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
 import {
+  type AccountFields,
   accountsSection,
   accountType,
   addAccount,
@@ -10,10 +11,8 @@ import {
   expectOrder,
   expectRefused,
   openDelete,
+  remove,
   showEndedAccounts,
-  type AccountFields,
-  type AccountType,
-  type Kind,
 } from './accounts';
 import {
   accountChoice,
@@ -54,12 +53,6 @@ async function deleteEntry(page: Page, memo: string): Promise<void> {
   await page.goto('/entries');
   await deleteListed(listedEntry(page, memo));
   await expect(listedEntry(page, memo)).toHaveCount(0);
-}
-
-async function remove(page: Page, type: AccountType, name: string, kind: Kind = 'account'): Promise<void> {
-  const dialog = await openDelete(page, type, name, kind);
-  await confirmDelete(dialog);
-  await expect(dialog).toBeHidden();
 }
 
 async function signInWithPettyCash(page: Page, fields: Omit<AccountFields, 'name'> = {}): Promise<void> {

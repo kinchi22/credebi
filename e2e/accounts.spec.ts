@@ -11,8 +11,8 @@ import {
   dayInBrowser,
   drag,
   dragTo,
-  endOfList,
   editAccount,
+  endOfList,
   expectInGroup,
   expectOrder,
   expectRefused,
@@ -20,15 +20,16 @@ import {
   grips,
   headingRowMiddle,
   headingRowTopEdge,
+  nameField,
   NO_GROUP,
   offeredType,
   openAdd,
   openDelete,
   openEdit,
+  pressSave,
   row,
   save,
   showEndedAccounts,
-  pressSave,
 } from './accounts';
 import {
   clickScrim,
@@ -410,8 +411,6 @@ const ACCOUNT_DIALOGS: readonly AccountDialog[] = [
   { title: 'Add group', open: (page) => openAdd(page, 'Assets', 'group'), savedName: '' },
   { title: 'Edit group', open: (page) => openEdit(page, 'Assets', 'Bank', 'group'), savedName: 'Bank' },
 ];
-
-const nameField = (dialog: Locator): Locator => dialog.getByLabel('Name', { exact: true });
 
 test('closes Add account, Edit account, Add group and Edit group at once by Close, Escape or a click on the scrim when nothing was changed, and gives them no Cancel', async ({ page }) => {
   await openSettings(page);
