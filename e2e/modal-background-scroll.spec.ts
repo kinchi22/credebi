@@ -3,7 +3,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { accountsSection, BOOKS_OPEN, boxOf, centre, openAdd, type Point } from './accounts';
 import { choosePeriod, periodSheet } from './date-presets';
 import { closeDialog, discardChanges, discardDialog, keepEditing } from './dialog';
-import { listedEntry, openEditEntry, postEntries, twoLine } from './entries';
+import { accountChoices, listedEntry, openEditEntry, postEntries, twoLine } from './entries';
 import { ENTRY_SEARCH_PATH, SETTINGS_PATH } from './routes';
 import { signIn } from './session';
 import { menu, sidebar } from './sidebar';
@@ -237,6 +237,37 @@ for (const { name, viewport, hasTouch, input } of DEVICES) {
     });
   });
 }
+
+async function visibleCentre(target: Locator, within: Locator): Promise<Point> {
+  const shown = await boxOf(target, 'the account picker');
+  const frame = await boxOf(within, 'the scrolling body of Edit entry');
+  const top = Math.max(shown.y, frame.y);
+  const bottom = Math.min(shown.y + shown.height, frame.y + frame.height);
+  expect(bottom - top, 'the account picker shows inside Edit entry').toBeGreaterThan(2 * EDGE_INSET);
+  return { x: shown.x + shown.width / 2, y: (top + bottom) / 2 };
+}
+
+test.describe('on a short fine pointer at 1280 x 480', () => {
+  test.use({ viewport: WIDE, hasTouch: false });
+
+  test('scrolls the form inside Edit entry under a wheel over the account picker', async ({ page }) => {
+    await signIn(page, { accountsStartOn: BOOKS_OPEN });
+    const memo = `Edit entry picker scroll ${randomUUID()}`;
+    await postEntries(page, [twoLine({ day: '2026-09-15', memo })]);
+    await page.setViewportSize(SHORT_WIDE);
+    await page.goto('/entries');
+
+    const dialog = await openEditEntry(listedEntry(page, memo));
+    const body = formBody(dialog);
+    const end = await formEnd(body);
+    expect(end, 'the form is taller than Edit entry').toBeGreaterThan(0);
+    expect(await formTop(body)).toBe(0);
+
+    await wheel(page, await visibleCentre(accountChoices(dialog, 'Debit'), body), Math.min(DISTANCE / 4, end));
+    await expect.poll(() => formTop(body)).toBeGreaterThan(0);
+    await expect(dialog).toBeVisible();
+  });
+});
 
 test.describe('on a fine pointer at 1280px', () => {
   test.use({ viewport: WIDE, hasTouch: false });
