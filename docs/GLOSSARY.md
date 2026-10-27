@@ -24,7 +24,7 @@ no term is defined in more than one.
 | Balance direction | Whether an Entry line on a Side increases or decreases the balance of an Account of a given Account type: a debit increases an asset or an expense and decreases a liability, equity or revenue, and a credit does the reverse. |
 | Balanced         | The property that makes an Entry postable: its debit amounts sum to its credit amounts. Checked in `domain/`, never in SQL. |
 | Branded type     | A primitive carrying a compile-time name, so two `number`s stop being interchangeable. Erased at runtime. |
-| Chart of accounts | One User's Accounts and Account groups, arranged under the five Account types in the order the User drags them into, and kept at `/settings`. Its initial contents are named in the User's Language when the User is created and from then on are the User's own, so changing the Language never renames them. ADR-0026. |
+| Chart of accounts | One User's Accounts and Account groups, arranged under the five Account types in the order the User drags them into, and kept at `/settings`. Its initial contents are named and described in the User's Language when the User is created and from then on are the User's own, so changing the Language never rewrites them. ADR-0026. |
 | Component        | A checked dependency of the system, as reported by the health slice.         |
 | Composition root | `apps/web/server/container.ts`. The only place implementations are chosen.   |
 | Contract         | A zod schema plus its inferred type, in `packages/contracts`.                |

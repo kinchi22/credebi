@@ -6,6 +6,7 @@ import {
   entryIdSchema,
   err,
   userIdSchema,
+  type AccountGroupId,
   type AccountId,
 } from '@repo/contracts';
 import {
@@ -71,7 +72,7 @@ import {
   newSessionToken,
 } from '@repo/core/server';
 import { v7 as uuidv7 } from 'uuid';
-import { startingAccountNames } from './catalogues';
+import { startingChartCopy } from './catalogues';
 import { type Env, parseEnv } from './env';
 import { createLogger, stderr } from './logger';
 
@@ -114,13 +115,15 @@ export function createContainer({ databaseUrl, google, testSignIn, deployment }:
   const sessions = createPostgresSessionRepository(databaseUrl, logger);
   const settings = createPostgresSettingsRepository(databaseUrl, logger);
   const newAccountId = (): AccountId => accountIdSchema.parse(uuidv7());
+  const newAccountGroupId = (): AccountGroupId => accountGroupIdSchema.parse(uuidv7());
   const signIn = {
     users: createPostgresUserRepository(databaseUrl, logger),
     sessions,
     settings,
-    startingAccountNames,
+    startingChartCopy,
     newUserId: () => userIdSchema.parse(uuidv7()),
     newAccountId,
+    newAccountGroupId,
     newSessionToken,
     hashSessionToken,
     now: () => new Date(),
@@ -160,7 +163,7 @@ export function createContainer({ databaseUrl, google, testSignIn, deployment }:
     editAccount: createEditAccount({ accounts }),
     addAccountGroup: createAddAccountGroup({
       accounts,
-      newAccountGroupId: () => accountGroupIdSchema.parse(uuidv7()),
+      newAccountGroupId,
     }),
     editAccountGroup: createEditAccountGroup({ accounts }),
     deleteAccount: createDeleteAccount({ accounts, now: () => new Date() }),

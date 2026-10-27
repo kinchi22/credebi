@@ -5,6 +5,7 @@ import {
   isErr,
   isOk,
   ok,
+  type AccountGroupId,
   type AccountId,
   type DomainError,
   type Err,
@@ -12,7 +13,12 @@ import {
   type Result,
   type UserId,
 } from '@repo/contracts';
-import { type Account, type StartingAccountNames } from '../../accounts/domain/account';
+import {
+  type Account,
+  type Chart,
+  type StartingChartCopy,
+  type StartingNode,
+} from '../../accounts/domain/account';
 import { DEFAULT_SETTINGS, type Settings } from '../../settings/domain/settings';
 import { type SettingsRepository } from '../../settings/ports/settings-repository';
 import { SIGNED_OUT, type AuthContext } from '../domain/auth-context';
@@ -46,14 +52,14 @@ const identityKey = (identity: Identity): string => `${identity.provider}:${iden
 type UserStore = UserRepository & {
   readonly users: Map<UserId, User>;
   readonly identities: Map<string, UserId>;
-  readonly charts: Map<UserId, readonly Account[]>;
+  readonly charts: Map<UserId, Chart>;
   readonly settings: Map<UserId, Settings>;
 };
 
 function inMemoryUsers(): UserStore {
   const users = new Map<UserId, User>();
   const identities = new Map<string, UserId>();
-  const charts = new Map<UserId, readonly Account[]>();
+  const charts = new Map<UserId, Chart>();
   const settings = new Map<UserId, Settings>();
   return {
     users,
@@ -117,24 +123,61 @@ const settingsOf = (store: UserStore): Pick<SettingsRepository, 'read'> => ({
   read: (userId) => Promise.resolve(ok(store.settings.get(userId) ?? DEFAULT_SETTINGS)),
 });
 
-const ENGLISH_NAMES: StartingAccountNames = {
-  asset: 'Cash',
-  liability: 'Accounts payable',
-  equity: 'Capital',
-  revenue: 'Sales',
-  expense: 'Expenses',
-};
+const STARTING_NODES: readonly StartingNode[] = [
+  'cashAndDeposits',
+  'cash',
+  'bankDeposits',
+  'creditCardPayable',
+  'openingBalanceEquity',
+  'salary',
+  'livingExpenses',
+  'food',
+  'transportation',
+  'otherLivingExpenses',
+];
 
-const startingAccountNames = (language: Language): StartingAccountNames =>
-  language === 'en'
-    ? ENGLISH_NAMES
-    : {
-        asset: `Cash in ${language}`,
-        liability: `Accounts payable in ${language}`,
-        equity: `Capital in ${language}`,
-        revenue: `Sales in ${language}`,
-        expense: `Expenses in ${language}`,
-      };
+const startingChartCopy = (language: Language): StartingChartCopy =>
+  Object.fromEntries(
+    STARTING_NODES.map((node) => [
+      node,
+      { name: `${node} in ${language}`, description: `About ${node} in ${language}` },
+    ]),
+  ) as Record<StartingNode, { name: string; description: string }>;
+
+const namesIn = (language: Language): readonly string[] => [
+  `cash in ${language}`,
+  `bankDeposits in ${language}`,
+  `creditCardPayable in ${language}`,
+  `openingBalanceEquity in ${language}`,
+  `salary in ${language}`,
+  `food in ${language}`,
+  `transportation in ${language}`,
+  `otherLivingExpenses in ${language}`,
+];
+
+const NO_CHART: Chart = { accounts: [], groups: [] };
+
+const PREVIOUS_CHART: Chart = {
+  groups: [],
+  accounts: (
+    [
+      ['asset', 'Cash'],
+      ['liability', 'Accounts payable'],
+      ['equity', 'Capital'],
+      ['revenue', 'Sales'],
+      ['expense', 'Expenses'],
+    ] as const
+  ).map(([accountType, name], n) => ({
+    id: `01920000-0000-7000-8000-00000000e00${String(n)}` as AccountId,
+    accountType,
+    groupId: null,
+    name,
+    description: null,
+    position: 0,
+    activeFrom: '2025-01-01',
+    activeUntil: null,
+  })),
+};
 
 const hash = (token: string): SessionTokenHash => `sha256(${token})` as SessionTokenHash;
 
@@ -170,12 +213,13 @@ function world(
   let clock = NOW;
   let userCount = 0;
   let accountCount = 0;
+  let groupCount = 0;
   let tokenCount = 0;
   const dependencies: SignInDependencies = {
     users,
     sessions,
     settings: settingsOf(users),
-    startingAccountNames,
+    startingChartCopy,
     newUserId: () => {
       userCount += 1;
       return `01920000-0000-7000-8000-${String(userCount).padStart(12, '0')}` as UserId;
@@ -183,6 +227,10 @@ function world(
     newAccountId: () => {
       accountCount += 1;
       return `01920000-0000-7000-8000-00000000c${String(accountCount).padStart(3, '0')}` as AccountId;
+    },
+    newAccountGroupId: () => {
+      groupCount += 1;
+      return `01920000-0000-7000-8000-00000000d${String(groupCount).padStart(3, '0')}` as AccountGroupId;
     },
     newSessionToken: () => {
       tokenCount += 1;
@@ -243,31 +291,60 @@ describe('createTestSignIn', () => {
     });
   });
 
-  it('creates a new User with Cash, Accounts payable, Capital, Sales and Expenses, starting on the day it was created', async () => {
+  it('creates a new User with two Account groups and eight Accounts, named and described in their Language, starting on the day it was created', async () => {
     const { testSignIn, users } = world({ now: () => new Date('2026-09-18T23:30:00.000Z') });
 
     issued(await testSignIn('e2e-1', 'en'));
 
-    const starting = (n: number, accountType: Account['accountType'], name: string): Account => ({
+    const groupId = (n: number): AccountGroupId =>
+      `01920000-0000-7000-8000-00000000d00${String(n)}` as AccountGroupId;
+    const starting = (
+      n: number,
+      accountType: Account['accountType'],
+      group: number | null,
+      position: number,
+      node: StartingNode,
+    ): Account => ({
       id: `01920000-0000-7000-8000-00000000c00${String(n)}` as AccountId,
       accountType,
-      groupId: null,
-      name,
-      description: null,
-      position: 0,
+      groupId: group === null ? null : groupId(group),
+      name: `${node} in en`,
+      description: `About ${node} in en`,
+      position,
       activeFrom: '2026-09-18',
       activeUntil: null,
     });
     expect([...users.charts.entries()]).toEqual([
       [
         '01920000-0000-7000-8000-000000000001',
-        [
-          starting(1, 'asset', 'Cash'),
-          starting(2, 'liability', 'Accounts payable'),
-          starting(3, 'equity', 'Capital'),
-          starting(4, 'revenue', 'Sales'),
-          starting(5, 'expense', 'Expenses'),
-        ],
+        {
+          groups: [
+            {
+              id: groupId(1),
+              accountType: 'asset',
+              name: 'cashAndDeposits in en',
+              description: 'About cashAndDeposits in en',
+              position: 0,
+            },
+            {
+              id: groupId(2),
+              accountType: 'expense',
+              name: 'livingExpenses in en',
+              description: 'About livingExpenses in en',
+              position: 0,
+            },
+          ],
+          accounts: [
+            starting(1, 'asset', 1, 0, 'cash'),
+            starting(2, 'asset', 1, 1, 'bankDeposits'),
+            starting(3, 'liability', null, 0, 'creditCardPayable'),
+            starting(4, 'equity', null, 0, 'openingBalanceEquity'),
+            starting(5, 'revenue', null, 0, 'salary'),
+            starting(6, 'expense', 2, 0, 'food'),
+            starting(7, 'expense', 2, 1, 'transportation'),
+            starting(8, 'expense', 2, 2, 'otherLivingExpenses'),
+          ],
+        },
       ],
     ]);
   });
@@ -281,13 +358,15 @@ describe('createTestSignIn', () => {
 
       const userId = '01920000-0000-7000-8000-000000000001' as UserId;
       expect(users.settings.get(userId)).toEqual({ ...DEFAULT_SETTINGS, language });
-      expect(users.charts.get(userId)?.map(({ accountType, name }) => [accountType, name])).toEqual([
-        ['asset', `Cash in ${language}`],
-        ['liability', `Accounts payable in ${language}`],
-        ['equity', `Capital in ${language}`],
-        ['revenue', `Sales in ${language}`],
-        ['expense', `Expenses in ${language}`],
+      const chart = users.charts.get(userId);
+      expect(chart?.groups.map(({ name }) => name)).toEqual([
+        `cashAndDeposits in ${language}`,
+        `livingExpenses in ${language}`,
       ]);
+      expect(chart?.accounts.map(({ name }) => name)).toEqual(namesIn(language));
+      expect(chart?.accounts.map(({ description }) => description)).toEqual(
+        namesIn(language).map((name) => `About ${name}`),
+      );
       expect(session.language).toBe(language);
     },
   );
@@ -337,20 +416,32 @@ describe('createTestSignIn', () => {
     expect([...users.charts.values()]).toEqual(created);
   });
 
-  it("starts a new User's five starting Accounts on the day the sign-in names", async () => {
+  it("starts a new User's eight starting Accounts on the day the sign-in names", async () => {
     const { testSignIn, users } = world();
 
     issued(await testSignIn('e2e-1', 'en', '2000-01-01'));
 
-    const chart = [...users.charts.values()].flat();
-    expect(chart.map(({ name }) => name)).toEqual([
-      'Cash',
-      'Accounts payable',
-      'Capital',
-      'Sales',
-      'Expenses',
-    ]);
-    expect(chart.map(({ activeFrom }) => activeFrom)).toEqual(Array(5).fill('2000-01-01'));
+    const accounts = [...users.charts.values()].flatMap((chart) => chart.accounts);
+    expect(accounts.map(({ name }) => name)).toEqual(namesIn('en'));
+    expect(accounts.map(({ activeFrom }) => activeFrom)).toEqual(Array(8).fill('2000-01-01'));
+    expect(accounts.map(({ activeUntil }) => activeUntil)).toEqual(Array(8).fill(null));
+  });
+
+  it("leaves an existing User's previous five-Account chart as it was, adding none of the starting chart", async () => {
+    const users = inMemoryUsers();
+    const ada: User = {
+      id: '01920000-0000-7000-8000-0000000000aa' as UserId,
+      email: 'e2e-1@test.invalid',
+      name: null,
+      createdAt: new Date('2025-01-01T00:00:00.000Z'),
+    };
+    await users.add(ada, { provider: 'test', subject: 'e2e-1' }, PREVIOUS_CHART, DEFAULT_SETTINGS);
+    const { testSignIn, resolveSession } = world({ users });
+
+    const session = issued(await testSignIn('e2e-1', 'en'));
+
+    expect(await whoIs(resolveSession, session.token)).toEqual({ userId: ada.id });
+    expect([...users.charts.entries()]).toEqual([[ada.id, PREVIOUS_CHART]]);
   });
 
   it("changes none of an existing User's Accounts when the sign-in names a day", async () => {
@@ -361,8 +452,8 @@ describe('createTestSignIn', () => {
     issued(await testSignIn('e2e-1', 'en', '2000-01-01'));
 
     expect([...users.charts.values()]).toEqual(created);
-    expect(created.flat().map(({ activeFrom }) => activeFrom)).toEqual(
-      Array(5).fill('2026-09-18'),
+    expect(created.flatMap(({ accounts }) => accounts.map(({ activeFrom }) => activeFrom))).toEqual(
+      Array(8).fill('2026-09-18'),
     );
   });
 
@@ -478,7 +569,7 @@ describe('a first sign-in that races another', () => {
       },
       add: async (_user, identity) => {
         if (earlier !== undefined) {
-          await store.add(earlier, identity, [], { ...DEFAULT_SETTINGS, language: 'ja' });
+          await store.add(earlier, identity, NO_CHART, { ...DEFAULT_SETTINGS, language: 'ja' });
         }
         return err(domainError('CONFLICT', 'That Identity has a User.'));
       },
@@ -527,8 +618,8 @@ describe('createFinishGoogleSignIn', () => {
     ]);
     expect([...users.identities.keys()]).toEqual(['google:google-ada']);
     expect(
-      users.charts.get('01920000-0000-7000-8000-000000000001' as UserId)?.map(({ name }) => name),
-    ).toEqual(['Cash', 'Accounts payable', 'Capital', 'Sales', 'Expenses']);
+      users.charts.get('01920000-0000-7000-8000-000000000001' as UserId)?.accounts.map(({ name }) => name),
+    ).toEqual(namesIn('en'));
     expect(await whoIs(resolveSession, session.token)).toEqual({
       userId: '01920000-0000-7000-8000-000000000001',
     });
@@ -541,13 +632,9 @@ describe('createFinishGoogleSignIn', () => {
     const again = issued(await finishGoogleSignIn(CALLBACK, PENDING, 'ja'));
 
     expect([...users.settings.values()]).toEqual([{ ...DEFAULT_SETTINGS, language: 'ko' }]);
-    expect([...users.charts.values()].flat().map(({ name }) => name)).toEqual([
-      'Cash in ko',
-      'Accounts payable in ko',
-      'Capital in ko',
-      'Sales in ko',
-      'Expenses in ko',
-    ]);
+    expect([...users.charts.values()].flatMap(({ accounts }) => accounts.map(({ name }) => name))).toEqual(
+      namesIn('ko'),
+    );
     expect([created.language, again.language]).toEqual(['ko', 'ko']);
   });
 
@@ -559,9 +646,10 @@ describe('createFinishGoogleSignIn', () => {
       users,
       sessions: inMemorySessions(),
       settings: settingsOf(users),
-      startingAccountNames,
+      startingChartCopy,
       newUserId: () => '01920000-0000-7000-8000-000000000009' as UserId,
       newAccountId: () => '01920000-0000-7000-8000-00000000c009' as AccountId,
+      newAccountGroupId: () => '01920000-0000-7000-8000-00000000d009' as AccountGroupId,
       newSessionToken: () => 'token-9' as SessionToken,
       hashSessionToken: hash,
       now: () => NOW,
@@ -620,9 +708,10 @@ describe('createFinishGoogleSignIn', () => {
       users,
       sessions,
       settings: settingsOf(users),
-      startingAccountNames,
+      startingChartCopy,
       newUserId: () => '01920000-0000-7000-8000-000000000001' as UserId,
       newAccountId: () => '01920000-0000-7000-8000-00000000c001' as AccountId,
+      newAccountGroupId: () => '01920000-0000-7000-8000-00000000d001' as AccountGroupId,
       newSessionToken: () => 'token-1' as SessionToken,
       hashSessionToken: hash,
       now: () => NOW,

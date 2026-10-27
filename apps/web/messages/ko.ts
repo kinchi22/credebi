@@ -421,12 +421,47 @@ export const ko = {
       MEMO_TOO_LONG: entryNotDeleted,
     },
   },
-  startingAccounts: {
-    asset: '현금',
-    liability: '매입채무',
-    equity: '자본금',
-    revenue: '매출',
-    expense: '비용',
+  startingChart: {
+    cashAndDeposits: {
+      name: '현금과 예금',
+      description: '현금과 은행 예금을 모아 보는 그룹',
+    },
+    cash: {
+      name: '현금',
+      description: '지갑 등에 보관한 현금',
+    },
+    bankDeposits: {
+      name: '은행 예금',
+      description: '은행 계좌에 보관한 돈',
+    },
+    creditCardPayable: {
+      name: '신용카드 미결제금',
+      description: '신용카드로 사용하고 아직 갚지 않은 금액',
+    },
+    openingBalanceEquity: {
+      name: '시작 잔액',
+      description: '기록을 시작할 때 가진 자산과 부채의 차액',
+    },
+    salary: {
+      name: '급여',
+      description: '일한 대가로 받은 급여',
+    },
+    livingExpenses: {
+      name: '생활비',
+      description: '일상생활에 쓴 비용을 모아 보는 그룹',
+    },
+    food: {
+      name: '식비',
+      description: '식재료 구입과 외식에 쓴 돈',
+    },
+    transportation: {
+      name: '교통비',
+      description: '대중교통 등 이동에 쓴 돈',
+    },
+    otherLivingExpenses: {
+      name: '기타 생활비',
+      description: '별도 계정과목으로 나누지 않은 생활 지출',
+    },
   },
   accountTypes: {
     asset: '자산',

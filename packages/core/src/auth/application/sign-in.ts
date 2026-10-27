@@ -2,6 +2,7 @@ import {
   domainError,
   err,
   ok,
+  type AccountGroupId,
   type AccountId,
   type DomainError,
   type Language,
@@ -12,7 +13,7 @@ import {
   dayOf,
   parseDay,
   startingChart,
-  type StartingAccountNames,
+  type StartingChartCopy,
 } from '../../accounts/domain/account';
 import { DEFAULT_SETTINGS } from '../../settings/domain/settings';
 import { type SettingsRepository } from '../../settings/ports/settings-repository';
@@ -26,9 +27,10 @@ export type SignInDependencies = {
   readonly users: UserRepository;
   readonly sessions: SessionRepository;
   readonly settings: Pick<SettingsRepository, 'read'>;
-  readonly startingAccountNames: (language: Language) => StartingAccountNames;
+  readonly startingChartCopy: (language: Language) => StartingChartCopy;
   readonly newUserId: () => UserId;
   readonly newAccountId: () => AccountId;
+  readonly newAccountGroupId: () => AccountGroupId;
   readonly newSessionToken: () => SessionToken;
   readonly hashSessionToken: (token: string) => SessionTokenHash;
   readonly now: () => Date;
@@ -130,7 +132,7 @@ async function findOrAddUser(
   { identity, profile }: SignInClaims,
   { language, accountsStartOn }: SignInRequest,
 ): Promise<Result<SignedInUser, DomainError>> {
-  const { users, newUserId, newAccountId, startingAccountNames, now } = dependencies;
+  const { users, newUserId, newAccountId, newAccountGroupId, startingChartCopy, now } = dependencies;
   const found = await users.findByIdentity(identity);
   if (!found.ok) {
     return found;
@@ -144,8 +146,8 @@ async function findOrAddUser(
   const user = { id: newUserId(), ...profile, createdAt: now() };
   const chart = startingChart(
     accountsStartOn ?? dayOf(user.createdAt),
-    startingAccountNames(language),
-    newAccountId,
+    startingChartCopy(language),
+    { newAccountId, newAccountGroupId },
   );
   const added = await users.add(user, identity, chart, { ...DEFAULT_SETTINGS, language });
   if (added.ok) {
