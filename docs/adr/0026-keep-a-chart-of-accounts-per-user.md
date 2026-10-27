@@ -55,9 +55,13 @@ When the trigger holds, accounts become their own feature,
   Reversal pair included, because ADR-0016 keeps that pair forever and it must
   still resolve. An Account still named is retired by giving it an end day. A
   group is removed only while it is empty. There is no archived flag.
-- **Seeding.** A User starts with five Accounts, Cash, Accounts payable,
-  Capital, Sales and Expenses, one directly under each Account type, starting on
-  the day the User was created. The names are taken from the catalogue in the
+- **Seeding.** A User starts with the chart Feature #385 specifies: two Account
+  groups and eight Accounts for personal living expenses, each with a
+  description. Cash and deposits holds Cash and Bank deposits; Credit card
+  payable, Opening balance equity and Salary sit directly under liability,
+  equity and revenue; Living expenses holds Food, Transportation and Other
+  living expenses. Every Account starts on the day the User was created, with
+  no end day. The names and descriptions are taken from the catalogue in the
   User's Language when the User is created (#239, ADR-0008), and are the User's
   own data from then on.
 - **Migration, in two releases** (ADR-0024). The first creates `accounts`, adds

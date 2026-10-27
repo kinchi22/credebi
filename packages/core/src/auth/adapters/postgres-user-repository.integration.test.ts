@@ -284,8 +284,8 @@ describe('createPostgresUserRepository', () => {
     ]);
   });
 
-  it("leaves an existing User's previous five Accounts and their Entries as they were when another User starts", async () => {
-    const previous = only(
+  it("leaves an existing User's chart and its Entries as they were when another User starts", async () => {
+    const existing = only(
       ...(
         [
           ['asset', 'Cash'],
@@ -301,7 +301,7 @@ describe('createPostgresUserRepository', () => {
         name,
       })),
     );
-    await repository.add(ADA, GOOGLE_ADA, previous, DEFAULT_SETTINGS);
+    await repository.add(ADA, GOOGLE_ADA, existing, DEFAULT_SETTINGS);
     await database.execute(
       sql`insert into entries (id, entry_date, memo, created_at, user_id)
           values ('01920000-0000-7000-8000-00000000f001', '2026-09-18', '', now(), ${ADA.id})`,

@@ -157,7 +157,7 @@ const namesIn = (language: Language): readonly string[] => [
 
 const NO_CHART: Chart = { accounts: [], groups: [] };
 
-const PREVIOUS_CHART: Chart = {
+const EXISTING_CHART: Chart = {
   groups: [],
   accounts: (
     [
@@ -427,7 +427,7 @@ describe('createTestSignIn', () => {
     expect(accounts.map(({ activeUntil }) => activeUntil)).toEqual(Array(8).fill(null));
   });
 
-  it("leaves an existing User's previous five-Account chart as it was, adding none of the starting chart", async () => {
+  it("leaves an existing User's chart as it was, adding none of the starting chart", async () => {
     const users = inMemoryUsers();
     const ada: User = {
       id: '01920000-0000-7000-8000-0000000000aa' as UserId,
@@ -435,13 +435,13 @@ describe('createTestSignIn', () => {
       name: null,
       createdAt: new Date('2025-01-01T00:00:00.000Z'),
     };
-    await users.add(ada, { provider: 'test', subject: 'e2e-1' }, PREVIOUS_CHART, DEFAULT_SETTINGS);
+    await users.add(ada, { provider: 'test', subject: 'e2e-1' }, EXISTING_CHART, DEFAULT_SETTINGS);
     const { testSignIn, resolveSession } = world({ users });
 
     const session = issued(await testSignIn('e2e-1', 'en'));
 
     expect(await whoIs(resolveSession, session.token)).toEqual({ userId: ada.id });
-    expect([...users.charts.entries()]).toEqual([[ada.id, PREVIOUS_CHART]]);
+    expect([...users.charts.entries()]).toEqual([[ada.id, EXISTING_CHART]]);
   });
 
   it("changes none of an existing User's Accounts when the sign-in names a day", async () => {
