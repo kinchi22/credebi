@@ -32,18 +32,13 @@ export type InMemoryEntries = {
   readonly unitOfWork: UnitOfWork;
 };
 
-function addLine(
-  totals: Map<string, MonthSums>,
+function addLine<Sums extends AccountSums>(
+  totals: Map<string, Sums>,
   key: string,
-  month: string,
+  empty: Sums,
   line: Entry['lines'][number],
 ): Result<void, DomainError> {
-  const held = totals.get(key) ?? {
-    month,
-    account: line.account,
-    debit: MONEY_ZERO,
-    credit: MONEY_ZERO,
-  };
+  const held = totals.get(key) ?? empty;
   const sum = addMoney(held[line.side], line.amount);
   if (!sum.ok) {
     return sum;
@@ -54,26 +49,24 @@ function addLine(
 
 function monthlyTotals(entries: readonly Entry[], range: MonthRange): Result<TrendSums, DomainError> {
   const days = daysOfRange(range);
-  const opening = new Map<string, MonthSums>();
+  const opening = new Map<string, AccountSums>();
   const months = new Map<string, MonthSums>();
   for (const entry of entries) {
     if (entry.entryDate <= days.to) {
       const month = entry.entryDate.slice(0, 7);
-      const before = entry.entryDate < days.from;
       for (const line of entry.lines) {
-        const added = before
-          ? addLine(opening, line.account, month, line)
-          : addLine(months, `${month} ${line.account}`, month, line);
+        const empty = { account: line.account, debit: MONEY_ZERO, credit: MONEY_ZERO };
+        const added =
+          entry.entryDate < days.from
+            ? addLine(opening, line.account, empty, line)
+            : addLine(months, `${month} ${line.account}`, { ...empty, month }, line);
         if (!added.ok) {
           return added;
         }
       }
     }
   }
-  return ok({
-    opening: [...opening.values()].map(({ account, debit, credit }) => ({ account, debit, credit })),
-    months: [...months.values()],
-  });
+  return ok({ opening: [...opening.values()], months: [...months.values()] });
 }
 
 function repositoryOver(rows: StoredEntry[]): EntryRepository {

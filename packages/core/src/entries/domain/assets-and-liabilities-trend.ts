@@ -13,7 +13,7 @@ import { chartInOrder, type Account, type Chart, type ChartNode } from '../../ac
 import { isActiveWithin } from '../../accounts/domain/active-period';
 import { addMoney, MONEY_ZERO } from '../../money/domain/money';
 import { assetsAndLiabilitiesWhere } from './assets-and-liabilities';
-import { calendarDay, monthOf, yearOf, type DayRange } from './search-range';
+import { calendarDay, calendarMonth, monthOf, monthsRange, yearOf, type DayRange } from './search-range';
 import { type AccountSums } from './statement';
 
 export const MOST_TREND_MONTHS = 600;
@@ -49,20 +49,15 @@ const indexOf = (month: string): number => yearOf(month) * 12 + monthOf(month) -
 const monthAt = (index: number): string =>
   calendarDay(Math.floor(index / 12), index % 12, 1).slice(0, 7);
 
-export function daysOf(month: string): DayRange {
-  return {
-    from: calendarDay(yearOf(month), monthOf(month) - 1, 1),
-    to: calendarDay(yearOf(month), monthOf(month), 0),
-  };
-}
+const countOf = (range: MonthRange): number => indexOf(range.to) - indexOf(range.from) + 1;
 
 export function daysOfRange(range: MonthRange): DayRange {
-  return { from: daysOf(range.from).from, to: daysOf(range.to).to };
+  return monthsRange(yearOf(range.from), monthOf(range.from) - 1, countOf(range));
 }
 
 export function monthsOf(range: MonthRange): readonly string[] {
   const first = indexOf(range.from);
-  return Array.from({ length: indexOf(range.to) - first + 1 }, (_, offset) => monthAt(first + offset));
+  return Array.from({ length: countOf(range) }, (_, offset) => monthAt(first + offset));
 }
 
 const refused = (message: string): Err<DomainError> =>
@@ -77,7 +72,7 @@ export function makeMonthRange({ from, to }: MonthRange): Result<MonthRange, Dom
   if (from > to) {
     return refused(`A range of months cannot end (${to}) before it starts (${from}).`);
   }
-  if (indexOf(to) - indexOf(from) + 1 > MOST_TREND_MONTHS) {
+  if (countOf({ from, to }) > MOST_TREND_MONTHS) {
     return refused(`A range of months can cover at most ${String(MOST_TREND_MONTHS)} months.`);
   }
   return ok({ from, to });
@@ -122,7 +117,7 @@ function valuesOf(
   month: string,
   balances: Balances,
 ): Result<TrendMonth, DomainError> {
-  const days = daysOf(month);
+  const days = calendarMonth(month);
   const values = assetsAndLiabilitiesWhere(nodes, {
     includes: (account: Account) => isActiveWithin(account, days),
     sums: balances,

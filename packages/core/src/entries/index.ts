@@ -8,7 +8,7 @@ export { titleMatching } from './domain/title-match';
 
 export { NO_CRITERIA, makeSearchCriteria } from './domain/search-criteria';
 export type { SearchCriteria, SearchCriteriaDraft } from './domain/search-criteria';
-export { calendarMonth, defaultSearchRange, makeDayRange } from './domain/search-range';
+export { calendarMonth, defaultSearchRange, makeDayRange, monthOf, yearOf } from './domain/search-range';
 export type { DayRange } from './domain/search-range';
 export type {
   AccountSums,
@@ -21,6 +21,7 @@ export { incomeStatement } from './domain/income-statement';
 export type { IncomeStatement } from './domain/income-statement';
 export { assetsAndLiabilities } from './domain/assets-and-liabilities';
 export type { AssetsAndLiabilities } from './domain/assets-and-liabilities';
+export { MOST_TREND_MONTHS } from './domain/assets-and-liabilities-trend';
 export type {
   AssetsAndLiabilitiesTrend,
   MonthRange,

@@ -3,7 +3,6 @@ import { isErr, type AccountId, type AccountType, type Money } from '@repo/contr
 import { type Account, type Chart } from '../../accounts/domain/account';
 import {
   assetsAndLiabilitiesTrend,
-  daysOf,
   daysOfRange,
   makeMonthRange,
   monthsOf,
@@ -135,11 +134,14 @@ describe('monthsOf', () => {
   });
 });
 
-describe('daysOf', () => {
-  it("runs from a month's first day to its last, a leap February included", () => {
-    expect(daysOf('2024-02')).toEqual({ from: '2024-02-01', to: '2024-02-29' });
-    expect(daysOf('2026-02')).toEqual({ from: '2026-02-01', to: '2026-02-28' });
-    expect(daysOf('2026-12')).toEqual({ from: '2026-12-01', to: '2026-12-31' });
+describe('daysOfRange', () => {
+  it("runs a single month from its first day to its last, a leap February included", () => {
+    expect(daysOfRange(range('2024-02', '2024-02'))).toEqual({ from: '2024-02-01', to: '2024-02-29' });
+    expect(daysOfRange(range('2026-02', '2026-02'))).toEqual({ from: '2026-02-01', to: '2026-02-28' });
+  });
+
+  it("runs across a year end", () => {
+    expect(daysOfRange(range('2025-11', '2026-01'))).toEqual({ from: '2025-11-01', to: '2026-01-31' });
   });
 
   it("runs a range of months from its first month's first day to its last month's last day", () => {

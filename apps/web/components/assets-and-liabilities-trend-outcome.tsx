@@ -1,5 +1,6 @@
 import { useTranslations } from 'next-intl';
 import { type AssetsAndLiabilitiesTrendOutput } from '@repo/contracts';
+import { monthOf, MOST_TREND_MONTHS, yearOf } from '@repo/core/entries';
 import { type ReactNode } from 'react';
 import { type AssetsAndLiabilitiesTrendAnswer } from '../server/assets-and-liabilities-trend';
 import { formatAmount } from './amount';
@@ -13,8 +14,8 @@ function TrendTable({ months }: TrendTableProps): ReactNode {
   const t = useTranslations();
   const monthLabel = (month: string): string =>
     t('datePresets.periodOfYear', {
-      period: t('datePresets.month', { month: Number(month.slice(5, 7)) }),
-      year: month.slice(0, 4),
+      period: t('datePresets.month', { month: monthOf(month) }),
+      year: String(yearOf(month)).padStart(4, '0'),
     });
 
   return (
@@ -51,7 +52,7 @@ export function AssetsAndLiabilitiesTrendOutcome({ answer }: AssetsAndLiabilitie
   if (answer.outcome !== 'answered') {
     return (
       <p role="alert" className={DANGER_TEXT}>
-        {t(answer.outcome)}
+        {answer.outcome === 'refused' ? t('refused', { most: String(MOST_TREND_MONTHS) }) : t('unavailable')}
       </p>
     );
   }
@@ -59,15 +60,4 @@ export function AssetsAndLiabilitiesTrendOutcome({ answer }: AssetsAndLiabilitie
     return <p className={MUTED_TEXT}>{t('nothingRecorded')}</p>;
   }
   return <TrendTable months={answer.trend.months} />;
-}
-
-export function AssetsAndLiabilitiesTrendPending(): ReactNode {
-  const t = useTranslations('assetsAndLiabilitiesTrend');
-  return (
-    <section aria-busy className="flex flex-col gap-2">
-      <p role="status" className={MUTED_TEXT}>
-        {t('loading')}
-      </p>
-    </section>
-  );
 }
