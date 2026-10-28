@@ -1,0 +1,1 @@
+ALTER TABLE "user_settings" ADD COLUMN "shown_trend_lines" text[] DEFAULT array['net-worth', 'total-assets', 'total-liabilities']::text[] NOT NULL;

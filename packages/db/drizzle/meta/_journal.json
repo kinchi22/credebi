@@ -71,6 +71,13 @@
       "when": 1791968028124,
       "tag": "0009_user_settings_language",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793223714282,
+      "tag": "0010_user_settings_shown_trend_lines",
+      "breakpoints": true
     }
   ]
 }
