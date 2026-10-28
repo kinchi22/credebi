@@ -205,6 +205,64 @@ export function parseAssetsAndLiabilitiesQuery(
     : err(domainError('INVALID_INPUT', 'The report date is malformed.'));
 }
 
+export const calendarMonthSchema = z.string().regex(/^(?!0000)\d{4}-(?:0[1-9]|1[0-2])$/);
+
+export const ASSETS_AND_LIABILITIES_TREND_FIELDS = {
+  from: 'from',
+  to: 'to',
+} as const;
+
+export const assetsAndLiabilitiesTrendQuerySchema = z.object({
+  from: calendarMonthSchema,
+  to: calendarMonthSchema,
+});
+
+export type AssetsAndLiabilitiesTrendQuery = z.infer<typeof assetsAndLiabilitiesTrendQuerySchema>;
+
+export function parseAssetsAndLiabilitiesTrendQuery(
+  query: SearchQuery,
+): Result<AssetsAndLiabilitiesTrendQuery, DomainError> {
+  const parsed = assetsAndLiabilitiesTrendQuerySchema.safeParse({
+    from: query[ASSETS_AND_LIABILITIES_TREND_FIELDS.from],
+    to: query[ASSETS_AND_LIABILITIES_TREND_FIELDS.to],
+  });
+
+  return parsed.success
+    ? ok(parsed.data)
+    : err(domainError('INVALID_INPUT', 'The trend range is malformed.'));
+}
+
+export const trendMonthSchema = z.object({
+  month: calendarMonthSchema,
+  totalAssets: moneySchema,
+  totalLiabilities: moneySchema,
+  netWorth: moneySchema,
+});
+
+export type TrendMonthOutput = z.infer<typeof trendMonthSchema>;
+
+export const assetsAndLiabilitiesTrendSchema = z.object({
+  months: z.array(trendMonthSchema),
+  recorded: z.boolean(),
+});
+
+export type AssetsAndLiabilitiesTrendOutput = z.infer<typeof assetsAndLiabilitiesTrendSchema>;
+
+export function toAssetsAndLiabilitiesTrend(trend: {
+  readonly months: readonly TrendMonthOutput[];
+  readonly recorded: boolean;
+}): AssetsAndLiabilitiesTrendOutput {
+  return {
+    months: trend.months.map(({ month, totalAssets, totalLiabilities, netWorth }) => ({
+      month,
+      totalAssets,
+      totalLiabilities,
+      netWorth,
+    })),
+    recorded: trend.recorded,
+  };
+}
+
 export const statementAccountSchema = z.object({
   kind: z.literal('account'),
   account: accountIdSchema,

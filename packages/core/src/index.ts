@@ -51,6 +51,9 @@ export {
   createGetAssetsAndLiabilities,
   type GetAssetsAndLiabilities,
   type GetAssetsAndLiabilitiesDependencies,
+  createGetAssetsAndLiabilitiesTrend,
+  type GetAssetsAndLiabilitiesTrend,
+  type GetAssetsAndLiabilitiesTrendDependencies,
   type EntryRepository,
   type UnitOfWork,
 } from './entries/index';

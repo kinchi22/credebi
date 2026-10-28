@@ -13,6 +13,7 @@ import {
 } from '@repo/contracts';
 import { createDatabase } from '@repo/db';
 import { type LogFields, type Logger } from '../../logging/ports/logger';
+import { type MonthRange, type TrendSums } from '../domain/assets-and-liabilities-trend';
 import { makeEntry, type Entry, type EntryDraft } from '../domain/entry';
 import { makeReversal, type Reversal } from '../domain/reversal';
 import { NO_CRITERIA, type SearchCriteria } from '../domain/search-criteria';
@@ -1089,6 +1090,162 @@ describe('accountTotals', () => {
 
     expect(isErr(result) && result.error.code).toBe('DEPENDENCY_UNAVAILABLE');
     expect(logged.map((fields) => fields.event)).toEqual(['entries.account_totals_failed']);
+  });
+});
+
+describe('monthlyAccountTotals', () => {
+  const JUNE_TO_AUGUST: MonthRange = { from: '2026-06', to: '2026-08' };
+
+  const lines = (debit: AccountId, credit: AccountId, amount: number): EntryDraft['lines'] => [
+    { account: debit, side: 'debit', amount: amount as Money },
+    { account: credit, side: 'credit', amount: amount as Money },
+  ];
+
+  const byAccount = <Sums extends { readonly account: AccountId }>(sums: readonly Sums[]): Sums[] =>
+    [...sums].sort((first, second) => first.account.localeCompare(second.account));
+
+  async function monthly(userId: UserId = ADA, range: MonthRange = JUNE_TO_AUGUST): Promise<TrendSums> {
+    const result = await repository.monthlyAccountTotals(userId, range);
+    expect(isOk(result)).toBe(true);
+    return isOk(result)
+      ? {
+          opening: byAccount(result.value.opening),
+          months: [...result.value.months].sort(
+            (first, second) =>
+              first.month.localeCompare(second.month) || first.account.localeCompare(second.account),
+          ),
+        }
+      : { opening: [], months: [] };
+  }
+
+  it("sums each Account's debits and credits per calendar month of the range, and folds every earlier month into one opening amount", async () => {
+    await repository.save(ADA, entry({ entryDate: '2001-01-01', lines: lines(CASH, CAPITAL, 1) }));
+    await repository.save(ADA, entry({ entryDate: '2026-05-31', lines: lines(CASH, CAPITAL, 20) }));
+    await repository.save(ADA, entry({ entryDate: '2026-05-01', lines: lines(EXPENSES, CASH, 5) }));
+    await repository.save(ADA, entry({ entryDate: '2026-06-01', lines: lines(CASH, SALES, 300) }));
+    await repository.save(ADA, entry({ entryDate: '2026-06-30', lines: lines(EXPENSES, CASH, 40) }));
+    await repository.save(ADA, entry({ entryDate: '2026-08-31', lines: lines(EXPENSES, PAYABLE, 7000) }));
+
+    expect(await monthly()).toEqual({
+      opening: [
+        { account: CASH, debit: 21, credit: 5 },
+        { account: CAPITAL, debit: 0, credit: 21 },
+        { account: EXPENSES, debit: 5, credit: 0 },
+      ],
+      months: [
+        { month: '2026-06', account: CASH, debit: 300, credit: 40 },
+        { month: '2026-06', account: SALES, debit: 0, credit: 300 },
+        { month: '2026-06', account: EXPENSES, debit: 40, credit: 0 },
+        { month: '2026-08', account: PAYABLE, debit: 0, credit: 7000 },
+        { month: '2026-08', account: EXPENSES, debit: 7000, credit: 0 },
+      ],
+    });
+  });
+
+  it("counts an Entry on the range's last day, and none dated after it", async () => {
+    await repository.save(ADA, entry({ entryDate: '2026-08-31', lines: lines(EXPENSES, CASH, 20) }));
+    await repository.save(ADA, entry({ entryDate: '2026-09-01', lines: lines(EXPENSES, CASH, 300) }));
+    await repository.save(ADA, entry({ entryDate: '2099-01-01', lines: lines(EXPENSES, CASH, 4000) }));
+
+    expect(await monthly()).toEqual({
+      opening: [],
+      months: [
+        { month: '2026-08', account: CASH, debit: 0, credit: 20 },
+        { month: '2026-08', account: EXPENSES, debit: 20, credit: 0 },
+      ],
+    });
+  });
+
+  it("counts an Entry on the range's first day in its first month, and one the day before in the opening amount", async () => {
+    await repository.save(ADA, entry({ entryDate: '2026-05-31', lines: lines(EXPENSES, CASH, 1) }));
+    await repository.save(ADA, entry({ entryDate: '2026-06-01', lines: lines(EXPENSES, CASH, 20) }));
+
+    expect(await monthly(ADA, { from: '2026-06', to: '2026-06' })).toEqual({
+      opening: [
+        { account: CASH, debit: 0, credit: 1 },
+        { account: EXPENSES, debit: 1, credit: 0 },
+      ],
+      months: [
+        { month: '2026-06', account: CASH, debit: 0, credit: 20 },
+        { month: '2026-06', account: EXPENSES, debit: 20, credit: 0 },
+      ],
+    });
+  });
+
+  it('leaves out a deleted Entry and its Reversal, and the Entry a Correction replaced, while counting the replacement', async () => {
+    const deleted = entry({ entryDate: '2001-01-01', lines: lines(EXPENSES, CASH, 2000) });
+    const corrected = entry({ entryDate: '2026-07-02', lines: lines(EXPENSES, CASH, 4000) });
+    const replacement = entry({ entryDate: '2026-07-02', lines: lines(EXPENSES, CASH, 3000) });
+    await repository.save(ADA, entry({ entryDate: '2001-01-01', lines: lines(EXPENSES, CASH, 10) }));
+    await repository.save(ADA, deleted);
+    await repository.save(ADA, corrected);
+    await repository.saveReversal(ADA, reversalOf(deleted));
+    await repository.saveReversal(ADA, reversalOf(corrected));
+    await repository.save(ADA, replacement);
+
+    expect(await monthly()).toEqual({
+      opening: [
+        { account: CASH, debit: 0, credit: 10 },
+        { account: EXPENSES, debit: 10, credit: 0 },
+      ],
+      months: [
+        { month: '2026-07', account: CASH, debit: 0, credit: 3000 },
+        { month: '2026-07', account: EXPENSES, debit: 3000, credit: 0 },
+      ],
+    });
+  });
+
+  it("sums one User's Entries for nobody else (ADR-0021)", async () => {
+    await repository.save(ADA, entry({ entryDate: '2026-01-15', lines: lines(EXPENSES, CASH, 700) }));
+    await repository.save(ADA, entry({ entryDate: '2026-06-15', lines: lines(EXPENSES, CASH, 70) }));
+    await repository.save(GRACE, entry({ entryDate: '2026-07-15', lines: lines(EXPENSES, CASH, 90) }));
+
+    expect(await monthly(GRACE)).toEqual({
+      opening: [],
+      months: [
+        { month: '2026-07', account: CASH, debit: 0, credit: 90 },
+        { month: '2026-07', account: EXPENSES, debit: 90, credit: 0 },
+      ],
+    });
+    expect((await monthly(ADA)).opening).toEqual([
+      { account: CASH, debit: 0, credit: 700 },
+      { account: EXPENSES, debit: 700, credit: 0 },
+    ]);
+  });
+
+  it('answers with no sums when no shown Entry is dated on or before the last day', async () => {
+    await repository.save(ADA, entry({ entryDate: '2026-09-15' }));
+
+    expect(await monthly()).toEqual({ opening: [], months: [] });
+  });
+
+  it('reads 600 months at once, keeping four digits in a year before 1000', async () => {
+    await repository.save(ADA, entry({ entryDate: '0980-01-31', lines: lines(EXPENSES, CASH, 3) }));
+    await repository.save(ADA, entry({ entryDate: '1029-12-31', lines: lines(EXPENSES, CASH, 4) }));
+
+    expect((await monthly(ADA, { from: '0980-01', to: '1029-12' })).months.map(({ month }) => month)).toEqual([
+      '0980-01',
+      '0980-01',
+      '1029-12',
+      '1029-12',
+    ]);
+  });
+
+  it('reports sums too large for an amount to hold', async () => {
+    const huge = lines(EXPENSES, CASH, Number.MAX_SAFE_INTEGER);
+    await repository.save(ADA, entry({ entryDate: '2026-06-15', lines: huge }));
+    await repository.save(ADA, entry({ entryDate: '2026-06-16', lines: huge }));
+
+    const result = await repository.monthlyAccountTotals(ADA, JUNE_TO_AUGUST);
+
+    expect(isErr(result) && result.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+  });
+
+  it('reports an unreachable database as a result, never by throwing', async () => {
+    const result = await dead.monthlyAccountTotals(ADA, JUNE_TO_AUGUST);
+
+    expect(isErr(result) && result.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+    expect(logged.map((fields) => fields.event)).toEqual(['entries.monthly_account_totals_failed']);
   });
 });
 

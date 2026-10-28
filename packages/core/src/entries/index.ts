@@ -21,6 +21,11 @@ export { incomeStatement } from './domain/income-statement';
 export type { IncomeStatement } from './domain/income-statement';
 export { assetsAndLiabilities } from './domain/assets-and-liabilities';
 export type { AssetsAndLiabilities } from './domain/assets-and-liabilities';
+export type {
+  AssetsAndLiabilitiesTrend,
+  MonthRange,
+  TrendMonth,
+} from './domain/assets-and-liabilities-trend';
 export {
   RELATIVE_DIRECTIONS,
   currentPeriod,
@@ -63,6 +68,12 @@ export type {
   GetAssetsAndLiabilities,
   GetAssetsAndLiabilitiesDependencies,
 } from './application/get-assets-and-liabilities';
+
+export { createGetAssetsAndLiabilitiesTrend } from './application/get-assets-and-liabilities-trend';
+export type {
+  GetAssetsAndLiabilitiesTrend,
+  GetAssetsAndLiabilitiesTrendDependencies,
+} from './application/get-assets-and-liabilities-trend';
 
 export { createGetTitles } from './application/get-titles';
 export type { GetTitles, GetTitlesDependencies } from './application/get-titles';
