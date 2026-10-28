@@ -1,13 +1,24 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { ListIcon, Logo, MenuIcon, SearchIcon, SignOutIcon, SlidersIcon, StatementIcon, WalletIcon } from '@repo/ui';
+import {
+  ListIcon,
+  Logo,
+  MenuIcon,
+  RisingLineIcon,
+  SearchIcon,
+  SignOutIcon,
+  SlidersIcon,
+  StatementIcon,
+  WalletIcon,
+} from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { type MouseEvent, type ReactNode, type RefObject, useId, useRef } from 'react';
 import {
   ASSETS_AND_LIABILITIES_PATH,
+  ASSETS_AND_LIABILITIES_TREND_PATH,
   ENTRY_SEARCH_PATH,
   INCOME_STATEMENT_PATH,
   SETTINGS_PATH,
@@ -31,6 +42,11 @@ const LINKS = [
   { href: ENTRY_SEARCH_PATH, label: 'sidebar.entrySearch', icon: <SearchIcon size={18} /> },
   { href: INCOME_STATEMENT_PATH, label: 'sidebar.incomeStatement', icon: <StatementIcon /> },
   { href: ASSETS_AND_LIABILITIES_PATH, label: 'sidebar.assetsAndLiabilities', icon: <WalletIcon size={18} /> },
+  {
+    href: ASSETS_AND_LIABILITIES_TREND_PATH,
+    label: 'sidebar.assetsAndLiabilitiesTrend',
+    icon: <RisingLineIcon />,
+  },
   { href: SETTINGS_PATH, label: 'sidebar.settings', icon: <SlidersIcon /> },
 ] as const;
 

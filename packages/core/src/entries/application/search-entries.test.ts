@@ -72,6 +72,7 @@ const holding = (searched: EntryRepository['search']): EntryRepository => ({
   find: () => Promise.resolve(err(domainError('NOT_FOUND', 'Not read here.'))),
   search: searched,
   accountTotals: () => Promise.resolve(err(domainError('NOT_FOUND', 'Not read here.'))),
+  monthlyAccountTotals: () => Promise.resolve(err(domainError('NOT_FOUND', 'Not read here.'))),
   titledEntries: () => Promise.resolve(err(domainError('NOT_FOUND', 'Not read here.'))),
 });
 

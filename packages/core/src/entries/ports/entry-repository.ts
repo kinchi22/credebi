@@ -1,4 +1,5 @@
 import { type DomainError, type EntryId, type Result, type UserId } from '@repo/contracts';
+import { type MonthRange, type TrendSums } from '../domain/assets-and-liabilities-trend';
 import { type Entry } from '../domain/entry';
 import { type AccountSums } from '../domain/statement';
 import { type TitledEntry } from '../domain/offered-titles';
@@ -26,6 +27,10 @@ export type EntryRepository = {
     userId: UserId,
     range: OpenDayRange,
   ) => Promise<Result<readonly AccountSums[], DomainError>>;
+  readonly monthlyAccountTotals: (
+    userId: UserId,
+    range: MonthRange,
+  ) => Promise<Result<TrendSums, DomainError>>;
   readonly titledEntries: (
     userId: UserId,
     createdSince: Date,

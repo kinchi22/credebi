@@ -33,6 +33,12 @@ import { type NamedAccount } from '../../accounts/domain/account';
 import { describeError } from '../../logging/domain/describe-error';
 import { type Logger } from '../../logging/ports/logger';
 import { money, MONEY_ZERO } from '../../money/domain/money';
+import {
+  daysOfRange,
+  type MonthRange,
+  type MonthSums,
+  type TrendSums,
+} from '../domain/assets-and-liabilities-trend';
 import { makeEntry, notInChart, type Entry, type EntryDraft } from '../domain/entry';
 import { type AccountSums } from '../domain/statement';
 import { type TitledEntry, type TitledLine } from '../domain/offered-titles';
@@ -312,6 +318,76 @@ export function postgresEntriesOn(database: PostgresExecutor, logger: Logger): E
         totals.set(account, { ...held, [side.data]: amount.value });
       }
       return ok([...totals.values()]);
+    },
+
+    monthlyAccountTotals: async (
+      userId: UserId,
+      range: MonthRange,
+    ): Promise<Result<TrendSums, DomainError>> => {
+      const days = daysOfRange(range);
+      const dated = database
+        .select({
+          accountId: schema.entryLines.accountId,
+          side: schema.entryLines.side,
+          amount: schema.entryLines.amount,
+          month: sql<string | null>`case when ${schema.entries.entryDate} < ${days.from} then null
+            else to_char(${schema.entries.entryDate}, 'YYYY-MM') end`.as('month'),
+        })
+        .from(schema.entryLines)
+        .innerJoin(schema.entries, eq(schema.entries.id, schema.entryLines.entryId))
+        .where(
+          and(eq(schema.entries.userId, userId), shownEntry(), lte(schema.entries.entryDate, days.to)),
+        )
+        .as('dated');
+      let rows: {
+        readonly accountId: string;
+        readonly side: string;
+        readonly month: string | null;
+        readonly amount: string;
+      }[];
+      try {
+        rows = await database
+          .select({
+            accountId: dated.accountId,
+            side: dated.side,
+            month: dated.month,
+            amount: sql<string>`sum(${dated.amount})::text`,
+          })
+          .from(dated)
+          .groupBy(dated.accountId, dated.side, dated.month)
+          .orderBy(asc(dated.month), asc(dated.accountId), asc(dated.side));
+      } catch (error) {
+        logger.error(
+          { event: 'entries.monthly_account_totals_failed', error: describeError(error) },
+          'The monthly Account totals could not be read.',
+        );
+        return unavailable('The monthly Account totals could not be read.');
+      }
+
+      const opening = new Map<AccountId, AccountSums>();
+      const months = new Map<string, MonthSums>();
+      for (const row of rows) {
+        const account = row.accountId as AccountId;
+        const side = sideSchema.safeParse(row.side);
+        const amount = money(Number(row.amount));
+        if (!side.success || !amount.ok) {
+          return unavailable(`Account ${account} sums to no valid amount on a valid side in a month.`);
+        }
+        if (row.month === null) {
+          const held = opening.get(account) ?? { account, debit: MONEY_ZERO, credit: MONEY_ZERO };
+          opening.set(account, { ...held, [side.data]: amount.value });
+        } else {
+          const key = `${row.month} ${account}`;
+          const held = months.get(key) ?? {
+            month: row.month,
+            account,
+            debit: MONEY_ZERO,
+            credit: MONEY_ZERO,
+          };
+          months.set(key, { ...held, [side.data]: amount.value });
+        }
+      }
+      return ok({ opening: [...opening.values()], months: [...months.values()] });
     },
 
     titledEntries: async (

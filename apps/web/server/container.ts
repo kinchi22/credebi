@@ -26,6 +26,7 @@ import {
   createGetChart,
   createGetHealth,
   createGetAssetsAndLiabilities,
+  createGetAssetsAndLiabilitiesTrend,
   createGetIncomeStatement,
   createGetSettings,
   createGetTitles,
@@ -50,6 +51,7 @@ import {
   type GetChart,
   type GetHealth,
   type GetAssetsAndLiabilities,
+  type GetAssetsAndLiabilitiesTrend,
   type GetIncomeStatement,
   type GetSettings,
   type GetTitles,
@@ -82,6 +84,7 @@ export type Container = {
   readonly searchEntries: SearchEntries;
   readonly getIncomeStatement: GetIncomeStatement;
   readonly getAssetsAndLiabilities: GetAssetsAndLiabilities;
+  readonly getAssetsAndLiabilitiesTrend: GetAssetsAndLiabilitiesTrend;
   readonly getTitles: GetTitles;
   readonly editEntry: EditEntry;
   readonly deleteEntry: DeleteEntry;
@@ -145,6 +148,7 @@ export function createContainer({ databaseUrl, google, testSignIn, deployment }:
     searchEntries: createSearchEntries({ entries, accounts }),
     getIncomeStatement: createGetIncomeStatement({ entries, accounts }),
     getAssetsAndLiabilities: createGetAssetsAndLiabilities({ entries, accounts }),
+    getAssetsAndLiabilitiesTrend: createGetAssetsAndLiabilitiesTrend({ entries, accounts }),
     getTitles: createGetTitles({ entries, now: () => new Date() }),
     editEntry: createEditEntry({
       entries,

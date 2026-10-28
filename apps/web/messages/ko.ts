@@ -111,6 +111,7 @@ export const ko = {
     entrySearch: '거래 검색',
     incomeStatement: '손익계산서',
     assetsAndLiabilities: '자산·부채',
+    assetsAndLiabilitiesTrend: '자산·부채 추이',
     settings: '설정',
     signOut: '로그아웃',
   },
@@ -256,6 +257,20 @@ export const ko = {
     refused: '자산·부채를 표시하지 않았습니다. 날짜를 확인하세요. 달력상의 하루여야 합니다.',
     unavailable: '지금은 자산·부채를 불러올 수 없습니다. 조회를 눌러 다시 시도해 주세요.',
     loading: '오늘의 잔액을 불러오는 중...',
+  },
+  assetsAndLiabilitiesTrendPage: {
+    title: '자산·부채 추이',
+  },
+  assetsAndLiabilitiesTrend: {
+    range: '추이 기간',
+    from: '시작 월',
+    to: '종료 월',
+    show: '조회',
+    month: '월',
+    nothingRecorded: '이 기간의 마지막 달까지 기록된 내용이 아직 없습니다.',
+    refused:
+      '자산·부채 추이를 표시하지 않았습니다. 기간을 확인하세요. 각 값은 달력상의 월이어야 하고, 시작 월은 종료 월보다 늦을 수 없으며, 기간은 최대 {most}개월입니다.',
+    unavailable: '지금은 자산·부채 추이를 불러올 수 없습니다. 조회를 눌러 다시 시도해 주세요.',
   },
   incomeStatement: {
     period: '조회 기간',

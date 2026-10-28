@@ -112,6 +112,7 @@ export const ja = {
     entrySearch: '仕訳検索',
     incomeStatement: '損益計算書',
     assetsAndLiabilities: '資産・負債',
+    assetsAndLiabilitiesTrend: '資産・負債推移',
     settings: '設定',
     signOut: 'ログアウト',
   },
@@ -258,6 +259,20 @@ export const ja = {
     refused: '資産・負債を表示しませんでした。日付を確認してください。暦の上の一日である必要があります。',
     unavailable: '今は資産・負債を読み込めません。「表示」を押してもう一度お試しください。',
     loading: '今日の残高を読み込み中...',
+  },
+  assetsAndLiabilitiesTrendPage: {
+    title: '資産・負債推移',
+  },
+  assetsAndLiabilitiesTrend: {
+    range: '推移の期間',
+    from: '開始月',
+    to: '終了月',
+    show: '表示',
+    month: '月',
+    nothingRecorded: 'この期間の最終月までに記録された内容はまだありません。',
+    refused:
+      '資産・負債推移を表示しませんでした。期間を確認してください。それぞれ暦の上の月である必要があり、開始月は終了月より後にできず、期間は最大{most}か月です。',
+    unavailable: '今は資産・負債推移を読み込めません。「表示」を押してもう一度お試しください。',
   },
   incomeStatement: {
     period: '表示期間',
