@@ -65,6 +65,7 @@ status in the ADR itself.
 | [ADR-0027: Total by Account, and name an Entry by its Title](adr/0027-total-by-account-and-name-an-entry-by-its-title.md) | Accepted |
 | [ADR-0028: Remove an Account no shown Entry names](adr/0028-remove-an-account-no-shown-entry-names.md) | Accepted |
 | [ADR-0029: Run the engine-dependent specs in mobile WebKit too](adr/0029-run-engine-dependent-specs-in-mobile-webkit.md) | Accepted |
+| [ADR-0030: Draw charts with Recharts](adr/0030-draw-charts-with-recharts.md) | Accepted |
 
 ## Package layout
 
