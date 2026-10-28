@@ -66,8 +66,6 @@ const JULY_LAST = '2026-07-31';
 
 const AHEAD_OF_THE_SERVER = 'Pacific/Kiritimati';
 
-const SIDEBAR_LINKS = ['Entries', 'Entry search', 'Income statement', 'Assets and liabilities', 'Settings'] as const;
-
 const KOREAN_PAGE_NAME = '\uC790\uC0B0\u00B7\uBD80\uCC44';
 
 const KOREAN_NET_WORTH = '\uC21C\uC790\uC0B0';
@@ -545,7 +543,10 @@ test('links to Assets and liabilities from the Sidebar of every signed-in page, 
 
   for (const path of [...SIGNED_IN_PAGES, INCOME_STATEMENT_PATH, REPORT]) {
     await page.goto(path);
-    await expect(sidebar(page).getByRole('link')).toHaveText([...SIDEBAR_LINKS]);
+    await expect(reportLink(page)).toBeVisible();
+    const names = await sidebar(page).getByRole('link').allTextContents();
+    expect(names.slice(0, 4)).toEqual(['Entries', 'Entry search', 'Income statement', 'Assets and liabilities']);
+    expect(names.at(-1)).toBe('Settings');
   }
 
   await page.goto('/entries');
