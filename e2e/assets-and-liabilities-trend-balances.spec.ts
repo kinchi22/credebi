@@ -25,7 +25,7 @@ const outOfCash = (day: string, memo: string, amount: string): TwoLineEntry =>
 
 const cash = (month: string, amount: string): TrendMonth => [month, amount, '0', amount];
 
-const nothing = (month: string): TrendMonth => [month, '0', '0', '0'];
+const noBalance = (month: string): TrendMonth => [month, '0', '0', '0'];
 
 async function openTrend(page: Page, from: string, to: string): Promise<void> {
   await page.goto(`${TREND}?from=${from}&to=${to}`);
@@ -42,7 +42,7 @@ test("accumulates each month's balances from the start of the books through its 
   await openTrend(page, '2026-05', '2026-08');
 
   await expectMonths(page, [
-    nothing('2026-05'),
+    noBalance('2026-05'),
     cash('2026-06', '10,000'),
     cash('2026-07', '7,000'),
     cash('2026-08', '7,000'),
@@ -67,7 +67,7 @@ test('moves the earlier months when an Entry is written for a month before those
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [intoCash('2026-07-15', `July ${run}`, '1000')]);
   await openTrend(page, '2026-05', '2026-07');
-  await expectMonths(page, [nothing('2026-05'), nothing('2026-06'), cash('2026-07', '1,000')]);
+  await expectMonths(page, [noBalance('2026-05'), noBalance('2026-06'), cash('2026-07', '1,000')]);
 
   await postEntries(page, [intoCash('2026-05-15', `Backdated to May ${run}`, '500')]);
   await openTrend(page, '2026-05', '2026-07');
@@ -95,7 +95,7 @@ test('balances an asset Account as its debits less its credits and a liability A
 
   await openTrend(page, '2026-05', '2026-06');
 
-  await expectMonths(page, [nothing('2026-05'), ['2026-06', '-4,000', '7,300', '-11,300']]);
+  await expectMonths(page, [noBalance('2026-05'), ['2026-06', '-4,000', '7,300', '-11,300']]);
 });
 
 test('leaves out a deleted Entry and the Entry a Correction replaced, and counts the replacement', async ({ page }) => {
@@ -124,7 +124,6 @@ test('leaves out a deleted Entry and the Entry a Correction replaced, and counts
 });
 
 test('counts an asset or liability Account from the month its Active period starts, even on its last day, and not in the month before', async ({ page }) => {
-  test.slow();
   const run = randomUUID();
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await page.goto(SETTINGS_PATH);
@@ -138,7 +137,7 @@ test('counts an asset or liability Account from the month its Active period star
   await openTrend(page, '2026-05', '2026-07');
 
   await expectMonths(page, [
-    nothing('2026-05'),
+    noBalance('2026-05'),
     ['2026-06', '4,000', '1,000', '3,000'],
     ['2026-07', '4,000', '1,000', '3,000'],
   ]);
@@ -161,10 +160,10 @@ test('counts an Account with a balance in every month its Active period overlaps
   await openTrend(page, '2026-05', '2026-08');
 
   await expectMonths(page, [
-    nothing('2026-05'),
+    noBalance('2026-05'),
     ['2026-06', '4,500', '3,000', '1,500'],
     cash('2026-07', '500'),
-    nothing('2026-08'),
+    noBalance('2026-08'),
   ]);
 });
 

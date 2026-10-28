@@ -12,7 +12,7 @@ export const atZero = (names: readonly string[]): ReportRow[] => names.map((name
 
 export const zeroRows = (first: string, names: readonly string[]): ReportRow[] => atZero([first, ...names]);
 
-const reportRow = (table: Locator, label: string): Locator =>
+export const reportRow = (table: Locator, label: string): Locator =>
   table.getByRole('row').filter({ has: table.page().getByRole('rowheader', { name: label, exact: true }) });
 
 export async function expectRows(table: Locator, rows: readonly ReportRow[]): Promise<void> {

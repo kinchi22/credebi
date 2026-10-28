@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import { escaped } from './entries';
+import { reportRow, reportTables } from './report-tables';
 
 export const TREND_LINES = ['Net worth', 'Total assets', 'Total liabilities'] as const;
 
@@ -50,7 +51,7 @@ export async function expectRange(page: Page, from: string, to: string): Promise
 
 export const trendChart = (page: Page): Locator => page.getByRole('main').getByRole('application');
 
-export const trendTable = (page: Page): Locator => page.getByRole('main').getByRole('table');
+export const trendTable = reportTables;
 
 export const legendItem = (page: Page, line: TrendLine): Locator =>
   page.getByRole('main').getByRole('button', { name: line, exact: true });
@@ -61,13 +62,8 @@ export const nothingRecorded = (page: Page): Locator => page.getByRole('main').g
 
 export type TrendMonth = readonly [month: string, totalAssets: string, totalLiabilities: string, netWorth: string];
 
-export const flat = (months: readonly string[], totalAssets: string, totalLiabilities: string, netWorth: string): TrendMonth[] =>
-  months.map((month) => [month, totalAssets, totalLiabilities, netWorth] as const);
-
-const monthRow = (table: Locator, month: string): Locator =>
-  table
-    .getByRole('row')
-    .filter({ has: table.page().getByRole('rowheader', { name: monthLabel(month), exact: true }) });
+export const monthCells = (page: Page, month: string): Locator =>
+  reportRow(trendTable(page), monthLabel(month)).getByRole('cell');
 
 export async function expectMonths(page: Page, months: readonly TrendMonth[]): Promise<void> {
   await expect(trendChart(page)).toBeVisible();
@@ -76,7 +72,7 @@ export async function expectMonths(page: Page, months: readonly TrendMonth[]): P
   await expect(table.getByRole('columnheader')).toHaveText(['Month', 'Total assets', 'Total liabilities', 'Net worth']);
   await expect(table.getByRole('rowheader')).toHaveText(months.map(([month]) => monthLabel(month)));
   for (const [month, ...amounts] of months) {
-    await expect(monthRow(table, month).getByRole('cell')).toHaveText(amounts);
+    await expect(monthCells(page, month)).toHaveText(amounts);
   }
 }
 

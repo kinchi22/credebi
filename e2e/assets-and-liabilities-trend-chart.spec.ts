@@ -120,7 +120,7 @@ test('lets every line be hidden, keeping the chart, its axes, the legend and the
   await expectShown(page, ['Net worth']);
 });
 
-test('refits the y axis to the lines shown, so hiding total liabilities far larger than total assets lowers its top tick, and keeps the axis when every line is hidden', async ({ page }) => {
+test('refits the y axis to the lines shown and zero, so hiding total liabilities far larger than total assets lowers its top tick, and keeps the axis when every line is hidden', async ({ page }) => {
   const run = randomUUID();
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [
@@ -142,6 +142,7 @@ test('refits the y axis to the lines shown, so hiding total liabilities far larg
   await expectShown(page, ['Total assets']);
   await expect.poll(() => topTick(page)).toBeLessThan(ONE_HUNDRED_MILLION);
   await expect.poll(() => topTick(page)).toBeGreaterThanOrEqual(TEN_MILLION);
+  await expect(trendChart(page).getByText('0', { exact: true })).toBeVisible();
   const fitted = await topTick(page);
 
   await legendItem(page, 'Total assets').click();

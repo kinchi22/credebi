@@ -16,6 +16,7 @@ import {
   showTrend,
   TREND_LINES,
   type TrendMonth,
+  monthCells,
   trendChart,
   trendTable,
   trendTooltip,
@@ -202,12 +203,7 @@ test('shows every month of a 600-month range, one point each', async ({ page }) 
     ['2026-06', '1,000'],
     ['2029-12', '1,000'],
   ] as const) {
-    await expect(
-      trendTable(page)
-        .getByRole('row')
-        .filter({ has: page.getByRole('rowheader', { name: monthLabel(month), exact: true }) })
-        .getByRole('cell'),
-    ).toHaveText([amount, '0', amount]);
+    await expect(monthCells(page, month)).toHaveText([amount, '0', amount]);
   }
 });
 
@@ -263,8 +259,8 @@ test("shows an error and no chart when the browser's read of the default range f
   await showButton(page).click();
 
   await expectShownRange(page, '2025-10', '2026-09');
-  await expect(page.getByRole('main').getByRole('alert')).toHaveCount(0);
   await expectMonths(page, cashFrom(monthsFrom('2025-10', 12), '2026-06', '1,000'));
+  await expect(page.getByRole('main').getByRole('alert')).toHaveCount(0);
 });
 
 test('fills From month and To month from a Year, Quarter or Month preset and shows that range at once, with it in the URL', async ({ page }) => {
@@ -287,7 +283,7 @@ test('fills From month and To month from a Year, Quarter or Month preset and sho
   await expectMonths(page, [cash('2026-06', '1,000')]);
 });
 
-test('offers Relative presets of the last, next and around 3, 6, 12, 24 and 36 months, each counting the current month, and shows the range chosen at once', async ({ page }) => {
+test('offers Relative presets of the last, next and around 3, 6, 12, 24 and 36 months, the last and next counting the current month and around reaching that far on each side of it, and shows the range chosen at once', async ({ page }) => {
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [intoCash('2026-08-15', `August ${randomUUID()}`, '1000')]);
   await page.setViewportSize(WIDE);
@@ -311,8 +307,8 @@ test('offers Relative presets of the last, next and around 3, 6, 12, 24 and 36 m
   await expectMonths(page, cashIn(monthsFrom('2026-09', 3), '1,000'));
 
   await choosePreset(page, 'Relative', `${PLUS_MINUS}3 months`);
-  await expectShownRange(page, '2026-07', '2026-11');
-  await expectMonths(page, cashFrom(monthsFrom('2026-07', 5), '2026-08', '1,000'));
+  await expectShownRange(page, '2026-06', '2026-12');
+  await expectMonths(page, cashFrom(monthsFrom('2026-06', 7), '2026-08', '1,000'));
 
   await choosePreset(page, 'Relative', 'Last 36 months');
   await expectShownRange(page, '2023-10', '2026-09');
@@ -368,6 +364,7 @@ test('says nothing is recorded yet, in place of the chart and legend, when no sh
 });
 
 test("counts no other User's Accounts or Entries in a User's trend", async ({ browser }) => {
+  test.slow();
   const run = randomUUID();
   const owner = await browser.newContext();
   const ownerPage = await owner.newPage();

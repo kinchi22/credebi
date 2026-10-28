@@ -44,6 +44,7 @@ import {
   zeroRows,
 } from './report-tables';
 import {
+  abortServerActions,
   ASSETS_AND_LIABILITIES_PATH as REPORT,
   ASSETS_AND_LIABILITIES_WITHOUT_QUERY,
   INCOME_STATEMENT_PATH,
@@ -210,17 +211,7 @@ test("shows an error and no report when the browser's read of today fails, and s
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [intoCash(IN_JUNE, `Paid in ${randomUUID()}`, '1000')]);
   await fixToday(page, TODAY);
-  await page.route(
-    (url) => url.pathname === REPORT,
-    async (route) => {
-      const request = route.request();
-      if (request.method() === 'POST' && (await request.headerValue('next-action')) !== null) {
-        await route.abort();
-        return;
-      }
-      await route.fallback();
-    },
-  );
+  await abortServerActions(page, REPORT);
 
   await page.goto(REPORT);
 
@@ -543,10 +534,14 @@ test('links to Assets and liabilities from the Sidebar of every signed-in page, 
 
   for (const path of [...SIGNED_IN_PAGES, INCOME_STATEMENT_PATH, REPORT]) {
     await page.goto(path);
-    await expect(reportLink(page)).toBeVisible();
-    const names = await sidebar(page).getByRole('link').allTextContents();
-    expect(names.slice(0, 4)).toEqual(['Entries', 'Entry search', 'Income statement', 'Assets and liabilities']);
-    expect(names.at(-1)).toBe('Settings');
+    const names = (): Promise<string[]> => sidebar(page).getByRole('link').allTextContents();
+    await expect.poll(async () => (await names()).slice(0, 4)).toEqual([
+      'Entries',
+      'Entry search',
+      'Income statement',
+      'Assets and liabilities',
+    ]);
+    await expect.poll(async () => (await names()).at(-1)).toBe('Settings');
   }
 
   await page.goto('/entries');
