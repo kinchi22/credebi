@@ -18,6 +18,10 @@ export const ASSETS_AND_LIABILITIES_PATH = '/assets-and-liabilities';
 
 export const ASSETS_AND_LIABILITIES_WITHOUT_QUERY = /\/assets-and-liabilities$/;
 
+export const TREND_PATH = '/assets-and-liabilities/trend';
+
+export const TREND_WITHOUT_QUERY = /\/assets-and-liabilities\/trend$/;
+
 export const SETTINGS_PATH = '/settings';
 
 export const SETTINGS_URL = /\/settings$/;
@@ -34,3 +38,17 @@ export const withQuery =
     });
 
 export const queryOf = (page: Page): URLSearchParams => new URL(page.url()).searchParams;
+
+export async function abortServerActions(page: Page, path: string): Promise<void> {
+  await page.route(
+    (url) => url.pathname === path,
+    async (route) => {
+      const request = route.request();
+      if (request.method() === 'POST' && (await request.headerValue('next-action')) !== null) {
+        await route.abort();
+        return;
+      }
+      await route.fallback();
+    },
+  );
+}
