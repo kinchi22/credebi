@@ -150,6 +150,18 @@ export const userSettings = pgTable('user_settings', {
   language: text('language').notNull().default('en'),
 });
 
+export const userChartViews = pgTable(
+  'user_chart_views',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    chartId: text('chart_id').notNull(),
+    shownSeriesIds: text('shown_series_ids').array().notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.chartId] })],
+);
+
 export const schema = {
   users,
   identities,
@@ -159,6 +171,7 @@ export const schema = {
   accounts,
   entryLines,
   userSettings,
+  userChartViews,
 } as const;
 
 export type Schema = typeof schema;
