@@ -1,28 +1,40 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { type DayRange } from '@repo/core/entries';
+import { monthRangeOf, type DayRange } from '@repo/core/entries';
 import { useId, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import { DATE_CONTROL, FIELD } from './control-classes';
-import { DatePresets, DatePresetsSheet } from './date-presets';
+import { DatePresets, DatePresetsSheet, type Granularity } from './date-presets';
 
-export type DayRangeFieldNames = {
+export type RangeFieldNames = {
   readonly from: string;
   readonly to: string;
 };
 
-export type DayRangeFieldsProps = {
-  readonly names: DayRangeFieldNames;
+export type RangeFieldsProps = {
+  readonly granularity: Granularity;
+  readonly names: RangeFieldNames;
   readonly from: string | undefined;
   readonly to: string | undefined;
   readonly today: string | undefined;
   readonly children?: ReactNode;
 };
 
-const RANGE_DAY = `${DATE_CONTROL} w-full min-w-0 wide:w-auto`;
+type Unit = {
+  readonly input: 'date' | 'month';
+  readonly labels: 'dayRange' | 'monthRange';
+  readonly valuesOf: (range: DayRange) => DayRange;
+};
 
-function keepingADay(set: (day: string) => void): (event: ChangeEvent<HTMLInputElement>) => void {
+const UNITS: Readonly<Record<Granularity, Unit>> = {
+  day: { input: 'date', labels: 'dayRange', valuesOf: (range) => range },
+  month: { input: 'month', labels: 'monthRange', valuesOf: monthRangeOf },
+};
+
+const RANGE_FIELD = `${DATE_CONTROL} w-full min-w-0 wide:w-auto`;
+
+function keepingAValue(set: (value: string) => void): (event: ChangeEvent<HTMLInputElement>) => void {
   return (event) => {
     if (event.target.value !== '') {
       set(event.target.value);
@@ -30,17 +42,26 @@ function keepingADay(set: (day: string) => void): (event: ChangeEvent<HTMLInputE
   };
 }
 
-export function DayRangeFields({ names, from: initialFrom, to: initialTo, today, children }: DayRangeFieldsProps): ReactNode {
-  const t = useTranslations('dayRange');
+export function RangeFields({
+  granularity,
+  names,
+  from: initialFrom,
+  to: initialTo,
+  today,
+  children,
+}: RangeFieldsProps): ReactNode {
+  const unit = UNITS[granularity];
+  const t = useTranslations(unit.labels);
   const id = useId();
   const [from, setFrom] = useState(initialFrom ?? '');
   const [to, setTo] = useState(initialTo ?? '');
   const fromInput = useRef<HTMLInputElement>(null);
 
   const submitPreset = (range: DayRange): void => {
+    const values = unit.valuesOf(range);
     flushSync(() => {
-      setFrom(range.from);
-      setTo(range.to);
+      setFrom(values.from);
+      setTo(values.to);
     });
     fromInput.current?.form?.requestSubmit();
   };
@@ -54,12 +75,12 @@ export function DayRangeFields({ names, from: initialFrom, to: initialTo, today,
             ref={fromInput}
             id={`${id}-from`}
             name={names.from}
-            type="date"
+            type={unit.input}
             value={from}
-            onChange={keepingADay(setFrom)}
+            onChange={keepingAValue(setFrom)}
             required
             autoComplete="off"
-            className={RANGE_DAY}
+            className={RANGE_FIELD}
           />
         </div>
         <div className={FIELD}>
@@ -67,20 +88,20 @@ export function DayRangeFields({ names, from: initialFrom, to: initialTo, today,
           <input
             id={`${id}-to`}
             name={names.to}
-            type="date"
+            type={unit.input}
             value={to}
-            onChange={keepingADay(setTo)}
+            onChange={keepingAValue(setTo)}
             required
             autoComplete="off"
-            className={RANGE_DAY}
+            className={RANGE_FIELD}
           />
         </div>
-        <DatePresetsSheet today={today} onChoose={submitPreset} />
+        <DatePresetsSheet granularity={granularity} today={today} onChoose={submitPreset} />
       </div>
 
       {children}
 
-      <DatePresets today={today} onChoose={submitPreset} />
+      <DatePresets granularity={granularity} today={today} onChoose={submitPreset} />
     </>
   );
 }

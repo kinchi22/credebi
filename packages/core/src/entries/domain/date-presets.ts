@@ -41,14 +41,14 @@ export type CurrentPeriod = {
   readonly month: number;
 };
 
-type YearSpan = {
+type Span = {
   readonly back: number;
   readonly ahead: number;
 };
 
-const YEAR_SPAN: YearSpan = { back: 10, ahead: 5 };
-const QUARTER_SPAN: YearSpan = { back: 5, ahead: 3 };
-const MONTH_SPAN: YearSpan = { back: 3, ahead: 2 };
+const YEAR_SPAN: Span = { back: 10, ahead: 5 };
+const QUARTER_SPAN: Span = { back: 5, ahead: 3 };
+const MONTH_SPAN: Span = { back: 3, ahead: 2 };
 
 const QUARTERS: readonly Quarter[] = [1, 2, 3, 4];
 const MONTHS_IN_A_QUARTER = 3;
@@ -60,9 +60,11 @@ const RELATIVE_MONTHS: Readonly<Record<RelativeDirection, readonly number[]>> = 
   around: [1, 3, 6, 12],
 };
 
+const RELATIVE_MONTH_SPANS: readonly number[] = [3, 6, 12, 24, 36];
+
 export const RELATIVE_DIRECTIONS: readonly RelativeDirection[] = ['last', 'next', 'around'];
 
-function yearsAround(today: string, span: YearSpan): number[] {
+function yearsAround(today: string, span: Span): number[] {
   const first = yearOf(today) - span.back;
   return Array.from({ length: span.back + span.ahead + 1 }, (_, offset) => first + offset);
 }
@@ -109,6 +111,27 @@ export function relativePresets(today: string): readonly RelativePreset[] {
       direction,
       months,
       range: relativeRange(today, direction, months),
+    })),
+  );
+}
+
+const RELATIVE_MONTH_SPAN: Readonly<Record<RelativeDirection, (months: number) => Span>> = {
+  last: (months) => ({ back: months - 1, ahead: 0 }),
+  next: (months) => ({ back: 0, ahead: months - 1 }),
+  around: (months) => ({ back: months, ahead: months }),
+};
+
+function relativeMonths(today: string, direction: RelativeDirection, months: number): DayRange {
+  const { back, ahead } = RELATIVE_MONTH_SPAN[direction](months);
+  return monthsRange(yearOf(today), monthOf(today) - 1 - back, back + ahead + 1);
+}
+
+export function relativeMonthPresets(today: string): readonly RelativePreset[] {
+  return RELATIVE_DIRECTIONS.flatMap((direction) =>
+    RELATIVE_MONTH_SPANS.map((months) => ({
+      direction,
+      months,
+      range: relativeMonths(today, direction, months),
     })),
   );
 }

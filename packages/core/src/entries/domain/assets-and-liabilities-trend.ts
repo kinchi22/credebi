@@ -55,6 +55,10 @@ export function daysOfRange(range: MonthRange): DayRange {
   return monthsRange(yearOf(range.from), monthOf(range.from) - 1, countOf(range));
 }
 
+export function monthRangeOf(range: DayRange): MonthRange {
+  return { from: range.from.slice(0, 7), to: range.to.slice(0, 7) };
+}
+
 export function monthsOf(range: MonthRange): readonly string[] {
   const first = indexOf(range.from);
   return Array.from({ length: countOf(range) }, (_, offset) => monthAt(first + offset));

@@ -220,6 +220,10 @@ export const ko = {
     from: '시작일',
     to: '종료일',
   },
+  monthRange: {
+    from: '시작 월',
+    to: '종료 월',
+  },
   entrySearch: {
     title: '거래 검색',
     account: '계정',
@@ -263,8 +267,6 @@ export const ko = {
   },
   assetsAndLiabilitiesTrend: {
     range: '추이 기간',
-    from: '시작 월',
-    to: '종료 월',
     show: '조회',
     month: '월',
     nothingRecorded: '이 기간의 마지막 달까지 기록된 내용이 아직 없습니다.',

@@ -7,7 +7,7 @@ import { useId, type ReactNode } from 'react';
 import { type StatementPeriod } from '../server/income-statement';
 import { INCOME_STATEMENT_PATH } from '../server/return-path';
 import { PRIMARY_BUTTON } from './control-classes';
-import { DayRangeFields } from './day-range-fields';
+import { RangeFields } from './range-fields';
 import { useBrowserToday } from './use-browser-today';
 
 export type IncomeStatementFormProps = {
@@ -30,11 +30,11 @@ export function IncomeStatementForm({ period }: IncomeStatementFormProps): React
         {t('period')}
       </h2>
 
-      <DayRangeFields names={INCOME_STATEMENT_FIELDS} from={period.from} to={period.to} today={today}>
+      <RangeFields granularity="day" names={INCOME_STATEMENT_FIELDS} from={period.from} to={period.to} today={today}>
         <button type="submit" className={PRIMARY_BUTTON}>
           {t('show')}
         </button>
-      </DayRangeFields>
+      </RangeFields>
     </form>
   );
 }

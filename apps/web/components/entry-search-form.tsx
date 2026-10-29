@@ -14,7 +14,7 @@ import { useId, type ReactNode } from 'react';
 import { ENTRY_SEARCH_PATH } from '../server/return-path';
 import { useBrowserToday } from './use-browser-today';
 import { CONTROL, FIELD, PRIMARY_BUTTON } from './control-classes';
-import { DayRangeFields } from './day-range-fields';
+import { RangeFields } from './range-fields';
 import { AccountCombobox } from './account-combobox';
 import { TitleCombobox } from './title-combobox';
 
@@ -44,7 +44,7 @@ export function EntrySearchForm({ criteria, chart, titles }: EntrySearchFormProp
         {t('entrySearch.title')}
       </h2>
 
-      <DayRangeFields names={SEARCH_CRITERIA_FIELDS} from={criteria.from} to={criteria.to} today={today}>
+      <RangeFields granularity="day" names={SEARCH_CRITERIA_FIELDS} from={criteria.from} to={criteria.to} today={today}>
         <AccountCombobox
           id={`${id}-account`}
           name={SEARCH_CRITERIA_FIELDS.account}
@@ -80,7 +80,7 @@ export function EntrySearchForm({ criteria, chart, titles }: EntrySearchFormProp
         >
           {t('entrySearch.submit')}
         </button>
-      </DayRangeFields>
+      </RangeFields>
     </form>
   );
 }

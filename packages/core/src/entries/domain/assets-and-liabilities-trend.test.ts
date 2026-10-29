@@ -5,6 +5,7 @@ import {
   assetsAndLiabilitiesTrend,
   daysOfRange,
   makeMonthRange,
+  monthRangeOf,
   monthsOf,
   MOST_TREND_MONTHS,
   type MonthRange,
@@ -146,6 +147,17 @@ describe('daysOfRange', () => {
 
   it("runs a range of months from its first month's first day to its last month's last day", () => {
     expect(daysOfRange(range('2026-06', '2026-09'))).toEqual({ from: '2026-06-01', to: '2026-09-30' });
+  });
+});
+
+describe('monthRangeOf', () => {
+  it('names the month of the first day and the month of the last', () => {
+    expect(monthRangeOf({ from: '2025-11-01', to: '2026-01-31' })).toEqual(range('2025-11', '2026-01'));
+    expect(monthRangeOf({ from: '2026-06-16', to: '2026-06-30' })).toEqual(range('2026-06', '2026-06'));
+  });
+
+  it('gives back the months a range of months covers', () => {
+    expect(monthRangeOf(daysOfRange(range('0995-02', '2075-12')))).toEqual(range('0995-02', '2075-12'));
   });
 });
 
