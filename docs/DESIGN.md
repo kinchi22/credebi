@@ -869,6 +869,21 @@ numerals.
   and placement rule for `Totals`. Below `split`, stack `Assets`, `Liabilities`
   and `Totals` in that order. From `split` up, put `Assets` on the left and
   `Liabilities` on the right; equal row counts place `Totals` below `Liabilities`.
+- **Line chart.** Drawn with Recharts (ADR-0030) in a panel spanning the page,
+  at a fixed height: 320px below `wide`, 384px from `wide` up.
+  Monotone lines, each with a 3px dot on every point in its own colour; under
+  the pointer or keyboard the dot grows to 6.5px with a 3px `surface` outline,
+  popping in over 220ms, ease-out, and instantly under
+  `prefers-reduced-motion: reduce`. A horizontal `border` grid only, a dashed
+  `text-muted` zero line, and axes with no line or tick marks: the y axis in
+  compact amounts, `1.5K`, `10M`, fitted to the values and zero; the x axis's
+  month labels `YY.MM`, thinned to the width. Both in `text-muted`, 12px. The
+  tooltip is a `surface` card with a `border` edge, `card` radius and
+  `shadow-lift`: the point's name in `label`, then one row per line with a
+  swatch of its stroke, its label in `body-dense` and its value in `figure`, a
+  negative one in `danger`. Lines never differ by colour alone. In the Assets
+  and liabilities trend, Net worth is `accent-text` and 3px wide, total assets
+  `debit` and total liabilities `danger` dashed, both 2px.
 - **Entry row actions.** At the end of each Entry's first row, after its
   total, `Edit` and then `Delete` are bare icon buttons, drawn as the Remove
   button: a stroke icon in `text-muted`, `text` under the pointer, no fill and
@@ -969,8 +984,8 @@ numerals.
   iOS overscroll bounce reports, changes nothing. Focus reaching `Menu`, or
   anything else in the Top bar, shows it at once. It hides and shows by sliding
   vertically past the top edge over 200ms, ease-out, both ways, without a fade,
-  and instantly under `prefers-reduced-motion: reduce`. This is the design's
-  only motion, so it has no token. Focus starts on the
+  and instantly under `prefers-reduced-motion: reduce`. This and the Line
+  chart's dot pop are the design's only motion, so neither has a token. Focus starts on the
   drawer, and Tab reaches `Entries` first. Escape, a click on the scrim or
   following a link closes it, and focus returns to `Menu`.
 - **Focus.** A 2px ring on every focusable element: `focus` on a light ground,
