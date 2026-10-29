@@ -148,11 +148,19 @@ export const userSettings = pgTable('user_settings', {
     .references(() => users.id, { onDelete: 'cascade' }),
   entryFormMode: text('entry_form_mode').notNull(),
   language: text('language').notNull().default('en'),
-  shownTrendLines: text('shown_trend_lines')
-    .array()
-    .notNull()
-    .default(sql`array['net-worth', 'total-assets', 'total-liabilities']::text[]`),
 });
+
+export const userChartViews = pgTable(
+  'user_chart_views',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    chartId: text('chart_id').notNull(),
+    shownSeriesIds: text('shown_series_ids').array().notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.chartId] })],
+);
 
 export const schema = {
   users,
@@ -163,6 +171,7 @@ export const schema = {
   accounts,
   entryLines,
   userSettings,
+  userChartViews,
 } as const;
 
 export type Schema = typeof schema;

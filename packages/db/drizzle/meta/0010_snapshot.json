@@ -1,5 +1,5 @@
 {
-  "id": "864be507-ce20-4171-bae9-4da108622184",
+  "id": "99653e15-5dcf-4dc1-83b9-2914d5258ce6",
   "prevId": "0e304bd2-235e-412c-9ef3-f297672060b5",
   "version": "7",
   "dialect": "postgresql",
@@ -578,6 +578,59 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.user_chart_views": {
+      "name": "user_chart_views",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "chart_id": {
+          "name": "chart_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "shown_series_ids": {
+          "name": "shown_series_ids",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "user_chart_views_user_id_users_id_fk": {
+          "name": "user_chart_views_user_id_users_id_fk",
+          "tableFrom": "user_chart_views",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "user_chart_views_user_id_chart_id_pk": {
+          "name": "user_chart_views_user_id_chart_id_pk",
+          "columns": [
+            "user_id",
+            "chart_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.user_settings": {
       "name": "user_settings",
       "schema": "",
@@ -600,13 +653,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'en'"
-        },
-        "shown_trend_lines": {
-          "name": "shown_trend_lines",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "array['net-worth', 'total-assets', 'total-liabilities']::text[]"
         }
       },
       "indexes": {},
