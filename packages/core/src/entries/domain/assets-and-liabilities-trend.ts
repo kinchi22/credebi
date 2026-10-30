@@ -18,6 +18,8 @@ import { type AccountSums } from './statement';
 
 export const MOST_TREND_MONTHS = 600;
 
+const DEFAULT_TREND_MONTHS = 12;
+
 export type MonthRange = {
   readonly from: string;
   readonly to: string;
@@ -58,6 +60,11 @@ export function daysOfRange(range: MonthRange): DayRange {
 export function monthsOf(range: MonthRange): readonly string[] {
   const first = indexOf(range.from);
   return Array.from({ length: countOf(range) }, (_, offset) => monthAt(first + offset));
+}
+
+export function defaultTrendRange(today: string): MonthRange {
+  const last = indexOf(today);
+  return { from: monthAt(last - DEFAULT_TREND_MONTHS + 1), to: monthAt(last) };
 }
 
 const refused = (message: string): Err<DomainError> =>
