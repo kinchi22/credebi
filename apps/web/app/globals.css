@@ -112,3 +112,27 @@
     cursor: pointer;
   }
 }
+
+@keyframes chart-dot-pop {
+  0% {
+    transform: scale(0.5);
+  }
+  60% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.chart-active-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: chart-dot-pop 220ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chart-active-dot {
+    animation: none;
+  }
+}

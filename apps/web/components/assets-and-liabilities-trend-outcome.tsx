@@ -1,10 +1,13 @@
 import { useTranslations } from 'next-intl';
 import { type AssetsAndLiabilitiesTrendOutput } from '@repo/contracts';
-import { monthOf, MOST_TREND_MONTHS, yearOf } from '@repo/core/entries';
+import { MOST_TREND_MONTHS } from '@repo/core/entries';
+import { PANEL } from '@repo/ui';
 import { type ReactNode } from 'react';
 import { type AssetsAndLiabilitiesTrendAnswer } from '../server/assets-and-liabilities-trend';
 import { formatAmount } from './amount';
+import { AssetsAndLiabilitiesTrendChart } from './assets-and-liabilities-trend-chart';
 import { DANGER_TEXT, MUTED_TEXT } from './text-classes';
+import { useMonthLabel } from './use-month-label';
 
 type TrendTableProps = {
   readonly months: AssetsAndLiabilitiesTrendOutput['months'];
@@ -12,11 +15,7 @@ type TrendTableProps = {
 
 function TrendTable({ months }: TrendTableProps): ReactNode {
   const t = useTranslations();
-  const monthLabel = (month: string): string =>
-    t('datePresets.periodOfYear', {
-      period: t('datePresets.month', { month: monthOf(month) }),
-      year: String(yearOf(month)).padStart(4, '0'),
-    });
+  const monthLabel = useMonthLabel();
 
   return (
     <table className="sr-only">
@@ -59,7 +58,12 @@ export function AssetsAndLiabilitiesTrendOutcome({ answer }: AssetsAndLiabilitie
   if (!answer.trend.recorded) {
     return <p className={MUTED_TEXT}>{t('nothingRecorded')}</p>;
   }
-  return <TrendTable months={answer.trend.months} />;
+  return (
+    <section className={`${PANEL} min-w-0`}>
+      <AssetsAndLiabilitiesTrendChart months={answer.trend.months} />
+      <TrendTable months={answer.trend.months} />
+    </section>
+  );
 }
 
 export function AssetsAndLiabilitiesTrendPending(): ReactNode {
