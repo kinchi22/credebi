@@ -1,34 +1,36 @@
 import { describe, expect, it } from 'vitest';
-import { compactAmount, fittedDomain, monthTick } from './chart-axis';
+import { compactAmount, fittedTicks, monthTick } from './chart-axis';
 
-describe('fittedDomain', () => {
-  it('spans from zero to the largest value, rounded up to a multiple of half its power of ten, when every value is positive', () => {
-    expect(fittedDomain([300, 1200, 700])).toEqual([0, 1500]);
-    expect(fittedDomain([1_234_567])).toEqual([0, 1_500_000]);
-    expect(fittedDomain([6_000_001])).toEqual([0, 6_500_000]);
+describe('fittedTicks', () => {
+  it('runs from zero to the largest value in even steps, each the smallest of 1, 2, 2.5 or 5 times a power of ten that covers a quarter of the span', () => {
+    expect(fittedTicks([300, 1200, 700])).toEqual([0, 500, 1000, 1500]);
+    expect(fittedTicks([1_234_567])).toEqual([0, 500_000, 1_000_000, 1_500_000]);
+    expect(fittedTicks([10_000_000, 5])).toEqual([0, 2_500_000, 5_000_000, 7_500_000, 10_000_000]);
+    expect(fittedTicks([8000])).toEqual([0, 2000, 4000, 6000, 8000]);
+    expect(fittedTicks([400])).toEqual([0, 100, 200, 300, 400]);
   });
 
-  it('keeps a largest value already on a multiple of half its power of ten', () => {
-    expect(fittedDomain([10_000_000, 5])).toEqual([0, 10_000_000]);
-    expect(fittedDomain([500])).toEqual([0, 500]);
+  it('runs from the smallest value to zero when every value is negative', () => {
+    expect(fittedTicks([-300, -1200, -700])).toEqual([-1500, -1000, -500, 0]);
   });
 
-  it('spans from the smallest value, rounded down the same way, to zero when every value is negative', () => {
-    expect(fittedDomain([-300, -1200, -700])).toEqual([-1500, 0]);
+  it('keeps zero a tick when the values straddle it', () => {
+    expect(fittedTicks([-90_000_000, 10_000_000, 100_000_000])).toEqual([
+      -100_000_000, -50_000_000, 0, 50_000_000, 100_000_000,
+    ]);
+    expect(fittedTicks([-90_000_000, 10_000_000])).toEqual([
+      -100_000_000, -75_000_000, -50_000_000, -25_000_000, 0, 25_000_000,
+    ]);
   });
 
-  it('rounds each end on its own when the values straddle zero', () => {
-    expect(fittedDomain([-2000, 3000, 7200])).toEqual([-2000, 7500]);
+  it('steps by whole numbers at least', () => {
+    expect(fittedTicks([3])).toEqual([0, 1, 2, 3]);
+    expect(fittedTicks([-0.4, 2.2])).toEqual([-1, 0, 1, 2, 3]);
   });
 
-  it('spans zero to one with no values or only zeros, so the axis is never a single point', () => {
-    expect(fittedDomain([])).toEqual([0, 1]);
-    expect(fittedDomain([0, 0])).toEqual([0, 1]);
-  });
-
-  it('rounds a value under ten away from zero to a whole number', () => {
-    expect(fittedDomain([3])).toEqual([0, 3]);
-    expect(fittedDomain([-0.4, 2.2])).toEqual([-1, 3]);
+  it('is zero and one with no values or only zeros, so the axis is never a single point', () => {
+    expect(fittedTicks([])).toEqual([0, 1]);
+    expect(fittedTicks([0, 0])).toEqual([0, 1]);
   });
 });
 

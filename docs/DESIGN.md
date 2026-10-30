@@ -881,14 +881,15 @@ numerals.
   popping in over 220ms, ease-out, and instantly under
   `prefers-reduced-motion: reduce`. A horizontal `border` grid only, a dashed
   `text-muted` zero line, and axes with no line or tick marks: the y axis in
-  compact amounts, `1.5K`, `10M`, fitted to the values and zero with each
-  end rounded away from zero to a multiple of half its power of ten, and never
-  a single point; the x axis's
-  month labels `YY.MM`, thinned to the width. Both in `text-muted`, 12px. The
-  tooltip is a `surface` card with a `border` edge, `card` radius and
-  `shadow-lift`: the point's name in `label`, then one row per line with a
+  compact amounts, `1.5K`, `10M`, fitted to the values and zero in even steps,
+  each the smallest of 1, 2, 2.5 or 5 times a power of ten that covers a
+  quarter of the span, zero always a tick, and never a single point; the x axis's month labels `YY.MM`, thinned to the width.
+  Both in `text-muted`, in the `label` step's size and weight in IBM Plex
+  Sans, without its capitals. The tooltip is a `surface` card with a `border` edge, `card` radius and
+  `shadow-lift`: the point's name in `date`, then one row per line with a
   swatch of its stroke, its label in `body-dense` and its value in `figure`, a
-  negative one in `danger`. Lines never differ by colour alone. In the Assets
+  negative one in `danger`. While the tooltip shows, a vertical
+  `border-control` line marks its point. Lines never differ by colour alone. In the Assets
   and liabilities trend, Net worth is `accent-text` and 3px wide, total assets
   `debit` and total liabilities `danger` dashed, both 2px.
 - **Entry row actions.** At the end of each Entry's first row, after its

@@ -12,7 +12,7 @@ const DOT_OUTLINE = 'var(--color-surface)';
 export const SOLID = '0';
 
 export const AXIS_LOOK = {
-  tick: { fill: 'var(--color-text-muted)', fontSize: 12 },
+  tick: { fill: 'var(--color-text-muted)', className: 'text-label font-sans' },
   tickLine: false,
   axisLine: false,
 } as const;
@@ -74,7 +74,7 @@ export type ChartTooltipCardProps = {
 export function ChartTooltipCard({ title, rows }: ChartTooltipCardProps): ReactNode {
   return (
     <div role="tooltip" className="min-w-56 rounded-card border border-border bg-surface px-4 py-3 shadow-lift">
-      <div className={`mb-2 text-text-muted ${typeClasses.label}`}>{title}</div>
+      <div className={`mb-2 text-text-muted ${typeClasses.date}`}>{title}</div>
       {rows.map(({ key, label, look, value, negative }) => (
         <div key={key} className="flex items-center justify-between gap-6 py-0.5">
           <span className={`flex items-center gap-2 text-text ${typeClasses['body-dense']}`}>

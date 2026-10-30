@@ -1,15 +1,26 @@
 const COMPACT = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
 
-function roundedAway(value: number): number {
-  const size = Math.abs(value);
-  const unit = Math.max(1, 10 ** Math.floor(Math.log10(size)) / 2);
-  return Math.sign(value) * Math.ceil(size / unit) * unit;
+const STEP_MULTIPLES = [1, 2, 2.5, 5] as const;
+
+const MOST_STEPS = 4;
+
+function stepFor(span: number): number {
+  const rough = span / MOST_STEPS;
+  const power = 10 ** Math.floor(Math.log10(rough));
+  const step = STEP_MULTIPLES.map((multiple) => multiple * power).find((candidate) => candidate >= rough);
+  return Math.max(1, step ?? 10 * power);
 }
 
-export function fittedDomain(values: readonly number[]): readonly [number, number] {
-  const lowest = roundedAway(Math.min(0, ...values));
-  const highest = roundedAway(Math.max(0, ...values));
-  return lowest === highest ? [0, 1] : [lowest, highest];
+export function fittedTicks(values: readonly number[]): readonly number[] {
+  const lowest = Math.min(0, ...values);
+  const highest = Math.max(0, ...values);
+  if (lowest === highest) {
+    return [0, 1];
+  }
+  const step = stepFor(highest - lowest);
+  const first = Math.floor(lowest / step);
+  const last = Math.ceil(highest / step);
+  return Array.from({ length: last - first + 1 }, (_, index) => (first + index) * step);
 }
 
 export function monthTick(month: string): string {

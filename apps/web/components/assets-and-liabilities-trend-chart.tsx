@@ -15,7 +15,7 @@ import {
   type TooltipContentProps,
 } from 'recharts';
 import { formatAmount } from './amount';
-import { compactAmount, fittedDomain, monthTick } from './chart-axis';
+import { compactAmount, fittedTicks, monthTick } from './chart-axis';
 import {
   activeDotLook,
   AXIS_LOOK,
@@ -50,7 +50,8 @@ export function AssetsAndLiabilitiesTrendChart({ months }: AssetsAndLiabilitiesT
   const t = useTranslations();
   const monthLabel = useMonthLabel();
   const labelOf = (key: TrendSeries): string => t(`assetsAndLiabilities.${key}`);
-  const domain = fittedDomain(months.flatMap((month) => SERIES.map(({ key }) => month[key])));
+  const ticks = fittedTicks(months.flatMap((month) => SERIES.map(({ key }) => month[key])));
+  const domain = [ticks[0] ?? 0, ticks[ticks.length - 1] ?? 0];
 
   const tooltip = ({ active, payload }: TooltipContentProps): ReactNode => {
     const month = payload[0]?.payload as TrendMonthOutput | undefined;
@@ -81,7 +82,7 @@ export function AssetsAndLiabilitiesTrendChart({ months }: AssetsAndLiabilitiesT
         >
           <CartesianGrid {...GRID_LOOK} />
           <XAxis dataKey={MONTH_KEY} tickFormatter={monthTick} minTickGap={24} {...AXIS_LOOK} />
-          <YAxis domain={[...domain]} allowDecimals={false} tickFormatter={compactAmount} width={56} {...AXIS_LOOK} />
+          <YAxis domain={domain} ticks={[...ticks]} tickFormatter={compactAmount} width={56} {...AXIS_LOOK} />
           <ReferenceLine {...ZERO_LINE_LOOK} />
           <Tooltip content={tooltip} cursor={CURSOR_LOOK} isAnimationActive={false} />
           {SERIES.map(({ key, look }) => (
