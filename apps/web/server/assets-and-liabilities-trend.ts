@@ -1,4 +1,5 @@
 import {
+  assetsAndLiabilitiesTrendQuerySchema,
   parseAssetsAndLiabilitiesTrendQuery,
   type AssetsAndLiabilitiesTrendOutput,
   type AssetsAndLiabilitiesTrendQuery,
@@ -34,4 +35,15 @@ export async function answerAssetsAndLiabilitiesTrend(
   } catch (thrown) {
     return { outcome: unanswered(thrown), range: range.value };
   }
+}
+
+export async function answerDefaultTrendRange(
+  show: ShowAssetsAndLiabilitiesTrend,
+  range: unknown,
+): Promise<AssetsAndLiabilitiesTrendAnswer> {
+  const parsed = assetsAndLiabilitiesTrendQuerySchema.safeParse(range);
+  if (!parsed.success) {
+    return { outcome: 'refused', range: {} };
+  }
+  return answerAssetsAndLiabilitiesTrend(show, parsed.data);
 }

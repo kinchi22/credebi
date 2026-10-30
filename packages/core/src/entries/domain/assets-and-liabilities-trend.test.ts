@@ -4,6 +4,7 @@ import { type Account, type Chart } from '../../accounts/domain/account';
 import {
   assetsAndLiabilitiesTrend,
   daysOfRange,
+  defaultTrendRange,
   makeMonthRange,
   monthsOf,
   MOST_TREND_MONTHS,
@@ -131,6 +132,25 @@ describe('monthsOf', () => {
     expect(months).toHaveLength(600);
     expect(months.at(0)).toBe('1980-01');
     expect(months.at(-1)).toBe('2029-12');
+  });
+});
+
+describe('defaultTrendRange', () => {
+  it('covers the twelve months ending with the month of the day given', () => {
+    expect(defaultTrendRange('2026-09-15')).toEqual(range('2025-10', '2026-09'));
+  });
+
+  it('ends with the month of its first and of its last day alike', () => {
+    expect(defaultTrendRange('2026-10-01')).toEqual(range('2025-11', '2026-10'));
+    expect(defaultTrendRange('2026-09-30')).toEqual(range('2025-10', '2026-09'));
+  });
+
+  it('starts in the same year when the day given is in December', () => {
+    expect(defaultTrendRange('2026-12-31')).toEqual(range('2026-01', '2026-12'));
+  });
+
+  it('starts in February of the year before when the day given is in January', () => {
+    expect(defaultTrendRange('2027-01-01')).toEqual(range('2026-02', '2027-01'));
   });
 });
 

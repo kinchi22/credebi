@@ -65,3 +65,14 @@ export function AssetsAndLiabilitiesTrendOutcome({ answer }: AssetsAndLiabilitie
     </section>
   );
 }
+
+export function AssetsAndLiabilitiesTrendPending(): ReactNode {
+  const t = useTranslations('assetsAndLiabilitiesTrend');
+  return (
+    <section aria-busy className="flex flex-col gap-2">
+      <p role="status" className={MUTED_TEXT}>
+        {t('loading')}
+      </p>
+    </section>
+  );
+}
