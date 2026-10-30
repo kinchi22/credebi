@@ -496,7 +496,7 @@ for (const language of ['ko', 'ja'] as const) {
     const refusal = page.getByRole('main').getByRole('alert');
     await expect(refusal).toHaveText(script);
     await expect(refusal).not.toContainText(/month/i);
-    await expectNoTrend(page);
+    await expectNoTrend(page, form, lines);
   });
 }
 
