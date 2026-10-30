@@ -21,7 +21,7 @@ export { incomeStatement } from './domain/income-statement';
 export type { IncomeStatement } from './domain/income-statement';
 export { assetsAndLiabilities } from './domain/assets-and-liabilities';
 export type { AssetsAndLiabilities } from './domain/assets-and-liabilities';
-export { MOST_TREND_MONTHS, defaultTrendRange } from './domain/assets-and-liabilities-trend';
+export { MOST_TREND_MONTHS, defaultTrendRange, monthRangeOf } from './domain/assets-and-liabilities-trend';
 export type {
   AssetsAndLiabilitiesTrend,
   MonthRange,
@@ -32,6 +32,7 @@ export {
   currentPeriod,
   monthPresets,
   quarterPresets,
+  relativeMonthPresets,
   relativePresets,
   yearPresets,
 } from './domain/date-presets';

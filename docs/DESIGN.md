@@ -622,7 +622,12 @@ numerals.
   in `accent-text`, semibold. Each tab lists its
   choices as the panel does, with each year above its row; choosing one closes
   the sheet. Escape or the close icon closes it without choosing, and focus
-  returns to the button.
+  returns to the button. The Income statement's `Statement period` form and the
+  Assets and liabilities trend's `Trend range` form carry the same presets,
+  laid out the same. On the trend they are month by month: a choice fills From
+  month and To month with the calendar months it covers, and Relative offers
+  the last, the next and either side of 3, 6, 12, 24 and 36 months, each
+  counting the current month.
 - **Account picker.** From `wide` up the Accounts to choose from sit right of
   the entry form in a `ground` panel with a `border` edge, the `panel` radius
   and the `lift` shadow. At its top a

@@ -3,6 +3,7 @@ import {
   currentPeriod,
   monthPresets,
   quarterPresets,
+  relativeMonthPresets,
   relativePresets,
   yearPresets,
   type RelativePreset,
@@ -183,6 +184,58 @@ describe('relativePresets', () => {
 
   it('ends on the last day of the month before when today is the first and the months are ahead', () => {
     expect(rangeOf('2026-03-01', 'next', 1)).toEqual({ from: '2026-03-01', to: '2026-03-31' });
+  });
+});
+
+const wholeMonthsOf = (today: string, direction: RelativePreset['direction'], months: number) =>
+  relativeMonthPresets(today).find((preset) => preset.direction === direction && preset.months === months)?.range;
+
+describe('relativeMonthPresets', () => {
+  it('offers the last, the next and either side of 3, 6, 12, 24 and 36 months, in that order', () => {
+    expect(named(relativeMonthPresets(TODAY))).toEqual([
+      'last 3',
+      'last 6',
+      'last 12',
+      'last 24',
+      'last 36',
+      'next 3',
+      'next 6',
+      'next 12',
+      'next 24',
+      'next 36',
+      'around 3',
+      'around 6',
+      'around 12',
+      'around 24',
+      'around 36',
+    ]);
+  });
+
+  it('runs the last months through the end of the current month, the current month counted among them', () => {
+    expect(wholeMonthsOf(TODAY, 'last', 3)).toEqual({ from: '2026-07-01', to: '2026-09-30' });
+    expect(wholeMonthsOf(TODAY, 'last', 12)).toEqual({ from: '2025-10-01', to: '2026-09-30' });
+    expect(wholeMonthsOf(TODAY, 'last', 36)).toEqual({ from: '2023-10-01', to: '2026-09-30' });
+  });
+
+  it('runs the next months from the start of the current month, the current month counted among them', () => {
+    expect(wholeMonthsOf(TODAY, 'next', 3)).toEqual({ from: '2026-09-01', to: '2026-11-30' });
+    expect(wholeMonthsOf(TODAY, 'next', 6)).toEqual({ from: '2026-09-01', to: '2027-02-28' });
+    expect(wholeMonthsOf(TODAY, 'next', 36)).toEqual({ from: '2026-09-01', to: '2029-08-31' });
+  });
+
+  it('runs either side that many months before the current month through that many after it', () => {
+    expect(wholeMonthsOf(TODAY, 'around', 3)).toEqual({ from: '2026-06-01', to: '2026-12-31' });
+    expect(wholeMonthsOf(TODAY, 'around', 24)).toEqual({ from: '2024-09-01', to: '2028-09-30' });
+  });
+
+  it('takes the same months whatever day of the current month today is', () => {
+    expect(wholeMonthsOf('2026-09-01', 'last', 6)).toEqual(wholeMonthsOf('2026-09-30', 'last', 6));
+    expect(wholeMonthsOf('2026-09-01', 'around', 6)).toEqual({ from: '2026-03-01', to: '2027-03-31' });
+  });
+
+  it('crosses the turn of the year in both directions', () => {
+    expect(wholeMonthsOf('2026-01-15', 'last', 3)).toEqual({ from: '2025-11-01', to: '2026-01-31' });
+    expect(wholeMonthsOf('2026-12-15', 'next', 3)).toEqual({ from: '2026-12-01', to: '2027-02-28' });
   });
 });
 

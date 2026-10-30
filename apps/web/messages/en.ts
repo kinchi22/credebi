@@ -203,6 +203,10 @@ export const en = {
     from: 'From',
     to: 'To',
   },
+  monthRange: {
+    from: 'From month',
+    to: 'To month',
+  },
   entrySearch: {
     title: 'Search entries',
     account: 'Account',
@@ -246,8 +250,6 @@ export const en = {
   },
   assetsAndLiabilitiesTrend: {
     range: 'Trend range',
-    from: 'From month',
-    to: 'To month',
     show: 'Show',
     month: 'Month',
     loading: 'Loading the last twelve months...',
