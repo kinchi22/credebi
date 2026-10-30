@@ -222,6 +222,10 @@ export const ja = {
     from: '開始日',
     to: '終了日',
   },
+  monthRange: {
+    from: '開始月',
+    to: '終了月',
+  },
   entrySearch: {
     title: '仕訳検索',
     account: '勘定科目',
@@ -265,8 +269,6 @@ export const ja = {
   },
   assetsAndLiabilitiesTrend: {
     range: '推移の期間',
-    from: '開始月',
-    to: '終了月',
     show: '表示',
     month: '月',
     loading: '直近12か月を読み込み中...',

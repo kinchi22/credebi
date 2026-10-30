@@ -60,6 +60,7 @@ const MARKUP_ATTRIBUTES = new Set([
   'autoComplete',
   'className',
   'dateTime',
+  'granularity',
   'href',
   'htmlFor',
   'id',
