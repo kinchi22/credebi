@@ -171,3 +171,20 @@ export {
   settingsSchema,
   toSettings,
 } from './settings';
+
+export type {
+  ChangeChartViewInput,
+  ChartId,
+  ChartViewInput,
+  ChartViewOutput,
+  TrendLine,
+} from './charts';
+export {
+  ASSETS_AND_LIABILITIES_TREND_CHART,
+  changeChartViewInputSchema,
+  chartIdSchema,
+  chartViewInputSchema,
+  chartViewSchema,
+  toChartView,
+  trendLineSchema,
+} from './charts';

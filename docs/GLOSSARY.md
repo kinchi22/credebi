@@ -26,6 +26,7 @@ no term is defined in more than one.
 | Balanced         | The property that makes an Entry postable: its debit amounts sum to its credit amounts. Checked in `domain/`, never in SQL. |
 | Branded type     | A primitive carrying a compile-time name, so two `number`s stop being interchangeable. Erased at runtime. |
 | Chart of accounts | One User's Accounts and Account groups, arranged under the five Account types in the order the User drags them into, and kept at `/settings`. Its initial contents are named and described in the User's Language when the User is created and from then on are the User's own, so changing the Language never rewrites them. ADR-0026. |
+| Chart view       | What one User last chose for how one chart is drawn, such as which of the Assets and liabilities trend's lines are shown. Kept with the User so it follows them to any device, and changed on the chart itself, never at `/settings`. Distinct from Settings, which are how the app behaves rather than how a chart looks. A User with no Chart view for a chart sees that chart's default. |
 | Component        | A checked dependency of the system, as reported by the health slice.         |
 | Composition root | `apps/web/server/container.ts`. The only place implementations are chosen.   |
 | Contract         | A zod schema plus its inferred type, in `packages/contracts`.                |

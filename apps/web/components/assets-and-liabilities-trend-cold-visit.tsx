@@ -3,6 +3,7 @@
 import { defaultTrendRange, type MonthRange } from '@repo/core/entries';
 import { type ReactNode } from 'react';
 import { type AssetsAndLiabilitiesTrendAnswer } from '../server/assets-and-liabilities-trend';
+import { type ShownLines } from './assets-and-liabilities-trend-chart';
 import { AssetsAndLiabilitiesTrendForm } from './assets-and-liabilities-trend-form';
 import {
   AssetsAndLiabilitiesTrendOutcome,
@@ -14,9 +15,10 @@ export type ShowDefaultTrendRange = (range: MonthRange) => Promise<AssetsAndLiab
 
 export type AssetsAndLiabilitiesTrendColdVisitProps = {
   readonly show: ShowDefaultTrendRange;
+  readonly lines: ShownLines;
 };
 
-export function AssetsAndLiabilitiesTrendColdVisit({ show }: AssetsAndLiabilitiesTrendColdVisitProps): ReactNode {
+export function AssetsAndLiabilitiesTrendColdVisit({ show, lines }: AssetsAndLiabilitiesTrendColdVisitProps): ReactNode {
   const { asked, todayKey, answer } = useDefaultAnswer(defaultTrendRange, show);
   const range = asked ?? {};
 
@@ -28,6 +30,7 @@ export function AssetsAndLiabilitiesTrendColdVisit({ show }: AssetsAndLiabilitie
       ) : (
         <AssetsAndLiabilitiesTrendOutcome
           answer={answer === UNAVAILABLE ? { outcome: UNAVAILABLE, range } : answer}
+          lines={lines}
         />
       )}
     </>

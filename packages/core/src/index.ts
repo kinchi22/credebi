@@ -134,3 +134,16 @@ export {
   type Settings,
   type SettingsRepository,
 } from './settings/index';
+
+export {
+  createChangeChartView,
+  createGetChartView,
+  defaultChartView,
+  makeChartView,
+  type ChangeChartView,
+  type ChangeChartViewDependencies,
+  type ChartView,
+  type ChartViewRepository,
+  type GetChartView,
+  type GetChartViewDependencies,
+} from './charts/index';

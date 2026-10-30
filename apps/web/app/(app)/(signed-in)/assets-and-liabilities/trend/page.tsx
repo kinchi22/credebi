@@ -1,4 +1,8 @@
-import { ASSETS_AND_LIABILITIES_TREND_FIELDS, type SearchQuery } from '@repo/contracts';
+import {
+  ASSETS_AND_LIABILITIES_TREND_CHART,
+  ASSETS_AND_LIABILITIES_TREND_FIELDS,
+  type SearchQuery,
+} from '@repo/contracts';
 import { type Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
@@ -16,7 +20,7 @@ import {
 } from '../../../../../server/return-path';
 import { createCaller } from '../../../../../server/root-router';
 import { orSignIn } from '../../../../../server/sign-in-redirect';
-import { showDefaultTrendRange } from './actions';
+import { keepShownTrendLines, showDefaultTrendRange } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,6 +44,12 @@ export default async function AssetsAndLiabilitiesTrendPage({
   if (!(await caller.auth.signedIn())) {
     redirect(signInPath(path));
   }
+  const lines = orSignIn(
+    caller.charts
+      .view({ chartId: ASSETS_AND_LIABILITIES_TREND_CHART })
+      .then(({ shownSeriesIds }) => ({ shown: shownSeriesIds, keep: keepShownTrendLines })),
+    path,
+  );
 
   if (
     query[ASSETS_AND_LIABILITIES_TREND_FIELDS.from] === undefined &&
@@ -48,15 +58,18 @@ export default async function AssetsAndLiabilitiesTrendPage({
     return (
       <>
         {heading}
-        <AssetsAndLiabilitiesTrendColdVisit show={showDefaultTrendRange} />
+        <AssetsAndLiabilitiesTrendColdVisit show={showDefaultTrendRange} lines={await lines} />
       </>
     );
   }
 
-  const answer = await answerAssetsAndLiabilitiesTrend(
-    (range) => orSignIn(caller.entries.assetsAndLiabilitiesTrend(range), path),
-    query,
-  );
+  const [answer, shownLines] = await Promise.all([
+    answerAssetsAndLiabilitiesTrend(
+      (range) => orSignIn(caller.entries.assetsAndLiabilitiesTrend(range), path),
+      query,
+    ),
+    lines,
+  ]);
 
   return (
     <>
@@ -65,7 +78,7 @@ export default async function AssetsAndLiabilitiesTrendPage({
         key={`${answer.range.from ?? ''} ${answer.range.to ?? ''}`}
         range={answer.range}
       />
-      <AssetsAndLiabilitiesTrendOutcome answer={answer} />
+      <AssetsAndLiabilitiesTrendOutcome answer={answer} lines={shownLines} />
     </>
   );
 }

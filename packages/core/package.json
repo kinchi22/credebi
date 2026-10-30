@@ -13,7 +13,8 @@
     "./money": "./src/money/index.ts",
     "./logging": "./src/logging/index.ts",
     "./auth": "./src/auth/index.ts",
-    "./settings": "./src/settings/index.ts"
+    "./settings": "./src/settings/index.ts",
+    "./charts": "./src/charts/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"

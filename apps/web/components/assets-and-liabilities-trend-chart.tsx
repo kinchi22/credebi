@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { type TrendMonthOutput } from '@repo/contracts';
+import { type TrendLine, type TrendMonthOutput } from '@repo/contracts';
 import { type ReactNode, useState } from 'react';
 import {
   CartesianGrid,
@@ -38,25 +38,38 @@ const MONTH_KEY = 'month';
 
 type TrendSeries = 'netWorth' | 'totalAssets' | 'totalLiabilities';
 
-const SERIES: readonly { readonly key: TrendSeries; readonly look: ChartSeriesLook }[] = [
-  { key: 'netWorth', look: { color: 'var(--color-accent-text)', emphasised: true } },
-  { key: 'totalAssets', look: { color: 'var(--color-debit)' } },
-  { key: 'totalLiabilities', look: { color: 'var(--color-danger)', dash: '6 4' } },
+const SERIES: readonly { readonly key: TrendSeries; readonly id: TrendLine; readonly look: ChartSeriesLook }[] = [
+  { key: 'netWorth', id: 'net-worth', look: { color: 'var(--color-accent-text)', emphasised: true } },
+  { key: 'totalAssets', id: 'total-assets', look: { color: 'var(--color-debit)' } },
+  { key: 'totalLiabilities', id: 'total-liabilities', look: { color: 'var(--color-danger)', dash: '6 4' } },
 ];
 
 const ALL_SERIES: readonly TrendSeries[] = SERIES.map(({ key }) => key);
 
+const idsOf = (keys: readonly TrendSeries[]): readonly TrendLine[] =>
+  SERIES.filter(({ key }) => keys.includes(key)).map(({ id }) => id);
+
 const UNIT_TICKS: readonly number[] = [0, 1];
+
+export type KeepShownLines = (shownSeriesIds: readonly string[]) => Promise<void>;
+
+export type ShownLines = {
+  readonly shown: readonly string[];
+  readonly keep: KeepShownLines;
+};
 
 export type AssetsAndLiabilitiesTrendChartProps = {
   readonly months: readonly TrendMonthOutput[];
+  readonly lines: ShownLines;
 };
 
-export function AssetsAndLiabilitiesTrendChart({ months }: AssetsAndLiabilitiesTrendChartProps): ReactNode {
+export function AssetsAndLiabilitiesTrendChart({ months, lines }: AssetsAndLiabilitiesTrendChartProps): ReactNode {
   const t = useTranslations();
   const monthLabel = useMonthLabel();
   const labelOf = (key: TrendSeries): string => t(`assetsAndLiabilities.${key}`);
-  const [shown, setShown] = useState<readonly TrendSeries[]>(ALL_SERIES);
+  const [shown, setShown] = useState<readonly TrendSeries[]>(() =>
+    SERIES.filter(({ id }) => lines.shown.includes(id)).map(({ key }) => key),
+  );
   const [kept, setKept] = useState<readonly number[]>(UNIT_TICKS);
   const ticks =
     shown.length === 0 ? kept : fittedTicks(months.flatMap((month) => shown.map((key) => month[key])));
@@ -68,6 +81,7 @@ export function AssetsAndLiabilitiesTrendChart({ months }: AssetsAndLiabilitiesT
       setKept(ticks);
     }
     setShown(next);
+    lines.keep(idsOf(next)).catch(() => undefined);
   };
 
   const tooltip = ({ active, label }: TooltipContentProps): ReactNode => {
