@@ -53,8 +53,10 @@ export const trendChart = (page: Page): Locator => page.getByRole('main').getByR
 
 export const trendTable = reportTables;
 
-export const legendItem = (page: Page, line: TrendLine): Locator =>
-  page.getByRole('main').getByRole('button', { name: line, exact: true });
+const lineButton = (page: Page, name: string): Locator =>
+  page.getByRole('main').getByRole('button', { name, exact: true });
+
+export const legendItem = (page: Page, line: TrendLine): Locator => lineButton(page, line);
 
 export const trendTooltip = (page: Page): Locator => page.getByRole('main').getByRole('tooltip');
 
@@ -76,12 +78,16 @@ export async function expectMonths(page: Page, months: readonly TrendMonth[]): P
   }
 }
 
-export async function expectNoTrend(page: Page): Promise<void> {
-  await expect(rangeForm(page)).toBeVisible();
+export async function expectNoTrend(
+  page: Page,
+  form: Locator = rangeForm(page),
+  lines: readonly string[] = TREND_LINES,
+): Promise<void> {
+  await expect(form).toBeVisible();
   await expect(trendChart(page)).toHaveCount(0);
   await expect(trendTable(page)).toHaveCount(0);
-  for (const line of TREND_LINES) {
-    await expect(legendItem(page, line)).toHaveCount(0);
+  for (const line of lines) {
+    await expect(lineButton(page, line)).toHaveCount(0);
   }
 }
 
