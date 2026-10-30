@@ -1,5 +1,6 @@
 'use server';
 
+import { ASSETS_AND_LIABILITIES_TREND_CHART, changeChartViewInputSchema } from '@repo/contracts';
 import {
   answerDefaultTrendRange,
   type AssetsAndLiabilitiesTrendAnswer,
@@ -15,4 +16,18 @@ export async function showDefaultTrendRange(range: unknown): Promise<AssetsAndLi
     (asked) => orSignIn(caller.entries.assetsAndLiabilitiesTrend(asked), ASSETS_AND_LIABILITIES_TREND_PATH),
     range,
   );
+}
+
+export async function keepShownTrendLines(shownSeriesIds: unknown): Promise<void> {
+  const input = changeChartViewInputSchema.safeParse({
+    chartId: ASSETS_AND_LIABILITIES_TREND_CHART,
+    shownSeriesIds,
+  });
+  if (!input.success) {
+    return;
+  }
+
+  await createCaller(await createContext())
+    .charts.changeView(input.data)
+    .catch(() => undefined);
 }

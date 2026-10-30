@@ -5,7 +5,7 @@ import { PANEL } from '@repo/ui';
 import { type ReactNode } from 'react';
 import { type AssetsAndLiabilitiesTrendAnswer } from '../server/assets-and-liabilities-trend';
 import { formatAmount } from './amount';
-import { AssetsAndLiabilitiesTrendChart } from './assets-and-liabilities-trend-chart';
+import { AssetsAndLiabilitiesTrendChart, type ShownLines } from './assets-and-liabilities-trend-chart';
 import { DANGER_TEXT, MUTED_TEXT } from './text-classes';
 import { useMonthLabel } from './use-month-label';
 
@@ -44,9 +44,10 @@ function TrendTable({ months }: TrendTableProps): ReactNode {
 
 export type AssetsAndLiabilitiesTrendOutcomeProps = {
   readonly answer: AssetsAndLiabilitiesTrendAnswer;
+  readonly lines: ShownLines;
 };
 
-export function AssetsAndLiabilitiesTrendOutcome({ answer }: AssetsAndLiabilitiesTrendOutcomeProps): ReactNode {
+export function AssetsAndLiabilitiesTrendOutcome({ answer, lines }: AssetsAndLiabilitiesTrendOutcomeProps): ReactNode {
   const t = useTranslations('assetsAndLiabilitiesTrend');
   if (answer.outcome !== 'answered') {
     return (
@@ -60,7 +61,7 @@ export function AssetsAndLiabilitiesTrendOutcome({ answer }: AssetsAndLiabilitie
   }
   return (
     <section className={`${PANEL} min-w-0`}>
-      <AssetsAndLiabilitiesTrendChart months={answer.trend.months} />
+      <AssetsAndLiabilitiesTrendChart months={answer.trend.months} lines={lines} />
       <TrendTable months={answer.trend.months} />
     </section>
   );

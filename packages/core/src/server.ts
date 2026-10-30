@@ -14,6 +14,9 @@ export type { PostgresAccountRepository } from './accounts/adapters/postgres-acc
 export { createPostgresSettingsRepository } from './settings/adapters/postgres-settings-repository';
 export type { PostgresSettingsRepository } from './settings/adapters/postgres-settings-repository';
 
+export { createPostgresChartViewRepository } from './charts/adapters/postgres-chart-view-repository';
+export type { PostgresChartViewRepository } from './charts/adapters/postgres-chart-view-repository';
+
 export { createPostgresUserRepository } from './auth/adapters/postgres-user-repository';
 export type { PostgresUserRepository } from './auth/adapters/postgres-user-repository';
 export { createPostgresSessionRepository } from './auth/adapters/postgres-session-repository';

@@ -15,6 +15,7 @@ import {
   createDeleteAccount,
   createDeleteAccountGroup,
   createBeginGoogleSignIn,
+  createChangeChartView,
   createChangeEntryFormMode,
   createChangeLanguage,
   createDeleteEntry,
@@ -24,6 +25,7 @@ import {
   createEditEntry,
   createFinishGoogleSignIn,
   createGetChart,
+  createGetChartView,
   createGetHealth,
   createGetAssetsAndLiabilities,
   createGetAssetsAndLiabilitiesTrend,
@@ -40,6 +42,7 @@ import {
   type DeleteAccount,
   type DeleteAccountGroup,
   type BeginGoogleSignIn,
+  type ChangeChartView,
   type ChangeEntryFormMode,
   type ChangeLanguage,
   type DeleteEntry,
@@ -49,6 +52,7 @@ import {
   type EditEntry,
   type FinishGoogleSignIn,
   type GetChart,
+  type GetChartView,
   type GetHealth,
   type GetAssetsAndLiabilities,
   type GetAssetsAndLiabilitiesTrend,
@@ -64,6 +68,7 @@ import {
 import {
   createOpenIdGoogleSignIn,
   createPostgresAccountRepository,
+  createPostgresChartViewRepository,
   createPostgresEntryRepository,
   createPostgresHealthProbe,
   createPostgresSessionRepository,
@@ -99,6 +104,8 @@ export type Container = {
   readonly getSettings: GetSettings;
   readonly changeEntryFormMode: ChangeEntryFormMode;
   readonly changeLanguage: ChangeLanguage;
+  readonly getChartView: GetChartView;
+  readonly changeChartView: ChangeChartView;
   readonly resolveSession: ResolveSession;
   readonly beginGoogleSignIn: BeginGoogleSignIn;
   readonly finishGoogleSignIn: FinishGoogleSignIn;
@@ -117,6 +124,7 @@ export function createContainer({ databaseUrl, google, testSignIn, deployment }:
   const accounts = createPostgresAccountRepository(databaseUrl, logger);
   const sessions = createPostgresSessionRepository(databaseUrl, logger);
   const settings = createPostgresSettingsRepository(databaseUrl, logger);
+  const chartViews = createPostgresChartViewRepository(databaseUrl, logger);
   const newAccountId = (): AccountId => accountIdSchema.parse(uuidv7());
   const newAccountGroupId = (): AccountGroupId => accountGroupIdSchema.parse(uuidv7());
   const signIn = {
@@ -176,6 +184,8 @@ export function createContainer({ databaseUrl, google, testSignIn, deployment }:
     getSettings: createGetSettings({ settings }),
     changeEntryFormMode: createChangeEntryFormMode({ settings }),
     changeLanguage: createChangeLanguage({ settings }),
+    getChartView: createGetChartView({ chartViews }),
+    changeChartView: createChangeChartView({ chartViews }),
     resolveSession: createResolveSession({ sessions, hashSessionToken, now: () => new Date() }),
     beginGoogleSignIn: createBeginGoogleSignIn({ google: googleSignIn }),
     finishGoogleSignIn: createFinishGoogleSignIn({ ...signIn, google: googleSignIn }),
