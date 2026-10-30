@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { monthRangeOf, type DayRange } from '@repo/core/entries';
+import { monthRangeOf, type DayRange, type MonthRange } from '@repo/core/entries';
 import { useId, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import { DATE_CONTROL, FIELD } from './control-classes';
@@ -24,7 +24,7 @@ export type RangeFieldsProps = {
 type Unit = {
   readonly input: 'date' | 'month';
   readonly labels: 'dayRange' | 'monthRange';
-  readonly valuesOf: (range: DayRange) => DayRange;
+  readonly valuesOf: (range: DayRange) => DayRange | MonthRange;
 };
 
 const UNITS: Readonly<Record<Granularity, Unit>> = {

@@ -60,7 +60,7 @@ const RELATIVE_MONTHS: Readonly<Record<RelativeDirection, readonly number[]>> = 
   around: [1, 3, 6, 12],
 };
 
-const RELATIVE_MONTH_SPANS: readonly number[] = [3, 6, 12, 24, 36];
+const RELATIVE_MONTH_COUNTS: readonly number[] = [3, 6, 12, 24, 36];
 
 export const RELATIVE_DIRECTIONS: readonly RelativeDirection[] = ['last', 'next', 'around'];
 
@@ -115,20 +115,20 @@ export function relativePresets(today: string): readonly RelativePreset[] {
   );
 }
 
-const RELATIVE_MONTH_SPAN: Readonly<Record<RelativeDirection, (months: number) => Span>> = {
+const RELATIVE_MONTH_WINDOW: Readonly<Record<RelativeDirection, (months: number) => Span>> = {
   last: (months) => ({ back: months - 1, ahead: 0 }),
   next: (months) => ({ back: 0, ahead: months - 1 }),
   around: (months) => ({ back: months, ahead: months }),
 };
 
 function relativeMonths(today: string, direction: RelativeDirection, months: number): DayRange {
-  const { back, ahead } = RELATIVE_MONTH_SPAN[direction](months);
+  const { back, ahead } = RELATIVE_MONTH_WINDOW[direction](months);
   return monthsRange(yearOf(today), monthOf(today) - 1 - back, back + ahead + 1);
 }
 
 export function relativeMonthPresets(today: string): readonly RelativePreset[] {
   return RELATIVE_DIRECTIONS.flatMap((direction) =>
-    RELATIVE_MONTH_SPANS.map((months) => ({
+    RELATIVE_MONTH_COUNTS.map((months) => ({
       direction,
       months,
       range: relativeMonths(today, direction, months),
