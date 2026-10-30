@@ -270,6 +270,7 @@ export const ja = {
   assetsAndLiabilitiesTrend: {
     range: '推移の期間',
     show: '表示',
+    lines: '線',
     month: '月',
     loading: '直近12か月を読み込み中...',
     nothingRecorded: 'この期間の最終月までに記録された内容はまだありません。',

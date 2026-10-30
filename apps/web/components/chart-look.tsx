@@ -9,6 +9,8 @@ export type ChartSeriesLook = {
 
 const DOT_OUTLINE = 'var(--color-surface)';
 
+const HIDDEN_SWATCH = 'var(--color-border-control)';
+
 export const SOLID = '0';
 
 export const AXIS_LOOK = {
@@ -89,6 +91,42 @@ export function ChartTooltipCard({ title, rows }: ChartTooltipCardProps): ReactN
             {value}
           </span>
         </div>
+      ))}
+    </div>
+  );
+}
+
+export type ChartLegendItem<Key extends string> = {
+  readonly key: Key;
+  readonly label: string;
+  readonly look: ChartSeriesLook;
+  readonly shown: boolean;
+};
+
+export type ChartLegendProps<Key extends string> = {
+  readonly label: string;
+  readonly items: readonly ChartLegendItem<Key>[];
+  readonly onToggle: (key: Key) => void;
+};
+
+export function ChartLegend<Key extends string>({ label, items, onToggle }: ChartLegendProps<Key>): ReactNode {
+  return (
+    <div role="group" aria-label={label} className="mt-2 flex flex-wrap justify-center gap-x-5 gap-y-1">
+      {items.map(({ key, label: itemLabel, look, shown }) => (
+        <button
+          key={key}
+          type="button"
+          aria-pressed={shown}
+          onClick={() => {
+            onToggle(key);
+          }}
+          className={`flex items-center gap-2 py-1 ${typeClasses['body-dense']} ${
+            shown ? 'text-text' : 'text-text-muted opacity-50'
+          }`}
+        >
+          <SeriesSwatch {...look} color={shown ? look.color : HIDDEN_SWATCH} />
+          {itemLabel}
+        </button>
       ))}
     </div>
   );

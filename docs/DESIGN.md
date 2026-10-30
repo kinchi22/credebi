@@ -889,7 +889,12 @@ numerals.
   `shadow-lift`: the point's name in `date`, then one row per line with a
   swatch of its stroke, its label in `body-dense` and its value in `figure`, a
   negative one in `danger`. While the tooltip shows, a vertical
-  `border-control` line marks its point. Lines never differ by colour alone. In the Assets
+  `border-control` line marks its point. Below the chart, centred and wrapping,
+  a legend holds one plain button per line, with no border or fill: a swatch
+  of its stroke and its label in `body-dense` and `text`. The button toggles
+  its line and states it with `aria-pressed`; a hidden line's button is
+  `text-muted` at 50% opacity, its swatch in `border-control`. The y axis fits
+  the lines shown, and with none shown it keeps the last fit. Lines never differ by colour alone. In the Assets
   and liabilities trend, Net worth is `accent-text` and 3px wide, total assets
   `debit` and total liabilities `danger` dashed, both 2px.
 - **Entry row actions.** At the end of each Entry's first row, after its
