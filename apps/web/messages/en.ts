@@ -251,6 +251,7 @@ export const en = {
   assetsAndLiabilitiesTrend: {
     range: 'Trend range',
     show: 'Show',
+    lines: 'Lines',
     month: 'Month',
     loading: 'Loading the last twelve months...',
     nothingRecorded: 'Nothing recorded yet on or before the last month of this range.',

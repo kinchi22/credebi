@@ -268,6 +268,7 @@ export const ko = {
   assetsAndLiabilitiesTrend: {
     range: '추이 기간',
     show: '조회',
+    lines: '선',
     month: '월',
     loading: '최근 12개월을 불러오는 중...',
     nothingRecorded: '이 기간의 마지막 달까지 기록된 내용이 아직 없습니다.',
