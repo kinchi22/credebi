@@ -400,6 +400,16 @@ test('sends a signed-out visitor to sign in, and back to the trend for the range
   await expectNothingRecorded(page);
 });
 
+test('sends a signed-out visitor who asked for no range to sign in, and back to the trend with no range once signed in', async ({ page }) => {
+  await page.goto(TREND);
+  await expect(page).toHaveURL(withQuery('/sign-in', { returnTo: TREND }));
+
+  await submitTestSignIn(page, freshIdentifier(), BOOKS_OPEN);
+
+  await expect(page).toHaveURL(TREND_WITHOUT_QUERY);
+  await expect(rangeForm(page)).toBeVisible();
+});
+
 test('links to the Assets and liabilities trend from the Sidebar of every signed-in page, after Assets and liabilities and before Settings', async ({ page }) => {
   await signIn(page);
 
