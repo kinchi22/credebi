@@ -2,7 +2,7 @@ import {
   domainError,
   err,
   ok,
-  trendSeriesSchema,
+  trendLineSchema,
   type ChartId,
   type DomainError,
   type Result,
@@ -13,7 +13,7 @@ export type ChartView = {
 };
 
 const SERIES_OF: { readonly [Chart in ChartId]: readonly string[] } = {
-  'assets-and-liabilities-trend': trendSeriesSchema.options,
+  'assets-and-liabilities-trend': trendLineSchema.options,
 };
 
 export function defaultChartView(chartId: ChartId): ChartView {

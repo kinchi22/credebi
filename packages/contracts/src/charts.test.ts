@@ -6,7 +6,7 @@ import {
   chartViewInputSchema,
   chartViewSchema,
   toChartView,
-  trendSeriesSchema,
+  trendLineSchema,
 } from './charts';
 
 describe('chartIdSchema', () => {
@@ -20,9 +20,9 @@ describe('chartIdSchema', () => {
   });
 });
 
-describe('trendSeriesSchema', () => {
+describe('trendLineSchema', () => {
   it("holds the trend's three lines, Net worth first", () => {
-    expect(trendSeriesSchema.options).toEqual(['netWorth', 'totalAssets', 'totalLiabilities']);
+    expect(trendLineSchema.options).toEqual(['net-worth', 'total-assets', 'total-liabilities']);
   });
 });
 
@@ -44,9 +44,9 @@ describe('changeChartViewInputSchema', () => {
     expect(
       changeChartViewInputSchema.parse({
         chartId: 'assets-and-liabilities-trend',
-        shownSeriesIds: ['netWorth'],
+        shownSeriesIds: ['net-worth'],
       }),
-    ).toEqual({ chartId: 'assets-and-liabilities-trend', shownSeriesIds: ['netWorth'] });
+    ).toEqual({ chartId: 'assets-and-liabilities-trend', shownSeriesIds: ['net-worth'] });
     expect(
       changeChartViewInputSchema.parse({ chartId: 'assets-and-liabilities-trend', shownSeriesIds: [] }),
     ).toEqual({ chartId: 'assets-and-liabilities-trend', shownSeriesIds: [] });
@@ -72,11 +72,11 @@ describe('chartViewSchema', () => {
 
 describe('toChartView', () => {
   it('carries the shown series alone, in a shape the schema accepts', () => {
-    const view = toChartView({ shownSeriesIds: ['totalAssets'], extra: 'dropped' } as {
+    const view = toChartView({ shownSeriesIds: ['total-assets'], extra: 'dropped' } as {
       readonly shownSeriesIds: readonly string[];
     });
 
-    expect(view).toStrictEqual({ shownSeriesIds: ['totalAssets'] });
+    expect(view).toStrictEqual({ shownSeriesIds: ['total-assets'] });
     expect(chartViewSchema.parse(view)).toEqual(view);
   });
 });

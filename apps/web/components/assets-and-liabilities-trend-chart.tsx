@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { trendSeriesSchema, type TrendMonthOutput, type TrendSeries } from '@repo/contracts';
+import { type TrendLine, type TrendMonthOutput } from '@repo/contracts';
 import { type ReactNode, useState } from 'react';
 import {
   CartesianGrid,
@@ -36,13 +36,18 @@ const FULL = '100%';
 
 const MONTH_KEY = 'month';
 
-const SERIES: readonly { readonly key: TrendSeries; readonly look: ChartSeriesLook }[] = [
-  { key: 'netWorth', look: { color: 'var(--color-accent-text)', emphasised: true } },
-  { key: 'totalAssets', look: { color: 'var(--color-debit)' } },
-  { key: 'totalLiabilities', look: { color: 'var(--color-danger)', dash: '6 4' } },
+type TrendSeries = 'netWorth' | 'totalAssets' | 'totalLiabilities';
+
+const SERIES: readonly { readonly key: TrendSeries; readonly id: TrendLine; readonly look: ChartSeriesLook }[] = [
+  { key: 'netWorth', id: 'net-worth', look: { color: 'var(--color-accent-text)', emphasised: true } },
+  { key: 'totalAssets', id: 'total-assets', look: { color: 'var(--color-debit)' } },
+  { key: 'totalLiabilities', id: 'total-liabilities', look: { color: 'var(--color-danger)', dash: '6 4' } },
 ];
 
-const ALL_SERIES: readonly TrendSeries[] = trendSeriesSchema.options;
+const ALL_SERIES: readonly TrendSeries[] = SERIES.map(({ key }) => key);
+
+const idsOf = (keys: readonly TrendSeries[]): readonly TrendLine[] =>
+  SERIES.filter(({ key }) => keys.includes(key)).map(({ id }) => id);
 
 const UNIT_TICKS: readonly number[] = [0, 1];
 
@@ -63,7 +68,7 @@ export function AssetsAndLiabilitiesTrendChart({ months, lines }: AssetsAndLiabi
   const monthLabel = useMonthLabel();
   const labelOf = (key: TrendSeries): string => t(`assetsAndLiabilities.${key}`);
   const [shown, setShown] = useState<readonly TrendSeries[]>(() =>
-    ALL_SERIES.filter((key) => lines.shown.includes(key)),
+    SERIES.filter(({ id }) => lines.shown.includes(id)).map(({ key }) => key),
   );
   const [kept, setKept] = useState<readonly number[]>(UNIT_TICKS);
   const ticks =
@@ -76,7 +81,7 @@ export function AssetsAndLiabilitiesTrendChart({ months, lines }: AssetsAndLiabi
       setKept(ticks);
     }
     setShown(next);
-    lines.keep(next).catch(() => undefined);
+    lines.keep(idsOf(next)).catch(() => undefined);
   };
 
   const tooltip = ({ active, label }: TooltipContentProps): ReactNode => {

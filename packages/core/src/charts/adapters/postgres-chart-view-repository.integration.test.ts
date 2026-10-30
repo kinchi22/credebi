@@ -62,11 +62,11 @@ describe('createPostgresChartViewRepository', () => {
   });
 
   it('reads back the shown series it saved', async () => {
-    expect(await repository.save(ADA, TREND, { shownSeriesIds: ['netWorth', 'totalAssets'] })).toEqual(
+    expect(await repository.save(ADA, TREND, { shownSeriesIds: ['net-worth', 'total-assets'] })).toEqual(
       ok(undefined),
     );
 
-    expect(await repository.read(ADA, TREND)).toEqual(ok({ shownSeriesIds: ['netWorth', 'totalAssets'] }));
+    expect(await repository.read(ADA, TREND)).toEqual(ok({ shownSeriesIds: ['net-worth', 'total-assets'] }));
     expect(logged).toEqual([]);
   });
 
@@ -77,21 +77,21 @@ describe('createPostgresChartViewRepository', () => {
   });
 
   it('keeps one row for a User who saves twice, holding the later series', async () => {
-    await repository.save(ADA, TREND, { shownSeriesIds: ['netWorth'] });
-    await repository.save(ADA, TREND, { shownSeriesIds: ['totalAssets', 'totalLiabilities'] });
+    await repository.save(ADA, TREND, { shownSeriesIds: ['net-worth'] });
+    await repository.save(ADA, TREND, { shownSeriesIds: ['total-assets', 'total-liabilities'] });
 
     expect(await repository.read(ADA, TREND)).toEqual(
-      ok({ shownSeriesIds: ['totalAssets', 'totalLiabilities'] }),
+      ok({ shownSeriesIds: ['total-assets', 'total-liabilities'] }),
     );
     expect(await countRows()).toBe(1);
   });
 
   it("leaves another User's Chart view untouched, and reads none for a User who saved none (ADR-0021)", async () => {
-    await repository.save(GRACE, TREND, { shownSeriesIds: ['totalLiabilities'] });
-    await repository.save(ADA, TREND, { shownSeriesIds: ['netWorth'] });
+    await repository.save(GRACE, TREND, { shownSeriesIds: ['total-liabilities'] });
+    await repository.save(ADA, TREND, { shownSeriesIds: ['net-worth'] });
 
-    expect(await repository.read(GRACE, TREND)).toEqual(ok({ shownSeriesIds: ['totalLiabilities'] }));
-    expect(await repository.read(ADA, TREND)).toEqual(ok({ shownSeriesIds: ['netWorth'] }));
+    expect(await repository.read(GRACE, TREND)).toEqual(ok({ shownSeriesIds: ['total-liabilities'] }));
+    expect(await repository.read(ADA, TREND)).toEqual(ok({ shownSeriesIds: ['net-worth'] }));
 
     await database.execute(sql`delete from user_chart_views where user_id = ${GRACE}`);
     expect(await repository.read(GRACE, TREND)).toEqual(ok(undefined));
@@ -104,7 +104,7 @@ describe('createPostgresChartViewRepository', () => {
 
     expect(await repository.read(ADA, TREND)).toEqual(ok(undefined));
 
-    await repository.save(ADA, TREND, { shownSeriesIds: ['netWorth'] });
+    await repository.save(ADA, TREND, { shownSeriesIds: ['net-worth'] });
 
     const other = await database.execute<{ shown: string[] }>(
       sql`select shown_series_ids as shown from user_chart_views where chart_id = 'another-chart'`,
@@ -115,7 +115,7 @@ describe('createPostgresChartViewRepository', () => {
 
   it('reports a stored series the chart does not draw rather than answering with it', async () => {
     await database.execute(
-      sql`insert into user_chart_views (user_id, chart_id, shown_series_ids) values (${ADA}, ${TREND}, ${sql`array['netWorth', 'equity']::text[]`})`,
+      sql`insert into user_chart_views (user_id, chart_id, shown_series_ids) values (${ADA}, ${TREND}, ${sql`array['net-worth', 'equity']::text[]`})`,
     );
 
     const read = await repository.read(ADA, TREND);
@@ -126,7 +126,7 @@ describe('createPostgresChartViewRepository', () => {
 
   it('reports an unreachable database as a result on both paths, never by throwing', async () => {
     const read = await dead.read(ADA, TREND);
-    const saved = await dead.save(ADA, TREND, { shownSeriesIds: ['netWorth'] });
+    const saved = await dead.save(ADA, TREND, { shownSeriesIds: ['net-worth'] });
 
     expect(isErr(read) && read.error.code).toBe('DEPENDENCY_UNAVAILABLE');
     expect(isErr(saved) && saved.error.code).toBe('DEPENDENCY_UNAVAILABLE');

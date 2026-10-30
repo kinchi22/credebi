@@ -177,7 +177,7 @@ export type {
   ChartId,
   ChartViewInput,
   ChartViewOutput,
-  TrendSeries,
+  TrendLine,
 } from './charts';
 export {
   ASSETS_AND_LIABILITIES_TREND_CHART,
@@ -186,5 +186,5 @@ export {
   chartViewInputSchema,
   chartViewSchema,
   toChartView,
-  trendSeriesSchema,
+  trendLineSchema,
 } from './charts';

@@ -17,9 +17,6 @@ export function createGetChartView({ chartViews }: GetChartViewDependencies): Ge
     }
 
     const stored = await chartViews.read(userId.value, chartId);
-    if (!stored.ok) {
-      return stored;
-    }
-    return ok(stored.value ?? defaultChartView(chartId));
+    return ok((stored.ok ? stored.value : undefined) ?? defaultChartView(chartId));
   };
 }

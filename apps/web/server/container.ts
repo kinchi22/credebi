@@ -59,6 +59,7 @@ import {
   type GetIncomeStatement,
   type GetSettings,
   type GetTitles,
+  type Logger,
   type PostEntry,
   type ResolveSession,
   type SearchEntries,
@@ -84,6 +85,7 @@ import { type Env, parseEnv } from './env';
 import { createLogger, stderr } from './logger';
 
 export type Container = {
+  readonly logger: Logger;
   readonly getHealth: GetHealth;
   readonly postEntry: PostEntry;
   readonly searchEntries: SearchEntries;
@@ -142,6 +144,7 @@ export function createContainer({ databaseUrl, google, testSignIn, deployment }:
   const googleSignIn = createOpenIdGoogleSignIn(google, logger);
 
   return {
+    logger,
     getHealth: createGetHealth({
       probes: [postgres],
       now: () => new Date(),
