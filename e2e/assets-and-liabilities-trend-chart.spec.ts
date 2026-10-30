@@ -151,7 +151,7 @@ test('refits the y axis to the lines shown and zero, so hiding total liabilities
   await expectMonths(page, mortgaged);
 });
 
-test("keeps which lines are shown in the User's Settings, through a reload and in a fresh browser signed in as the same User, and leaves another User's lines all shown", async ({ browser }) => {
+test("keeps which lines are shown in the User's Chart view, through a reload and in a fresh browser signed in as the same User, and leaves another User's lines all shown", async ({ browser }) => {
   const identifier = freshIdentifier();
   const first = await browser.newContext();
   const page = await first.newPage();
