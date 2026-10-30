@@ -21,7 +21,7 @@ export { incomeStatement } from './domain/income-statement';
 export type { IncomeStatement } from './domain/income-statement';
 export { assetsAndLiabilities } from './domain/assets-and-liabilities';
 export type { AssetsAndLiabilities } from './domain/assets-and-liabilities';
-export { MOST_TREND_MONTHS, monthRangeOf } from './domain/assets-and-liabilities-trend';
+export { MOST_TREND_MONTHS, defaultTrendRange, monthRangeOf } from './domain/assets-and-liabilities-trend';
 export type {
   AssetsAndLiabilitiesTrend,
   MonthRange,

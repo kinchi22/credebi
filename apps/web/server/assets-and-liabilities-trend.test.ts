@@ -6,6 +6,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import {
   answerAssetsAndLiabilitiesTrend,
+  answerDefaultTrendRange,
   type ShowAssetsAndLiabilitiesTrend,
 } from './assets-and-liabilities-trend';
 import { toTrpcError } from './domain-error';
@@ -78,6 +79,54 @@ describe('answerAssetsAndLiabilitiesTrend', () => {
     ).rejects.toBe(redirected);
     await expect(answerAssetsAndLiabilitiesTrend(failing('NOT_FOUND'), JUNE_TO_JULY)).rejects.toMatchObject({
       code: 'NOT_FOUND',
+    });
+  });
+});
+
+describe('answerDefaultTrendRange', () => {
+  it('answers with the trend for the range it was sent, and asks for nothing but that range', async () => {
+    const asked: AssetsAndLiabilitiesTrendQuery[] = [];
+
+    const answer = await answerDefaultTrendRange((range) => {
+      asked.push(range);
+      return Promise.resolve(TREND);
+    }, { ...JUNE_TO_JULY, other: 'ignored' });
+
+    expect(answer).toEqual({ outcome: 'answered', range: JUNE_TO_JULY, trend: TREND });
+    expect(asked).toEqual([JUNE_TO_JULY]);
+  });
+
+  it.each([
+    ['nothing', undefined],
+    ['null', null],
+    ['a string', '2026-06'],
+    ['a range with no To month', { from: '2026-06' }],
+    ['a range with no From month', { to: '2026-06' }],
+    ['a range with months that are not strings', { from: ['2026-06'], to: 202607 }],
+    ['a range whose month is not a calendar month', { from: '2026-13', to: '2027-01' }],
+    ['a range of calendar days', { from: '2026-06-01', to: '2026-07-31' }],
+  ])('refuses %s without asking for a trend', async (_case, range) => {
+    const asked: AssetsAndLiabilitiesTrendQuery[] = [];
+
+    const answer = await answerDefaultTrendRange((sent) => {
+      asked.push(sent);
+      return Promise.resolve(TREND);
+    }, range);
+
+    expect(answer).toEqual({ outcome: 'refused', range: {} });
+    expect(asked).toEqual([]);
+  });
+
+  it('answers as the trend does when the procedure refuses or is unavailable', async () => {
+    const reversed = { from: '2026-07', to: '2026-06' };
+
+    await expect(answerDefaultTrendRange(failing('INVALID_INPUT'), reversed)).resolves.toEqual({
+      outcome: 'refused',
+      range: reversed,
+    });
+    await expect(answerDefaultTrendRange(failing('DEPENDENCY_UNAVAILABLE'), JUNE_TO_JULY)).resolves.toEqual({
+      outcome: 'unavailable',
+      range: JUNE_TO_JULY,
     });
   });
 });
