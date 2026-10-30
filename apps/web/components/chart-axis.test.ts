@@ -2,21 +2,33 @@ import { describe, expect, it } from 'vitest';
 import { compactAmount, fittedDomain, monthTick } from './chart-axis';
 
 describe('fittedDomain', () => {
-  it('spans from zero to the largest value when every value is positive', () => {
-    expect(fittedDomain([300, 1200, 700])).toEqual([0, 1200]);
+  it('spans from zero to the largest value, rounded up to a multiple of half its power of ten, when every value is positive', () => {
+    expect(fittedDomain([300, 1200, 700])).toEqual([0, 1500]);
+    expect(fittedDomain([1_234_567])).toEqual([0, 1_500_000]);
+    expect(fittedDomain([6_000_001])).toEqual([0, 6_500_000]);
   });
 
-  it('spans from the smallest value to zero when every value is negative', () => {
-    expect(fittedDomain([-300, -1200, -700])).toEqual([-1200, 0]);
+  it('keeps a largest value already on a multiple of half its power of ten', () => {
+    expect(fittedDomain([10_000_000, 5])).toEqual([0, 10_000_000]);
+    expect(fittedDomain([500])).toEqual([0, 500]);
   });
 
-  it('spans from the smallest to the largest value when they straddle zero', () => {
-    expect(fittedDomain([-2000, 3000, 5000])).toEqual([-2000, 5000]);
+  it('spans from the smallest value, rounded down the same way, to zero when every value is negative', () => {
+    expect(fittedDomain([-300, -1200, -700])).toEqual([-1500, 0]);
   });
 
-  it('is zero alone with no values or only zeros', () => {
-    expect(fittedDomain([])).toEqual([0, 0]);
-    expect(fittedDomain([0, 0])).toEqual([0, 0]);
+  it('rounds each end on its own when the values straddle zero', () => {
+    expect(fittedDomain([-2000, 3000, 7200])).toEqual([-2000, 7500]);
+  });
+
+  it('spans zero to one with no values or only zeros, so the axis is never a single point', () => {
+    expect(fittedDomain([])).toEqual([0, 1]);
+    expect(fittedDomain([0, 0])).toEqual([0, 1]);
+  });
+
+  it('rounds a value under ten away from zero to a whole number', () => {
+    expect(fittedDomain([3])).toEqual([0, 3]);
+    expect(fittedDomain([-0.4, 2.2])).toEqual([-1, 3]);
   });
 });
 

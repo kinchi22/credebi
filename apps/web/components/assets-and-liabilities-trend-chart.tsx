@@ -76,12 +76,12 @@ export function AssetsAndLiabilitiesTrendChart({ months }: AssetsAndLiabilitiesT
       <ResponsiveContainer width={FULL} height={FULL}>
         <LineChart
           data={[...months]}
-          margin={{ top: 8, right: 16, bottom: 0, left: 0 }}
+          margin={{ top: 12, right: 16, bottom: 0, left: 0 }}
           aria-label={t('assetsAndLiabilitiesTrendPage.title')}
         >
           <CartesianGrid {...GRID_LOOK} />
           <XAxis dataKey={MONTH_KEY} tickFormatter={monthTick} minTickGap={24} {...AXIS_LOOK} />
-          <YAxis domain={[...domain]} tickFormatter={compactAmount} width={56} {...AXIS_LOOK} />
+          <YAxis domain={[...domain]} allowDecimals={false} tickFormatter={compactAmount} width={56} {...AXIS_LOOK} />
           <ReferenceLine {...ZERO_LINE_LOOK} />
           <Tooltip content={tooltip} cursor={CURSOR_LOOK} isAnimationActive={false} />
           {SERIES.map(({ key, look }) => (

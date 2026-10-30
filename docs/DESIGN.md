@@ -431,12 +431,12 @@ two shadows tinted from `ink`, `shadows` in the tokens module and
 
 | Shadow      | Layers                                                  | On |
 | ----------- | ------------------------------------------------------- | -- |
-| `lift`      | `0 1px 2px` at 5% and `0 1px 3px` at 4%                 | every panel `PANEL` draws, the Account picker, the Segmented control's strip and a Help tip's panel |
+| `lift`      | `0 1px 2px` at 5% and `0 1px 3px` at 4%                 | every panel `PANEL` draws, the Account picker, the Segmented control's strip, a Help tip's panel and a Line chart's tooltip card |
 | `lift-card` | `0 1px 2px` at 5% and `0 12px 32px` at 8%               | the Sign in card |
 
 Nothing else casts a shadow: not a dialog, a menu, a chip or any other control.
 A Help tip's panel lifts off the form it opens over, as the Account picker
-lifts off the page. The stylesheet resets `--shadow-*` to `initial`, so these two are the only shadow
+lifts off the page, and a Line chart's tooltip card lifts off the chart. The stylesheet resets `--shadow-*` to `initial`, so these two are the only shadow
 utilities, `shadow-lift` and `shadow-lift-card`. The lint rule
 `repo/no-raw-shape` rejects a bare `shadow`, Tailwind's own shadows and an
 arbitrary one, and `repo/no-raw-color`, which reads the shadow names from the
@@ -459,7 +459,7 @@ used:
 | --------- | ---- | ----------------- | -- |
 | `control` | 6px  | `rounded-control` | inputs, buttons, chips, segments, menus, Sidebar links, Bands, the drag copy and drop marks, and a tree connector's corner |
 | `panel`   | 8px  | `rounded-panel`   | panels, the Account picker, dialogs and the Segmented control's strip |
-| `card`    | 12px | `rounded-card`    | the Sign in card |
+| `card`    | 12px | `rounded-card`    | the Sign in card and a Line chart's tooltip card |
 
 A surface fixed to a screen edge rounds only its free corners: the Account sheet
 its top ones with `rounded-t-panel`, the Sidebar drawer its right ones with
@@ -876,7 +876,9 @@ numerals.
   popping in over 220ms, ease-out, and instantly under
   `prefers-reduced-motion: reduce`. A horizontal `border` grid only, a dashed
   `text-muted` zero line, and axes with no line or tick marks: the y axis in
-  compact amounts, `1.5K`, `10M`, fitted to the values and zero; the x axis's
+  compact amounts, `1.5K`, `10M`, fitted to the values and zero with each
+  end rounded away from zero to a multiple of half its power of ten, and never
+  a single point; the x axis's
   month labels `YY.MM`, thinned to the width. Both in `text-muted`, 12px. The
   tooltip is a `surface` card with a `border` edge, `card` radius and
   `shadow-lift`: the point's name in `label`, then one row per line with a

@@ -50,7 +50,7 @@ export const activeDotLook =
       />
     );
 
-export function SeriesSwatch({ color, dash }: ChartSeriesLook): ReactNode {
+function SeriesSwatch({ color, dash }: ChartSeriesLook): ReactNode {
   return (
     <svg width={18} height={6} aria-hidden="true" className="shrink-0">
       <line x1={0} y1={3} x2={18} y2={3} stroke={color} strokeWidth={2.5} strokeDasharray={dash} />
@@ -82,7 +82,7 @@ export function ChartTooltipCard({ title, rows }: ChartTooltipCardProps): ReactN
             {label}
           </span>
           <span
-            className={`${typeClasses.figure} ${look.emphasised === true ? 'font-semibold' : ''} ${
+            className={`${typeClasses.figure} ${look.emphasised === true ? 'font-medium' : ''} ${
               negative ? 'text-danger' : 'text-text'
             }`}
           >
