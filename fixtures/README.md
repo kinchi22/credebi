@@ -61,6 +61,8 @@ the test-collection gate excludes this directory too.
 | Fixture                                          | Rule that must fire           |
 | ------------------------------------------------ | ----------------------------- |
 | `violations/.../domain/cycle-a.ts` + `cycle-b`   | `no-circular`                 |
+| `violations/e2e/cycle-a.ts` + `cycle-b`          | `no-circular` (the `e2e` root is cruised) |
+| `violations/tools/cycle-a.ts` + `cycle-b`        | `no-circular` (the `tools` root is cruised) |
 | `violations/.../domain/orphan.ts`                | `no-orphans`                  |
 | `violations/.../domain/imports-adapters.ts`      | `domain-is-pure`              |
 | `violations/.../application/uses-adapter.ts`     | `application-not-to-adapters` |

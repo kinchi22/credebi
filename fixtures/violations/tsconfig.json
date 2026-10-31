@@ -7,5 +7,5 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false
   },
-  "include": ["packages/**/*.ts", "apps/**/*.ts", "apps/**/*.tsx"]
+  "include": ["packages/**/*.ts", "apps/**/*.ts", "apps/**/*.tsx", "e2e/**/*.ts", "tools/**/*.ts"]
 }
