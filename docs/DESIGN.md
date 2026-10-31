@@ -806,12 +806,14 @@ numerals.
   `Debit total` or `Credit total` in `body-dense` and `text-muted`, its amount
   in `figure` on the line grid, right-aligned with the lines' amounts and
   leaving the Remove button's column empty. Below both Sides the Difference row
-  holds `Difference`, in `label` and `text-muted`, and its amount in `figure`,
-  on the left and `Add entry` on the right, with a refusal below them. The
+  holds `Difference`, in `label` and `text-muted`, its amount in `figure` and
+  right after it the secondary button `Fill difference`, on the left, and
+  `Add entry` on the right, with a refusal below them. `Fill difference` is
+  shown at every width and disabled unless there is a Difference fill. The
   amount is in `warning` and medium while it is not 0, and in `text`, plain and
   with no word beside it, at 0. When the amounts add up to more than an amount can hold, the
-  `danger` message takes the Difference's place and neither Side shows a
-  total.
+  `danger` message takes the Difference's place, `Fill difference` after it,
+  and neither Side shows a total.
 - **Remove button.** A bare × icon in `text-muted`, `text` under the pointer,
   with no fill and no border, named `Remove`, on each Multi-line line: 32px
   wide below `wide` and 24px from `wide` up, as tall as the amount field, 36px.
