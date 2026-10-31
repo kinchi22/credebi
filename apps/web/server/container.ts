@@ -15,6 +15,7 @@ import {
   createDeleteAccount,
   createDeleteAccountGroup,
   createBeginGoogleSignIn,
+  createChangeChartView,
   createChangeEntryFormMode,
   createChangeLanguage,
   createDeleteEntry,
@@ -24,8 +25,10 @@ import {
   createEditEntry,
   createFinishGoogleSignIn,
   createGetChart,
+  createGetChartView,
   createGetHealth,
   createGetAssetsAndLiabilities,
+  createGetAssetsAndLiabilitiesTrend,
   createGetIncomeStatement,
   createGetSettings,
   createGetTitles,
@@ -39,6 +42,7 @@ import {
   type DeleteAccount,
   type DeleteAccountGroup,
   type BeginGoogleSignIn,
+  type ChangeChartView,
   type ChangeEntryFormMode,
   type ChangeLanguage,
   type DeleteEntry,
@@ -48,11 +52,14 @@ import {
   type EditEntry,
   type FinishGoogleSignIn,
   type GetChart,
+  type GetChartView,
   type GetHealth,
   type GetAssetsAndLiabilities,
+  type GetAssetsAndLiabilitiesTrend,
   type GetIncomeStatement,
   type GetSettings,
   type GetTitles,
+  type Logger,
   type PostEntry,
   type ResolveSession,
   type SearchEntries,
@@ -62,6 +69,7 @@ import {
 import {
   createOpenIdGoogleSignIn,
   createPostgresAccountRepository,
+  createPostgresChartViewRepository,
   createPostgresEntryRepository,
   createPostgresHealthProbe,
   createPostgresSessionRepository,
@@ -77,11 +85,13 @@ import { type Env, parseEnv } from './env';
 import { createLogger, stderr } from './logger';
 
 export type Container = {
+  readonly logger: Logger;
   readonly getHealth: GetHealth;
   readonly postEntry: PostEntry;
   readonly searchEntries: SearchEntries;
   readonly getIncomeStatement: GetIncomeStatement;
   readonly getAssetsAndLiabilities: GetAssetsAndLiabilities;
+  readonly getAssetsAndLiabilitiesTrend: GetAssetsAndLiabilitiesTrend;
   readonly getTitles: GetTitles;
   readonly editEntry: EditEntry;
   readonly deleteEntry: DeleteEntry;
@@ -96,6 +106,8 @@ export type Container = {
   readonly getSettings: GetSettings;
   readonly changeEntryFormMode: ChangeEntryFormMode;
   readonly changeLanguage: ChangeLanguage;
+  readonly getChartView: GetChartView;
+  readonly changeChartView: ChangeChartView;
   readonly resolveSession: ResolveSession;
   readonly beginGoogleSignIn: BeginGoogleSignIn;
   readonly finishGoogleSignIn: FinishGoogleSignIn;
@@ -114,6 +126,7 @@ export function createContainer({ databaseUrl, google, testSignIn, deployment }:
   const accounts = createPostgresAccountRepository(databaseUrl, logger);
   const sessions = createPostgresSessionRepository(databaseUrl, logger);
   const settings = createPostgresSettingsRepository(databaseUrl, logger);
+  const chartViews = createPostgresChartViewRepository(databaseUrl, logger);
   const newAccountId = (): AccountId => accountIdSchema.parse(uuidv7());
   const newAccountGroupId = (): AccountGroupId => accountGroupIdSchema.parse(uuidv7());
   const signIn = {
@@ -131,6 +144,7 @@ export function createContainer({ databaseUrl, google, testSignIn, deployment }:
   const googleSignIn = createOpenIdGoogleSignIn(google, logger);
 
   return {
+    logger,
     getHealth: createGetHealth({
       probes: [postgres],
       now: () => new Date(),
@@ -145,6 +159,7 @@ export function createContainer({ databaseUrl, google, testSignIn, deployment }:
     searchEntries: createSearchEntries({ entries, accounts }),
     getIncomeStatement: createGetIncomeStatement({ entries, accounts }),
     getAssetsAndLiabilities: createGetAssetsAndLiabilities({ entries, accounts }),
+    getAssetsAndLiabilitiesTrend: createGetAssetsAndLiabilitiesTrend({ entries, accounts }),
     getTitles: createGetTitles({ entries, now: () => new Date() }),
     editEntry: createEditEntry({
       entries,
@@ -172,6 +187,8 @@ export function createContainer({ databaseUrl, google, testSignIn, deployment }:
     getSettings: createGetSettings({ settings }),
     changeEntryFormMode: createChangeEntryFormMode({ settings }),
     changeLanguage: createChangeLanguage({ settings }),
+    getChartView: createGetChartView({ chartViews }),
+    changeChartView: createChangeChartView({ chartViews }),
     resolveSession: createResolveSession({ sessions, hashSessionToken, now: () => new Date() }),
     beginGoogleSignIn: createBeginGoogleSignIn({ google: googleSignIn }),
     finishGoogleSignIn: createFinishGoogleSignIn({ ...signIn, google: googleSignIn }),

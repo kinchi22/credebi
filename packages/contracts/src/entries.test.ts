@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   assetsAndLiabilitiesSchema,
+  assetsAndLiabilitiesTrendSchema,
+  calendarMonthSchema,
   deleteEntryInputSchema,
   editEntryInputSchema,
   entryDateSchema,
@@ -12,6 +14,7 @@ import {
   parseMultiLineEntryForm,
   parseTwoLineEntryForm,
   parseAssetsAndLiabilitiesQuery,
+  parseAssetsAndLiabilitiesTrendQuery,
   parseIncomeStatementQuery,
   parseSearchQuery,
   postEntryInputSchema,
@@ -19,6 +22,7 @@ import {
   searchCriteriaSchema,
   sideSchema,
   toAssetsAndLiabilities,
+  toAssetsAndLiabilitiesTrend,
   toIncomeStatement,
   toPostedEntry,
   type EntryId,
@@ -761,6 +765,88 @@ describe('parseAssetsAndLiabilitiesQuery', () => {
       code: 'INVALID_INPUT',
       message: 'The report date is malformed.',
     });
+  });
+});
+
+describe('calendarMonthSchema', () => {
+  it.each(['2026-01', '2026-12', '0001-06', '9999-12'])('accepts %s as a calendar month', (month) => {
+    expect(calendarMonthSchema.safeParse(month).success).toBe(true);
+  });
+
+  it.each([
+    ['a month numbered 13', '2026-13'],
+    ['a month numbered 0', '2026-00'],
+    ['a month of one digit', '2026-6'],
+    ['a calendar day', '2026-06-01'],
+    ['the year 0000', '0000-06'],
+    ['a year of five digits', '12026-06'],
+    ['a month before its year', '06-2026'],
+    ['an empty text', ''],
+  ])('refuses %s', (_case, month) => {
+    expect(calendarMonthSchema.safeParse(month).success).toBe(false);
+  });
+});
+
+describe('parseAssetsAndLiabilitiesTrendQuery', () => {
+  it('reads the first and last month of the range out of the query', () => {
+    expect(parseAssetsAndLiabilitiesTrendQuery({ from: '2026-06', to: '2027-01', other: 'x' })).toEqual({
+      ok: true,
+      value: { from: '2026-06', to: '2027-01' },
+    });
+  });
+
+  it('leaves the order of the months to the domain', () => {
+    expect(parseAssetsAndLiabilitiesTrendQuery({ from: '2026-07', to: '2026-06' })).toEqual({
+      ok: true,
+      value: { from: '2026-07', to: '2026-06' },
+    });
+  });
+
+  it.each([
+    ['no parameters', {}],
+    ['no From', { to: '2026-06' }],
+    ['no To', { from: '2026-06' }],
+    ['an empty From', { from: '', to: '2026-06' }],
+    ['an empty To', { from: '2026-06', to: '' }],
+    ['a From that is no calendar month', { from: '2026-6', to: '2026-07' }],
+    ['a To that is a calendar day', { from: '2026-06', to: '2026-06-30' }],
+    ['a From given twice', { from: ['2026-06', '2026-07'], to: '2026-08' }],
+    ['a To given twice', { from: '2026-06', to: ['2026-07', '2026-08'] }],
+  ])('refuses a query with %s as malformed', (_case, query) => {
+    const range = parseAssetsAndLiabilitiesTrendQuery(query);
+
+    expect(isErr(range) && range.error).toEqual({
+      code: 'INVALID_INPUT',
+      message: 'The trend range is malformed.',
+    });
+  });
+});
+
+describe('toAssetsAndLiabilitiesTrend', () => {
+  it('carries each month in order with its three values, and whether anything is recorded, and nothing else', () => {
+    const june = {
+      month: '2026-06',
+      totalAssets: 9000 as Money,
+      totalLiabilities: 12000 as Money,
+      netWorth: -3000 as Money,
+      extra: 'dropped',
+    };
+    const july = { month: '2026-07', totalAssets: 0 as Money, totalLiabilities: 0 as Money, netWorth: 0 as Money };
+
+    const trend = toAssetsAndLiabilitiesTrend({ months: [june, july], recorded: true });
+
+    expect(trend).toEqual({
+      months: [
+        { month: '2026-06', totalAssets: 9000, totalLiabilities: 12000, netWorth: -3000 },
+        { month: '2026-07', totalAssets: 0, totalLiabilities: 0, netWorth: 0 },
+      ],
+      recorded: true,
+    });
+    expect(assetsAndLiabilitiesTrendSchema.parse(trend)).toEqual(trend);
+  });
+
+  it('carries books with nothing recorded', () => {
+    expect(toAssetsAndLiabilitiesTrend({ months: [], recorded: false })).toEqual({ months: [], recorded: false });
   });
 });
 

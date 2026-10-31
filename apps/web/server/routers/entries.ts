@@ -1,6 +1,8 @@
 import {
   assetsAndLiabilitiesQuerySchema,
   assetsAndLiabilitiesSchema,
+  assetsAndLiabilitiesTrendQuerySchema,
+  assetsAndLiabilitiesTrendSchema,
   deleteEntryInputSchema,
   editEntryInputSchema,
   incomeStatementQuerySchema,
@@ -10,6 +12,7 @@ import {
   postedEntrySchema,
   searchCriteriaSchema,
   toAssetsAndLiabilities,
+  toAssetsAndLiabilitiesTrend,
   toIncomeStatement,
   toPostedEntry,
 } from '@repo/contracts';
@@ -49,6 +52,17 @@ export const entriesRouter = router({
         throw toTrpcError(result.error);
       }
       return toAssetsAndLiabilities(result.value);
+    }),
+
+  assetsAndLiabilitiesTrend: sessionProcedure
+    .input(assetsAndLiabilitiesTrendQuerySchema)
+    .output(assetsAndLiabilitiesTrendSchema)
+    .query(async ({ ctx, input }) => {
+      const result = await ctx.container.getAssetsAndLiabilitiesTrend(ctx.auth, input);
+      if (!result.ok) {
+        throw toTrpcError(result.error);
+      }
+      return toAssetsAndLiabilitiesTrend(result.value);
     }),
 
   titles: sessionProcedure.output(z.array(offeredTitleSchema)).query(async ({ ctx }) => {

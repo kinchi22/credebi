@@ -94,6 +94,7 @@ export const en = {
     entrySearch: 'Entry search',
     incomeStatement: 'Income statement',
     assetsAndLiabilities: 'Assets and liabilities',
+    assetsAndLiabilitiesTrend: 'Assets and liabilities trend',
     settings: 'Settings',
     signOut: 'Sign out',
   },
@@ -202,6 +203,10 @@ export const en = {
     from: 'From',
     to: 'To',
   },
+  monthRange: {
+    from: 'From month',
+    to: 'To month',
+  },
   entrySearch: {
     title: 'Search entries',
     account: 'Account',
@@ -239,6 +244,20 @@ export const en = {
     refused: 'That report was not shown. Check the date: it must be a single calendar day.',
     unavailable: 'The report could not be loaded just now. Press Show to try again.',
     loading: "Loading today's balances...",
+  },
+  assetsAndLiabilitiesTrendPage: {
+    title: 'Assets and liabilities trend',
+  },
+  assetsAndLiabilitiesTrend: {
+    range: 'Trend range',
+    show: 'Show',
+    lines: 'Lines',
+    month: 'Month',
+    loading: 'Loading the last twelve months...',
+    nothingRecorded: 'Nothing recorded yet on or before the last month of this range.',
+    refused:
+      'That trend was not shown. Check the months: each is a calendar month, From month cannot be later than To month, and the range covers at most {most} months.',
+    unavailable: 'The trend could not be loaded just now. Press Show to try again.',
   },
   incomeStatement: {
     period: 'Statement period',

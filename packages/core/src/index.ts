@@ -51,6 +51,9 @@ export {
   createGetAssetsAndLiabilities,
   type GetAssetsAndLiabilities,
   type GetAssetsAndLiabilitiesDependencies,
+  createGetAssetsAndLiabilitiesTrend,
+  type GetAssetsAndLiabilitiesTrend,
+  type GetAssetsAndLiabilitiesTrendDependencies,
   type EntryRepository,
   type UnitOfWork,
 } from './entries/index';
@@ -131,3 +134,16 @@ export {
   type Settings,
   type SettingsRepository,
 } from './settings/index';
+
+export {
+  createChangeChartView,
+  createGetChartView,
+  defaultChartView,
+  makeChartView,
+  type ChangeChartView,
+  type ChangeChartViewDependencies,
+  type ChartView,
+  type ChartViewRepository,
+  type GetChartView,
+  type GetChartViewDependencies,
+} from './charts/index';

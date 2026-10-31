@@ -89,6 +89,8 @@ export {
 export type {
   AssetsAndLiabilitiesOutput,
   AssetsAndLiabilitiesQuery,
+  AssetsAndLiabilitiesTrendOutput,
+  AssetsAndLiabilitiesTrendQuery,
   DeleteEntryInput,
   EditEntryInput,
   EntryId,
@@ -102,6 +104,7 @@ export type {
   StatementSectionOutput,
   SuggestedAccounts,
   TitleLine,
+  TrendMonthOutput,
   PostEntryInput,
   PostedEntry,
   PostedLine,
@@ -112,12 +115,16 @@ export type {
 } from './entries';
 export {
   ASSETS_AND_LIABILITIES_FIELDS,
+  ASSETS_AND_LIABILITIES_TREND_FIELDS,
   ENTRY_FORM_FIELDS,
   INCOME_STATEMENT_FIELDS,
   SEARCH_CRITERIA_FIELDS,
   amountTextSchema,
   assetsAndLiabilitiesQuerySchema,
   assetsAndLiabilitiesSchema,
+  assetsAndLiabilitiesTrendQuerySchema,
+  assetsAndLiabilitiesTrendSchema,
+  calendarMonthSchema,
   deleteEntryInputSchema,
   editEntryInputSchema,
   entryDateSchema,
@@ -128,6 +135,7 @@ export {
   offeredTitleSchema,
   titleLineSchema,
   parseAssetsAndLiabilitiesQuery,
+  parseAssetsAndLiabilitiesTrendQuery,
   parseEntryForm,
   parseIncomeStatementQuery,
   parseSearchQuery,
@@ -140,7 +148,9 @@ export {
   statementGroupSchema,
   statementRowSchema,
   statementSectionSchema,
+  trendMonthSchema,
   toAssetsAndLiabilities,
+  toAssetsAndLiabilitiesTrend,
   toIncomeStatement,
   toPostedEntry,
 } from './entries';
@@ -161,3 +171,20 @@ export {
   settingsSchema,
   toSettings,
 } from './settings';
+
+export type {
+  ChangeChartViewInput,
+  ChartId,
+  ChartViewInput,
+  ChartViewOutput,
+  TrendLine,
+} from './charts';
+export {
+  ASSETS_AND_LIABILITIES_TREND_CHART,
+  changeChartViewInputSchema,
+  chartIdSchema,
+  chartViewInputSchema,
+  chartViewSchema,
+  toChartView,
+  trendLineSchema,
+} from './charts';

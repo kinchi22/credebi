@@ -6,6 +6,7 @@ import {
   currentPeriod,
   monthPresets,
   quarterPresets,
+  relativeMonthPresets,
   relativePresets,
   yearPresets,
   type DayRange,
@@ -32,7 +33,15 @@ const CATEGORIES = ['year', 'quarter', 'month', 'relative'] as const;
 
 type Category = (typeof CATEGORIES)[number];
 
+export type Granularity = 'day' | 'month';
+
+const RELATIVE_PRESETS: Readonly<Record<Granularity, (today: string) => readonly RelativePreset[]>> = {
+  day: relativePresets,
+  month: relativeMonthPresets,
+};
+
 export type DatePresetsProps = {
+  readonly granularity: Granularity;
   readonly today: string | undefined;
   readonly onChoose: (range: DayRange) => void;
 };
@@ -97,6 +106,7 @@ function YearRow({ current, layout, children }: YearRowProps): ReactNode {
 }
 
 type ChoicesProps = {
+  readonly granularity: Granularity;
   readonly today: string;
   readonly layout: Layout;
   readonly onChoose: Choose;
@@ -164,9 +174,9 @@ function MonthChoices({ today, layout, onChoose }: ChoicesProps): ReactNode {
   ));
 }
 
-function RelativeChoices({ today, onChoose }: ChoicesProps): ReactNode {
+function RelativeChoices({ granularity, today, onChoose }: ChoicesProps): ReactNode {
   const t = useTranslations('datePresets');
-  const presets = relativePresets(today);
+  const presets = RELATIVE_PRESETS[granularity](today);
   const relativeName = (preset: RelativePreset): string =>
     t(`relative.${preset.direction}`, { months: preset.months });
   return (
@@ -276,7 +286,7 @@ function CategoryMenu({ category, open, onOpen, onClose, children }: CategoryMen
   );
 }
 
-export function DatePresets({ today, onChoose }: DatePresetsProps): ReactNode {
+export function DatePresets({ granularity, today, onChoose }: DatePresetsProps): ReactNode {
   const t = useTranslations('datePresets');
   const [open, setOpen] = useState<Category>();
 
@@ -305,7 +315,7 @@ export function DatePresets({ today, onChoose }: DatePresetsProps): ReactNode {
               setOpen((shown) => (shown === category ? undefined : shown));
             }}
           >
-            {today === undefined ? null : <Choices today={today} layout={MENU_LAYOUT} onChoose={choose} />}
+            {today === undefined ? null : <Choices granularity={granularity} today={today} layout={MENU_LAYOUT} onChoose={choose} />}
           </CategoryMenu>
         );
       })}
@@ -335,7 +345,7 @@ function SheetPanel({ id, labelledBy, children }: SheetPanelProps): ReactNode {
   );
 }
 
-export function DatePresetsSheet({ today, onChoose }: DatePresetsProps): ReactNode {
+export function DatePresetsSheet({ granularity, today, onChoose }: DatePresetsProps): ReactNode {
   const t = useTranslations('datePresets');
   const id = useId();
   const [shown, setShown] = useState<Category>('relative');
@@ -385,7 +395,7 @@ export function DatePresetsSheet({ today, onChoose }: DatePresetsProps): ReactNo
               label={(category) => t(`categories.${category}`)}
             />
             <SheetPanel key={shown} id={`${id}-panel`} labelledBy={tabId(shown)}>
-              <Choices today={today} layout={SHEET_LAYOUT} onChoose={choose} />
+              <Choices granularity={granularity} today={today} layout={SHEET_LAYOUT} onChoose={choose} />
             </SheetPanel>
           </div>
         ) : null}
