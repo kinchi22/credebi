@@ -943,7 +943,9 @@ numerals.
   `text-muted`, with a close icon named `Close` at the top right of the panel
   beside them; the form follows, then the status line, then the last row:
   `Save`, a primary button reading `Saving...` while it runs, at its end. It
-  has no `Cancel`. Focus starts on Name. The status line is one `status` region
+  has no `Cancel`. Focus starts on Name. Description is a one-line field drawn
+  as Name is, the same height, frame, padding and text position, and Enter in
+  it saves the form as Enter in Name does. The status line is one `status` region
   in `text-muted` holding one message at a time: the refusal in `danger`, or
   the confirmation `<name> was added.`. In `Add account` and `Add group` the
   last row starts with an `Add another` checkbox in `body-sm`. It is unchecked
