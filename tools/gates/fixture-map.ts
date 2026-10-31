@@ -55,6 +55,8 @@ export type DepCruiseFixture = readonly [ruleName: string, file: string];
 
 export const DEP_CRUISE_FIXTURES: readonly DepCruiseFixture[] = [
   ['no-circular', 'packages/core/src/ledger/domain/cycle-a.ts'],
+  ['no-circular', 'e2e/cycle-a.ts'],
+  ['no-circular', 'tools/cycle-a.ts'],
   ['no-orphans', 'packages/core/src/ledger/domain/orphan.ts'],
   ['domain-is-pure', 'packages/core/src/ledger/domain/imports-adapters.ts'],
   ['application-not-to-adapters', 'packages/core/src/ledger/application/uses-adapter.ts'],

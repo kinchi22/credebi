@@ -33,6 +33,7 @@ module.exports = {
           '(^|/)src/index[.]ts$',
           '(^|/)src/server[.]ts$',
           '[.]test[.]tsx?$',
+          '[.]spec[.]tsx?$',
           '^packages/config/',
         ],
       },
