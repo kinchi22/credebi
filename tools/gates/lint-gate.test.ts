@@ -1,6 +1,7 @@
+import { ESLint } from 'eslint';
 import { describe, expect, it } from 'vitest';
 import { LINT_FIXTURES } from './fixture-map';
-import { bin, runGate, VIOLATIONS_DIR } from './run-gate';
+import { bin, REPO_ROOT, runGate, VIOLATIONS_DIR } from './run-gate';
 
 type EslintMessage = { readonly ruleId: string | null };
 type EslintResult = { readonly filePath: string; readonly messages: readonly EslintMessage[] };
@@ -28,4 +29,22 @@ describe('lint gate liveness', () => {
   it.each(LINT_FIXTURES)('%s is reported by %s', (file, ruleId) => {
     expect([...(byFile.get(file) ?? [])]).toContain(ruleId);
   });
+});
+
+describe('root lint scope', () => {
+  const eslint = new ESLint({ cwd: REPO_ROOT });
+
+  it.each(['.claude/worktrees/task/apps/web/page.tsx', '.agents/worktrees/task/apps/web/page.tsx'])(
+    'ignores the Agent worktree file %s',
+    async (file) => {
+      expect(await eslint.isPathIgnored(file)).toBe(true);
+    },
+  );
+
+  it.each(['.claude/skills/task/check.mjs', 'apps/web/page.tsx'])(
+    'still lints %s in the main working tree',
+    async (file) => {
+      expect(await eslint.isPathIgnored(file)).toBe(false);
+    },
+  );
 });

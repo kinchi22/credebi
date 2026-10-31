@@ -29,7 +29,7 @@ column below.
 | Keeping a Skill human-only | `disable-model-invocation: true` in the stub's frontmatter. | `policy.allow_implicit_invocation: false` in `agents/openai.yaml`. |
 | External Skills | `code-review`, `pr`, `tdd`, `grill-with-docs`, `to-spec` and `to-tickets` are not vendored here. `enabledPlugins` in the committed `.claude/settings.json` enables them for this repository, so a clone needs no install step. | The same six, from the same upstream. There is no committed equivalent of `enabledPlugins`, so they are installed once per machine. |
 | Subagent | A subagent dispatched with the agent tool, handed a brief path and nothing else; later findings go back to that same subagent, so its context survives the round trip. | A delegated agent run given the same brief. Where delegation is unavailable, a separate session on that brief does what the rule asks for: a context separate from the one that reviews it. |
-| Agent worktree | A `git worktree` under `.agents/worktrees/<task>`. The path is deliberately harness-neutral: where a worktree lives says nothing about which harness made it. | The same path, made the same way. |
+| Agent worktree | A `git worktree` Claude Code makes itself (`--worktree`, `EnterWorktree`, a subagent with `isolation: worktree`) goes under `.claude/worktrees/<name>`, and no committed setting moves it. One made by hand goes under `.agents/worktrees/<task>`. | A `git worktree` made by hand under `.agents/worktrees/<task>`. |
 | Untracked files in an Agent worktree | `.worktreeinclude` names the ignored files Claude Code copies into a worktree it makes: `.env` and `CLAUDE.local.md`. | No committed equivalent; they are copied by hand. |
 
 ## Vocabulary
@@ -47,4 +47,4 @@ and no term is defined in both tables.
 | Driver | The role that runs the `implement-issue` loop: it picks a Task, dispatches an Implementer, reviews what comes back, and merges it or stops for the owner. It builds nothing itself. |
 | Implementer | The role that builds one Task and opens its pull request. It reads its own brief and the issue, and none of the Driver's loop, so the review of its work happens in a context that did not write the code. |
 | Subagent | An agent a session starts, hands a brief and gets a result from, with a context of its own. The Driver dispatches the Implementer as one. |
-| Agent worktree | A `git worktree` under `.agents/worktrees/`, where a Task is built when the primary tree is busy. Disposable: it holds no state that GitHub Issues does not. |
+| Agent worktree | A `git worktree` under `.claude/worktrees/` when Claude Code makes it, or under `.agents/worktrees/` when it is made by hand, where a Task is built when the primary tree is busy. Disposable: it holds no state that GitHub Issues does not. |
