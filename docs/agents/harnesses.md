@@ -47,4 +47,4 @@ and no term is defined in both tables.
 | Driver | The role that runs the `implement-issue` loop: it picks a Task, dispatches an Implementer, reviews what comes back, and merges it or stops for the owner. It builds nothing itself. |
 | Implementer | The role that builds one Task and opens its pull request. It reads its own brief and the issue, and none of the Driver's loop, so the review of its work happens in a context that did not write the code. |
 | Subagent | An agent a session starts, hands a brief and gets a result from, with a context of its own. The Driver dispatches the Implementer as one. |
-| Agent worktree | A `git worktree` under `.claude/worktrees/` when Claude Code makes it, or under `.agents/worktrees/` when it is made by hand, where a Task is built when the primary tree is busy. Disposable: it holds no state that GitHub Issues does not. |
+| Agent worktree | A `git worktree` beside the primary tree, at the path the table above names, where a Task is built when the primary tree is busy. Disposable: it holds no state that GitHub Issues does not. |

@@ -42,7 +42,7 @@ describe('root lint scope', () => {
   );
 
   it.each(['.claude/skills/task/check.mjs', 'apps/web/page.tsx'])(
-    'still lints %s in the main working tree',
+    'lints %s in the main working tree',
     async (file) => {
       expect(await eslint.isPathIgnored(file)).toBe(false);
     },
