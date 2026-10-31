@@ -3,7 +3,7 @@ import { radii, semanticColors, shadows, textSizeTokens, typeScale } from '@repo
 
 export default createEslintConfig({
   tsconfigRootDir: import.meta.dirname,
-  ignores: ['fixtures/**'],
+  ignores: ['fixtures/**', '.claude/worktrees/**', '.agents/worktrees/**'],
   tokens: {
     colors: Object.keys(semanticColors),
     textSizes: [...Object.keys(typeScale), ...Object.keys(textSizeTokens)],

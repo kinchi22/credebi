@@ -36,11 +36,13 @@ test-results/
 apps/web/app/(app)/server-only-probe/
 
 # Agent scratch space. A Task is built in a `git worktree` of its own when the
-# primary tree is busy, and it goes here whichever harness made it. It holds a
-# full checkout and its own node_modules, it is deleted once the Task's pull
-# request merges, and nothing in it is ever the source of a change: the branch
-# is on the remote before the worktree goes.
+# primary tree is busy: under `.claude/worktrees/` when Claude Code makes it,
+# under `.agents/worktrees/` when it is made by hand. It holds a full checkout
+# and its own node_modules, it is deleted once the Task's pull request merges,
+# and nothing in it is ever the source of a change: the branch is on the remote
+# before the worktree goes.
 .agents/worktrees/
+.claude/worktrees/
 
 # Secrets and per-machine configuration
 .env
