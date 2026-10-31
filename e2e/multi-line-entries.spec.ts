@@ -9,7 +9,6 @@ import {
   amountShown,
   DAY,
   entries,
-  entryForm,
   expectPickerOnSide,
   expectSheetOnSide,
   findAnAccount,
@@ -21,6 +20,7 @@ import {
   notActiveAlert,
   notActiveMark,
   openEditEntry,
+  openMultiLineForm,
   submit,
   type LineAccount,
   openAccountSheet,
@@ -33,28 +33,12 @@ import {
 } from './entries';
 import {
   addOldWallet,
-  BOOKS_OPEN,
   OLD_WALLET,
   WALLET_ENDED,
   WALLET_IN_USE,
   WALLET_STILL_IN_USE,
 } from './accounts';
-import { signIn } from './session';
-import { setEntryFormMode } from './settings';
 import { PHONE, WIDE_BELOW_SPLIT } from './viewport';
-
-async function openMultiLineForm(
-  page: Page,
-  prepare?: (page: Page) => Promise<void>,
-): Promise<Locator> {
-  await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  if (prepare !== undefined) await prepare(page);
-  await setEntryFormMode(page, 'Multi-line mode');
-  await page.goto('/entries');
-  const form = entryForm(page);
-  await expect(accountTicks(form, 'Debit')).toBeVisible();
-  return form;
-}
 
 test('offers every Account as a checkbox on each Side, and ticking, unticking or Remove adds or drops its line', async ({ page }) => {
   const form = await openMultiLineForm(page);
