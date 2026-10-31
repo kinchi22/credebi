@@ -16,7 +16,7 @@
     "db:drift": "node tools/check-migration-drift.mjs",
     "typecheck": "turbo run typecheck && tsc -p tsconfig.json",
     "lint": "eslint .",
-    "dep-cruise": "depcruise packages apps --config .dependency-cruiser.cjs",
+    "dep-cruise": "depcruise packages apps e2e tools --config .dependency-cruiser.cjs",
     "dep-cruise:graph": "depcruise packages apps --config .dependency-cruiser.cjs --output-type dot | dot -T svg > reports/dependency-graph.svg",
     "test:unit": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
