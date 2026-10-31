@@ -12,7 +12,7 @@ found along the way that is not the current Task becomes an issue of its own.
 | ------- | -------------- | ---------- |
 | Feature | `type:feature` | One or more acceptance criteria. Its body is the spec. It gets one milestone branch (`docs/ARCHITECTURE.md`, "How a criterion ships"), and the `milestone/<name> -> main` pull request closes it, except as "Features with no milestone" says. |
 | Task    | `type:task`    | A sub-issue of a Feature, sized to one session: one Task, one branch, one pull request. A Task that needs more than one session is split before it starts. |
-| Bug     | `type:bug`     | A defect. Worked like a Task, and with no Feature above it, its pull request goes to `main`. |
+| Bug     | `type:bug`     | A defect. Worked like a Task, and with no Feature above it, its pull request goes to `main`, except as "A Bug with a failing spec" says. |
 
 The label is the type. GitHub's Issue Types are an organisation feature and are
 not used. A Feature's progress is its sub-issues' completion.
@@ -160,8 +160,19 @@ only, goes to `main`, is approved by the owner as code owner, and carries
 | Any other Feature Task | `milestone/<name>` |
 | A Task of a Feature with no specs | `main` |
 | Bug                   | `main` |
+| Spec or fix of a Bug with a failing spec | `milestone/<name>` |
 
 A pull request is squashed, and its body carries `Closes #<task>`.
+
+### A Bug with a failing spec
+
+A Bug whose spec fails until its fix lands cannot reach `main` in two pull
+requests: the spec's would merge red past `E2E build`, and one carrying both
+fails `Spec isolation`. Such a Bug gets `milestone/<name>`, created from
+`main`. Its spec and its fix each merge onto it, the spec reviewed by the owner
+as code owner and the fix unattended, and each carries `Refs #<bug>`, since
+`Closes` would close the Bug on the milestone. The `milestone/<name> -> main`
+pull request carries `Closes #<bug>`, and the owner approves it.
 
 ## Operations
 
