@@ -1,4 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test';
+import { BOOKS_OPEN } from './accounts';
+import { signIn } from './session';
 import { setEntryFormMode, type EntryFormMode } from './settings';
 
 export const AMOUNT = '12500';
@@ -313,6 +315,17 @@ export async function openEntryForm(page: Page, mode: EntryFormMode): Promise<Lo
   await page.goto('/entries');
   const form = entryForm(page);
   await expect(form).toBeVisible();
+  return form;
+}
+
+export async function openMultiLineForm(
+  page: Page,
+  prepare?: (page: Page) => Promise<void>,
+): Promise<Locator> {
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
+  if (prepare !== undefined) await prepare(page);
+  const form = await openEntryForm(page, 'Multi-line mode');
+  await expect(accountTicks(form, 'Debit')).toBeVisible();
   return form;
 }
 

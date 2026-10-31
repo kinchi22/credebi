@@ -24,8 +24,14 @@ export type AccountsText = {
   readonly noGroup: string;
 };
 
+export type MultiLineFormText = {
+  readonly debitAccounts: string;
+  readonly fillDifference: string;
+};
+
 export type CatalogueText = {
   readonly accounts: AccountsText;
+  readonly multiLineForm: MultiLineFormText;
   readonly language: string;
   readonly signIn: string;
   readonly google: string;
@@ -47,6 +53,7 @@ export const CATALOGUE: Readonly<Record<Language, CatalogueText>> = {
       group: 'Group',
       noGroup: 'No group',
     },
+    multiLineForm: { debitAccounts: 'Debit accounts', fillDifference: 'Fill difference' },
     language: 'Language',
     signIn: 'Sign in',
     google: 'Sign in with Google',
@@ -66,6 +73,7 @@ export const CATALOGUE: Readonly<Record<Language, CatalogueText>> = {
       group: '\uADF8\uB8F9',
       noGroup: '\uADF8\uB8F9 \uC5C6\uC74C',
     },
+    multiLineForm: { debitAccounts: '\uCC28\uBCC0 \uACC4\uC815', fillDifference: '\uCC28\uC561 \uCC44\uC6B0\uAE30' },
     language: '\uC5B8\uC5B4',
     signIn: '\uB85C\uADF8\uC778',
     google: 'Google\uB85C \uB85C\uADF8\uC778',
@@ -85,6 +93,7 @@ export const CATALOGUE: Readonly<Record<Language, CatalogueText>> = {
       group: '\u30B0\u30EB\u30FC\u30D7',
       noGroup: '\u30B0\u30EB\u30FC\u30D7\u306A\u3057',
     },
+    multiLineForm: { debitAccounts: '\u501F\u65B9\u306E\u52D8\u5B9A\u79D1\u76EE', fillDifference: '\u5DEE\u984D\u3092\u5165\u529B' },
     language: '\u8A00\u8A9E',
     signIn: '\u30ED\u30B0\u30A4\u30F3',
     google: 'Google\u3067\u30ED\u30B0\u30A4\u30F3',
