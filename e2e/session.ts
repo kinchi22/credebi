@@ -4,6 +4,8 @@ import { ENTRIES_URL } from './routes';
 
 export const SESSION_COOKIE = 'session';
 
+export const BOOKS_OPEN = '2000-01-01';
+
 export const freshIdentifier = (): string => `e2e-${randomUUID()}`;
 
 export type SignInOptions = {

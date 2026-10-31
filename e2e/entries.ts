@@ -1,6 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
-import { BOOKS_OPEN } from './accounts';
-import { signIn } from './session';
+import { BOOKS_OPEN, signIn } from './session';
 import { setEntryFormMode, type EntryFormMode } from './settings';
 
 export const AMOUNT = '12500';
