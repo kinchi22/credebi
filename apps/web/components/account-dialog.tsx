@@ -206,7 +206,6 @@ function AccountForm({
   const [status, setStatus] = useState<StatusLine>();
   const [addAnother, setAddAnother] = useState(false);
   const [kept, setKept] = useState<Kept>({ round: 0, fields: undefined });
-  const descriptionId = useId();
   const kind = KINDS[target.kind];
   const described = target.editing;
   const adding = described === undefined;
@@ -270,16 +269,14 @@ function AccountForm({
             className={CONTROL}
           />
         </label>
-        <div className={FIELD}>
-          <label htmlFor={descriptionId}>{t('accountDialog.description')}</label>
-          <textarea
-            id={descriptionId}
+        <label className={FIELD}>
+          {t('accountDialog.description')}
+          <input
             name={ACCOUNT_FORM_FIELDS.description}
-            rows={2}
             defaultValue={described?.description ?? ''}
             className={CONTROL}
           />
-        </div>
+        </label>
         {target.kind === 'account' ? (
           <AccountFields
             defaults={accountDefaults}
