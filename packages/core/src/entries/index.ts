@@ -1,8 +1,8 @@
 export { MEMO_MAX_LENGTH, TITLE_MAX_LENGTH, makeEntry } from './domain/entry';
 export type { Entry, EntryDraft, EntryLine, EntryStamp } from './domain/entry';
 
-export { draftTotals } from './domain/draft-totals';
-export type { DraftLine, DraftTotals } from './domain/draft-totals';
+export { differenceFill, draftTotals } from './domain/draft-totals';
+export type { DifferenceFill, DraftLine, DraftTotals } from './domain/draft-totals';
 export { draftLinesInOrder } from './domain/draft-line-order';
 export { titleMatching } from './domain/title-match';
 

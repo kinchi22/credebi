@@ -338,6 +338,7 @@ export const ko = {
     debitTotal: '차변 합계',
     creditTotal: '대변 합계',
     difference: '차액',
+    fillDifference: '차액 채우기',
     tooLarge: '이 금액들의 합이 한 금액에 담을 수 있는 한도를 넘습니다.',
   },
   notActiveOnDay: {

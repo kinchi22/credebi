@@ -14,14 +14,20 @@ import {
   type Result,
   type Side,
 } from '@repo/contracts';
-import { draftTotals, type DraftLine, type DraftTotals } from '@repo/core/entries';
-import { isZeroMoney } from '@repo/core/money';
+import {
+  differenceFill,
+  draftTotals,
+  type DifferenceFill,
+  type DraftLine,
+  type DraftTotals,
+} from '@repo/core/entries';
+import { isZeroMoney, moneyToMinorUnits } from '@repo/core/money';
 import { CloseIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useState, type ReactNode } from 'react';
 import { AccountPicker, AddAccountButton, useAccountSheet } from './account-picker';
 import { formatAmount } from './amount';
-import { BARE_ICON_BUTTON } from './control-classes';
+import { BARE_ICON_BUTTON, BUTTON } from './control-classes';
 import {
   AmountInput,
   ENTRY_FORM_GRID,
@@ -87,38 +93,52 @@ function SideTotal({ side, amount, ruled }: SideTotalProps): ReactNode {
 
 type DifferenceRowProps = {
   readonly totals: Result<DraftTotals, DomainError>;
+  readonly fill: (() => void) | undefined;
   readonly refusal: ReactNode;
   readonly submitButton: ReactNode;
 };
 
-function DifferenceRow({ totals, refusal, submitButton }: DifferenceRowProps): ReactNode {
+function DifferenceRow({ totals, fill, refusal, submitButton }: DifferenceRowProps): ReactNode {
   const t = useTranslations();
   return (
     <div className="flex flex-col gap-2 border-t-3 border-double border-text pt-2.5">
       <div className="flex items-center gap-3">
-        {totals.ok ? (
-          <p className="flex min-w-0 grow items-baseline gap-2.5">
-            <span className={`${typeClasses.label} text-text-muted`}>
-              {t('multiLineForm.difference')}
-            </span>
-            <span
-              data-testid="difference"
-              className={`${typeClasses.figure} ${isZeroMoney(totals.value.difference) ? 'text-text' : 'font-medium text-warning'}`}
-            >
-              {formatAmount(totals.value.difference)}
-            </span>
-          </p>
-        ) : (
-          <p className={`min-w-0 grow ${DANGER_TEXT} ${typeClasses['body-dense']}`}>
-            {t('multiLineForm.tooLarge')}
-          </p>
-        )}
+        <div className="flex min-w-0 grow items-center gap-2.5">
+          {totals.ok ? (
+            <p className="flex min-w-0 items-baseline gap-2.5">
+              <span className={`${typeClasses.label} text-text-muted`}>
+                {t('multiLineForm.difference')}
+              </span>
+              <span
+                data-testid="difference"
+                className={`${typeClasses.figure} ${isZeroMoney(totals.value.difference) ? 'text-text' : 'font-medium text-warning'}`}
+              >
+                {formatAmount(totals.value.difference)}
+              </span>
+            </p>
+          ) : (
+            <p className={`min-w-0 ${DANGER_TEXT} ${typeClasses['body-dense']}`}>
+              {t('multiLineForm.tooLarge')}
+            </p>
+          )}
+          <button
+            type="button"
+            disabled={fill === undefined}
+            onClick={fill}
+            className={`shrink-0 ${BUTTON}`}
+          >
+            {t('multiLineForm.fillDifference')}
+          </button>
+        </div>
         {submitButton}
       </div>
       {refusal}
     </div>
   );
 }
+
+const amountFieldId = (id: string, line: ChosenLine): string =>
+  `${id}-${line.side}-${line.account}-amount`;
 
 type LineFieldsProps = {
   readonly id: string;
@@ -130,7 +150,7 @@ type LineFieldsProps = {
 
 function LineFields({ id, line, active, onAmountChange, onRemove }: LineFieldsProps): ReactNode {
   const t = useTranslations();
-  const lineId = `${id}-${line.side}-${line.account}`;
+  const amountId = amountFieldId(id, line);
 
   return (
     <fieldset
@@ -150,9 +170,9 @@ function LineFields({ id, line, active, onAmountChange, onRemove }: LineFieldsPr
       <div className={`${AMOUNT_COLUMN} items-center`}>
         <div className="min-w-0 grow">
           <AmountInput
-            id={`${lineId}-amount`}
+            id={amountId}
             label={t('multiLineForm.amount')}
-            defaultValue={line.amount}
+            value={line.amount}
             onAmountChange={onAmountChange}
           />
         </div>
@@ -241,6 +261,11 @@ function MultiLineFields({
   };
 
   const totals = draftTotals(lines.counted);
+  const fillFrom = ({ line, amount }: DifferenceFill<ChosenLine>) => (): void => {
+    changeAmount(line.side, line.account, String(moneyToMinorUnits(amount)));
+    document.getElementById(amountFieldId(id, line))?.focus();
+  };
+  const fill = differenceFill(lines.counted);
   const isActive = (line: ChosenLine): boolean => !lines.notActive.includes(line);
 
   return (
@@ -281,6 +306,7 @@ function MultiLineFields({
         </div>
         <DifferenceRow
           totals={totals}
+          fill={fill === undefined ? undefined : fillFrom(fill)}
           refusal={
             hold.refused === undefined ? (
               refusal

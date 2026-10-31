@@ -9,7 +9,10 @@ import {
   type Side,
 } from './entries';
 import { CATALOGUE, type Language } from './language';
+import { BOOKS_OPEN } from './session';
 import { viewportOf } from './viewport';
+
+export { BOOKS_OPEN };
 
 export type { AccountType };
 
@@ -308,8 +311,6 @@ export async function dayInBrowser(page: Page, daysFromToday = 0): Promise<strin
 
 export const offeredType = (form: Locator, side: Side, type: AccountType): Locator =>
   accountChoices(form, side).getByRole('group', { name: typeGroupName(type) });
-
-export const BOOKS_OPEN = '2000-01-01';
 
 export const OLD_WALLET: AddedAccount = { added: 'Old wallet' };
 

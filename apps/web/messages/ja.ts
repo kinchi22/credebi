@@ -340,6 +340,7 @@ export const ja = {
     debitTotal: '借方合計',
     creditTotal: '貸方合計',
     difference: '差額',
+    fillDifference: '差額を入力',
     tooLarge: 'これらの金額の合計が、1つの金額で扱える上限を超えています。',
   },
   notActiveOnDay: {

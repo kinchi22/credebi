@@ -322,6 +322,7 @@ export const en = {
     debitTotal: 'Debit total',
     creditTotal: 'Credit total',
     difference: 'Difference',
+    fillDifference: 'Fill difference',
     tooLarge: 'These amounts add up to more than an amount can hold.',
   },
   notActiveOnDay: {

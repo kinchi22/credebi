@@ -170,15 +170,13 @@ export const ENTRY_FORM_GRID =
 type AmountInputProps = {
   readonly id: string;
   readonly label: string;
-  readonly defaultValue?: string | undefined;
-  readonly value?: string | undefined;
+  readonly value: string;
   readonly onAmountChange?: (amount: string) => void;
 };
 
 export function AmountInput({
   id,
   label,
-  defaultValue,
   value,
   onAmountChange,
 }: AmountInputProps): ReactNode {
@@ -187,7 +185,6 @@ export function AmountInput({
       id={id}
       aria-label={label}
       name={ENTRY_FORM_FIELDS.amount}
-      defaultValue={defaultValue}
       value={value}
       onChange={
         onAmountChange === undefined
