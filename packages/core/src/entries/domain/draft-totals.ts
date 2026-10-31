@@ -9,7 +9,14 @@ import {
   type Result,
   type Side,
 } from '@repo/contracts';
-import { addMoney, money, negateMoney, sumMoney } from '../../money/domain/money';
+import {
+  addMoney,
+  isZeroMoney,
+  money,
+  moneyToMinorUnits,
+  negateMoney,
+  sumMoney,
+} from '../../money/domain/money';
 
 export type DraftLine = {
   readonly side: Side;
@@ -62,4 +69,26 @@ export function draftTotals(lines: readonly DraftLine[]): Result<DraftTotals, Do
   return difference.ok
     ? ok({ debit: debit.value, credit: credit.value, difference: difference.value })
     : difference;
+}
+
+export type DifferenceFill<Line extends DraftLine> = {
+  readonly line: Line;
+  readonly amount: Money;
+};
+
+export function differenceFill<Line extends DraftLine>(
+  lines: readonly Line[],
+): DifferenceFill<Line> | undefined {
+  const totals = draftTotals(lines);
+  if (!totals.ok || isZeroMoney(totals.value.difference)) {
+    return undefined;
+  }
+  const { difference } = totals.value;
+  const short: Side = moneyToMinorUnits(difference) > 0 ? 'credit' : 'debit';
+  const empty = lines.filter((line) => line.side === short && line.amount.trim() === '');
+  const [line] = empty;
+  if (line === undefined || empty.length > 1) {
+    return undefined;
+  }
+  return { line, amount: short === 'credit' ? difference : negateMoney(difference) };
 }
