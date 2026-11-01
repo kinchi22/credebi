@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
-import { type AccountType } from './entries';
+import { type AccountType, type BalanceDirection } from './entries';
 import { ENTRIES_URL } from './routes';
 import { freshIdentifier } from './session';
 
@@ -31,6 +31,7 @@ export type MultiLineFormText = {
 
 export type CatalogueText = {
   readonly accounts: AccountsText;
+  readonly directions: Readonly<Record<BalanceDirection, string>>;
   readonly multiLineForm: MultiLineFormText;
   readonly language: string;
   readonly signIn: string;
@@ -53,6 +54,7 @@ export const CATALOGUE: Readonly<Record<Language, CatalogueText>> = {
       group: 'Group',
       noGroup: 'No group',
     },
+    directions: { Increase: 'Increase', Decrease: 'Decrease' },
     multiLineForm: { debitAccounts: 'Debit accounts', fillDifference: 'Fill difference' },
     language: 'Language',
     signIn: 'Sign in',
@@ -73,6 +75,7 @@ export const CATALOGUE: Readonly<Record<Language, CatalogueText>> = {
       group: '\uADF8\uB8F9',
       noGroup: '\uADF8\uB8F9 \uC5C6\uC74C',
     },
+    directions: { Increase: '\uC99D\uAC00', Decrease: '\uAC10\uC18C' },
     multiLineForm: { debitAccounts: '\uCC28\uBCC0 \uACC4\uC815', fillDifference: '\uCC28\uC561 \uCC44\uC6B0\uAE30' },
     language: '\uC5B8\uC5B4',
     signIn: '\uB85C\uADF8\uC778',
@@ -93,6 +96,7 @@ export const CATALOGUE: Readonly<Record<Language, CatalogueText>> = {
       group: '\u30B0\u30EB\u30FC\u30D7',
       noGroup: '\u30B0\u30EB\u30FC\u30D7\u306A\u3057',
     },
+    directions: { Increase: '\u5897\u52A0', Decrease: '\u6E1B\u5C11' },
     multiLineForm: { debitAccounts: '\u501F\u65B9\u306E\u52D8\u5B9A\u79D1\u76EE', fillDifference: '\u5DEE\u984D\u3092\u5165\u529B' },
     language: '\u8A00\u8A9E',
     signIn: '\u30ED\u30B0\u30A4\u30F3',

@@ -8,9 +8,10 @@ import {
   accountTicks,
   ACCOUNTS,
   type AccountType,
-  type BalanceDirection,
+  BALANCE_DIRECTION,
   chooseAccountButton,
   expectNamesInOrder,
+  groupName,
   lineGroup,
   openAccountSheet,
   openEntryForm,
@@ -25,6 +26,7 @@ import {
   titleField,
   type Side,
 } from './entries';
+import { band, expectTinted, SUGGESTED_TINT, TYPE_TINT } from './account-type-cues';
 import { signIn } from './session';
 import { type EntryFormMode } from './settings';
 import { PHONE } from './viewport';
@@ -32,14 +34,6 @@ import { PHONE } from './viewport';
 const SIDE_ORDER: Readonly<Record<Side, readonly AccountType[]>> = {
   Debit: ['Expenses', 'Assets', 'Liabilities', 'Equity', 'Revenue'],
   Credit: ['Assets', 'Liabilities', 'Revenue', 'Equity', 'Expenses'],
-};
-
-const BALANCE_DIRECTION: Readonly<Record<AccountType, Readonly<Record<Side, BalanceDirection>>>> = {
-  Assets: { Debit: 'Increase', Credit: 'Decrease' },
-  Liabilities: { Debit: 'Decrease', Credit: 'Increase' },
-  Equity: { Debit: 'Decrease', Credit: 'Increase' },
-  Revenue: { Debit: 'Decrease', Credit: 'Increase' },
-  Expenses: { Debit: 'Increase', Credit: 'Decrease' },
 };
 
 const CHART: Readonly<Record<AccountType, readonly string[]>> = {
@@ -120,9 +114,6 @@ const MODES: readonly Mode[] = [
   },
 ];
 
-const groupName = (type: AccountType, side: Side): string =>
-  `${type}, ${BALANCE_DIRECTION[type][side]}`;
-
 async function keepExpensesInUsersOrder(page: Page): Promise<void> {
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await page.goto('/settings');
@@ -131,6 +122,14 @@ async function keepExpensesInUsersOrder(page: Page): Promise<void> {
   await addAccount(page, 'Expenses', { name: 'Meals' });
   await addAccount(page, 'Expenses', { name: 'Hotels', group: 'Travel' });
   await postEntries(page, [titled(TITLE, `${TITLE} ${randomUUID()}`)]);
+}
+
+async function expectBandsTinted(picker: Locator, side: Side): Promise<void> {
+  await expectTinted(band(suggested(picker)), SUGGESTED_TINT);
+  for (const type of SIDE_ORDER[side]) {
+    const group = picker.getByRole('group', { name: groupName(type, side), exact: true });
+    await expectTinted(band(group), TYPE_TINT[type]);
+  }
 }
 
 async function expectSideOrder(picker: Locator, side: Side, role: PickRole): Promise<void> {
@@ -169,6 +168,29 @@ for (const { mode, role, pickers, openSheet, chooseEach, chooseEachOnSheet } of 
     for (const side of SIDES) {
       await sheetTab(sheet, side).click();
       await expectSideOrder(pickers(sheet, side), side, role);
+    }
+  });
+
+  test(`tints each Account type's Band in its type colour on both Sides in ${mode}, and keeps the Suggested Band's own`, async ({ page }) => {
+    await keepExpensesInUsersOrder(page);
+    const form = await openEntryForm(page, mode);
+    await titleField(form).fill(TITLE);
+
+    for (const side of SIDES) {
+      await expectBandsTinted(pickers(form, side), side);
+    }
+  });
+
+  test(`tints each Account type's Band in its type colour on each tab of the Account sheet at 390px in ${mode}, and keeps the Suggested Band's own`, async ({ page }) => {
+    await keepExpensesInUsersOrder(page);
+    await page.setViewportSize(PHONE);
+    const form = await openEntryForm(page, mode);
+    await titleField(form).fill(TITLE);
+    const sheet = await openSheet(form, 'Debit');
+
+    for (const side of SIDES) {
+      await sheetTab(sheet, side).click();
+      await expectBandsTinted(pickers(sheet, side), side);
     }
   });
 

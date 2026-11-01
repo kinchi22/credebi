@@ -45,6 +45,28 @@ export const BALANCE_DIRECTIONS = ['Increase', 'Decrease'] as const;
 
 export type BalanceDirection = (typeof BALANCE_DIRECTIONS)[number];
 
+export const BALANCE_DIRECTION: Readonly<Record<AccountType, Readonly<Record<Side, BalanceDirection>>>> = {
+  Assets: { Debit: 'Increase', Credit: 'Decrease' },
+  Liabilities: { Debit: 'Decrease', Credit: 'Increase' },
+  Equity: { Debit: 'Decrease', Credit: 'Increase' },
+  Revenue: { Debit: 'Decrease', Credit: 'Increase' },
+  Expenses: { Debit: 'Increase', Credit: 'Decrease' },
+};
+
+export const TYPE_OF: Readonly<Record<Account, AccountType>> = {
+  Cash: 'Assets',
+  'Bank deposits': 'Assets',
+  'Credit card payable': 'Liabilities',
+  'Opening balance equity': 'Equity',
+  Salary: 'Revenue',
+  Food: 'Expenses',
+  Transportation: 'Expenses',
+  'Other living expenses': 'Expenses',
+};
+
+export const groupName = (type: AccountType, side: Side): string =>
+  `${type}, ${BALANCE_DIRECTION[type][side]}`;
+
 export type PickRole = 'radio' | 'checkbox';
 
 export type Side = (typeof SIDES)[number];
