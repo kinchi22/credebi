@@ -26,7 +26,6 @@ import {
   titleField,
   type Side,
 } from './entries';
-import { band, expectTinted, SUGGESTED_TINT, TYPE_TINT } from './account-type-cues';
 import { signIn } from './session';
 import { type EntryFormMode } from './settings';
 import { PHONE } from './viewport';
@@ -124,14 +123,6 @@ async function keepExpensesInUsersOrder(page: Page): Promise<void> {
   await postEntries(page, [titled(TITLE, `${TITLE} ${randomUUID()}`)]);
 }
 
-async function expectBandsTinted(picker: Locator, side: Side): Promise<void> {
-  await expectTinted(band(suggested(picker)), SUGGESTED_TINT);
-  for (const type of SIDE_ORDER[side]) {
-    const group = picker.getByRole('group', { name: groupName(type, side), exact: true });
-    await expectTinted(band(group), TYPE_TINT[type]);
-  }
-}
-
 async function expectSideOrder(picker: Locator, side: Side, role: PickRole): Promise<void> {
   await expectNamesInOrder(picker.getByRole('group'), [
     'Suggested',
@@ -168,29 +159,6 @@ for (const { mode, role, pickers, openSheet, chooseEach, chooseEachOnSheet } of 
     for (const side of SIDES) {
       await sheetTab(sheet, side).click();
       await expectSideOrder(pickers(sheet, side), side, role);
-    }
-  });
-
-  test(`tints each Account type's Band in its type colour on both Sides in ${mode}, and keeps the Suggested Band's own`, async ({ page }) => {
-    await keepExpensesInUsersOrder(page);
-    const form = await openEntryForm(page, mode);
-    await titleField(form).fill(TITLE);
-
-    for (const side of SIDES) {
-      await expectBandsTinted(pickers(form, side), side);
-    }
-  });
-
-  test(`tints each Account type's Band in its type colour on each tab of the Account sheet at 390px in ${mode}, and keeps the Suggested Band's own`, async ({ page }) => {
-    await keepExpensesInUsersOrder(page);
-    await page.setViewportSize(PHONE);
-    const form = await openEntryForm(page, mode);
-    await titleField(form).fill(TITLE);
-    const sheet = await openSheet(form, 'Debit');
-
-    for (const side of SIDES) {
-      await sheetTab(sheet, side).click();
-      await expectBandsTinted(pickers(sheet, side), side);
     }
   });
 

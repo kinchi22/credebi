@@ -1,17 +1,7 @@
 import { expect, test, type Locator } from '@playwright/test';
-import { directionArrow, expectDirection, expectLeftOf, expectTile, typeTile } from './account-type-cues';
+import { expectNameCued, formLineName } from './account-type-cues';
 import { BOOKS_OPEN } from './accounts';
-import {
-  type Account,
-  accountChoice,
-  accountTick,
-  BALANCE_DIRECTION,
-  lineGroup,
-  openEntryForm,
-  type Side,
-  SIDES,
-  TYPE_OF,
-} from './entries';
+import { type Account, accountChoice, accountTick, lineGroup, openEntryForm, type Side } from './entries';
 import { signIn } from './session';
 import { type EntryFormMode } from './settings';
 
@@ -23,47 +13,64 @@ const ONE_OF_EACH_TYPE: readonly Account[] = [
   'Food',
 ];
 
+const ANOTHER_DEBIT: Account = 'Transportation';
+
 type Mode = {
   readonly mode: EntryFormMode;
-  readonly choose: (form: Locator, side: Side, account: Account) => Promise<void>;
+  readonly chooseOnDebit: (form: Locator, account: Account) => Promise<void>;
+  readonly moveToCredit: (form: Locator, account: Account) => Promise<void>;
+  readonly clearCredit: (form: Locator, account: Account) => Promise<void>;
 };
 
 const MODES: readonly Mode[] = [
   {
     mode: 'Two-line mode',
-    choose: async (form, side, account) => {
-      await accountChoice(form, side, account).check();
+    chooseOnDebit: async (form, account) => {
+      await accountChoice(form, 'Debit', account).check();
     },
+    moveToCredit: async (form, account) => {
+      await accountChoice(form, 'Debit', ANOTHER_DEBIT).check();
+      await accountChoice(form, 'Credit', account).check();
+    },
+    clearCredit: async () => {},
   },
   {
     mode: 'Multi-line mode',
-    choose: async (form, side, account) => {
-      await accountTick(form, side, account).check();
+    chooseOnDebit: async (form, account) => {
+      await accountTick(form, 'Debit', account).check();
+    },
+    moveToCredit: async (form, account) => {
+      await accountTick(form, 'Debit', account).uncheck();
+      await accountTick(form, 'Credit', account).check();
+    },
+    clearCredit: async (form, account) => {
+      await accountTick(form, 'Credit', account).uncheck();
+      await expect(lineGroup(form, 'Credit', account)).toHaveCount(0);
     },
   },
 ];
 
 async function expectChosenCue(form: Locator, side: Side, account: Account): Promise<void> {
-  const line = lineGroup(form, side, account);
-  const type = TYPE_OF[account];
+  const line = form.getByRole('group', { name: formLineName(account, side), exact: true });
   await expect(line).toBeVisible();
-  await expectTile(line, type);
-  const name = line.getByText(account, { exact: true }).filter({ visible: true });
-  await expectLeftOf(typeTile(line), name, `${side} ${account}'s tile and name`);
-  await expectDirection(line, type, side);
-  await expectLeftOf(name, directionArrow(line, BALANCE_DIRECTION[type][side]), `${side} ${account}'s name and direction`);
+  await expectNameCued(line, account);
 }
 
-for (const { mode, choose } of MODES) {
-  test(`leads each chosen Account in ${mode} with a tile tinted in its type colour and follows it with the Balance direction for its Side, for every Account type on both Sides`, async ({ page }) => {
+for (const { mode, chooseOnDebit, moveToCredit, clearCredit } of MODES) {
+  test(`names each chosen Account in ${mode} by its Side, Account, Account type and Balance direction, leading its name with a tile tinted in its type colour and following it with an arrow, and changes the direction when the Account moves to the other Side, for every Account type`, async ({ page }) => {
     await signIn(page, { accountsStartOn: BOOKS_OPEN });
     const form = await openEntryForm(page, mode);
 
     for (const account of ONE_OF_EACH_TYPE) {
-      for (const side of SIDES) {
-        await choose(form, side, account);
-        await expectChosenCue(form, side, account);
-      }
+      await chooseOnDebit(form, account);
+      await expectChosenCue(form, 'Debit', account);
+
+      await moveToCredit(form, account);
+      await expectChosenCue(form, 'Credit', account);
+      await expect(lineGroup(form, 'Debit', account)).toHaveCount(0);
+
+      await clearCredit(form, account);
     }
   });
 }
+

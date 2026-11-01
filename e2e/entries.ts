@@ -53,17 +53,6 @@ export const BALANCE_DIRECTION: Readonly<Record<AccountType, Readonly<Record<Sid
   Expenses: { Debit: 'Increase', Credit: 'Decrease' },
 };
 
-export const TYPE_OF: Readonly<Record<Account, AccountType>> = {
-  Cash: 'Assets',
-  'Bank deposits': 'Assets',
-  'Credit card payable': 'Liabilities',
-  'Opening balance equity': 'Equity',
-  Salary: 'Revenue',
-  Food: 'Expenses',
-  Transportation: 'Expenses',
-  'Other living expenses': 'Expenses',
-};
-
 export const groupName = (type: AccountType, side: Side): string =>
   `${type}, ${BALANCE_DIRECTION[type][side]}`;
 
@@ -169,8 +158,10 @@ export async function expectSuggested(
 
 const lineName = (side: Side, account: LineAccount): string => `${side} ${nameOf(account)}`;
 
+const LINE_CUE = `(, (${ACCOUNT_TYPES.join('|')}), (${BALANCE_DIRECTIONS.join('|')}))?`;
+
 export const lineGroup = (form: Locator, side: Side, account: LineAccount): Locator =>
-  form.getByRole('group', { name: lineName(side, account), exact: true });
+  form.getByRole('group', { name: new RegExp(`^${escaped(lineName(side, account))}${LINE_CUE}$`) });
 
 export const lineAmount = (form: Locator, side: Side, account: LineAccount): Locator =>
   lineGroup(form, side, account).getByLabel('Amount');
@@ -180,7 +171,7 @@ export const escaped = (name: string): string => name.replace(/[.*+?^${}()|[\]\\
 export const lineGroups = (form: Locator, ...added: readonly AddedAccount[]): Locator =>
   form.getByRole('group', {
     name: new RegExp(
-      `^(${SIDES.join('|')}) (${[...ACCOUNTS, ...added.map(nameOf)].map(escaped).join('|')})$`,
+      `^(${SIDES.join('|')}) (${[...ACCOUNTS, ...added.map(nameOf)].map(escaped).join('|')})${LINE_CUE}$`,
     ),
   });
 
