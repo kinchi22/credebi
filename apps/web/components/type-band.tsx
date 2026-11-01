@@ -37,12 +37,12 @@ const TYPE_HUE: Readonly<Record<AccountType, TypeHue>> = {
   expense: { tint: 'bg-type-expense-tint', stroke: 'text-type-expense' },
 };
 
-export type TypeIconProps = {
+type TypeIconProps = {
   readonly accountType: AccountType;
   readonly size?: IconSize;
 };
 
-export function TypeIcon({ accountType, size = 16 }: TypeIconProps): ReactNode {
+function TypeIcon({ accountType, size = 16 }: TypeIconProps): ReactNode {
   const Icon = TYPE_ICON[accountType];
   return <Icon size={size} />;
 }

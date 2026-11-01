@@ -8,7 +8,7 @@ import { nameContains } from './chart-tree';
 import { Combobox } from './combobox';
 import { BARE_ICON_BUTTON, CONTROL, FIELD } from './control-classes';
 import { settleAccount } from './settle-account';
-import { TypeIcon } from './type-band';
+import { TypeTile } from './type-band';
 
 export type AccountComboboxProps = {
   readonly id: string;
@@ -61,8 +61,8 @@ export function AccountCombobox({ id, name, label, accounts, defaultValue }: Acc
       </label>
       <div className="relative">
         {showsChosen ? (
-          <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-text">
-            <TypeIcon accountType={chosen.accountType} />
+          <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center">
+            <TypeTile accountType={chosen.accountType} />
           </span>
         ) : null}
         <Combobox
@@ -77,7 +77,7 @@ export function AccountCombobox({ id, name, label, accounts, defaultValue }: Acc
           renderOption={(account) => (
             <span className="flex items-start gap-2">
               <span className="flex h-lh shrink-0 items-center">
-                <TypeIcon accountType={account.accountType} />
+                <TypeTile accountType={account.accountType} />
               </span>
               <span className="min-w-0">{account.name}</span>
             </span>
