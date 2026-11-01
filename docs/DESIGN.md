@@ -919,8 +919,10 @@ numerals.
   group row and grouped Account row, and its total. The server decides from
   those counts, so nothing moves after the page loads; the grid has rows
   `auto 1fr`, the longer section spans both and the shorter one and `Totals`
-  take one each. Each table's caption is the panel's
-  title, `PANEL_TITLE`, on the left above the rows. In `body-sm`, each row holds
+  take one each. `Revenue` and `Expenses` open with their type's Band, drawn
+  as the Accounts section's and carrying no Balance direction, 8px above the
+  rows, and each table is named by its type; `Totals` mixes types, so its
+  caption is the panel's title, `PANEL_TITLE`, on the left above the rows. In `body-sm`, each row holds
   a name on the left, Regular in `text`, and one amount on the right in
   `figure`, never wrapped; a long name wraps anywhere, so the row stays within
   the screen at 390px. A `border` hairline parts each row from the one above. A
@@ -931,7 +933,8 @@ numerals.
   Accounts follow it, their names indented 16px; their hairlines and amounts
   are an Account row's.
 - **Assets and liabilities tables.** Use the Income statement tables' styling
-  and placement rule for `Totals`. Below `split`, stack `Assets`, `Liabilities`
+  and placement rule for `Totals`; `Assets` and `Liabilities` open with their
+  types' Bands as `Revenue` and `Expenses` do. Below `split`, stack `Assets`, `Liabilities`
   and `Totals` in that order. From `split` up, put `Assets` on the left and
   `Liabilities` on the right; equal row counts place `Totals` below `Liabilities`.
 - **Line chart.** Drawn with Recharts (ADR-0030) in a panel spanning the page,
@@ -1160,7 +1163,7 @@ hidden.
 | Wordmark       | The name "Credebi" drawn as outlined glyphs, as the Wordmark paragraph under `Logo` states, with C and d in the accent colour of its tone. |
 | Lockup         | A fixed arrangement of the Mark and the Wordmark: horizontal or stacked. The Mark alone is also a variant of the logo. |
 | Semantic token | A colour named by its role, such as `text-muted` or `danger`, mapped onto a brand palette colour. Components use only these. |
-| Band           | A strip filled with its Account type's tint, such as `type-asset-tint`, with the `control` radius behind the type's name, set in `body-sm`, semibold, in `text`, and led by the type's icon drawn in the type's colour, such as `type-asset`, so the Account types read apart from each other and from the groups and Accounts under them. It is drawn in the Accounts section, the Account picker and the Account sheet. In the Account picker and the Account sheet it carries at its right edge the type's Balance direction for the Side: a 14px arrow, up for `Increase` and down for `Decrease`, then the word, in `body-sm` and `text-muted`, with no Side colour and no red or green, since neither direction is good or bad. The arrow is hidden from assistive technology, and the type's group is named by one message joining the type's name and the word, as `Assets, Increase`. The Suggested Band is one more, tinted `band-suggested` and led by a sparkle, over the Suggested accounts in the Account picker and the Account sheet. |
+| Band           | A strip filled with its Account type's tint, such as `type-asset-tint`, with the `control` radius behind the type's name, set in `body-sm`, semibold, in `text`, and led by the type's icon drawn in the type's colour, such as `type-asset`, so the Account types read apart from each other and from the groups and Accounts under them. It is drawn in the Accounts section, the Account picker, the Account sheet, and atop each type's table in the Income statement and Assets and liabilities. In the Account picker and the Account sheet it carries at its right edge the type's Balance direction for the Side: a 14px arrow, up for `Increase` and down for `Decrease`, then the word, in `body-sm` and `text-muted`, with no Side colour and no red or green, since neither direction is good or bad. The arrow is hidden from assistive technology, and the type's group is named by one message joining the type's name and the word, as `Assets, Increase`. The Suggested Band is one more, tinted `band-suggested` and led by a sparkle, over the Suggested accounts in the Account picker and the Account sheet. |
 | Tree connector | A 1px `border-control` line from an Account group's folder icon to the Accounts in it, in the Accounts section and the Account sheet: `├` before each Account shown but the last, `└`, its corner rounded by the `control` radius, before the last shown. It is decoration, hidden from assistive technology. |
 | Chip           | A choice drawn as a small inline box that sits beside others and wraps, rather than one per row; a chosen chip takes a fill and an edge. |
 | Scrim          | The `ground-dark` tint at 60% behind a modal dialog. A click on the scrim is a press that began on it as well as ended there: a press that began inside the dialog, as when selecting a field's text by dragging, and was released on the scrim closes nothing. |

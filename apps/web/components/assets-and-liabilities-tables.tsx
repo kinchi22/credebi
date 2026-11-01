@@ -14,8 +14,8 @@ function AssetsAndLiabilitiesTables({ report }: AssetsAndLiabilitiesTablesProps)
 
   return (
     <StatementTables
-      left={{ caption: t('assets'), totalLabel: t('totalAssets'), section: report.assets }}
-      right={{ caption: t('liabilities'), totalLabel: t('totalLiabilities'), section: report.liabilities }}
+      left={{ accountType: 'asset', totalLabel: t('totalAssets'), section: report.assets }}
+      right={{ accountType: 'liability', totalLabel: t('totalLiabilities'), section: report.liabilities }}
       totals={{
         caption: t('totals'),
         rows: [

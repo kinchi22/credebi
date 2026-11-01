@@ -1,15 +1,17 @@
 import Link from 'next/link';
 import {
   type AccountId,
+  type AccountType,
   type Money,
   type StatementSectionOutput,
 } from '@repo/contracts';
 import { PANEL, PANEL_TITLE } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
-import { type ReactNode } from 'react';
+import { type ReactNode, useId } from 'react';
 import { formatAmount } from './amount';
 import { type StatementColumn, totalsUnder } from './statement-columns';
 import { LINK } from './text-classes';
+import { Band } from './type-band';
 
 const TABLE = `w-full border-collapse ${typeClasses['body-sm']}`;
 const CAPTION = `mb-2 text-left ${PANEL_TITLE}`;
@@ -69,7 +71,7 @@ function AmountRow({ label, amount, variant = 'account', href }: AmountRowProps)
 }
 
 export type StatementSectionTable = {
-  readonly caption: string;
+  readonly accountType: AccountType;
   readonly totalLabel: string;
   readonly section: StatementSectionOutput;
   readonly hrefOf?: (account: AccountId) => string;
@@ -77,11 +79,14 @@ export type StatementSectionTable = {
 
 type SectionTableProps = StatementSectionTable & { readonly placement: string };
 
-function SectionTable({ caption, totalLabel, section, hrefOf, placement }: SectionTableProps): ReactNode {
+function SectionTable({ accountType, totalLabel, section, hrefOf, placement }: SectionTableProps): ReactNode {
+  const id = useId();
   return (
     <div className={`${PANEL} ${placement}`}>
       <table className={TABLE}>
-        <caption className={CAPTION}>{caption}</caption>
+        <caption className="mb-2">
+          <Band accountType={accountType} id={id} className="px-3 py-2" />
+        </caption>
         <tbody>
           {section.rows.flatMap((row) =>
             row.kind === 'account'

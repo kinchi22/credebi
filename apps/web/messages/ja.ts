@@ -254,8 +254,6 @@ export const ja = {
     reportDate: '基準日',
     date: '日付',
     show: '表示',
-    assets: '資産',
-    liabilities: '負債',
     totals: '合計',
     totalAssets: '資産合計',
     totalLiabilities: '負債合計',
@@ -281,8 +279,6 @@ export const ja = {
   incomeStatement: {
     period: '表示期間',
     show: '表示',
-    revenue: '収益',
-    expenses: '費用',
     totals: '合計',
     totalRevenue: '収益合計',
     totalExpense: '費用合計',
