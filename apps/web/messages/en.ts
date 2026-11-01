@@ -235,8 +235,6 @@ export const en = {
     reportDate: 'Report date',
     date: 'Date',
     show: 'Show',
-    assets: 'Assets',
-    liabilities: 'Liabilities',
     totals: 'Totals',
     totalAssets: 'Total assets',
     totalLiabilities: 'Total liabilities',
@@ -262,8 +260,6 @@ export const en = {
   incomeStatement: {
     period: 'Statement period',
     show: 'Show',
-    revenue: 'Revenue',
-    expenses: 'Expenses',
     totals: 'Totals',
     totalRevenue: 'Total revenue',
     totalExpense: 'Total expense',

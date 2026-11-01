@@ -252,8 +252,6 @@ export const ko = {
     reportDate: '기준일',
     date: '날짜',
     show: '조회',
-    assets: '자산',
-    liabilities: '부채',
     totals: '합계',
     totalAssets: '자산 합계',
     totalLiabilities: '부채 합계',
@@ -279,8 +277,6 @@ export const ko = {
   incomeStatement: {
     period: '조회 기간',
     show: '조회',
-    revenue: '수익',
-    expenses: '비용',
     totals: '합계',
     totalRevenue: '수익 합계',
     totalExpense: '비용 합계',
