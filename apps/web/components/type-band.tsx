@@ -14,8 +14,10 @@ import {
 import { typeClasses } from '@repo/ui/type-classes';
 import { type ReactNode } from 'react';
 
-const TYPE_ICON: Readonly<Record<AccountType, () => ReactNode>> = {
-  asset: () => <WalletIcon size={16} />,
+type IconSize = 14 | 16;
+
+const TYPE_ICON: Readonly<Record<AccountType, (props: { readonly size: IconSize }) => ReactNode>> = {
+  asset: WalletIcon,
   liability: ReceiptIcon,
   equity: PieIcon,
   revenue: RisingLineIcon,
@@ -37,11 +39,25 @@ const TYPE_HUE: Readonly<Record<AccountType, TypeHue>> = {
 
 export type TypeIconProps = {
   readonly accountType: AccountType;
+  readonly size?: IconSize;
 };
 
-export function TypeIcon({ accountType }: TypeIconProps): ReactNode {
+export function TypeIcon({ accountType, size = 16 }: TypeIconProps): ReactNode {
   const Icon = TYPE_ICON[accountType];
-  return <Icon />;
+  return <Icon size={size} />;
+}
+
+export function TypeTile({ accountType }: { readonly accountType: AccountType }): ReactNode {
+  const hue = TYPE_HUE[accountType];
+  return (
+    <span
+      data-testid="type-tile"
+      aria-hidden="true"
+      className={`flex size-5 shrink-0 items-center justify-center rounded-control ${hue.tint} ${hue.stroke}`}
+    >
+      <TypeIcon accountType={accountType} size={14} />
+    </span>
+  );
 }
 
 type StripProps = {
@@ -84,14 +100,27 @@ export type BandProps = {
   readonly children?: ReactNode;
 };
 
+export type DirectionArrowProps = {
+  readonly direction: BalanceDirection;
+  readonly className?: string;
+};
+
+export function DirectionArrow({ direction, className = '' }: DirectionArrowProps): ReactNode {
+  const Icon = DIRECTION_ICON[direction];
+  return (
+    <span data-testid="balance-direction" className={`flex shrink-0 text-text-muted ${className}`}>
+      <Icon />
+    </span>
+  );
+}
+
 function Hint({ direction }: { readonly direction: BalanceDirection }): ReactNode {
   const t = useTranslations();
-  const Icon = DIRECTION_ICON[direction];
   return (
     <span
       className={`flex shrink-0 items-center gap-1 ${typeClasses['body-sm']} text-text-muted`}
     >
-      <Icon />
+      <DirectionArrow direction={direction} />
       {t(`accountSheet.${direction}`)}
     </span>
   );

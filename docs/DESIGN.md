@@ -297,16 +297,16 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `accent-text`        | `mint-deep` | links, accent text on a light ground  |
 | `accent-text-hover`  | `mint-deeper` | a link under the pointer            |
 | `border`             | `fog`       | dividers, panel edges                 |
-| `type-asset`         | `brown`     | the asset icon's stroke on its Band   |
-| `type-asset-tint`    | `brown-pale` | the Assets Band's fill               |
-| `type-liability`     | `violet`    | the liability icon's stroke on its Band |
-| `type-liability-tint` | `violet-pale` | the Liabilities Band's fill        |
-| `type-equity`        | `teal`      | the equity icon's stroke on its Band  |
-| `type-equity-tint`   | `teal-pale` | the Equity Band's fill                |
-| `type-revenue`       | `lime`      | the revenue icon's stroke on its Band |
-| `type-revenue-tint`  | `lime-pale` | the Revenue Band's fill               |
-| `type-expense`       | `magenta`   | the expense icon's stroke on its Band |
-| `type-expense-tint`  | `magenta-pale` | the Expenses Band's fill           |
+| `type-asset`         | `brown`     | the asset icon's stroke on its Band and Tile |
+| `type-asset-tint`    | `brown-pale` | the Assets Band's and its Tiles' fill |
+| `type-liability`     | `violet`    | the liability icon's stroke on its Band and Tile |
+| `type-liability-tint` | `violet-pale` | the Liabilities Band's and its Tiles' fill |
+| `type-equity`        | `teal`      | the equity icon's stroke on its Band and Tile |
+| `type-equity-tint`   | `teal-pale` | the Equity Band's and its Tiles' fill |
+| `type-revenue`       | `lime`      | the revenue icon's stroke on its Band and Tile |
+| `type-revenue-tint`  | `lime-pale` | the Revenue Band's and its Tiles' fill |
+| `type-expense`       | `magenta`   | the expense icon's stroke on its Band and Tile |
+| `type-expense-tint`  | `magenta-pale` | the Expenses Band's and its Tiles' fill |
 | `band-suggested`     | `mint-fog`  | the Suggested Band in the Account picker and the Account sheet |
 | `border-control`     | `steel`     | inputs, secondary buttons, tree connectors, and at 55% the Account picker's group rules |
 | `danger`             | `rust`      | refusals, errors                      |
@@ -903,10 +903,16 @@ numerals.
   Debit and Credit, Credit's behind a `border` hairline, each headed by the Side
   in `label` and the Side's colour over a 1.5px rule in that colour. In
   `body-dense`, each line is one row, the Account name on the left and its
-  amount on the right in `figure` and the Side's colour. An Entry with one
-  Account on each Side puts the Account name beside its Side's name and shows no
-  line amount: the total states it, and the line's amount stays for assistive
-  technology. There is no shared header row: the first Entry's Side names are
+  amount on the right in `figure` and the Side's colour. The name is led by its
+  Account type's Tile and followed by the line's Balance direction, the 14px
+  arrow, up for `Increase` and down for `Decrease`, in `text-muted`, 6px apart,
+  with no word, no Side colour and no red or green; tile and arrow sit level
+  with the name's first line when it wraps. The arrow is hidden from assistive
+  technology, and the line is named by one message joining the Account's name,
+  its type's name and the direction, as `Mortgage, Liabilities, Decrease`. An
+  Entry with one Account on each Side puts the Account name, with its Tile and
+  arrow, beside its Side's name and shows no line amount: the total states it,
+  and the line's amount stays for assistive technology. There is no shared header row: the first Entry's Side names are
   the table's `Debit` and `Credit` column headers, and every later Entry's are
   hidden from assistive technology.
 - **Income statement tables.** Below the `Statement period` form: `Revenue`,
@@ -1164,6 +1170,7 @@ hidden.
 | Lockup         | A fixed arrangement of the Mark and the Wordmark: horizontal or stacked. The Mark alone is also a variant of the logo. |
 | Semantic token | A colour named by its role, such as `text-muted` or `danger`, mapped onto a brand palette colour. Components use only these. |
 | Band           | A strip filled with its Account type's tint, such as `type-asset-tint`, with the `control` radius behind the type's name, set in `body-sm`, semibold, in `text`, and led by the type's icon drawn in the type's colour, such as `type-asset`, so the Account types read apart from each other and from the groups and Accounts under them. It is drawn in the Accounts section, the Account picker, the Account sheet, and atop each type's table in the Income statement and Assets and liabilities. In the Account picker and the Account sheet it carries at its right edge the type's Balance direction for the Side: a 14px arrow, up for `Increase` and down for `Decrease`, then the word, in `body-sm` and `text-muted`, with no Side colour and no red or green, since neither direction is good or bad. The arrow is hidden from assistive technology, and the type's group is named by one message joining the type's name and the word, as `Assets, Increase`. The Suggested Band is one more, tinted `band-suggested` and led by a sparkle, over the Suggested accounts in the Account picker and the Account sheet. |
+| Tile           | A 20px square with the `control` radius, filled with its Account type's tint, such as `type-asset-tint`, holding the type's icon at 14px in the type's colour, such as `type-asset`. It leads an Account's name where no Band stands above it, as on each line of the Entries list, and is hidden from assistive technology, so the name it leads carries the type in words. |
 | Tree connector | A 1px `border-control` line from an Account group's folder icon to the Accounts in it, in the Accounts section and the Account sheet: `├` before each Account shown but the last, `└`, its corner rounded by the `control` radius, before the last shown. It is decoration, hidden from assistive technology. |
 | Chip           | A choice drawn as a small inline box that sits beside others and wraps, rather than one per row; a chosen chip takes a fill and an edge. |
 | Scrim          | The `ground-dark` tint at 60% behind a modal dialog. A click on the scrim is a press that began on it as well as ended there: a press that began inside the dialog, as when selecting a field's text by dragging, and was released on the scrim closes nothing. |

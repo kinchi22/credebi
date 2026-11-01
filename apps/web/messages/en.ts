@@ -373,6 +373,7 @@ export const en = {
     title: 'Entries',
     empty: 'No entries yet.',
     total: 'Total',
+    line: '{account}, {type}, {direction}',
   },
   editEntry: {
     open: 'Edit',

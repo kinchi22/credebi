@@ -391,6 +391,7 @@ export const ja = {
     title: '仕訳',
     empty: '仕訳はまだありません。',
     total: '合計',
+    line: '{account}、{type}、{direction}',
   },
   editEntry: {
     open: '編集',
