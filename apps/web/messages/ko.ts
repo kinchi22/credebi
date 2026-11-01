@@ -389,6 +389,7 @@ export const ko = {
     title: '거래 내역',
     empty: '아직 거래가 없습니다.',
     total: '합계',
+    line: '{account}, {type}, {direction}',
   },
   editEntry: {
     open: '수정',

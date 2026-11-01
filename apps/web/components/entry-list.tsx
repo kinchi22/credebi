@@ -1,11 +1,16 @@
 import { useTranslations } from 'next-intl';
 import {
+  accountsIn,
+  type AccountId,
+  type AccountType,
   type ChartOutput,
   type EntryFormMode,
   type PostedEntry,
   type Side,
   type OfferedTitle,
+  type PostedLine,
 } from '@repo/contracts';
+import { balanceDirection } from '@repo/core/accounts';
 import { Panel, PANEL_BLEED } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { type ReactNode } from 'react';
@@ -15,6 +20,7 @@ import { EditEntry, type EditEntryAction } from './edit-entry';
 import { hasOneLinePerSide, linesOn, SIDES } from './entry-lines';
 import { SIDE_TONE } from './side-classes';
 import { MUTED_TEXT } from './text-classes';
+import { DirectionArrow, TypeTile } from './type-band';
 
 export type EntryControls = {
   readonly chart: ChartOutput;
@@ -85,25 +91,84 @@ function SideHeadings({ layout, named }: { readonly layout: Layout; readonly nam
   );
 }
 
+type AccountTypes = ReadonlyMap<AccountId, AccountType>;
+
+const accountTypesIn = (chart: ChartOutput): AccountTypes =>
+  new Map(accountsIn(chart).map((account) => [account.id, account.accountType]));
+
+function LineAccount({
+  line,
+  accountType,
+}: {
+  readonly line: PostedLine;
+  readonly accountType: AccountType | undefined;
+}): ReactNode {
+  const name = <span className="min-w-0 wrap-anywhere">{line.accountName}</span>;
+  if (accountType === undefined) {
+    return name;
+  }
+  return (
+    <span className="flex min-w-0 items-baseline gap-x-1.5">
+      <span className="self-start">
+        <TypeTile accountType={accountType} />
+      </span>
+      {name}
+      <DirectionArrow
+        direction={balanceDirection(accountType, line.side)}
+        className="h-lh items-center self-start"
+      />
+    </span>
+  );
+}
+
+function SideLine({
+  line,
+  accountType,
+  layout,
+}: {
+  readonly line: PostedLine;
+  readonly accountType: AccountType | undefined;
+  readonly layout: Layout;
+}): ReactNode {
+  const t = useTranslations();
+  return (
+    <li
+      data-testid="entry-line"
+      aria-label={
+        accountType === undefined
+          ? undefined
+          : t('entryList.line', {
+              account: line.accountName,
+              type: t(`accountTypes.${accountType}`),
+              direction: t(`accountSheet.${balanceDirection(accountType, line.side)}`),
+            })
+      }
+      className="flex items-baseline gap-x-3 py-1"
+    >
+      <LineAccount line={line} accountType={accountType} />{' '}
+      <span className={`${layout.lineAmount} ${SIDE_TONE[line.side].text}`}>
+        {formatAmount(line.amount)}
+      </span>
+    </li>
+  );
+}
+
 function SideLines({
   entry,
   side,
   layout,
+  accountTypes,
 }: {
   readonly entry: PostedEntry;
   readonly side: Side;
   readonly layout: Layout;
+  readonly accountTypes: AccountTypes;
 }): ReactNode {
   return (
     <div role="cell" className={`min-w-0 ${layout.lines[side]} ${SIDE_TONE[side].edge}`}>
       <ul>
         {linesOn(entry, side).map((line, index) => (
-          <li key={index} data-testid="entry-line" className="flex items-baseline gap-x-3 py-1">
-            <span className="min-w-0 wrap-anywhere">{line.accountName}</span>{' '}
-            <span className={`${layout.lineAmount} ${SIDE_TONE[side].text}`}>
-              {formatAmount(line.amount)}
-            </span>
-          </li>
+          <SideLine key={index} line={line} accountType={accountTypes.get(line.account)} layout={layout} />
         ))}
       </ul>
     </div>
@@ -114,10 +179,12 @@ function ListedEntry({
   entry,
   headsColumns,
   controls,
+  accountTypes,
 }: {
   readonly entry: PostedEntry;
   readonly headsColumns: boolean;
   readonly controls: EntryControls;
+  readonly accountTypes: AccountTypes;
 }): ReactNode {
   const t = useTranslations();
   const layout = hasOneLinePerSide(entry) ? COMPACT : STACKED;
@@ -161,7 +228,7 @@ function ListedEntry({
       <SideHeadings layout={layout} named={headsColumns} />
       <div role="row" className="contents">
         {SIDES.map((side) => (
-          <SideLines key={side} entry={entry} side={side} layout={layout} />
+          <SideLines key={side} entry={entry} side={side} layout={layout} accountTypes={accountTypes} />
         ))}
       </div>
     </div>
@@ -170,6 +237,7 @@ function ListedEntry({
 
 export function EntryList({ entries, controls }: EntryListProps): ReactNode {
   const t = useTranslations();
+  const accountTypes = accountTypesIn(controls.chart);
   return (
     <Panel title={t('entryList.title')} titleHidden>
       {entries.length === 0 ? (
@@ -182,6 +250,7 @@ export function EntryList({ entries, controls }: EntryListProps): ReactNode {
               entry={entry}
               headsColumns={index === 0}
               controls={controls}
+              accountTypes={accountTypes}
             />
           ))}
         </div>

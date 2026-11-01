@@ -77,7 +77,7 @@ export function FolderIcon({ size }: { readonly size: 14 | 16 }): ReactNode {
   );
 }
 
-export function WalletIcon({ size }: { readonly size: 16 | 18 }): ReactNode {
+export function WalletIcon({ size }: { readonly size: 14 | 16 | 18 }): ReactNode {
   return (
     <StrokeIcon size={size}>
       <rect x="3" y="6" width="18" height="14" rx="2" />
@@ -86,36 +86,36 @@ export function WalletIcon({ size }: { readonly size: 16 | 18 }): ReactNode {
   );
 }
 
-export function ReceiptIcon(): ReactNode {
+export function ReceiptIcon({ size }: { readonly size: 14 | 16 }): ReactNode {
   return (
-    <StrokeIcon size={16}>
+    <StrokeIcon size={size}>
       <path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" />
       <path d="M9 8h6M9 12h6" />
     </StrokeIcon>
   );
 }
 
-export function PieIcon(): ReactNode {
+export function PieIcon({ size }: { readonly size: 14 | 16 }): ReactNode {
   return (
-    <StrokeIcon size={16}>
+    <StrokeIcon size={size}>
       <path d="M12 3a9 9 0 1 0 9 9h-9z" />
       <path d="M15 3.5a9 9 0 0 1 5.5 5.5H15z" />
     </StrokeIcon>
   );
 }
 
-export function RisingLineIcon(): ReactNode {
+export function RisingLineIcon({ size }: { readonly size: 14 | 16 }): ReactNode {
   return (
-    <StrokeIcon size={16}>
+    <StrokeIcon size={size}>
       <path d="m3 17 6-6 4 4 8-8" />
       <path d="M15 7h6v6" />
     </StrokeIcon>
   );
 }
 
-export function FallingLineIcon(): ReactNode {
+export function FallingLineIcon({ size }: { readonly size: 14 | 16 }): ReactNode {
   return (
-    <StrokeIcon size={16}>
+    <StrokeIcon size={size}>
       <path d="m3 7 6 6 4-4 8 8" />
       <path d="M15 17h6v-6" />
     </StrokeIcon>
