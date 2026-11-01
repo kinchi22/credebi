@@ -6,6 +6,7 @@ import {
   entryFormModeSchema,
   type AccountId,
   type AccountOutput,
+  type AccountType,
   type ChartOutput,
   type DomainError,
   type Money,
@@ -37,11 +38,12 @@ import {
 } from './entry-form';
 import { isLine, linesOnDay, offeredOn } from './lines-on-day';
 import { NotActiveMark, useNotActiveHold } from './not-active-on-day';
-import { SIDES } from './entry-lines';
+import { accountTypesIn, SIDES } from './entry-lines';
 import { SIDE_TONE } from './side-classes';
 import { DANGER_TEXT, FORM_REFUSAL } from './text-classes';
 import { suggestedOn } from './suggested-accounts';
 import { prefillFrom } from './title-prefill';
+import { CuedAccount, useCuedAccountName } from './type-band';
 
 type ChosenLine = DraftLine & {
   readonly account: AccountId;
@@ -143,25 +145,46 @@ const amountFieldId = (id: string, line: ChosenLine): string =>
 type LineFieldsProps = {
   readonly id: string;
   readonly line: ChosenLine;
+  readonly accountType: AccountType | undefined;
   readonly active: boolean;
   readonly onAmountChange: (amount: string) => void;
   readonly onRemove: () => void;
 };
 
-function LineFields({ id, line, active, onAmountChange, onRemove }: LineFieldsProps): ReactNode {
+function LineFields({
+  id,
+  line,
+  accountType,
+  active,
+  onAmountChange,
+  onRemove,
+}: LineFieldsProps): ReactNode {
   const t = useTranslations();
+  const cuedName = useCuedAccountName();
   const amountId = amountFieldId(id, line);
 
   return (
     <fieldset
-      aria-label={t('entryLine.name', { side: t(`sides.${line.side}`), account: line.accountName })}
+      aria-label={t('entryLine.name', {
+        side: t(`sides.${line.side}`),
+        account:
+          accountType === undefined
+            ? line.accountName
+            : cuedName(line.accountName, accountType, line.side),
+      })}
       className={`${LINE_GRID} items-center py-1 ${typeClasses['body-dense']}`}
     >
       <input type="hidden" name={ENTRY_FORM_FIELDS.account} value={line.account} />
       <input type="hidden" name={ENTRY_FORM_FIELDS.side} value={line.side} />
       <div className="flex min-w-0 flex-col">
         <p aria-hidden className="font-semibold wrap-anywhere">
-          {line.accountName}
+          {accountType === undefined ? (
+            line.accountName
+          ) : (
+            <CuedAccount accountType={accountType} side={line.side}>
+              <span className="min-w-0">{line.accountName}</span>
+            </CuedAccount>
+          )}
         </p>
         {active ? null : (
           <NotActiveMark accountName={line.accountName} lineRemovable />
@@ -223,6 +246,7 @@ function MultiLineFields({
   const t = useTranslations();
   const [picked, setPicked] = useState<readonly ChosenLine[]>(() => linesOf(entry));
   const sheet = useAccountSheet();
+  const accountTypes = accountTypesIn(chart);
   const offered = offeredOn(chart, day);
   const lines = linesOnDay(offered, picked);
   const hold = useNotActiveHold(day, lines);
@@ -286,6 +310,7 @@ function MultiLineFields({
                       key={`${line.side}-${line.account}`}
                       id={id}
                       line={line}
+                      accountType={accountTypes.get(line.account)}
                       active={isActive(line)}
                       onAmountChange={(amount) => {
                         changeAmount(line.side, line.account, amount);

@@ -38,6 +38,7 @@ import { NotActiveMark, useNotActiveHold } from './not-active-on-day';
 import { FORM_REFUSAL, LINK } from './text-classes';
 import { suggestedOn } from './suggested-accounts';
 import { prefillFrom, type PrefilledLine } from './title-prefill';
+import { useCuedAccountName } from './type-band';
 
 const NOTHING_CHOSEN: AccountChoice = { debit: undefined, credit: undefined };
 
@@ -107,6 +108,7 @@ function TwoLineFields({
   const [amount, setAmount] = useState(entry === undefined ? '' : String(entry.total));
   const [needsMultiLine, setNeedsMultiLine] = useState<string>();
   const sheet = useAccountSheet();
+  const cuedName = useCuedAccountName();
   const offered = offeredOn(chart, day);
   const named = namedLines(picked);
   const lines = linesOnDay(offered, named);
@@ -146,12 +148,20 @@ function TwoLineFields({
         })}
         <div className={`flex flex-col ${typeClasses['body-dense']}`}>
           {sideSchema.options.map((side) => {
-            const line = named.find((chosen) => chosen.side === side);
+            const line = named.find((each) => each.side === side);
+            const chosen = picked[side];
             return (
               <div
                 key={side}
-                role={line === undefined ? undefined : 'group'}
-                aria-label={line === undefined ? undefined : t('entryLine.name', { side: t(`sides.${line.side}`), account: line.accountName })}
+                role={chosen === undefined ? undefined : 'group'}
+                aria-label={
+                  chosen === undefined
+                    ? undefined
+                    : t('entryLine.name', {
+                        side: t(`sides.${side}`),
+                        account: cuedName(chosen.name, chosen.accountType, side),
+                      })
+                }
               >
                 {offered.ids.size === 0 ? null : (
                   <ChooseAccountButton side={side} account={picked[side]} sheet={sheet} />

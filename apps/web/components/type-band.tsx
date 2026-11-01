@@ -1,6 +1,6 @@
 import { useTranslations } from 'next-intl';
-import { type AccountType } from '@repo/contracts';
-import { type BalanceDirection } from '@repo/core/accounts';
+import { type AccountType, type Side } from '@repo/contracts';
+import { balanceDirection, type BalanceDirection } from '@repo/core/accounts';
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -112,6 +112,37 @@ export function DirectionArrow({ direction, className = '' }: DirectionArrowProp
       <Icon />
     </span>
   );
+}
+
+export type CuedAccountProps = {
+  readonly accountType: AccountType;
+  readonly side: Side;
+  readonly children: ReactNode;
+};
+
+export function CuedAccount({ accountType, side, children }: CuedAccountProps): ReactNode {
+  return (
+    <span className="flex min-w-0 items-baseline gap-x-1.5">
+      <span className="self-start">
+        <TypeTile accountType={accountType} />
+      </span>
+      {children}
+      <DirectionArrow
+        direction={balanceDirection(accountType, side)}
+        className="h-lh items-center self-start"
+      />
+    </span>
+  );
+}
+
+export function useCuedAccountName(): (account: string, accountType: AccountType, side: Side) => string {
+  const t = useTranslations();
+  return (account, accountType, side) =>
+    t('entryList.line', {
+      account,
+      type: t(`accountTypes.${accountType}`),
+      direction: t(`accountSheet.${balanceDirection(accountType, side)}`),
+    });
 }
 
 function Hint({ direction }: { readonly direction: BalanceDirection }): ReactNode {

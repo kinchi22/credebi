@@ -753,8 +753,10 @@ numerals.
   Two-line mode each Side's row is itself one full-width button, named
   `Choose debit account` or `Choose credit account`: the Side in `label` and the
   Side's colour, then `Choose an account`, semibold and in the Side's colour,
-  while it has none, or the Account's name, semibold, and a chevron icon at the
-  row's end once it has one. A `surface` bar holds the sheet's title and, in
+  while it has none, or the Account's name, semibold, led by its Tile and
+  followed by its Balance direction as an Entry line's, and a chevron icon at
+  the row's end once it has one. From `wide` up the row is not a button and
+  shows the chosen Account the same way. A `surface` bar holds the sheet's title and, in
   Multi-line mode, `Done`, a primary button, or in Two-line mode the close
   icon, as the Date presets sheet's; below it Debit and Credit are tabs drawn as
   the Date presets sheet's, then a `Find an account` search field, then the
@@ -830,7 +832,11 @@ numerals.
 - **Multi-line line.** Each Side's block is headed once by the Side, in
   `label` and the Side's colour, and its lines name no Side. Two columns at all
   widths, about 6:4, the Account's the wider: the left holds the Account name,
-  semibold; the right holds the amount field and, beside it, the Remove button.
+  semibold, led by its Tile and followed by the line's Balance direction as an
+  Entry line's; the right holds the amount field and, beside it, the Remove button.
+  In either Entry form mode a chosen Account is named by its Side and the
+  message an Entry line is named by, as `Debit Mortgage, Liabilities, Decrease`,
+  so the direction changes with the Side.
 - **Line not active on the day.** In either Entry form mode an Account not
   active on the Entry's day stays in the form, and below its Account name
   `Not active on this day` in `body-dense` and `warning`, with a Help tip whose
@@ -1170,7 +1176,7 @@ hidden.
 | Lockup         | A fixed arrangement of the Mark and the Wordmark: horizontal or stacked. The Mark alone is also a variant of the logo. |
 | Semantic token | A colour named by its role, such as `text-muted` or `danger`, mapped onto a brand palette colour. Components use only these. |
 | Band           | A strip filled with its Account type's tint, such as `type-asset-tint`, with the `control` radius behind the type's name, set in `body-sm`, semibold, in `text`, and led by the type's icon drawn in the type's colour, such as `type-asset`, so the Account types read apart from each other and from the groups and Accounts under them. It is drawn in the Accounts section, the Account picker, the Account sheet, and atop each type's table in the Income statement and Assets and liabilities. In the Account picker and the Account sheet it carries at its right edge the type's Balance direction for the Side: a 14px arrow, up for `Increase` and down for `Decrease`, then the word, in `body-sm` and `text-muted`, with no Side colour and no red or green, since neither direction is good or bad. The arrow is hidden from assistive technology, and the type's group is named by one message joining the type's name and the word, as `Assets, Increase`. The Suggested Band is one more, tinted `band-suggested` and led by a sparkle, over the Suggested accounts in the Account picker and the Account sheet. |
-| Tile           | A 20px square with the `control` radius, filled with its Account type's tint, such as `type-asset-tint`, holding the type's icon at 14px in the type's colour, such as `type-asset`. It leads an Account's name where no Band stands above it, as on each line of the Entries list, and is hidden from assistive technology, so the name it leads carries the type in words. |
+| Tile           | A 20px square with the `control` radius, filled with its Account type's tint, such as `type-asset-tint`, holding the type's icon at 14px in the type's colour, such as `type-asset`. It leads an Account's name where no Band stands above it, as on each line of the Entries list and on each chosen Account in the entry form, and is hidden from assistive technology, so the name it leads carries the type in words. |
 | Tree connector | A 1px `border-control` line from an Account group's folder icon to the Accounts in it, in the Accounts section and the Account sheet: `├` before each Account shown but the last, `└`, its corner rounded by the `control` radius, before the last shown. It is decoration, hidden from assistive technology. |
 | Chip           | A choice drawn as a small inline box that sits beside others and wraps, rather than one per row; a chosen chip takes a fill and an edge. |
 | Scrim          | The `ground-dark` tint at 60% behind a modal dialog. A click on the scrim is a press that began on it as well as ended there: a press that began inside the dialog, as when selecting a field's text by dragging, and was released on the scrim closes nothing. |

@@ -1,7 +1,5 @@
 import { useTranslations } from 'next-intl';
 import {
-  accountsIn,
-  type AccountId,
   type AccountType,
   type ChartOutput,
   type EntryFormMode,
@@ -10,17 +8,16 @@ import {
   type OfferedTitle,
   type PostedLine,
 } from '@repo/contracts';
-import { balanceDirection } from '@repo/core/accounts';
 import { Panel, PANEL_BLEED } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { type ReactNode } from 'react';
 import { formatAmount } from './amount';
 import { DeleteEntry, type DeleteEntryAction } from './delete-entry';
 import { EditEntry, type EditEntryAction } from './edit-entry';
-import { hasOneLinePerSide, linesOn, SIDES } from './entry-lines';
+import { accountTypesIn, hasOneLinePerSide, linesOn, SIDES, type AccountTypes } from './entry-lines';
 import { SIDE_TONE } from './side-classes';
 import { MUTED_TEXT } from './text-classes';
-import { DirectionArrow, TypeTile } from './type-band';
+import { CuedAccount, useCuedAccountName } from './type-band';
 
 export type EntryControls = {
   readonly chart: ChartOutput;
@@ -91,11 +88,6 @@ function SideHeadings({ layout, named }: { readonly layout: Layout; readonly nam
   );
 }
 
-type AccountTypes = ReadonlyMap<AccountId, AccountType>;
-
-const accountTypesIn = (chart: ChartOutput): AccountTypes =>
-  new Map(accountsIn(chart).map((account) => [account.id, account.accountType]));
-
 function LineAccount({
   line,
   accountType,
@@ -104,20 +96,12 @@ function LineAccount({
   readonly accountType: AccountType | undefined;
 }): ReactNode {
   const name = <span className="min-w-0 wrap-anywhere">{line.accountName}</span>;
-  if (accountType === undefined) {
-    return name;
-  }
-  return (
-    <span className="flex min-w-0 items-baseline gap-x-1.5">
-      <span className="self-start">
-        <TypeTile accountType={accountType} />
-      </span>
+  return accountType === undefined ? (
+    name
+  ) : (
+    <CuedAccount accountType={accountType} side={line.side}>
       {name}
-      <DirectionArrow
-        direction={balanceDirection(accountType, line.side)}
-        className="h-lh items-center self-start"
-      />
-    </span>
+    </CuedAccount>
   );
 }
 
@@ -130,18 +114,12 @@ function SideLine({
   readonly accountType: AccountType | undefined;
   readonly layout: Layout;
 }): ReactNode {
-  const t = useTranslations();
+  const cuedName = useCuedAccountName();
   return (
     <li
       data-testid="entry-line"
       aria-label={
-        accountType === undefined
-          ? undefined
-          : t('entryList.line', {
-              account: line.accountName,
-              type: t(`accountTypes.${accountType}`),
-              direction: t(`accountSheet.${balanceDirection(accountType, line.side)}`),
-            })
+        accountType === undefined ? undefined : cuedName(line.accountName, accountType, line.side)
       }
       className="flex items-baseline gap-x-3 py-1"
     >
