@@ -17,8 +17,8 @@ export function IncomeStatementTables({ statement, period }: IncomeStatementTabl
 
   return (
     <StatementTables
-      left={{ caption: t('expenses'), totalLabel: t('totalExpense'), section: statement.expense, hrefOf }}
-      right={{ caption: t('revenue'), totalLabel: t('totalRevenue'), section: statement.revenue, hrefOf }}
+      left={{ accountType: 'expense', totalLabel: t('totalExpense'), section: statement.expense, hrefOf }}
+      right={{ accountType: 'revenue', totalLabel: t('totalRevenue'), section: statement.revenue, hrefOf }}
       stackRightFirst
       totals={{
         caption: t('totals'),

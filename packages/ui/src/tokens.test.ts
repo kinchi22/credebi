@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { contrastRatio } from './contrast';
+import { colorDifference, contrastRatio } from './contrast';
 import {
   breakpoints,
   CONTROL_EDGE_MINIMUM,
   controlEdgePairs,
   controlFontSize,
   controlHeight,
+  DIFFERENCE_MINIMUM,
   fontDeclarations,
   fontFaces,
+  ICON_MINIMUM,
+  iconPairs,
   palette,
   radii,
   rgbChannels,
@@ -17,6 +20,7 @@ import {
   textPairs,
   textSizeTokens,
   themeDeclarations,
+  typeHues,
   typeScale,
 } from './tokens';
 
@@ -38,9 +42,17 @@ describe('the declared pairs', () => {
     },
   );
 
-  it('holds text to 4.5:1 and a control edge to 3:1, the AA thresholds', () => {
+  it.each(iconPairs.map((pair) => [pair.foreground, pair.background] as const))(
+    'draws a %s icon on %s at 3:1 or better',
+    (foreground, background) => {
+      expect(ratio(foreground, background)).toBeGreaterThanOrEqual(ICON_MINIMUM);
+    },
+  );
+
+  it('holds text to 4.5:1 and a control edge and an icon to 3:1, the AA thresholds', () => {
     expect(TEXT_MINIMUM).toBe(4.5);
     expect(CONTROL_EDGE_MINIMUM).toBe(3);
+    expect(ICON_MINIMUM).toBe(3);
   });
 
   it('pairs every text colour with the grounds it is read on', () => {
@@ -64,10 +76,22 @@ describe('the declared pairs', () => {
     expect(foregroundsOn('ink-raised')).toEqual(['frost', 'sage']);
     expect(foregroundsOn('ink-mid')).toEqual(['frost', 'sage']);
     expect(foregroundsOn('mint')).toEqual(['ink']);
-    expect(foregroundsOn('fog')).toEqual(['ink', 'mint-deeper', 'slate']);
+    expect(foregroundsOn('fog')).toEqual([]);
     expect(foregroundsOn('mint-fog')).toEqual(['ink']);
     expect(foregroundsOn('mist-pale')).toEqual(['ink', 'slate', 'cobalt', 'gold']);
     expect(foregroundsOn('mint-pale')).toEqual(['ink']);
+    for (const { tint } of Object.values(typeHues)) {
+      expect(foregroundsOn(tint)).toEqual(['ink', 'slate', 'mint-deeper']);
+    }
+  });
+
+  it("draws each Account type's icon on its own tint and on a row under the pointer", () => {
+    expect(iconPairs).toEqual(
+      Object.values(typeHues).flatMap(({ color, tint }) => [
+        { foreground: color, background: tint },
+        { foreground: color, background: 'mist-pale' },
+      ]),
+    );
   });
 
   it('checks the control edge and the focus ring on every ground', () => {
@@ -104,7 +128,16 @@ describe('the semantic tokens', () => {
       'accent-text': 'mint-deep',
       'accent-text-hover': 'mint-deeper',
       border: 'fog',
-      band: 'fog',
+      'type-asset': 'brown',
+      'type-asset-tint': 'brown-pale',
+      'type-liability': 'violet',
+      'type-liability-tint': 'violet-pale',
+      'type-equity': 'teal',
+      'type-equity-tint': 'teal-pale',
+      'type-revenue': 'lime',
+      'type-revenue-tint': 'lime-pale',
+      'type-expense': 'magenta',
+      'type-expense-tint': 'magenta-pale',
       'band-suggested': 'mint-fog',
       'border-control': 'steel',
       danger: 'rust',
@@ -162,6 +195,67 @@ describe('the light fills', () => {
 
   it('tints a chosen chip with 12% of mint mixed into mist, the ground it sits on', () => {
     expect(rgbChannels(palette['mint-pale'])).toEqual(mixedInto('mist', 'mint', 0.12));
+  });
+});
+
+const TEXT_COLORS = ['ink', 'slate', 'mint-deep', 'mint-deeper', 'rust', 'ochre', 'cobalt', 'gold'] as const;
+
+const difference = (one: keyof typeof palette, other: keyof typeof palette): number =>
+  colorDifference(palette[one], palette[other]);
+
+describe('the Account type colours', () => {
+  it('gives each Account type a colour and the tint it fills a Band with', () => {
+    expect(typeHues).toEqual({
+      asset: { color: 'brown', tint: 'brown-pale' },
+      liability: { color: 'violet', tint: 'violet-pale' },
+      equity: { color: 'teal', tint: 'teal-pale' },
+      revenue: { color: 'lime', tint: 'lime-pale' },
+      expense: { color: 'magenta', tint: 'magenta-pale' },
+    });
+    expect(
+      Object.fromEntries(Object.values(typeHues).flatMap(({ color, tint }) => [
+        [color, palette[color]],
+        [tint, palette[tint]],
+      ])),
+    ).toEqual({
+      brown: '#8A5A44',
+      'brown-pale': '#ECE5E1',
+      violet: '#6A4FC2',
+      'violet-pale': '#E7E3F5',
+      teal: '#1D7894',
+      'teal-pale': '#DBE9EE',
+      lime: '#5E8A12',
+      'lime-pale': '#E5ECD9',
+      magenta: '#B03C78',
+      'magenta-pale': '#F2E0E9',
+    });
+  });
+
+  it.each(Object.entries(typeHues))('mixes the %s tint as 16%% of its colour into white', (_type, { color, tint }) => {
+    expect(rgbChannels(palette[tint])).toEqual(mixedInto('white', color, 0.16));
+  });
+
+  it('holds two colours apart at a difference of 20', () => {
+    expect(DIFFERENCE_MINIMUM).toBe(20);
+  });
+
+  it.each(Object.entries(typeHues))(
+    'keeps the %s colour apart from every text colour, so it never reads as text, a Side, a warning or a danger',
+    (_type, { color }) => {
+      for (const text of TEXT_COLORS) {
+        expect(difference(color, text), `${color} from ${text}`).toBeGreaterThanOrEqual(DIFFERENCE_MINIMUM);
+      }
+    },
+  );
+
+  it.each(Object.entries(typeHues))('keeps the %s colour apart from every other type colour', (type, { color }) => {
+    for (const [other, hue] of Object.entries(typeHues)) {
+      if (other !== type) {
+        expect(difference(color, hue.color), `${color} from ${hue.color}`).toBeGreaterThanOrEqual(
+          DIFFERENCE_MINIMUM,
+        );
+      }
+    }
   });
 });
 

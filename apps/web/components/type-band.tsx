@@ -1,6 +1,6 @@
 import { useTranslations } from 'next-intl';
-import { type AccountType } from '@repo/contracts';
-import { type BalanceDirection } from '@repo/core/accounts';
+import { type AccountType, type Side } from '@repo/contracts';
+import { balanceDirection, type BalanceDirection } from '@repo/core/accounts';
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -14,39 +14,72 @@ import {
 import { typeClasses } from '@repo/ui/type-classes';
 import { type ReactNode } from 'react';
 
-const TYPE_ICON: Readonly<Record<AccountType, () => ReactNode>> = {
-  asset: () => <WalletIcon size={16} />,
+type IconSize = 14 | 16;
+
+const TYPE_ICON: Readonly<Record<AccountType, (props: { readonly size: IconSize }) => ReactNode>> = {
+  asset: WalletIcon,
   liability: ReceiptIcon,
   equity: PieIcon,
   revenue: RisingLineIcon,
   expense: FallingLineIcon,
 };
 
-export type TypeIconProps = {
-  readonly accountType: AccountType;
+type TypeHue = {
+  readonly tint: string;
+  readonly stroke: string;
 };
 
-export function TypeIcon({ accountType }: TypeIconProps): ReactNode {
+const TYPE_HUE: Readonly<Record<AccountType, TypeHue>> = {
+  asset: { tint: 'bg-type-asset-tint', stroke: 'text-type-asset' },
+  liability: { tint: 'bg-type-liability-tint', stroke: 'text-type-liability' },
+  equity: { tint: 'bg-type-equity-tint', stroke: 'text-type-equity' },
+  revenue: { tint: 'bg-type-revenue-tint', stroke: 'text-type-revenue' },
+  expense: { tint: 'bg-type-expense-tint', stroke: 'text-type-expense' },
+};
+
+type TypeIconProps = {
+  readonly accountType: AccountType;
+  readonly size?: IconSize;
+};
+
+function TypeIcon({ accountType, size = 16 }: TypeIconProps): ReactNode {
   const Icon = TYPE_ICON[accountType];
-  return <Icon />;
+  return <Icon size={size} />;
+}
+
+export function TypeTile({ accountType }: { readonly accountType: AccountType }): ReactNode {
+  const hue = TYPE_HUE[accountType];
+  return (
+    <span
+      data-testid="type-tile"
+      aria-hidden="true"
+      className={`flex size-5 shrink-0 items-center justify-center rounded-control ${hue.tint} ${hue.stroke}`}
+    >
+      <TypeIcon accountType={accountType} size={14} />
+    </span>
+  );
 }
 
 type StripProps = {
   readonly icon: ReactNode;
+  readonly stroke?: string;
   readonly name: string;
   readonly id: string;
   readonly className: string;
   readonly children?: ReactNode;
 };
 
-function Strip({ icon, name, id, className, children }: StripProps): ReactNode {
+function Strip({ icon, stroke = '', name, id, className, children }: StripProps): ReactNode {
   return (
-    <div className={`flex items-center justify-between gap-3 rounded-control ${className}`}>
+    <div
+      data-testid="band"
+      className={`flex items-center justify-between gap-3 rounded-control ${className}`}
+    >
       <span
         id={id}
         className={`flex items-center gap-2 ${typeClasses['body-sm']} font-semibold text-text`}
       >
-        <span className="flex shrink-0">{icon}</span>
+        <span className={`flex shrink-0 ${stroke}`}>{icon}</span>
         {name}
       </span>
       {children}
@@ -67,14 +100,58 @@ export type BandProps = {
   readonly children?: ReactNode;
 };
 
+export type DirectionArrowProps = {
+  readonly direction: BalanceDirection;
+  readonly className?: string;
+};
+
+export function DirectionArrow({ direction, className = '' }: DirectionArrowProps): ReactNode {
+  const Icon = DIRECTION_ICON[direction];
+  return (
+    <span data-testid="balance-direction" className={`flex shrink-0 text-text-muted ${className}`}>
+      <Icon />
+    </span>
+  );
+}
+
+export type CuedAccountProps = {
+  readonly accountType: AccountType;
+  readonly side: Side;
+  readonly children: ReactNode;
+};
+
+export function CuedAccount({ accountType, side, children }: CuedAccountProps): ReactNode {
+  return (
+    <span className="flex min-w-0 items-baseline gap-x-1.5">
+      <span className="self-start">
+        <TypeTile accountType={accountType} />
+      </span>
+      {children}
+      <DirectionArrow
+        direction={balanceDirection(accountType, side)}
+        className="h-lh items-center self-start"
+      />
+    </span>
+  );
+}
+
+export function useCuedAccountName(): (account: string, accountType: AccountType, side: Side) => string {
+  const t = useTranslations();
+  return (account, accountType, side) =>
+    t('entryList.line', {
+      account,
+      type: t(`accountTypes.${accountType}`),
+      direction: t(`accountSheet.${balanceDirection(accountType, side)}`),
+    });
+}
+
 function Hint({ direction }: { readonly direction: BalanceDirection }): ReactNode {
   const t = useTranslations();
-  const Icon = DIRECTION_ICON[direction];
   return (
     <span
       className={`flex shrink-0 items-center gap-1 ${typeClasses['body-sm']} text-text-muted`}
     >
-      <Icon />
+      <DirectionArrow direction={direction} />
       {t(`accountSheet.${direction}`)}
     </span>
   );
@@ -82,12 +159,14 @@ function Hint({ direction }: { readonly direction: BalanceDirection }): ReactNod
 
 export function Band({ accountType, id, className, direction, children }: BandProps): ReactNode {
   const t = useTranslations();
+  const hue = TYPE_HUE[accountType];
   return (
     <Strip
       icon={<TypeIcon accountType={accountType} />}
+      stroke={hue.stroke}
       name={t(`accountTypes.${accountType}`)}
       id={id}
-      className={`bg-band ${className}`}
+      className={`${hue.tint} ${className}`}
     >
       {direction === undefined ? null : <Hint direction={direction} />}
       {children}

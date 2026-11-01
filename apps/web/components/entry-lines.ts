@@ -1,4 +1,11 @@
-import { sideSchema, type Side } from '@repo/contracts';
+import {
+  accountsIn,
+  sideSchema,
+  type AccountId,
+  type AccountType,
+  type ChartOutput,
+  type Side,
+} from '@repo/contracts';
 
 export const SIDES: readonly Side[] = sideSchema.options;
 
@@ -17,3 +24,8 @@ export const linesOn = <Line extends SidedLine>(
 
 export const hasOneLinePerSide = (entry: WithLines<SidedLine>): boolean =>
   SIDES.every((side) => linesOn(entry, side).length === 1);
+
+export type AccountTypes = ReadonlyMap<AccountId, AccountType>;
+
+export const accountTypesIn = (chart: ChartOutput): AccountTypes =>
+  new Map(accountsIn(chart).map((account) => [account.id, account.accountType]));

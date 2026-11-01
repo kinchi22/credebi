@@ -45,7 +45,7 @@ const LINKS = [
   {
     href: ASSETS_AND_LIABILITIES_TREND_PATH,
     label: 'sidebar.assetsAndLiabilitiesTrend',
-    icon: <RisingLineIcon />,
+    icon: <RisingLineIcon size={16} />,
   },
   { href: SETTINGS_PATH, label: 'sidebar.settings', icon: <SlidersIcon /> },
 ] as const;

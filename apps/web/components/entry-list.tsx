@@ -1,10 +1,12 @@
 import { useTranslations } from 'next-intl';
 import {
+  type AccountType,
   type ChartOutput,
   type EntryFormMode,
   type PostedEntry,
   type Side,
   type OfferedTitle,
+  type PostedLine,
 } from '@repo/contracts';
 import { Panel, PANEL_BLEED } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
@@ -12,9 +14,10 @@ import { type ReactNode } from 'react';
 import { formatAmount } from './amount';
 import { DeleteEntry, type DeleteEntryAction } from './delete-entry';
 import { EditEntry, type EditEntryAction } from './edit-entry';
-import { hasOneLinePerSide, linesOn, SIDES } from './entry-lines';
+import { accountTypesIn, hasOneLinePerSide, linesOn, SIDES, type AccountTypes } from './entry-lines';
 import { SIDE_TONE } from './side-classes';
 import { MUTED_TEXT } from './text-classes';
+import { CuedAccount, useCuedAccountName } from './type-band';
 
 export type EntryControls = {
   readonly chart: ChartOutput;
@@ -85,25 +88,65 @@ function SideHeadings({ layout, named }: { readonly layout: Layout; readonly nam
   );
 }
 
+function LineAccount({
+  line,
+  accountType,
+}: {
+  readonly line: PostedLine;
+  readonly accountType: AccountType | undefined;
+}): ReactNode {
+  const name = <span className="min-w-0 wrap-anywhere">{line.accountName}</span>;
+  return accountType === undefined ? (
+    name
+  ) : (
+    <CuedAccount accountType={accountType} side={line.side}>
+      {name}
+    </CuedAccount>
+  );
+}
+
+function SideLine({
+  line,
+  accountType,
+  layout,
+}: {
+  readonly line: PostedLine;
+  readonly accountType: AccountType | undefined;
+  readonly layout: Layout;
+}): ReactNode {
+  const cuedName = useCuedAccountName();
+  return (
+    <li
+      data-testid="entry-line"
+      aria-label={
+        accountType === undefined ? undefined : cuedName(line.accountName, accountType, line.side)
+      }
+      className="flex items-baseline gap-x-3 py-1"
+    >
+      <LineAccount line={line} accountType={accountType} />{' '}
+      <span className={`${layout.lineAmount} ${SIDE_TONE[line.side].text}`}>
+        {formatAmount(line.amount)}
+      </span>
+    </li>
+  );
+}
+
 function SideLines({
   entry,
   side,
   layout,
+  accountTypes,
 }: {
   readonly entry: PostedEntry;
   readonly side: Side;
   readonly layout: Layout;
+  readonly accountTypes: AccountTypes;
 }): ReactNode {
   return (
     <div role="cell" className={`min-w-0 ${layout.lines[side]} ${SIDE_TONE[side].edge}`}>
       <ul>
         {linesOn(entry, side).map((line, index) => (
-          <li key={index} data-testid="entry-line" className="flex items-baseline gap-x-3 py-1">
-            <span className="min-w-0 wrap-anywhere">{line.accountName}</span>{' '}
-            <span className={`${layout.lineAmount} ${SIDE_TONE[side].text}`}>
-              {formatAmount(line.amount)}
-            </span>
-          </li>
+          <SideLine key={index} line={line} accountType={accountTypes.get(line.account)} layout={layout} />
         ))}
       </ul>
     </div>
@@ -114,10 +157,12 @@ function ListedEntry({
   entry,
   headsColumns,
   controls,
+  accountTypes,
 }: {
   readonly entry: PostedEntry;
   readonly headsColumns: boolean;
   readonly controls: EntryControls;
+  readonly accountTypes: AccountTypes;
 }): ReactNode {
   const t = useTranslations();
   const layout = hasOneLinePerSide(entry) ? COMPACT : STACKED;
@@ -161,7 +206,7 @@ function ListedEntry({
       <SideHeadings layout={layout} named={headsColumns} />
       <div role="row" className="contents">
         {SIDES.map((side) => (
-          <SideLines key={side} entry={entry} side={side} layout={layout} />
+          <SideLines key={side} entry={entry} side={side} layout={layout} accountTypes={accountTypes} />
         ))}
       </div>
     </div>
@@ -170,6 +215,7 @@ function ListedEntry({
 
 export function EntryList({ entries, controls }: EntryListProps): ReactNode {
   const t = useTranslations();
+  const accountTypes = accountTypesIn(controls.chart);
   return (
     <Panel title={t('entryList.title')} titleHidden>
       {entries.length === 0 ? (
@@ -182,6 +228,7 @@ export function EntryList({ entries, controls }: EntryListProps): ReactNode {
               entry={entry}
               headsColumns={index === 0}
               controls={controls}
+              accountTypes={accountTypes}
             />
           ))}
         </div>
