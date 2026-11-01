@@ -36,7 +36,7 @@ import { SIDE_ORDER } from './side-order';
 import { NOTHING_SUGGESTED, type Suggested } from './suggested-accounts';
 import { LINK } from './text-classes';
 import { GroupFolder, TreeBranch } from './tree-branch';
-import { Band, SuggestedBand } from './type-band';
+import { Band, CuedAccount, SuggestedBand } from './type-band';
 import { useWide } from './use-wide';
 
 export type AccountChoice = Readonly<Record<Side, AccountOutput | undefined>>;
@@ -228,9 +228,17 @@ function AccountRowContent({
       <span className={`${SIDE_NAME_COLUMN} ${typeClasses.label} leading-5 ${SIDE_TONE[side].text}`}>
         {t(`sides.${side}`)}
       </span>
-      <span className={`min-w-0 grow wrap-anywhere ${account === undefined ? placeholderClass : 'font-semibold'}`}>
-        {account === undefined ? t('entryForm.chooseAccount') : account.name}
-      </span>
+      {account === undefined ? (
+        <span className={`min-w-0 grow wrap-anywhere ${placeholderClass}`}>
+          {t('entryForm.chooseAccount')}
+        </span>
+      ) : (
+        <span className="min-w-0 grow">
+          <CuedAccount accountType={account.accountType} side={side}>
+            <span className="min-w-0 font-semibold wrap-anywhere">{account.name}</span>
+          </CuedAccount>
+        </span>
+      )}
     </>
   );
 }
