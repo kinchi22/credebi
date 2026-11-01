@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entry line cues</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --surface:#fff;--ground:#F2F8F5;--text:#0B2B2A;--muted:#4A6461;--border:#E1ECE8;--control:#78948F;
+  --hover:#F6FAF8;--accent:#2FD0A2;--accent-text:#0B7A5E;--debit:#2B63B8;--credit:#7F6500;--warning:#A15C00;--band:#E1ECE8;
+  /* PROTOTYPE placeholder type colours, not decided (Q5 round 2) */
+  --t-asset:#8A5A44;--t-liability:#6A4FC2;--t-equity:#1D7894;--t-revenue:#5E8A12;--t-expense:#B03C78;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--text);font:14px/20px "IBM Plex Sans","IBM Plex Sans KR",sans-serif;padding:24px 16px 96px}
+.wrap{max-width:880px;margin:0 auto}
+h1{font-size:20px;line-height:28px;margin:0 0 4px}
+.lede{color:var(--muted);margin:0 0 20px}
+.note{background:#FFF8E6;border:1px solid #F0DDA8;border-radius:6px;padding:10px 12px;margin:0 0 20px;font-size:13px}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 20px;margin-bottom:20px;box-shadow:0 1px 2px rgba(11,43,42,.05),0 1px 3px rgba(11,43,42,.04)}
+.ph{font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.entry{padding:16px 20px;margin:0 -20px;border-top:1px solid var(--border)}
+.entry:first-of-type{border-top:0;padding-top:4px}
+.entry:hover{background:var(--hover)}
+.r1{display:flex;gap:10px;align-items:baseline}
+.date{font:13px/20px "IBM Plex Mono",monospace;color:var(--muted)}
+.title{font-weight:600}
+.memo{color:var(--muted);flex:1}
+.total{font:500 14px/20px "IBM Plex Mono",monospace;margin-left:auto}
+.cols{display:grid;grid-template-columns:1fr 1fr;margin-top:8px}
+.col{padding-right:16px}
+.col+.col{border-left:1px solid var(--border);padding:0 0 0 16px}
+.side{font-size:11.5px;font-weight:600;letter-spacing:.04em;line-height:16px;padding-bottom:2px;border-bottom:1.5px solid currentColor;margin-bottom:4px;display:flex;gap:8px;align-items:baseline}
+.side .inl{font-size:13px;font-weight:400;letter-spacing:0;color:var(--text);display:inline-flex;gap:6px;align-items:center}
+.d{color:var(--debit)}.c{color:var(--credit)}
+.line{display:flex;align-items:center;gap:6px;font-size:13px;line-height:20px;min-height:24px}
+.line .name{flex:0 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.line .amt{margin-left:auto;font:14px/20px "IBM Plex Mono",monospace}
+svg.i{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.dir{color:var(--muted);display:inline-flex;align-items:center;gap:2px;font-size:12px}
+/* A: icon tile */
+.tile{width:20px;height:20px;border-radius:5px;display:inline-grid;place-items:center;flex:none}
+.tile svg{width:13px;height:13px}
+/* B: dot */
+.dot{width:8px;height:8px;border-radius:50%;flex:none}
+/* C: pill */
+.pill{display:inline-flex;align-items:center;gap:2px;font-size:11.5px;line-height:16px;font-weight:600;padding:1px 6px 1px 5px;border-radius:999px;flex:none}
+.pill svg{width:12px;height:12px}
+/* D: rule */
+.ruled{border-left:3px solid;padding-left:8px;margin-left:-11px}
+.dirtag{font-size:11.5px;color:var(--muted);display:inline-flex;align-items:center;gap:1px;min-width:40px;justify-content:flex-end}
+/* form */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.field{border:1px solid var(--control);border-radius:6px;height:36px;display:flex;align-items:center;gap:6px;padding:0 10px;background:#fff;font-size:13px}
+.field .amt{margin-left:auto;font-family:"IBM Plex Mono",monospace}
+.flabel{font-size:11.5px;font-weight:600;letter-spacing:.04em;margin:0 0 4px}
+.mline{display:grid;grid-template-columns:1fr 120px;gap:8px;margin-bottom:6px}
+.mline .field.amtf{justify-content:flex-end;font-family:"IBM Plex Mono",monospace}
+.two{display:grid;grid-template-columns:1fr 1fr 140px;gap:12px;align-items:end}
+.state{font:12px/18px "IBM Plex Mono",monospace;color:var(--muted);white-space:pre-wrap;background:var(--surface);border:1px dashed var(--control);border-radius:6px;padding:10px 12px}
+.switcher{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#111;color:#fff;border-radius:999px;display:flex;align-items:center;gap:6px;padding:6px 8px;box-shadow:0 6px 24px rgba(0,0,0,.3);font:13px/20px system-ui,sans-serif;z-index:10}
+.switcher button{background:#333;color:#fff;border:0;border-radius:999px;width:32px;height:32px;font-size:16px;cursor:pointer}
+.switcher .lbl{min-width:260px;text-align:center}
+.band{display:flex;align-items:center;gap:6px;border-radius:6px;padding:6px 8px;font-weight:600;margin:10px 0 6px}.band .bd{margin-left:auto;font-weight:400;color:var(--muted);display:inline-flex;gap:2px;align-items:center}.chips{display:flex;flex-wrap:wrap;gap:6px;padding-left:94px}.chip{border:1px solid var(--border);border-radius:6px;padding:2px 10px;font-size:13px}.chip.on{background:#DBF3EB;border-color:var(--accent-text);font-weight:500}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted);margin-bottom:12px}
+@media (max-width:640px){.cols{grid-template-columns:1fr}.col+.col{border-left:0;padding:8px 0 0}.two,.form-row{grid-template-columns:1fr}.switcher .lbl{min-width:150px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>#631 Q7 시안: Entry line의 Account type·Balance direction 표시</h1>
+  <p class="lede">PROTOTYPE · 버릴 코드. ←/→ 키 또는 아래 막대로 변형 전환. URL <code>?variant=</code> 유지.</p>
+  <div class="note">Q17 후보 팔레트: 자산 갈색 · 부채 보라 · 자본 청록 · 수익 연두 · 비용 자홍. Band는 타입 색 16% 음영(Q15), Entry line·폼은 타일(Q7 A).</div>
+  <div class="legend" id="legend"></div>
+  <section class="panel"><p class="ph">Account picker · 차변 (Band 음영)</p><div id="picker"></div></section>
+  <section class="panel"><p class="ph">Entries 목록</p><div id="list"></div></section>
+  <section class="panel"><p class="ph">입력 폼 · Multi-line mode</p><div id="multi"></div></section>
+  <section class="panel"><p class="ph">입력 폼 · Two-line mode</p><div id="two"></div></section>
+  <div class="state" id="state"></div>
+</div>
+<div class="switcher"><button id="prev" aria-label="이전">←</button><span class="lbl" id="lbl"></span><button id="next" aria-label="다음">→</button></div>
+<script>
+const ICON={
+  asset:'<rect x="3" y="6" width="18" height="14" rx="2"/><path d="M16 13h2M3 10h18M6 6V4h11v2"/>',
+  liability:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+  equity:'<path d="M12 3a9 9 0 1 0 9 9h-9z"/><path d="M15 3.5a9 9 0 0 1 5.5 5.5H15z"/>',
+  revenue:'<path d="m3 17 6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
+  expense:'<path d="m3 7 6 6 4-4 8 8"/><path d="M15 17h6v-6"/>',
+  up:'<path d="M12 19V5M6 11l6-6 6 6"/>',down:'<path d="M12 5v14M6 13l6 6 6-6"/>'};
+const TYPE_KO={asset:'자산',liability:'부채',equity:'자본',revenue:'수익',expense:'비용'};
+const svg=k=>`<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>`;
+const dirOf=(type,side)=>((side==='d')===(type==='asset'||type==='expense'))?'up':'down';
+const DIR_KO={up:'증가',down:'감소'};
+const fmt=n=>n.toLocaleString('ko-KR');
+const A=(name,type)=>({name,type});
+const ACC={bank:A('보통예금','asset'),cash:A('현금','asset'),card:A('신한카드','liability'),loan:A('주택담보대출','liability'),cap:A('기초자본','equity'),
+  salary:A('급여','revenue'),interestIn:A('이자수익','revenue'),food:A('식비','expense'),rent:A('주거비','expense'),fee:A('관리비','expense'),interest:A('이자비용','expense')};
+const ENTRIES=[
+  {date:'26.10.25',title:'급여',memo:'10월분',d:[['bank',4200000]],c:[['salary',4200000]]},
+  {date:'26.10.26',title:'스타벅스',memo:'',d:[['food',6500]],c:[['card',6500]]},
+  {date:'26.10.27',title:'카드대금',memo:'9월 사용분',d:[['card',812000]],c:[['bank',812000]]},
+  {date:'26.10.28',title:'대출 상환',memo:'원금+이자',d:[['loan',1000000],['interest',350000]],c:[['bank',1350000]]},
+  {date:'26.10.29',title:'월세',memo:'',d:[['rent',700000],['fee',120000]],c:[['bank',800000],['cash',20000]]},
+  {date:'26.10.30',title:'',memo:'식비 환불',d:[['bank',12000]],c:[['food',12000]]},
+];
+const col=t=>`var(--t-${t})`;
+const tint=t=>`color-mix(in srgb, var(--t-${t}) 16%, white)`;
+const aria=(a,s)=>`${a.name}, ${TYPE_KO[a.type]}, ${DIR_KO[dirOf(a.type,s)]}`;
+
+const VARIANTS=[
+  {key:'A',name:'아이콘 타일 + 이름 뒤 화살표',
+    lead:a=>`<span class="tile" style="background:${tint(a.type)};color:${col(a.type)}">${svg(a.type)}</span>`,
+    tail:(a,s)=>`<span class="dir">${svg(dirOf(a.type,s))}</span>`, tailPos:'afterName'},
+  {key:'B',name:'점 + 금액 옆 화살표·단어',
+    lead:a=>`<span class="dot" style="background:${col(a.type)}"></span>`,
+    tail:(a,s)=>`<span class="dirtag">${svg(dirOf(a.type,s))}${DIR_KO[dirOf(a.type,s)]}</span>`, tailPos:'beforeAmt'},
+  {key:'C',name:'타입 알약(타입명+화살표 결합)',
+    lead:()=>'',
+    tail:(a,s)=>`<span class="pill" style="background:${tint(a.type)};color:${col(a.type)}">${TYPE_KO[a.type]}${svg(dirOf(a.type,s))}</span>`, tailPos:'afterName'},
+  {key:'D',name:'왼쪽 색 띠 + 금액 앞 화살표만',
+    lead:()=>'',
+    tail:(a,s)=>`<span class="dir">${svg(dirOf(a.type,s))}</span>`, tailPos:'beforeAmt', ruled:true},
+];
+let vi=Math.max(0,VARIANTS.findIndex(v=>v.key===(new URLSearchParams(location.search).get('variant')||'A')));
+
+function lineHTML(v,id,amt,s,showAmt=true){
+  const a=ACC[id];
+  const name=`<span class="name">${a.name}</span>`;
+  const t=v.tail(a,s), lead=v.lead(a);
+  const amtH=showAmt?`<span class="amt ${s}">${fmt(amt)}</span>`:'';
+  const inner=v.tailPos==='afterName'?`${lead}${name}${t}${amtH}`:`${lead}${name}${amtH?`<span style="margin-left:auto;display:inline-flex;gap:6px;align-items:center">${t}<span class="amt ${s}" style="margin-left:0">${fmt(amt)}</span></span>`:t}`;
+  const style=v.ruled?` class="line ruled" style="border-color:${col(a.type)}"`:' class="line"';
+  return `<div${style} aria-label="${aria(a,s)}">${inner}</div>`;
+}
+function sideHTML(v,lines,s){
+  const label=s==='d'?'차변':'대변';
+  if(lines.length===1){
+    const [id,amt]=lines[0];
+    return `<div class="col"><div class="side ${s}">${label}</div>${lineHTML(v,id,amt,s,false)}</div>`;
+  }
+  return `<div class="col"><div class="side ${s}">${label}</div>${lines.map(([id,amt])=>lineHTML(v,id,amt,s)).join('')}</div>`;
+}
+function render(){
+  const v=VARIANTS[vi];
+  document.getElementById('lbl').textContent=`${v.key} (${v.name})  ${vi+1}/${VARIANTS.length}`;
+  document.getElementById('legend').innerHTML=Object.keys(TYPE_KO).map(t=>`<span style="display:inline-flex;gap:4px;align-items:center"><span class="dot" style="background:${col(t)}"></span>${TYPE_KO[t]}</span>`).join('')+'<span>· 화살표: 해당 계정 잔액 증가/감소 (색 없음)</span>';
+  document.getElementById('list').innerHTML=ENTRIES.map(e=>{
+    const tot=e.d.reduce((s,[,a])=>s+a,0);
+    return `<article class="entry"><div class="r1"><span class="date">${e.date}</span>${e.title?`<span class="title">${e.title}</span>`:''}<span class="memo">${e.memo}</span><span class="total">${fmt(tot)}</span></div><div class="cols">${sideHTML(v,e.d,'d')}${sideHTML(v,e.c,'c')}</div></article>`;
+  }).join('');
+  const PICK=[['expense',['식비','주거비','관리비','이자비용']],['asset',['보통예금','현금']],['liability',['신한카드','주택담보대출']],['equity',['기초자본']],['revenue',['급여','이자수익']]];
+  document.getElementById('picker').innerHTML=`<div class="band" style="background:#DCF0E9">✦ 추천</div><div class="chips"><span class="chip on">식비</span></div>`+PICK.map(([t,names])=>`<div class="band" style="background:${tint(t)}"><span style="color:${col(t)};display:inline-flex">${svg(t)}</span>${TYPE_KO[t]==='수익'?'수익':TYPE_KO[t]}<span class="bd">${svg(dirOf(t,'d'))}${DIR_KO[dirOf(t,'d')]}</span></div><div class="chips">${names.map(n=>`<span class="chip">${n}</span>`).join('')}</div>`).join('');
+  const fieldInner=(id,s)=>{const a=ACC[id];const lead=v.lead(a);return `${lead}<span>${a.name}</span>${v.tail(a,s)}`;};
+  const ml=(id,amt,s)=>`<div class="mline"><div class="field"${v.ruled?` style="border-left:3px solid ${col(ACC[id].type)}"`:''}>${fieldInner(id,s)}</div><div class="field amtf">${fmt(amt)}</div></div>`;
+  document.getElementById('multi').innerHTML=`<div class="form-row"><div><p class="flabel d">차변</p>${ml('loan',1000000,'d')}${ml('interest',350000,'d')}</div><div><p class="flabel c">대변</p>${ml('bank',1350000,'c')}</div></div>`;
+  document.getElementById('two').innerHTML=`<div class="two"><div><p class="flabel d">차변</p><div class="field"${v.ruled?` style="border-left:3px solid ${col('expense')}"`:''}>${fieldInner('food','d')}</div></div><div><p class="flabel c">대변</p><div class="field"${v.ruled?` style="border-left:3px solid ${col('liability')}"`:''}>${fieldInner('card','c')}</div></div><div><p class="flabel">금액</p><div class="field" style="justify-content:flex-end;font-family:'IBM Plex Mono'">6,500</div></div></div>`;
+  document.getElementById('state').textContent=`variant=${v.key} · ${v.name}\n스크린리더 예: "${aria(ACC.loan,'d')}"\n방향 규칙: 차변 → 자산·비용 증가, 부채·자본·수익 감소 / 대변은 반대`;
+}
+function go(d){vi=(vi+d+VARIANTS.length)%VARIANTS.length;const u=new URL(location);u.searchParams.set('variant',VARIANTS[vi].key);history.replaceState(null,'',u);render();}
+document.getElementById('prev').onclick=()=>go(-1);document.getElementById('next').onclick=()=>go(1);
+addEventListener('keydown',e=>{if(e.target.closest('input,textarea,[contenteditable]'))return;if(e.key==='ArrowLeft')go(-1);if(e.key==='ArrowRight')go(1);});
+render();
+</script>
+</body>
+</html>
