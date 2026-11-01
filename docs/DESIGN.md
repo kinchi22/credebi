@@ -31,6 +31,16 @@ colors:
   leaf: "#34A853"
   amber: "#FBBC05"
   scarlet: "#EA4335"
+  brown: "#8A5A44"
+  brown-pale: "#ECE5E1"
+  violet: "#6A4FC2"
+  violet-pale: "#E7E3F5"
+  teal: "#1D7894"
+  teal-pale: "#DBE9EE"
+  lime: "#5E8A12"
+  lime-pale: "#E5ECD9"
+  magenta: "#B03C78"
+  magenta-pale: "#F2E0E9"
   surface: "{colors.white}"
   ground: "{colors.mist}"
   text: "{colors.ink}"
@@ -46,7 +56,16 @@ colors:
   accent-text: "{colors.mint-deep}"
   accent-text-hover: "{colors.mint-deeper}"
   border: "{colors.fog}"
-  band: "{colors.fog}"
+  type-asset: "{colors.brown}"
+  type-asset-tint: "{colors.brown-pale}"
+  type-liability: "{colors.violet}"
+  type-liability-tint: "{colors.violet-pale}"
+  type-equity: "{colors.teal}"
+  type-equity-tint: "{colors.teal-pale}"
+  type-revenue: "{colors.lime}"
+  type-revenue-tint: "{colors.lime-pale}"
+  type-expense: "{colors.magenta}"
+  type-expense-tint: "{colors.magenta-pale}"
   band-suggested: "{colors.mint-fog}"
   border-control: "{colors.steel}"
   danger: "{colors.rust}"
@@ -227,7 +246,7 @@ a palette colour.
 | `white`       | `#FFFFFF` | panels                                     |
 | `slate`       | `#4A6461` | muted text                                 |
 | `sage`        | `#9FC4BC` | muted text on ink                          |
-| `fog`         | `#E1ECE8` | dividers, panel edges, Account-type bands  |
+| `fog`         | `#E1ECE8` | dividers, panel edges                      |
 | `mint-fog`    | `#DCF0E9` | the Suggested Band, a touch mintier than `fog` |
 | `steel`       | `#78948F` | control edges                              |
 | `rust`        | `#B4400F` | danger                                     |
@@ -239,6 +258,16 @@ a palette colour.
 | `leaf`        | `#34A853` | the Google G, green                        |
 | `amber`       | `#FBBC05` | the Google G, yellow                       |
 | `scarlet`     | `#EA4335` | the Google G, red                          |
+| `brown`       | `#8A5A44` | the asset icon                             |
+| `brown-pale`  | `#ECE5E1` | the Assets Band                            |
+| `violet`      | `#6A4FC2` | the liability icon                         |
+| `violet-pale` | `#E7E3F5` | the Liabilities Band                       |
+| `teal`        | `#1D7894` | the equity icon                            |
+| `teal-pale`   | `#DBE9EE` | the Equity Band                            |
+| `lime`        | `#5E8A12` | the revenue icon                           |
+| `lime-pale`   | `#E5ECD9` | the Revenue Band                           |
+| `magenta`     | `#B03C78` | the expense icon                           |
+| `magenta-pale` | `#F2E0E9` | the Expenses Band                         |
 
 `mint-deep` was `#0E9A76`, which reads 3.6:1 on white and 3.3:1 on mist, below
 AA for text. `#0B7A5E` reads 5.3:1 and 4.9:1.
@@ -268,7 +297,16 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `accent-text`        | `mint-deep` | links, accent text on a light ground  |
 | `accent-text-hover`  | `mint-deeper` | a link under the pointer            |
 | `border`             | `fog`       | dividers, panel edges                 |
-| `band`               | `fog`       | an Account type's Band                |
+| `type-asset`         | `brown`     | the asset icon's stroke on its Band   |
+| `type-asset-tint`    | `brown-pale` | the Assets Band's fill               |
+| `type-liability`     | `violet`    | the liability icon's stroke on its Band |
+| `type-liability-tint` | `violet-pale` | the Liabilities Band's fill        |
+| `type-equity`        | `teal`      | the equity icon's stroke on its Band  |
+| `type-equity-tint`   | `teal-pale` | the Equity Band's fill                |
+| `type-revenue`       | `lime`      | the revenue icon's stroke on its Band |
+| `type-revenue-tint`  | `lime-pale` | the Revenue Band's fill               |
+| `type-expense`       | `magenta`   | the expense icon's stroke on its Band |
+| `type-expense-tint`  | `magenta-pale` | the Expenses Band's fill           |
 | `band-suggested`     | `mint-fog`  | the Suggested Band in the Account picker and the Account sheet |
 | `border-control`     | `steel`     | inputs, secondary buttons, tree connectors, and at 55% the Account picker's group rules |
 | `danger`             | `rust`      | refusals, errors                      |
@@ -292,6 +330,18 @@ Credit amount never reads as a warning. As text, `debit` reads 5.87:1 on
 `surface` and 5.45:1 on `ground`; `credit` reads 5.58:1 on `surface` and 5.19:1
 on `ground`.
 
+Each Account type has a colour of its own, which means only "which Account
+type": the asset `brown`, the liability `violet`, the equity `teal`, the revenue
+`lime`, a yellow-green, and the expense `magenta`. Each tint is its colour mixed
+16% into `white`. A type colour is an icon's stroke and a tint is a fill; a type
+colour is never text. None is green or red, so no type reads as gain or loss,
+and each stays at least ΔE76 20 from every text colour -- `ink`, `slate`,
+`mint-deep`, `mint-deeper`, `rust`, `ochre`, `cobalt` and `gold` -- and from
+each other, so a type never reads as a Side, a warning or a danger. The closest
+are `teal` to `slate` (22.7) and `violet` to `cobalt` (28.0). Orange for the
+expense was rejected: no orange is both ΔE76 20 from `rust` and `ochre` and
+3:1 on its tint. Blue for the asset was rejected as too close to `debit`.
+
 `pewter`, `azure`, `leaf`, `amber` and `scarlet` are Google's, not Credebi's:
 Google's sign-in branding fixes the button's edge and the four colours of its
 G, so they are kept exactly and used nowhere else. The G's colours are a mark's
@@ -304,10 +354,10 @@ unit test checks every one:
   `ochre`, `cobalt` and `gold` on `white` and on `mist`; `frost` and `sage` on
   `ink`, on `ink-raised` and on `ink-mid`, which is `text-on-dark` and
   `text-muted-on-dark` on `ground-dark`, `ground-dark-raised` and
-  `ground-dark-hover` (11.78:1 and 6.85:1 on `ink-mid`); `ink` on `mint`; `ink` on `fog`,
-  which is `text` on a `band` (12.46:1); `mint-deeper` on `fog`, which is
-  `accent-text-hover` on a `band` (5.90:1); `slate` on `fog`, which is
-  `text-muted` on a `band` (5.28:1); `ink` on `mint-fog`, which is
+  `ground-dark-hover` (11.78:1 and 6.85:1 on `ink-mid`); `ink` on `mint`;
+  `ink`, `slate` and `mint-deeper` on each type tint, which is `text`,
+  `text-muted` and `accent-text-hover` on a Band (at least 11.93:1, 5.06:1 and
+  5.65:1, each on `magenta-pale`); `ink` on `mint-fog`, which is
   `text` on a `band-suggested` (12.69:1); `ink`, `slate`, `cobalt` and `gold`
   on `mist-pale`, which is `text`, `text-muted`, `debit` and `credit` on
   `surface-hover` (14.32:1, 6.07:1, 5.57:1 and 5.30:1); `ink` on `mint-pale`,
@@ -319,12 +369,20 @@ unit test checks every one:
   `mint-deep` on `mist-pale`, the `focus` ring on an Entry under the pointer
   (5.04:1), and on `mint-pale`, a chosen chip's `accent-text` edge on its fill
   (4.55:1).
+- **Icons, 3:1.** Each type colour on its own tint and on `mist-pale`, its
+  icon on its Band and on a row under the pointer: `brown` 4.65:1 and 5.50:1,
+  `violet` 4.76:1 and 5.68:1, `teal` 4.06:1 and 4.79:1, `lime` 3.39:1 and
+  3.90:1, `magenta` 4.41:1 and 5.30:1.
 
 `ink-mid` is `ink-raised` mixed 60% into `ink`, so a Sidebar item under the
 pointer reads between the idle ground and the active item. `mist-pale` is
 `mist` mixed 70% into `white`, so an Entry under the pointer reads between a
 panel and the page ground; `mint-pale` is `mint` mixed 12% into `mist`, the
 ground a chip sits on in the Account picker.
+
+The tokens module also holds every type colour ΔE76 20 from every text colour
+and from each other, and every tint as its colour mixed 16% into `white`; a unit
+test checks both.
 
 A new text colour or ground is added to these pairs in the same change.
 
@@ -567,8 +625,8 @@ numerals.
   rows are in `body-sm`.
   Each Account type is a Band, padded 8px 12px, with no account count: its
   icon and name, then at the Band's right `+ Account` and `+ Group`, text
-  buttons in `accent-text-hover`, since `accent-text` on a `band` falls short
-  of 4.5:1, underlined under the pointer, named `Add account` and
+  buttons in `accent-text-hover`, since `accent-text` on a type tint falls
+  short of 4.5:1, underlined under the pointer, named `Add account` and
   `Add group`. Every row starts with its grip and ends with `Edit` and then
   `Delete`, drawn as the Entry row actions are, and an optional description
   sits under its name in `body-dense` and `text-muted`. An Account group's row holds the
@@ -680,8 +738,8 @@ numerals.
   with up to three Suggested accounts under a Band of their own above the
   Account types' Bands: the Suggested Band, drawn as an Account type's is,
   with the same padding and radius, `Suggested` in `body-sm`, semibold, in
-  `text`, led by a 16px sparkle icon, and tinted `band-suggested`, a touch
-  mintier than `band`. The Accounts under it are drawn as those below -- chips
+  `text`, led by a 16px sparkle icon in `text`, and tinted `band-suggested`,
+  a touch mintier than `fog`, so it reads as no Account type's. The Accounts under it are drawn as those below -- chips
   that wrap in the picker, padded 6px above and below, rows in the sheet --
   with the same radio or checkbox, and a chosen one is shown chosen in both
   places. The section is gone while `Find an account` holds text, and absent
@@ -1021,7 +1079,7 @@ numerals.
   technology, so a control holding one is named by its text or its accessible
   name. The folder icon marks an Account group in the Accounts section and the
   Account sheet; it is decoration, and the group keeps its name alone. Each
-  Account type's Band leads with a 16px icon in `text` -- Assets a wallet,
+  Account type's Band leads with a 16px icon in its type colour -- Assets a wallet,
   Liabilities a receipt, Equity a pie, Revenue a rising line and Expenses a
   falling line -- decoration too, so the Band is named by its type alone; the
   Suggested Band leads with a sparkle, a four-point star beside a small plus,
@@ -1102,7 +1160,7 @@ hidden.
 | Wordmark       | The name "Credebi" drawn as outlined glyphs, as the Wordmark paragraph under `Logo` states, with C and d in the accent colour of its tone. |
 | Lockup         | A fixed arrangement of the Mark and the Wordmark: horizontal or stacked. The Mark alone is also a variant of the logo. |
 | Semantic token | A colour named by its role, such as `text-muted` or `danger`, mapped onto a brand palette colour. Components use only these. |
-| Band           | A strip tinted `band` with the `control` radius behind an Account type's name, set in `body-sm`, semibold, in `text`, and led by the type's icon, so the Account types read apart from the groups and Accounts under them. It is drawn in the Accounts section, the Account picker and the Account sheet. In the Account picker and the Account sheet it carries at its right edge the type's Balance direction for the Side: a 14px arrow, up for `Increase` and down for `Decrease`, then the word, in `body-sm` and `text-muted`, with no Side colour and no red or green, since neither direction is good or bad. The arrow is hidden from assistive technology, and the type's group is named by one message joining the type's name and the word, as `Assets, Increase`. The Suggested Band is one more, tinted `band-suggested` and led by a sparkle, over the Suggested accounts in the Account picker and the Account sheet. |
+| Band           | A strip filled with its Account type's tint, such as `type-asset-tint`, with the `control` radius behind the type's name, set in `body-sm`, semibold, in `text`, and led by the type's icon drawn in the type's colour, such as `type-asset`, so the Account types read apart from each other and from the groups and Accounts under them. It is drawn in the Accounts section, the Account picker and the Account sheet. In the Account picker and the Account sheet it carries at its right edge the type's Balance direction for the Side: a 14px arrow, up for `Increase` and down for `Decrease`, then the word, in `body-sm` and `text-muted`, with no Side colour and no red or green, since neither direction is good or bad. The arrow is hidden from assistive technology, and the type's group is named by one message joining the type's name and the word, as `Assets, Increase`. The Suggested Band is one more, tinted `band-suggested` and led by a sparkle, over the Suggested accounts in the Account picker and the Account sheet. |
 | Tree connector | A 1px `border-control` line from an Account group's folder icon to the Accounts in it, in the Accounts section and the Account sheet: `├` before each Account shown but the last, `└`, its corner rounded by the `control` radius, before the last shown. It is decoration, hidden from assistive technology. |
 | Chip           | A choice drawn as a small inline box that sits beside others and wraps, rather than one per row; a chosen chip takes a fill and an edge. |
 | Scrim          | The `ground-dark` tint at 60% behind a modal dialog. A click on the scrim is a press that began on it as well as ended there: a press that began inside the dialog, as when selecting a field's text by dragging, and was released on the scrim closes nothing. |

@@ -22,6 +22,19 @@ const TYPE_ICON: Readonly<Record<AccountType, () => ReactNode>> = {
   expense: FallingLineIcon,
 };
 
+type TypeHue = {
+  readonly tint: string;
+  readonly stroke: string;
+};
+
+const TYPE_HUE: Readonly<Record<AccountType, TypeHue>> = {
+  asset: { tint: 'bg-type-asset-tint', stroke: 'text-type-asset' },
+  liability: { tint: 'bg-type-liability-tint', stroke: 'text-type-liability' },
+  equity: { tint: 'bg-type-equity-tint', stroke: 'text-type-equity' },
+  revenue: { tint: 'bg-type-revenue-tint', stroke: 'text-type-revenue' },
+  expense: { tint: 'bg-type-expense-tint', stroke: 'text-type-expense' },
+};
+
 export type TypeIconProps = {
   readonly accountType: AccountType;
 };
@@ -33,20 +46,24 @@ export function TypeIcon({ accountType }: TypeIconProps): ReactNode {
 
 type StripProps = {
   readonly icon: ReactNode;
+  readonly stroke?: string;
   readonly name: string;
   readonly id: string;
   readonly className: string;
   readonly children?: ReactNode;
 };
 
-function Strip({ icon, name, id, className, children }: StripProps): ReactNode {
+function Strip({ icon, stroke = '', name, id, className, children }: StripProps): ReactNode {
   return (
-    <div className={`flex items-center justify-between gap-3 rounded-control ${className}`}>
+    <div
+      data-testid="band"
+      className={`flex items-center justify-between gap-3 rounded-control ${className}`}
+    >
       <span
         id={id}
         className={`flex items-center gap-2 ${typeClasses['body-sm']} font-semibold text-text`}
       >
-        <span className="flex shrink-0">{icon}</span>
+        <span className={`flex shrink-0 ${stroke}`}>{icon}</span>
         {name}
       </span>
       {children}
@@ -82,12 +99,14 @@ function Hint({ direction }: { readonly direction: BalanceDirection }): ReactNod
 
 export function Band({ accountType, id, className, direction, children }: BandProps): ReactNode {
   const t = useTranslations();
+  const hue = TYPE_HUE[accountType];
   return (
     <Strip
       icon={<TypeIcon accountType={accountType} />}
+      stroke={hue.stroke}
       name={t(`accountTypes.${accountType}`)}
       id={id}
-      className={`bg-band ${className}`}
+      className={`${hue.tint} ${className}`}
     >
       {direction === undefined ? null : <Hint direction={direction} />}
       {children}

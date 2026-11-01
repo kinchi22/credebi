@@ -24,6 +24,16 @@ export const palette = {
   leaf: '#34A853',
   amber: '#FBBC05',
   scarlet: '#EA4335',
+  brown: '#8A5A44',
+  'brown-pale': '#ECE5E1',
+  violet: '#6A4FC2',
+  'violet-pale': '#E7E3F5',
+  teal: '#1D7894',
+  'teal-pale': '#DBE9EE',
+  lime: '#5E8A12',
+  'lime-pale': '#E5ECD9',
+  magenta: '#B03C78',
+  'magenta-pale': '#F2E0E9',
 } as const;
 
 export type PaletteColor = keyof typeof palette;
@@ -44,7 +54,16 @@ export const semanticColors = {
   'accent-text': 'mint-deep',
   'accent-text-hover': 'mint-deeper',
   border: 'fog',
-  band: 'fog',
+  'type-asset': 'brown',
+  'type-asset-tint': 'brown-pale',
+  'type-liability': 'violet',
+  'type-liability-tint': 'violet-pale',
+  'type-equity': 'teal',
+  'type-equity-tint': 'teal-pale',
+  'type-revenue': 'lime',
+  'type-revenue-tint': 'lime-pale',
+  'type-expense': 'magenta',
+  'type-expense-tint': 'magenta-pale',
   'band-suggested': 'mint-fog',
   'border-control': 'steel',
   danger: 'rust',
@@ -63,6 +82,21 @@ export const semanticColors = {
 
 export type SemanticColor = keyof typeof semanticColors;
 
+export type TypeHue = {
+  readonly color: PaletteColor;
+  readonly tint: PaletteColor;
+};
+
+export type TypeHueName = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
+
+export const typeHues: Readonly<Record<TypeHueName, TypeHue>> = {
+  asset: { color: 'brown', tint: 'brown-pale' },
+  liability: { color: 'violet', tint: 'violet-pale' },
+  equity: { color: 'teal', tint: 'teal-pale' },
+  revenue: { color: 'lime', tint: 'lime-pale' },
+  expense: { color: 'magenta', tint: 'magenta-pale' },
+};
+
 export type ColorPair = {
   readonly foreground: PaletteColor;
   readonly background: PaletteColor;
@@ -71,6 +105,10 @@ export type ColorPair = {
 export const TEXT_MINIMUM = 4.5;
 
 export const CONTROL_EDGE_MINIMUM = 3;
+
+export const ICON_MINIMUM = 3;
+
+export const DIFFERENCE_MINIMUM = 20;
 
 export const textPairs: readonly ColorPair[] = [
   { foreground: 'ink', background: 'white' },
@@ -97,15 +135,17 @@ export const textPairs: readonly ColorPair[] = [
   { foreground: 'sage', background: 'ink-mid' },
   { foreground: 'ink', background: 'mint' },
   { foreground: 'white', background: 'rust' },
-  { foreground: 'ink', background: 'fog' },
-  { foreground: 'mint-deeper', background: 'fog' },
-  { foreground: 'slate', background: 'fog' },
   { foreground: 'ink', background: 'mint-fog' },
   { foreground: 'ink', background: 'mist-pale' },
   { foreground: 'slate', background: 'mist-pale' },
   { foreground: 'cobalt', background: 'mist-pale' },
   { foreground: 'gold', background: 'mist-pale' },
   { foreground: 'ink', background: 'mint-pale' },
+  ...Object.values(typeHues).flatMap(({ tint }): ColorPair[] => [
+    { foreground: 'ink', background: tint },
+    { foreground: 'slate', background: tint },
+    { foreground: 'mint-deeper', background: tint },
+  ]),
 ];
 
 export const controlEdgePairs: readonly ColorPair[] = [
@@ -120,6 +160,13 @@ export const controlEdgePairs: readonly ColorPair[] = [
   { foreground: 'mint-deep', background: 'mist-pale' },
   { foreground: 'mint-deep', background: 'mint-pale' },
 ];
+
+export const iconPairs: readonly ColorPair[] = Object.values(typeHues).flatMap(
+  ({ color, tint }): ColorPair[] => [
+    { foreground: color, background: tint },
+    { foreground: color, background: 'mist-pale' },
+  ],
+);
 
 export type TypeStep = {
   readonly fontFamily: FontFamily;

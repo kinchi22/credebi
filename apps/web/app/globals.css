@@ -21,7 +21,16 @@
   --color-accent-text: #0B7A5E;
   --color-accent-text-hover: #09644D;
   --color-border: #E1ECE8;
-  --color-band: #E1ECE8;
+  --color-type-asset: #8A5A44;
+  --color-type-asset-tint: #ECE5E1;
+  --color-type-liability: #6A4FC2;
+  --color-type-liability-tint: #E7E3F5;
+  --color-type-equity: #1D7894;
+  --color-type-equity-tint: #DBE9EE;
+  --color-type-revenue: #5E8A12;
+  --color-type-revenue-tint: #E5ECD9;
+  --color-type-expense: #B03C78;
+  --color-type-expense-tint: #F2E0E9;
   --color-band-suggested: #DCF0E9;
   --color-border-control: #78948F;
   --color-danger: #B4400F;
