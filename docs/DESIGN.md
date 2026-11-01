@@ -802,11 +802,11 @@ numerals.
   list's look, at every width. Clicked, typed in or opened with the arrow keys,
   it lists the Accounts whose names hold the typed text by Typed match, every
   one while the field is empty, flat in the Chart of accounts' order with ended
-  Accounts last. Each option leads with its Account type's 16px icon, the one
-  its Band shows, and is named its Account name then its Account type's name.
+  Accounts last. Each option leads with its Account type's Tile, and is named
+  its Account name then its Account type's name.
   When nothing matches, the list says `No account matches` in `text-muted`.
   Choosing fills the field with the name and submits the Account's id. The
-  field showing a chosen Account leads with its icon, inset 8px, and while an
+  field showing a chosen Account leads with its Tile, inset 8px, and while an
   Account is chosen a bare Icon button holding the close icon, named `Clear
   account`, sits at its right end and returns it to empty. Empty, the field
   reads `Any account`. Opening it with an Account shown selects the name.
@@ -1176,7 +1176,7 @@ hidden.
 | Lockup         | A fixed arrangement of the Mark and the Wordmark: horizontal or stacked. The Mark alone is also a variant of the logo. |
 | Semantic token | A colour named by its role, such as `text-muted` or `danger`, mapped onto a brand palette colour. Components use only these. |
 | Band           | A strip filled with its Account type's tint, such as `type-asset-tint`, with the `control` radius behind the type's name, set in `body-sm`, semibold, in `text`, and led by the type's icon drawn in the type's colour, such as `type-asset`, so the Account types read apart from each other and from the groups and Accounts under them. It is drawn in the Accounts section, the Account picker, the Account sheet, and atop each type's table in the Income statement and Assets and liabilities. In the Account picker and the Account sheet it carries at its right edge the type's Balance direction for the Side: a 14px arrow, up for `Increase` and down for `Decrease`, then the word, in `body-sm` and `text-muted`, with no Side colour and no red or green, since neither direction is good or bad. The arrow is hidden from assistive technology, and the type's group is named by one message joining the type's name and the word, as `Assets, Increase`. The Suggested Band is one more, tinted `band-suggested` and led by a sparkle, over the Suggested accounts in the Account picker and the Account sheet. |
-| Tile           | A 20px square with the `control` radius, filled with its Account type's tint, such as `type-asset-tint`, holding the type's icon at 14px in the type's colour, such as `type-asset`. It leads an Account's name where no Band stands above it, as on each line of the Entries list and on each chosen Account in the entry form, and is hidden from assistive technology, so the name it leads carries the type in words. |
+| Tile           | A 20px square with the `control` radius, filled with its Account type's tint, such as `type-asset-tint`, holding the type's icon at 14px in the type's colour, such as `type-asset`. It leads an Account's name where no Band stands above it, as on each line of the Entries list, on each chosen Account in the entry form and in the Account combobox, and is hidden from assistive technology, so the name it leads carries the type in words. |
 | Tree connector | A 1px `border-control` line from an Account group's folder icon to the Accounts in it, in the Accounts section and the Account sheet: `├` before each Account shown but the last, `└`, its corner rounded by the `control` radius, before the last shown. It is decoration, hidden from assistive technology. |
 | Chip           | A choice drawn as a small inline box that sits beside others and wraps, rather than one per row; a chosen chip takes a fill and an edge. |
 | Scrim          | The `ground-dark` tint at 60% behind a modal dialog. A click on the scrim is a press that began on it as well as ended there: a press that began inside the dialog, as when selecting a field's text by dragging, and was released on the scrim closes nothing. |
