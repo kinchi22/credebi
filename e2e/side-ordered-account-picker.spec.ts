@@ -8,9 +8,10 @@ import {
   accountTicks,
   ACCOUNTS,
   type AccountType,
-  type BalanceDirection,
+  BALANCE_DIRECTION,
   chooseAccountButton,
   expectNamesInOrder,
+  groupName,
   lineGroup,
   openAccountSheet,
   openEntryForm,
@@ -32,14 +33,6 @@ import { PHONE } from './viewport';
 const SIDE_ORDER: Readonly<Record<Side, readonly AccountType[]>> = {
   Debit: ['Expenses', 'Assets', 'Liabilities', 'Equity', 'Revenue'],
   Credit: ['Assets', 'Liabilities', 'Revenue', 'Equity', 'Expenses'],
-};
-
-const BALANCE_DIRECTION: Readonly<Record<AccountType, Readonly<Record<Side, BalanceDirection>>>> = {
-  Assets: { Debit: 'Increase', Credit: 'Decrease' },
-  Liabilities: { Debit: 'Decrease', Credit: 'Increase' },
-  Equity: { Debit: 'Decrease', Credit: 'Increase' },
-  Revenue: { Debit: 'Decrease', Credit: 'Increase' },
-  Expenses: { Debit: 'Increase', Credit: 'Decrease' },
 };
 
 const CHART: Readonly<Record<AccountType, readonly string[]>> = {
@@ -119,9 +112,6 @@ const MODES: readonly Mode[] = [
     chooseEachOnSheet: tickEachAccountOnSheet,
   },
 ];
-
-const groupName = (type: AccountType, side: Side): string =>
-  `${type}, ${BALANCE_DIRECTION[type][side]}`;
 
 async function keepExpensesInUsersOrder(page: Page): Promise<void> {
   await signIn(page, { accountsStartOn: BOOKS_OPEN });

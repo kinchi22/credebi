@@ -45,6 +45,17 @@ export const BALANCE_DIRECTIONS = ['Increase', 'Decrease'] as const;
 
 export type BalanceDirection = (typeof BALANCE_DIRECTIONS)[number];
 
+export const BALANCE_DIRECTION: Readonly<Record<AccountType, Readonly<Record<Side, BalanceDirection>>>> = {
+  Assets: { Debit: 'Increase', Credit: 'Decrease' },
+  Liabilities: { Debit: 'Decrease', Credit: 'Increase' },
+  Equity: { Debit: 'Decrease', Credit: 'Increase' },
+  Revenue: { Debit: 'Decrease', Credit: 'Increase' },
+  Expenses: { Debit: 'Increase', Credit: 'Decrease' },
+};
+
+export const groupName = (type: AccountType, side: Side): string =>
+  `${type}, ${BALANCE_DIRECTION[type][side]}`;
+
 export type PickRole = 'radio' | 'checkbox';
 
 export type Side = (typeof SIDES)[number];
@@ -147,8 +158,10 @@ export async function expectSuggested(
 
 const lineName = (side: Side, account: LineAccount): string => `${side} ${nameOf(account)}`;
 
+const LINE_CUE = `(, (${ACCOUNT_TYPES.join('|')}), (${BALANCE_DIRECTIONS.join('|')}))?`;
+
 export const lineGroup = (form: Locator, side: Side, account: LineAccount): Locator =>
-  form.getByRole('group', { name: lineName(side, account), exact: true });
+  form.getByRole('group', { name: new RegExp(`^${escaped(lineName(side, account))}${LINE_CUE}$`) });
 
 export const lineAmount = (form: Locator, side: Side, account: LineAccount): Locator =>
   lineGroup(form, side, account).getByLabel('Amount');
@@ -158,7 +171,7 @@ export const escaped = (name: string): string => name.replace(/[.*+?^${}()|[\]\\
 export const lineGroups = (form: Locator, ...added: readonly AddedAccount[]): Locator =>
   form.getByRole('group', {
     name: new RegExp(
-      `^(${SIDES.join('|')}) (${[...ACCOUNTS, ...added.map(nameOf)].map(escaped).join('|')})$`,
+      `^(${SIDES.join('|')}) (${[...ACCOUNTS, ...added.map(nameOf)].map(escaped).join('|')})${LINE_CUE}$`,
     ),
   });
 
