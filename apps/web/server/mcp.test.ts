@@ -17,6 +17,7 @@ import {
   type AuthContext,
   type ChartNode,
   type Entry,
+  type EntryDraft,
   type IncomeStatement,
 } from '@repo/core';
 import { describe, expect, it } from 'vitest';
@@ -152,6 +153,7 @@ const GRANTS: Readonly<Record<string, AccessGrant>> = {
 type Fakes = McpDependencies & {
   readonly charted: AuthContext[];
   readonly asked: { readonly auth: AuthContext; readonly query: unknown }[];
+  readonly drafts: { readonly auth: AuthContext; readonly draft: EntryDraft }[];
 };
 
 function fakes({
@@ -159,19 +161,23 @@ function fakes({
   found = ok([]),
   assetsAndLiabilities = ASSETS_AND_LIABILITIES,
   statement = INCOME_STATEMENT,
+  posting,
   resolved,
 }: {
   readonly chart?: Result<readonly ChartNode[], DomainError>;
   readonly found?: Result<readonly Entry[], DomainError>;
   readonly assetsAndLiabilities?: Result<AssetsAndLiabilities, DomainError>;
   readonly statement?: Result<IncomeStatement, DomainError>;
+  readonly posting?: Result<Entry, DomainError>;
   readonly resolved?: Result<AccessGrant | undefined, DomainError>;
 } = {}): Fakes {
   const charted: AuthContext[] = [];
   const asked: { auth: AuthContext; query: unknown }[] = [];
+  const drafts: { auth: AuthContext; draft: EntryDraft }[] = [];
   return {
     charted,
     asked,
+    drafts,
     resolveAccessToken: (token) => Promise.resolve(resolved ?? ok(GRANTS[token])),
     getChart: (auth) => {
       charted.push(auth);
@@ -188,6 +194,10 @@ function fakes({
     getIncomeStatement: (auth, range) => {
       asked.push({ auth, query: range });
       return Promise.resolve(statement);
+    },
+    postEntry: (auth, draft) => {
+      drafts.push({ auth, draft });
+      return Promise.resolve(posting ?? ok(entryOn(drafts.length)));
     },
   };
 }
@@ -320,6 +330,16 @@ const READ_CALLS: readonly (readonly [string, Readonly<Record<string, unknown>>]
   ['get_income_statement', { from: '2026-09-01', to: '2026-09-30' }],
 ];
 
+const COFFEE = {
+  entryDate: '2026-09-15',
+  title: 'Coffee',
+  memo: 'With a friend',
+  lines: [
+    { account: FOOD_ID, side: 'debit', amount: 4500 },
+    { account: CASH_ID, side: 'credit', amount: 4500 },
+  ],
+} as const;
+
 const postedEntry = (entry: Entry) => ({
   id: entry.id,
   entryDate: entry.entryDate,
@@ -375,9 +395,38 @@ describe('serveMcp', () => {
     });
   });
 
-  it('lists the reading tools to a Connection with read', async () => {
+  it('lists the reading tools alone to a Connection with read alone', async () => {
     expect(await toolNames('reader')).toEqual(READ_TOOLS);
-    expect(await toolNames('both')).toEqual(READ_TOOLS);
+  });
+
+  it('lists create_entry alone to a Connection with write alone', async () => {
+    expect(await toolNames('writer')).toEqual(['create_entry']);
+  });
+
+  it('lists the reading tools and create_entry, and no tool that edits, deletes or changes anything else, to a Connection with both', async () => {
+    expect(await toolNames('both')).toEqual([...READ_TOOLS, 'create_entry']);
+  });
+
+  it('describes create_entry as a tool that adds, never destroys, does not repeat safely, and the arguments it takes', async () => {
+    const result = await resultOf(await serving()(mcpCall('writer', 'tools/list')));
+
+    const [listed] = result['tools'] as {
+      name: string;
+      description: string;
+      inputSchema: { properties?: object; required?: string[] };
+      annotations: Record<string, unknown>;
+    }[];
+    expect(listed?.name).toBe('create_entry');
+    expect(listed?.description).toMatch(/Posts an Entry/);
+    expect(listed?.description).toMatch(/minor units/);
+    expect(listed?.annotations).toEqual({
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    });
+    expect(Object.keys(listed?.inputSchema.properties ?? {})).toEqual(['entryDate', 'title', 'memo', 'lines']);
+    expect(listed?.inputSchema.required).toEqual(['entryDate', 'lines']);
   });
 
   it.each([
@@ -397,10 +446,6 @@ describe('serveMcp', () => {
       annotations: { readOnlyHint: true },
     });
     expect(Object.keys(listed?.inputSchema.properties ?? {})).toEqual(properties);
-  });
-
-  it('lists no reading tool to a Connection with write alone', async () => {
-    expect(await toolNames('writer')).toEqual([]);
   });
 
   it('lists the Chart of accounts of the Access token\'s User, in order', async () => {
@@ -535,6 +580,82 @@ describe('serveMcp', () => {
       netIncome: -12500,
     });
     expect(dependencies.asked).toEqual([{ auth: { userId: USER_ID, scopes: ['read'] }, query: range }]);
+  });
+
+  it('posts the Entry it was given for the Access token\'s User and answers it as search_entries answers one', async () => {
+    const dependencies = fakes();
+
+    const result = await resultOf(await callTool('writer', 'create_entry', dependencies, COFFEE));
+
+    const posted = postedEntry(entryOn(1));
+    expect(result['isError']).toBeUndefined();
+    expect(result['structuredContent']).toEqual(posted);
+    expect(result['content']).toEqual([{ type: 'text', text: JSON.stringify(posted) }]);
+    expect(dependencies.drafts).toEqual([{ auth: { userId: USER_ID, scopes: ['write'] }, draft: COFFEE }]);
+  });
+
+  it('posts an Entry with an empty Title and memo when given neither', async () => {
+    const dependencies = fakes();
+    const { entryDate, lines } = COFFEE;
+
+    await resultOf(await callTool('writer', 'create_entry', dependencies, { entryDate, lines }));
+
+    expect(dependencies.drafts.map(({ draft }) => draft)).toEqual([{ entryDate, title: '', memo: '', lines }]);
+  });
+
+  it('posts two Entries for two identical posts', async () => {
+    const dependencies = fakes();
+
+    const first = await resultOf(await callTool('writer', 'create_entry', dependencies, COFFEE));
+    const second = await resultOf(await callTool('writer', 'create_entry', dependencies, COFFEE));
+
+    expect(dependencies.drafts).toHaveLength(2);
+    expect((first['structuredContent'] as { id: string }).id).not.toBe(
+      (second['structuredContent'] as { id: string }).id,
+    );
+  });
+
+  it.each(['UNBALANCED', 'INVALID_INPUT', 'TITLE_TOO_LONG', 'MEMO_TOO_LONG'] as const)(
+    'answers a post the Entry rules refuse with %s as a tool result carrying that code',
+    async (code) => {
+      const refused = fakes({ posting: err(domainError(code, 'The Entry is refused.')) });
+
+      const result = await resultOf(await callTool('writer', 'create_entry', refused, COFFEE));
+
+      expect(result['isError']).toBe(true);
+      expect(result['structuredContent']).toBeUndefined();
+      expect(result['content']).toEqual([{ type: 'text', text: `${code}: The Entry is refused.` }]);
+    },
+  );
+
+  it.each([
+    ['no lines', { entryDate: '2026-09-15' }],
+    ['no day', { lines: COFFEE.lines }],
+    ['a day that is not a calendar day', { ...COFFEE, entryDate: '15 September' }],
+    ['an amount that is not a whole number', { ...COFFEE, lines: [{ ...COFFEE.lines[0], amount: 45.5 }, COFFEE.lines[1]] }],
+    ['a side that is neither debit nor credit', { ...COFFEE, lines: [{ ...COFFEE.lines[0], side: 'left' }, COFFEE.lines[1]] }],
+    ['a Title that is not text', { ...COFFEE, title: 7 }],
+  ])('refuses a post with %s as INVALID_INPUT naming create_entry, posting nothing', async (_, args) => {
+    const dependencies = fakes();
+
+    const result = await resultOf(await callTool('writer', 'create_entry', dependencies, args));
+
+    expect(result['isError']).toBe(true);
+    expect(result['content']).toEqual([
+      { type: 'text', text: expect.stringMatching(/^INVALID_INPUT: .*create_entry/s) as unknown },
+    ]);
+    expect(dependencies.drafts).toEqual([]);
+  });
+
+  it('answers 403 insufficient_scope to create_entry called with read alone, posting nothing', async () => {
+    const dependencies = fakes();
+
+    const response = await callTool('reader', 'create_entry', dependencies, COFFEE);
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get('www-authenticate')).toContain('scope="write"');
+    expect(await response.json()).toMatchObject({ error_description: 'This tool needs the write scope.' });
+    expect(dependencies.drafts).toEqual([]);
   });
 
   it.each(READ_CALLS)('answers a Domain error from %s as a tool result carrying its code and message', async (name, args) => {
