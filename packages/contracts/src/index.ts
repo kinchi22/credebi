@@ -13,6 +13,7 @@ export { uuidV7Schema } from './id';
 
 export type { BeganSignIn, IssuedSessionOutput, PendingSignInInput, UserId } from './auth';
 export {
+  SCOPES,
   TEST_SIGN_IN_FIELDS,
   beganSignInSchema,
   finishGoogleSignInInputSchema,

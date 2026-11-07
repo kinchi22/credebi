@@ -6,6 +6,8 @@ import { languageSchema, type Language } from './settings';
 export type UserId = Brand<string, 'UserId'>;
 export const userIdSchema = uuidV7Schema.transform((id): UserId => id as UserId);
 
+export const SCOPES = ['read', 'write'] as const;
+
 export const pendingSignInSchema = z.object({
   state: z.string().min(1),
   codeVerifier: z.string().min(1),
