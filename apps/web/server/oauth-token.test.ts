@@ -2,10 +2,9 @@ import { domainError, err, ok, type DomainError, type Result } from '@repo/contr
 import {
   type AccessToken,
   type CodeExchange,
-  type CodeExchangeOutcome,
+  type TokenOutcome,
   type GrantedTokens,
   type RefreshGrant,
-  type RefreshOutcome,
   type RefreshToken,
 } from '@repo/core';
 import { describe, expect, it } from 'vitest';
@@ -37,8 +36,8 @@ const REFRESHED: GrantedTokens = {
 };
 
 function exchanging(
-  answer: Result<CodeExchangeOutcome, DomainError> = ok({ kind: 'granted', tokens: GRANTED }),
-  refreshAnswer: Result<RefreshOutcome, DomainError> = ok({ kind: 'granted', tokens: REFRESHED }),
+  answer: Result<TokenOutcome, DomainError> = ok({ kind: 'granted', tokens: GRANTED }),
+  refreshAnswer: Result<TokenOutcome, DomainError> = ok({ kind: 'granted', tokens: REFRESHED }),
 ) {
   const exchanges: CodeExchange[] = [];
   const refreshes: RefreshGrant[] = [];

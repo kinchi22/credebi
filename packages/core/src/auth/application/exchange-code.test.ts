@@ -86,7 +86,7 @@ function connectionStore(
     },
     findAccessToken: () => Promise.resolve(ok(undefined)),
     findRefreshToken: () => Promise.resolve(ok(undefined)),
-    rotate: () => Promise.resolve(ok(false)),
+    rotate: () => Promise.resolve(ok('overtaken' as const)),
     revoke: () => Promise.resolve(ok(undefined)),
   };
 }

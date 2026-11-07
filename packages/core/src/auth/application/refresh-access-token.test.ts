@@ -13,6 +13,7 @@ import {
   type RefreshRotation,
   type RefreshToken,
   type RefreshTokenHash,
+  type RotationOutcome,
   type StoredRefreshToken,
 } from '../domain/connection';
 import { type ConnectionRepository } from '../ports/connection-repository';
@@ -29,6 +30,7 @@ const STORED: StoredRefreshToken = {
   clientId: CLIENT_ID,
   scopes: ['read', 'write'],
   expiresAt: new Date('2026-12-01T00:00:00.000Z'),
+  discarded: false,
   successor: undefined,
 };
 
@@ -38,7 +40,7 @@ const GRANT = { refreshToken: 'the-refresh-token', clientId: CLIENT_ID };
 
 type Answers = {
   readonly find?: Result<StoredRefreshToken | undefined, DomainError>;
-  readonly rotate?: Result<boolean, DomainError>;
+  readonly rotate?: Result<RotationOutcome, DomainError>;
   readonly revoke?: Result<void, DomainError>;
 };
 
@@ -64,8 +66,8 @@ function connectionStore(
       return Promise.resolve(answer);
     },
     rotate: (rotation) => {
-      const answer = answers.rotate ?? ok(true);
-      if (answer.ok && answer.value) {
+      const answer = answers.rotate ?? ok<RotationOutcome>('rotated');
+      if (answer.ok && answer.value === 'rotated') {
         rotated.push(rotation);
       }
       return Promise.resolve(answer);
@@ -119,7 +121,8 @@ describe('createRefreshAccessToken', () => {
       {
         connectionId: CONNECTION_ID,
         replaced: 'hash:the-refresh-token',
-        discarded: undefined,
+        discards: undefined,
+        rotatedAt: NOW,
         tokens: {
           accessTokenHash: 'hash:access-1',
           accessTokenExpiresAt: new Date('2026-11-07T01:00:30.000Z'),
@@ -140,11 +143,21 @@ describe('createRefreshAccessToken', () => {
     const result = await refreshing(connections)(GRANT);
 
     expect(result).toMatchObject(ok({ kind: 'granted' }));
-    expect(connections.rotated.map((rotation) => rotation.discarded)).toEqual(['hash:lost']);
+    expect(connections.rotated.map((rotation) => rotation.discards)).toEqual(['hash:lost']);
   });
 
   it('revokes the Connection and refuses a replaced refresh token presented after its successor was used', async () => {
     const connections = connectionStore({ find: ok(REPLAYED) });
+
+    const result = await refreshing(connections)(GRANT);
+
+    expect(result).toEqual(ok({ kind: 'refused' }));
+    expect(connections.revoked).toEqual([CONNECTION_ID]);
+    expect(connections.rotated).toEqual([]);
+  });
+
+  it('revokes the Connection and refuses a successor discarded by a grace use', async () => {
+    const connections = connectionStore({ find: ok({ ...STORED, discarded: true }) });
 
     const result = await refreshing(connections)(GRANT);
 
@@ -180,7 +193,7 @@ describe('createRefreshAccessToken', () => {
   });
 
   it('refuses a refresh that another refresh of the same token overtook', async () => {
-    const result = await refreshing(connectionStore({ rotate: ok(false) }))(GRANT);
+    const result = await refreshing(connectionStore({ rotate: ok('overtaken') }))(GRANT);
 
     expect(result).toEqual(ok({ kind: 'refused' }));
   });

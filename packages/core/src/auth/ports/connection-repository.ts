@@ -5,6 +5,7 @@ import {
   type IssuedTokens,
   type RefreshRotation,
   type RefreshTokenHash,
+  type RotationOutcome,
   type StoredAccessToken,
   type StoredRefreshToken,
 } from '../domain/connection';
@@ -20,6 +21,6 @@ export type ConnectionRepository = {
   readonly findRefreshToken: (
     tokenHash: RefreshTokenHash,
   ) => Promise<Result<StoredRefreshToken | undefined, DomainError>>;
-  readonly rotate: (rotation: RefreshRotation) => Promise<Result<boolean, DomainError>>;
+  readonly rotate: (rotation: RefreshRotation) => Promise<Result<RotationOutcome, DomainError>>;
   readonly revoke: (connectionId: ConnectionId) => Promise<Result<void, DomainError>>;
 };

@@ -110,6 +110,7 @@ describe('refreshDecision', () => {
     clientId: CLIENT_ID,
     scopes: ['read', 'write'],
     expiresAt: refreshTokenExpiry(ISSUED_AT),
+    discarded: false,
     successor: undefined,
     ...changes,
   });
@@ -122,7 +123,7 @@ describe('refreshDecision', () => {
       connectionId: CONNECTION_ID,
       scopes: ['read', 'write'],
       replaced: REFRESH_HASH,
-      discarded: undefined,
+      discards: undefined,
     });
   });
 
@@ -134,7 +135,7 @@ describe('refreshDecision', () => {
       connectionId: CONNECTION_ID,
       scopes: ['read', 'write'],
       replaced: REFRESH_HASH,
-      discarded: SUCCESSOR_HASH,
+      discards: SUCCESSOR_HASH,
     });
   });
 
@@ -143,6 +144,24 @@ describe('refreshDecision', () => {
       kind: 'revoke',
       connectionId: CONNECTION_ID,
     });
+  });
+
+  it('revokes the Connection of a successor discarded by a grace use of the token it replaced', () => {
+    expect(refreshDecision(stored({ discarded: true }), presented, ISSUED_AT)).toEqual({
+      kind: 'revoke',
+      connectionId: CONNECTION_ID,
+    });
+  });
+
+  it('refuses an expired discarded successor, or one presented by another client, without revoking', () => {
+    const discarded = stored({ discarded: true });
+
+    expect(refreshDecision({ ...discarded, expiresAt: ISSUED_AT }, presented, ISSUED_AT)).toEqual({
+      kind: 'refuse',
+    });
+    expect(
+      refreshDecision(discarded, { clientId: 'https://other.example/client.json' }, ISSUED_AT),
+    ).toEqual({ kind: 'refuse' });
   });
 
   it('refuses a refresh token it never issued, or whose Connection was revoked', () => {

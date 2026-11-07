@@ -1,4 +1,4 @@
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, lte } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import {
   ok,
@@ -17,6 +17,7 @@ import {
   type RefreshRotation,
   type RefreshSuccessor,
   type RefreshTokenHash,
+  type RotationOutcome,
   type StoredAccessToken,
   type StoredRefreshToken,
 } from '../domain/connection';
@@ -31,12 +32,15 @@ const successors = alias(schema.refreshTokens, 'successors');
 
 class RotationOvertaken extends Error {}
 
-function successorOf(row: {
-  readonly replacedByHash: string | null;
-  readonly successorHash: string | null;
-  readonly successorReplacedByHash: string | null;
-}): RefreshSuccessor | undefined {
-  return row.replacedByHash === null
+function successorOf(
+  tokenHash: RefreshTokenHash,
+  row: {
+    readonly replacedByHash: string | null;
+    readonly successorHash: string | null;
+    readonly successorReplacedByHash: string | null;
+  },
+): RefreshSuccessor | undefined {
+  return row.replacedByHash === null || row.replacedByHash === tokenHash
     ? undefined
     : {
         tokenHash: row.replacedByHash as RefreshTokenHash,
@@ -146,7 +150,8 @@ export function createPostgresConnectionRepository(
                 clientId: row.clientId,
                 scopes: row.scopes as Scope[],
                 expiresAt: row.expiresAt,
-                successor: successorOf(row),
+                discarded: row.replacedByHash === tokenHash,
+                successor: successorOf(tokenHash, row),
               },
         );
       } catch (error) {
@@ -159,8 +164,8 @@ export function createPostgresConnectionRepository(
       }
     },
 
-    rotate: async (rotation: RefreshRotation): Promise<Result<boolean, DomainError>> => {
-      const { connectionId, replaced, discarded, tokens } = rotation;
+    rotate: async (rotation: RefreshRotation): Promise<Result<RotationOutcome, DomainError>> => {
+      const { connectionId, replaced, discards, tokens, rotatedAt } = rotation;
       try {
         await database.transaction(async (transaction) => {
           const marked = await transaction
@@ -170,29 +175,38 @@ export function createPostgresConnectionRepository(
               and(
                 eq(schema.refreshTokens.tokenHash, replaced),
                 eq(schema.refreshTokens.connectionId, connectionId),
-                discarded === undefined
+                discards === undefined
                   ? isNull(schema.refreshTokens.replacedByHash)
-                  : eq(schema.refreshTokens.replacedByHash, discarded),
+                  : eq(schema.refreshTokens.replacedByHash, discards),
               ),
             )
             .returning({ tokenHash: schema.refreshTokens.tokenHash });
           if (marked.length === 0) {
             throw new RotationOvertaken();
           }
-          if (discarded !== undefined) {
-            const dropped = await transaction
-              .delete(schema.refreshTokens)
+          if (discards !== undefined) {
+            const discarded = await transaction
+              .update(schema.refreshTokens)
+              .set({ replacedByHash: discards })
               .where(
                 and(
-                  eq(schema.refreshTokens.tokenHash, discarded),
+                  eq(schema.refreshTokens.tokenHash, discards),
                   isNull(schema.refreshTokens.replacedByHash),
                 ),
               )
               .returning({ tokenHash: schema.refreshTokens.tokenHash });
-            if (dropped.length === 0) {
+            if (discarded.length === 0) {
               throw new RotationOvertaken();
             }
           }
+          await transaction
+            .delete(schema.refreshTokens)
+            .where(
+              and(
+                eq(schema.refreshTokens.connectionId, connectionId),
+                lte(schema.refreshTokens.expiresAt, rotatedAt),
+              ),
+            );
           await transaction.insert(schema.accessTokens).values({
             tokenHash: tokens.accessTokenHash,
             connectionId,
@@ -204,10 +218,10 @@ export function createPostgresConnectionRepository(
             expiresAt: tokens.refreshTokenExpiresAt,
           });
         });
-        return ok(true);
+        return ok('rotated');
       } catch (error) {
         if (error instanceof RotationOvertaken) {
-          return ok(false);
+          return ok('overtaken');
         }
         return databaseFailure(
           logger,

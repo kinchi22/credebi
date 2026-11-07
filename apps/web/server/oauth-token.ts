@@ -6,7 +6,7 @@ import {
   type Result,
 } from '@repo/contracts';
 import {
-  type CodeExchangeOutcome,
+  type TokenOutcome,
   type ExchangeCode,
   type RefreshAccessToken,
 } from '@repo/core';
@@ -36,7 +36,7 @@ function repeatsAParameter(form: URLSearchParams): boolean {
 }
 
 function tokenResponse(
-  answered: Result<CodeExchangeOutcome, DomainError>,
+  answered: Result<TokenOutcome, DomainError>,
   refusal: string,
 ): Response {
   if (!answered.ok) {

@@ -65,6 +65,7 @@ export type StoredRefreshToken = {
   readonly clientId: string;
   readonly scopes: readonly Scope[];
   readonly expiresAt: Date;
+  readonly discarded: boolean;
   readonly successor: RefreshSuccessor | undefined;
 };
 
@@ -78,7 +79,7 @@ export type RefreshDecision =
       readonly connectionId: ConnectionId;
       readonly scopes: readonly Scope[];
       readonly replaced: RefreshTokenHash;
-      readonly discarded: RefreshTokenHash | undefined;
+      readonly discards: RefreshTokenHash | undefined;
     }
   | { readonly kind: 'revoke'; readonly connectionId: ConnectionId }
   | { readonly kind: 'refuse' };
@@ -86,9 +87,12 @@ export type RefreshDecision =
 export type RefreshRotation = {
   readonly connectionId: ConnectionId;
   readonly replaced: RefreshTokenHash;
-  readonly discarded: RefreshTokenHash | undefined;
+  readonly discards: RefreshTokenHash | undefined;
   readonly tokens: IssuedTokens;
+  readonly rotatedAt: Date;
 };
+
+export type RotationOutcome = 'rotated' | 'overtaken';
 
 export function accessTokenExpiry(issuedAt: Date): Date {
   return new Date(issuedAt.getTime() + ACCESS_TOKEN_SECONDS * SECOND_MS);
@@ -152,7 +156,7 @@ export function refreshDecision(
     return { kind: 'refuse' };
   }
   const { successor } = token;
-  if (successor?.used === true) {
+  if (token.discarded || successor?.used === true) {
     return { kind: 'revoke', connectionId: token.connectionId };
   }
   return {
@@ -160,6 +164,6 @@ export function refreshDecision(
     connectionId: token.connectionId,
     scopes: token.scopes,
     replaced: token.tokenHash,
-    discarded: successor?.tokenHash,
+    discards: successor?.tokenHash,
   };
 }

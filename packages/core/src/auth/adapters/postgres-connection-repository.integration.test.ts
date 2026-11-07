@@ -97,14 +97,18 @@ const findRefresh = (name: string) =>
 const rotation = (
   replaced: string,
   next: string,
-  discarded?: string,
+  discards?: string,
   connectionId: string = CONNECTION_A,
 ): RefreshRotation => ({
   connectionId: connectionId as ConnectionId,
   replaced: `refresh-${replaced}` as RefreshTokenHash,
-  discarded: discarded === undefined ? undefined : (`refresh-${discarded}` as RefreshTokenHash),
+  discards: discards === undefined ? undefined : (`refresh-${discards}` as RefreshTokenHash),
   tokens: tokens(next),
+  rotatedAt: ISSUED_AT,
 });
+
+const ROTATED: unknown = { ok: true, value: 'rotated' };
+const OVERTAKEN: unknown = { ok: true, value: 'overtaken' };
 
 const find = (name: string) => repository.findAccessToken(`access-${name}` as AccessTokenHash);
 
@@ -215,6 +219,7 @@ describe('createPostgresConnectionRepository', () => {
         clientId: 'https://client.example/client.json',
         scopes: ['read'],
         expiresAt: refreshTokenExpiry(ISSUED_AT),
+        discarded: false,
         successor: undefined,
       },
     });
@@ -233,7 +238,7 @@ describe('createPostgresConnectionRepository', () => {
   it('rotates a refresh token: the new tokens work and the replaced one names its unused successor', async () => {
     await repository.open(connection(CONNECTION_A), tokens('a'));
 
-    expect(await repository.rotate(rotation('a', 'b'))).toEqual({ ok: true, value: true });
+    expect(await repository.rotate(rotation('a', 'b'))).toEqual(ROTATED);
 
     expect(await find('b')).toMatchObject({ value: { connectionId: CONNECTION_A } });
     expect(await findRefresh('b')).toMatchObject({ value: { successor: undefined } });
@@ -257,12 +262,65 @@ describe('createPostgresConnectionRepository', () => {
     await repository.open(connection(CONNECTION_A), tokens('a'));
     await repository.rotate(rotation('a', 'b'));
 
-    expect(await repository.rotate(rotation('a', 'c', 'b'))).toEqual({ ok: true, value: true });
+    expect(await repository.rotate(rotation('a', 'c', 'b'))).toEqual(ROTATED);
 
-    expect(await findRefresh('b')).toEqual({ ok: true, value: undefined });
-    expect(await findRefresh('a')).toMatchObject({
-      value: { successor: { tokenHash: 'refresh-c', used: false } },
+    expect(await findRefresh('b')).toMatchObject({
+      value: { tokenHash: 'refresh-b', discarded: true, successor: undefined },
     });
+    expect(await findRefresh('a')).toMatchObject({
+      value: { discarded: false, successor: { tokenHash: 'refresh-c', used: false } },
+    });
+  });
+
+  it('refuses to rotate a discarded successor, storing nothing', async () => {
+    await repository.open(connection(CONNECTION_A), tokens('a'));
+    await repository.rotate(rotation('a', 'b'));
+    await repository.rotate(rotation('a', 'c', 'b'));
+
+    expect(await repository.rotate(rotation('b', 'd'))).toEqual(OVERTAKEN);
+    expect(await find('d')).toEqual({ ok: true, value: undefined });
+  });
+
+  it('deletes, as it rotates, the Connection\'s refresh tokens expired by then, and no other\'s', async () => {
+    await repository.open(connection(CONNECTION_A, ADA.id), tokens('ada'));
+    await repository.open(connection(CONNECTION_B, BOB.id), tokens('bob'));
+    const stored = (tokenHash: string, connectionId: string, expiresAt: Date) => ({
+      tokenHash,
+      connectionId,
+      expiresAt,
+    });
+    await database.insert(schema.refreshTokens).values([
+      stored('ada-expired', CONNECTION_A, new Date(ISSUED_AT.getTime() - 1)),
+      stored('ada-expiring', CONNECTION_A, ISSUED_AT),
+      stored('ada-live', CONNECTION_A, new Date(ISSUED_AT.getTime() + 1)),
+      stored('bob-expired', CONNECTION_B, new Date(ISSUED_AT.getTime() - 1)),
+    ]);
+
+    expect(await repository.rotate(rotation('ada', 'next'))).toEqual(ROTATED);
+
+    const left = await database.select({ tokenHash: schema.refreshTokens.tokenHash }).from(schema.refreshTokens);
+    expect(left.map((row) => row.tokenHash).sort()).toEqual([
+      'ada-live',
+      'bob-expired',
+      'refresh-ada',
+      'refresh-bob',
+      'refresh-next',
+    ]);
+  });
+
+  it('keeps every expired refresh token of a rotation that was overtaken', async () => {
+    await repository.open(connection(CONNECTION_A), tokens('a'));
+    await repository.rotate(rotation('a', 'b'));
+    await database.insert(schema.refreshTokens).values({
+      tokenHash: 'a-expired',
+      connectionId: CONNECTION_A,
+      expiresAt: new Date(ISSUED_AT.getTime() - 1),
+    });
+
+    expect(await repository.rotate(rotation('a', 'c'))).toEqual(OVERTAKEN);
+    expect(
+      await database.select().from(schema.refreshTokens).where(eq(schema.refreshTokens.tokenHash, 'a-expired')),
+    ).toHaveLength(1);
   });
 
   it('rotates a refresh token once when two rotations race for it, storing nothing of the other', async () => {
@@ -273,7 +331,10 @@ describe('createPostgresConnectionRepository', () => {
       repository.rotate(rotation('a', 'c')),
     ]);
 
-    expect(outcomes.map((outcome) => isOk(outcome) && outcome.value).sort()).toEqual([false, true]);
+    expect(outcomes.map((outcome) => isOk(outcome) && outcome.value).sort()).toEqual([
+      'overtaken',
+      'rotated',
+    ]);
     expect(await database.select().from(schema.refreshTokens)).toHaveLength(2);
     expect(await database.select().from(schema.accessTokens)).toHaveLength(2);
   });
@@ -283,7 +344,7 @@ describe('createPostgresConnectionRepository', () => {
     await repository.rotate(rotation('a', 'b'));
     await repository.rotate(rotation('b', 'c'));
 
-    expect(await repository.rotate(rotation('a', 'd', 'b'))).toEqual({ ok: true, value: false });
+    expect(await repository.rotate(rotation('a', 'd', 'b'))).toEqual(OVERTAKEN);
     expect(await find('d')).toEqual({ ok: true, value: undefined });
   });
 
@@ -291,10 +352,9 @@ describe('createPostgresConnectionRepository', () => {
     await repository.open(connection(CONNECTION_A, ADA.id), tokens('ada'));
     await repository.open(connection(CONNECTION_B, BOB.id), tokens('bob'));
 
-    expect(await repository.rotate(rotation('ada', 'stolen', undefined, CONNECTION_B))).toEqual({
-      ok: true,
-      value: false,
-    });
+    expect(await repository.rotate(rotation('ada', 'stolen', undefined, CONNECTION_B))).toEqual(
+      OVERTAKEN,
+    );
     expect(await find('stolen')).toEqual({ ok: true, value: undefined });
   });
 
