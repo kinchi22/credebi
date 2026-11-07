@@ -89,7 +89,13 @@ function books(entries: EntryRepository = inMemoryRepository()): {
   const { accounts, hold } = inMemoryAccounts();
   hold(ADA_ID, CHART);
   hold(GRACE_ID, CHART);
-  const postEntry = createPostEntry({ entries, accounts, newEntryId, now });
+  const postEntry = createPostEntry({
+    entries,
+    accounts,
+    unitOfWork: inMemoryEntries().unitOfWork,
+    newEntryId,
+    now,
+  });
   const searchEntries = createSearchEntries({ entries, accounts });
   return {
     post: async (auth, memo) => {

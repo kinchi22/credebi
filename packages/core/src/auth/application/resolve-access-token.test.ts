@@ -49,14 +49,14 @@ const resolving = (repository: ConnectionRepository, now: Date) =>
   });
 
 describe('createResolveAccessToken', () => {
-  it('resolves a live Access token, found by its hash, to its User and scopes', async () => {
+  it('resolves a live Access token, found by its hash, to its User, scopes and Connection', async () => {
     const repository = connections();
 
     const result = await resolving(repository, ISSUED_AT)('the-token');
 
     expect(result).toEqual(
       ok({
-        auth: { userId: USER_ID, scopes: ['read', 'write'] },
+        auth: { userId: USER_ID, scopes: ['read', 'write'], connectionId: STORED.connectionId },
         clientId: 'https://client.example/client.json',
         expiresAt: STORED.expiresAt,
       }),

@@ -4,6 +4,7 @@ import { describeError } from '../../logging/domain/describe-error';
 import { type Logger } from '../../logging/ports/logger';
 import { type UnitOfWork } from '../ports/unit-of-work';
 import { postgresEntriesOn } from './postgres-entry-repository';
+import { postgresRequestKeysOn } from './postgres-request-key-repository';
 
 export type PostgresUnitOfWork = UnitOfWork & {
   readonly close: () => Promise<void>;
@@ -25,7 +26,10 @@ export function createPostgresUnitOfWork(
     run: async (work) => {
       try {
         return await database.transaction(async (transaction) => {
-          const done = await work(postgresEntriesOn(transaction, logger));
+          const done = await work(
+            postgresEntriesOn(transaction, logger),
+            postgresRequestKeysOn(transaction, logger),
+          );
           if (!done.ok) {
             throw new RolledBack(done);
           }
