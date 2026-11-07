@@ -12,6 +12,7 @@ import {
   type AccessTokenHash,
   type Connection,
   type IssuedTokens,
+  type RefreshRotation,
   type RefreshTokenHash,
 } from '../domain/connection';
 import { type User } from '../domain/user';
@@ -89,6 +90,21 @@ const tokens = (name: string): IssuedTokens => ({
 
 const CONNECTION_A = '01920000-0000-7000-8000-0000000000c1';
 const CONNECTION_B = '01920000-0000-7000-8000-0000000000c2';
+
+const findRefresh = (name: string) =>
+  repository.findRefreshToken(`refresh-${name}` as RefreshTokenHash);
+
+const rotation = (
+  replaced: string,
+  next: string,
+  discarded?: string,
+  connectionId: string = CONNECTION_A,
+): RefreshRotation => ({
+  connectionId: connectionId as ConnectionId,
+  replaced: `refresh-${replaced}` as RefreshTokenHash,
+  discarded: discarded === undefined ? undefined : (`refresh-${discarded}` as RefreshTokenHash),
+  tokens: tokens(next),
+});
 
 const find = (name: string) => repository.findAccessToken(`access-${name}` as AccessTokenHash);
 
@@ -188,16 +204,136 @@ describe('createPostgresConnectionRepository', () => {
     expect(await find('bob')).toMatchObject({ value: { userId: BOB.id } });
   });
 
+  it('finds a refresh token by its hash, with its Connection, client and scopes, never yet rotated', async () => {
+    await repository.open(connection(CONNECTION_A), tokens('a'));
+
+    expect(await findRefresh('a')).toEqual({
+      ok: true,
+      value: {
+        tokenHash: 'refresh-a',
+        connectionId: CONNECTION_A,
+        clientId: 'https://client.example/client.json',
+        scopes: ['read'],
+        expiresAt: refreshTokenExpiry(ISSUED_AT),
+        successor: undefined,
+      },
+    });
+  });
+
+  it('finds nothing for a refresh token it never stored, nor for an Access token\'s hash', async () => {
+    await repository.open(connection(CONNECTION_A), tokens('a'));
+
+    expect(await findRefresh('never')).toEqual({ ok: true, value: undefined });
+    expect(await repository.findRefreshToken('access-a' as RefreshTokenHash)).toEqual({
+      ok: true,
+      value: undefined,
+    });
+  });
+
+  it('rotates a refresh token: the new tokens work and the replaced one names its unused successor', async () => {
+    await repository.open(connection(CONNECTION_A), tokens('a'));
+
+    expect(await repository.rotate(rotation('a', 'b'))).toEqual({ ok: true, value: true });
+
+    expect(await find('b')).toMatchObject({ value: { connectionId: CONNECTION_A } });
+    expect(await findRefresh('b')).toMatchObject({ value: { successor: undefined } });
+    expect(await findRefresh('a')).toMatchObject({
+      value: { successor: { tokenHash: 'refresh-b', used: false } },
+    });
+  });
+
+  it('marks the successor used once it is rotated in turn', async () => {
+    await repository.open(connection(CONNECTION_A), tokens('a'));
+    await repository.rotate(rotation('a', 'b'));
+    await repository.rotate(rotation('b', 'c'));
+
+    expect(await findRefresh('a')).toMatchObject({ value: { successor: { tokenHash: 'refresh-b', used: true } } });
+    expect(await findRefresh('b')).toMatchObject({
+      value: { successor: { tokenHash: 'refresh-c', used: false } },
+    });
+  });
+
+  it('rotating a replaced token again discards its unused successor and names the new one', async () => {
+    await repository.open(connection(CONNECTION_A), tokens('a'));
+    await repository.rotate(rotation('a', 'b'));
+
+    expect(await repository.rotate(rotation('a', 'c', 'b'))).toEqual({ ok: true, value: true });
+
+    expect(await findRefresh('b')).toEqual({ ok: true, value: undefined });
+    expect(await findRefresh('a')).toMatchObject({
+      value: { successor: { tokenHash: 'refresh-c', used: false } },
+    });
+  });
+
+  it('rotates a refresh token once when two rotations race for it, storing nothing of the other', async () => {
+    await repository.open(connection(CONNECTION_A), tokens('a'));
+
+    const outcomes = await Promise.all([
+      repository.rotate(rotation('a', 'b')),
+      repository.rotate(rotation('a', 'c')),
+    ]);
+
+    expect(outcomes.map((outcome) => isOk(outcome) && outcome.value).sort()).toEqual([false, true]);
+    expect(await database.select().from(schema.refreshTokens)).toHaveLength(2);
+    expect(await database.select().from(schema.accessTokens)).toHaveLength(2);
+  });
+
+  it('refuses to discard a successor that was used meanwhile, storing nothing', async () => {
+    await repository.open(connection(CONNECTION_A), tokens('a'));
+    await repository.rotate(rotation('a', 'b'));
+    await repository.rotate(rotation('b', 'c'));
+
+    expect(await repository.rotate(rotation('a', 'd', 'b'))).toEqual({ ok: true, value: false });
+    expect(await find('d')).toEqual({ ok: true, value: undefined });
+  });
+
+  it('rotates no refresh token through another User\'s Connection', async () => {
+    await repository.open(connection(CONNECTION_A, ADA.id), tokens('ada'));
+    await repository.open(connection(CONNECTION_B, BOB.id), tokens('bob'));
+
+    expect(await repository.rotate(rotation('ada', 'stolen', undefined, CONNECTION_B))).toEqual({
+      ok: true,
+      value: false,
+    });
+    expect(await find('stolen')).toEqual({ ok: true, value: undefined });
+  });
+
+  it('revokes a Connection with every token it holds, leaving another User\'s alone', async () => {
+    await repository.open(connection(CONNECTION_A, ADA.id), tokens('ada'));
+    await repository.open(connection(CONNECTION_B, BOB.id), tokens('bob'));
+    await repository.rotate(rotation('ada', 'next'));
+
+    expect(await repository.revoke(CONNECTION_A as ConnectionId)).toEqual({ ok: true, value: undefined });
+
+    for (const name of ['ada', 'next']) {
+      expect(await find(name)).toEqual({ ok: true, value: undefined });
+      expect(await findRefresh(name)).toEqual({ ok: true, value: undefined });
+    }
+    expect(await find('bob')).toMatchObject({ value: { userId: BOB.id } });
+    expect(await findRefresh('bob')).toMatchObject({ value: { connectionId: CONNECTION_B } });
+  });
+
   it('reports an unreachable database as a result, never by throwing, without logging a hash', async () => {
     const opened = await dead.open(connection(CONNECTION_A), tokens('a'));
     const found = await dead.findAccessToken('access-a' as AccessTokenHash);
+    const foundRefresh = await dead.findRefreshToken('refresh-a' as RefreshTokenHash);
+    const rotated = await dead.rotate(rotation('a', 'b'));
+    const revoked = await dead.revoke(CONNECTION_A as ConnectionId);
 
-    expect(isErr(opened) && opened.error.code).toBe('DEPENDENCY_UNAVAILABLE');
-    expect(isErr(found) && found.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+    expect(
+      [opened, found, foundRefresh, rotated, revoked].map(
+        (result) => !result.ok && result.error.code,
+      ),
+    ).toEqual(Array.from({ length: 5 }, () => 'DEPENDENCY_UNAVAILABLE'));
     expect(logged.map((fields) => fields.event)).toEqual([
       'auth.open_connection_failed',
       'auth.find_access_token_failed',
+      'auth.find_refresh_token_failed',
+      'auth.rotate_refresh_token_failed',
+      'auth.revoke_connection_failed',
     ]);
-    expect(JSON.stringify(logged)).not.toContain('access-a');
+    for (const hash of ['access-a', 'refresh-a', 'refresh-b']) {
+      expect(JSON.stringify(logged)).not.toContain(hash);
+    }
   });
 });

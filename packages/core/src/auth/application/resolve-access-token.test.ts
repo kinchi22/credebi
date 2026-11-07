@@ -35,6 +35,9 @@ function connections(
       looked.push(tokenHash);
       return Promise.resolve(answer);
     },
+    findRefreshToken: () => Promise.resolve(ok(undefined)),
+    rotate: () => Promise.resolve(ok(false)),
+    revoke: () => Promise.resolve(ok(undefined)),
   };
 }
 

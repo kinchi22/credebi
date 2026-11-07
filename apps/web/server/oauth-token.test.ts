@@ -4,6 +4,8 @@ import {
   type CodeExchange,
   type CodeExchangeOutcome,
   type GrantedTokens,
+  type RefreshGrant,
+  type RefreshOutcome,
   type RefreshToken,
 } from '@repo/core';
 import { describe, expect, it } from 'vitest';
@@ -27,18 +29,49 @@ const GRANTED: GrantedTokens = {
   scopes: ['read', 'write'],
 };
 
+const REFRESHED: GrantedTokens = {
+  accessToken: 'the-next-access-token' as AccessToken,
+  refreshToken: 'the-next-refresh-token' as RefreshToken,
+  expiresIn: 3600,
+  scopes: ['read'],
+};
+
 function exchanging(
   answer: Result<CodeExchangeOutcome, DomainError> = ok({ kind: 'granted', tokens: GRANTED }),
+  refreshAnswer: Result<RefreshOutcome, DomainError> = ok({ kind: 'granted', tokens: REFRESHED }),
 ) {
   const exchanges: CodeExchange[] = [];
+  const refreshes: RefreshGrant[] = [];
   const serve = serveToken(() => ({
     exchangeCode: (exchange) => {
       exchanges.push(exchange);
       return Promise.resolve(answer);
     },
+    refreshAccessToken: (grant) => {
+      refreshes.push(grant);
+      return Promise.resolve(refreshAnswer);
+    },
   }));
-  return { serve, exchanges };
+  return { serve, exchanges, refreshes };
 }
+
+const REFRESH_FORM: Readonly<Record<string, string>> = {
+  grant_type: 'refresh_token',
+  refresh_token: 'the-refresh-token',
+  client_id: 'https://client.example/client.json',
+};
+
+const refreshForm = (changes: Readonly<Record<string, string | null>> = {}): string => {
+  const search = new URLSearchParams(REFRESH_FORM);
+  for (const [name, value] of Object.entries(changes)) {
+    if (value === null) {
+      search.delete(name);
+    } else {
+      search.set(name, value);
+    }
+  }
+  return search.toString();
+};
 
 const post = (
   body: string,
@@ -146,5 +179,55 @@ describe('serveToken', () => {
       'unsupported_grant_type',
     );
     expect(exchanges).toEqual([]);
+  });
+});
+
+describe('serveToken refreshing', () => {
+  it('refreshes for a new Bearer Access token, its lifetime, a new refresh token and the scopes', async () => {
+    const { serve, exchanges, refreshes } = exchanging();
+
+    const response = await serve(post(refreshForm({ resource: 'https://books.example/mcp' })));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(await response.json()).toEqual({
+      access_token: 'the-next-access-token',
+      token_type: 'Bearer',
+      expires_in: 3600,
+      refresh_token: 'the-next-refresh-token',
+      scope: 'read',
+    });
+    expect(refreshes).toEqual([
+      { refreshToken: 'the-refresh-token', clientId: 'https://client.example/client.json' },
+    ]);
+    expect(exchanges).toEqual([]);
+  });
+
+  it('answers invalid_grant to a refresh token the refresh refuses', async () => {
+    await expectOAuthError(
+      await exchanging(undefined, ok({ kind: 'refused' })).serve(post(refreshForm())),
+      'invalid_grant',
+    );
+  });
+
+  it('answers server_error to a failure of the refresh itself, never invalid_grant', async () => {
+    await expectOAuthError(
+      await exchanging(undefined, err(domainError('DEPENDENCY_UNAVAILABLE', 'It went wrong.'))).serve(
+        post(refreshForm()),
+      ),
+      'server_error',
+      500,
+    );
+  });
+
+  it.each([
+    ['no refresh token', post(refreshForm({ refresh_token: null }))],
+    ['no client', post(refreshForm({ client_id: null }))],
+    ['a refresh token given twice', post(`${refreshForm()}&refresh_token=another`)],
+  ])('answers invalid_request to %s, refreshing nothing', async (_, request) => {
+    const { serve, refreshes } = exchanging();
+
+    await expectOAuthError(await serve(request), 'invalid_request');
+    expect(refreshes).toEqual([]);
   });
 });

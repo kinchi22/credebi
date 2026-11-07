@@ -34,6 +34,14 @@ export const codeExchangeSchema = z
 
 export type CodeExchangeInput = z.output<typeof codeExchangeSchema>;
 
+export const refreshGrantSchema = z
+  .object({
+    grant_type: z.literal('refresh_token'),
+    refresh_token: z.string().min(1),
+    client_id: z.string().min(1),
+  })
+  .transform((form) => ({ refreshToken: form.refresh_token, clientId: form.client_id }));
+
 export type TokenResponse = {
   readonly access_token: string;
   readonly token_type: 'Bearer';

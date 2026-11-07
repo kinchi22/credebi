@@ -85,6 +85,9 @@ function connectionStore(
       return Promise.resolve(answer);
     },
     findAccessToken: () => Promise.resolve(ok(undefined)),
+    findRefreshToken: () => Promise.resolve(ok(undefined)),
+    rotate: () => Promise.resolve(ok(false)),
+    revoke: () => Promise.resolve(ok(undefined)),
   };
 }
 

@@ -10,6 +10,7 @@ import {
   finishGoogleSignInInputSchema,
   issuedSessionSchema,
   pendingSignInSchema,
+  refreshGrantSchema,
   testSignInInputSchema,
   toAuthorizationOutcome,
   toBeganSignIn,
@@ -316,6 +317,38 @@ describe('codeExchangeSchema', () => {
     expect(verifier(`${'a'.repeat(42)}+`)).toBe(false);
     expect(verifier(`x${'a'.repeat(43)}`)).toBe(true);
     expect(verifier(`${'a'.repeat(43)}\n`)).toBe(false);
+  });
+});
+
+describe('refreshGrantSchema', () => {
+  const form = {
+    grant_type: 'refresh_token',
+    refresh_token: 'the-refresh-token',
+    client_id: 'https://client.example/client.json',
+  };
+
+  it('takes a refresh_token grant with its client', () => {
+    expect(refreshGrantSchema.parse(form)).toEqual({
+      refreshToken: 'the-refresh-token',
+      clientId: 'https://client.example/client.json',
+    });
+  });
+
+  it('takes the resource and scope a client may send beside them', () => {
+    expect(
+      refreshGrantSchema.parse({ ...form, resource: 'https://books.example/mcp', scope: 'read' }),
+    ).toEqual({ refreshToken: 'the-refresh-token', clientId: 'https://client.example/client.json' });
+  });
+
+  it.each(['refresh_token', 'client_id'])('refuses a refresh without %s', (name) => {
+    expect(refreshGrantSchema.safeParse({ ...form, [name]: undefined }).success).toBe(false);
+    expect(refreshGrantSchema.safeParse({ ...form, [name]: '' }).success).toBe(false);
+  });
+
+  it('refuses another grant type', () => {
+    expect(refreshGrantSchema.safeParse({ ...form, grant_type: 'authorization_code' }).success).toBe(
+      false,
+    );
   });
 });
 

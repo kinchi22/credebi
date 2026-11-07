@@ -39,9 +39,12 @@ export type {
   AccessTokenHash,
   Connection,
   IssuedTokens,
+  RefreshRotation,
+  RefreshSuccessor,
   RefreshToken,
   RefreshTokenHash,
   StoredAccessToken,
+  StoredRefreshToken,
 } from './domain/connection';
 
 export { createExchangeCode } from './application/exchange-code';
@@ -51,6 +54,14 @@ export type {
   ExchangeCodeDependencies,
   GrantedTokens,
 } from './application/exchange-code';
+
+export { createRefreshAccessToken } from './application/refresh-access-token';
+export type {
+  RefreshAccessToken,
+  RefreshAccessTokenDependencies,
+  RefreshGrant,
+  RefreshOutcome,
+} from './application/refresh-access-token';
 
 export { createResolveAccessToken } from './application/resolve-access-token';
 export type {

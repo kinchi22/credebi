@@ -12,11 +12,11 @@ import {
 } from '../domain/authorization';
 import {
   ACCESS_TOKEN_SECONDS,
-  accessTokenExpiry,
   connectionFrom,
-  refreshTokenExpiry,
+  issuedTokensOf,
   type AccessToken,
   type AccessTokenHash,
+  type IssuedTokens,
   type RefreshToken,
   type RefreshTokenHash,
 } from '../domain/connection';
@@ -51,7 +51,31 @@ export type ExchangeCode = (
   exchange: CodeExchange,
 ) => Promise<Result<CodeExchangeOutcome, DomainError>>;
 
-const REFUSED: CodeExchangeOutcome = { kind: 'refused' };
+export const REFUSED: CodeExchangeOutcome = { kind: 'refused' };
+
+export type TokenIssuer = Pick<
+  ExchangeCodeDependencies,
+  'newAccessToken' | 'hashAccessToken' | 'newRefreshToken' | 'hashRefreshToken'
+>;
+
+export function issueTokens(
+  issuer: TokenIssuer,
+  issuedAt: Date,
+): { readonly accessToken: AccessToken; readonly refreshToken: RefreshToken; readonly issued: IssuedTokens } {
+  const accessToken = issuer.newAccessToken();
+  const refreshToken = issuer.newRefreshToken();
+  return {
+    accessToken,
+    refreshToken,
+    issued: issuedTokensOf(
+      {
+        accessTokenHash: issuer.hashAccessToken(accessToken),
+        refreshTokenHash: issuer.hashRefreshToken(refreshToken),
+      },
+      issuedAt,
+    ),
+  };
+}
 
 export function createExchangeCode(dependencies: ExchangeCodeDependencies): ExchangeCode {
   const { codes, connections, hashAuthorizationCode, pkceChallengeOf, now } = dependencies;
@@ -66,16 +90,10 @@ export function createExchangeCode(dependencies: ExchangeCodeDependencies): Exch
     if (code === undefined || !codeRedeemable(code, presented, issuedAt)) {
       return ok(REFUSED);
     }
-    const accessToken = dependencies.newAccessToken();
-    const refreshToken = dependencies.newRefreshToken();
+    const { accessToken, refreshToken, issued } = issueTokens(dependencies, issuedAt);
     const opened = await connections.open(
       connectionFrom(code, dependencies.newConnectionId(), issuedAt),
-      {
-        accessTokenHash: dependencies.hashAccessToken(accessToken),
-        accessTokenExpiresAt: accessTokenExpiry(issuedAt),
-        refreshTokenHash: dependencies.hashRefreshToken(refreshToken),
-        refreshTokenExpiresAt: refreshTokenExpiry(issuedAt),
-      },
+      issued,
     );
     if (!opened.ok) {
       return opened;

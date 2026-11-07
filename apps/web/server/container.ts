@@ -38,6 +38,7 @@ import {
   createGetSettings,
   createGetTitles,
   createPostEntry,
+  createRefreshAccessToken,
   createResolveAccessToken,
   createResolveSession,
   createSearchEntries,
@@ -71,6 +72,7 @@ import {
   type GetTitles,
   type Logger,
   type PostEntry,
+  type RefreshAccessToken,
   type ResolveAccessToken,
   type ResolveSession,
   type SearchEntries,
@@ -139,6 +141,7 @@ export type Container = {
   readonly approveAuthorization: ApproveAuthorization;
   readonly denyAuthorization: DenyAuthorization;
   readonly exchangeCode: ExchangeCode;
+  readonly refreshAccessToken: RefreshAccessToken;
   readonly resolveAccessToken: ResolveAccessToken;
 };
 
@@ -239,6 +242,14 @@ export function createContainer({ databaseUrl, google, testSignIn, deployment }:
       hashAuthorizationCode,
       pkceChallengeOf,
       newConnectionId: () => connectionIdSchema.parse(uuidv7()),
+      newAccessToken,
+      hashAccessToken,
+      newRefreshToken,
+      hashRefreshToken,
+      now: () => new Date(),
+    }),
+    refreshAccessToken: createRefreshAccessToken({
+      connections,
       newAccessToken,
       hashAccessToken,
       newRefreshToken,
