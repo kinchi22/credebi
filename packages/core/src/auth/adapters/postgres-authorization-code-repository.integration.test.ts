@@ -113,11 +113,50 @@ describe('createPostgresAuthorizationCodeRepository', () => {
     expect(await stored('hash-bob')).toHaveLength(1);
   });
 
-  it('reports an unreachable database as a result, never by throwing, without logging the hash', async () => {
-    const result = await dead.add(code('hash-1'));
+  it('takes a code once: the first take answers it and deletes it, the second finds nothing', async () => {
+    await repository.add(code('hash-1'));
 
-    expect(isErr(result) && result.error.code).toBe('DEPENDENCY_UNAVAILABLE');
-    expect(logged.map((fields) => fields.event)).toEqual(['auth.add_authorization_code_failed']);
+    expect(await repository.take('hash-1' as AuthorizationCodeHash)).toEqual({
+      ok: true,
+      value: code('hash-1'),
+    });
+    expect(await repository.take('hash-1' as AuthorizationCodeHash)).toEqual({
+      ok: true,
+      value: undefined,
+    });
+    expect(await stored('hash-1')).toEqual([]);
+  });
+
+  it('gives a code to only one of two takes racing for it', async () => {
+    await repository.add(code('hash-1'));
+
+    const takes = await Promise.all([
+      repository.take('hash-1' as AuthorizationCodeHash),
+      repository.take('hash-1' as AuthorizationCodeHash),
+    ]);
+
+    expect(takes.filter((one) => isOk(one) && one.value !== undefined)).toHaveLength(1);
+  });
+
+  it('takes only the code of the hash it is given', async () => {
+    await repository.add(code('hash-ada', ADA.id));
+    await repository.add(code('hash-bob', BOB.id));
+
+    await repository.take('hash-ada' as AuthorizationCodeHash);
+
+    expect(await stored('hash-bob')).toHaveLength(1);
+  });
+
+  it('reports an unreachable database as a result, never by throwing, without logging the hash', async () => {
+    const added = await dead.add(code('hash-1'));
+    const taken = await dead.take('hash-1' as AuthorizationCodeHash);
+
+    expect(isErr(added) && added.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+    expect(isErr(taken) && taken.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+    expect(logged.map((fields) => fields.event)).toEqual([
+      'auth.add_authorization_code_failed',
+      'auth.take_authorization_code_failed',
+    ]);
     expect(JSON.stringify(logged)).not.toContain('hash-1');
   });
 });

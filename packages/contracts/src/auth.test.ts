@@ -5,6 +5,8 @@ import {
   authorizationRedirectSchema,
   beganSignInSchema,
   clientDocumentSchema,
+  codeExchangeSchema,
+  connectionIdSchema,
   finishGoogleSignInInputSchema,
   issuedSessionSchema,
   pendingSignInSchema,
@@ -12,6 +14,7 @@ import {
   toAuthorizationOutcome,
   toBeganSignIn,
   toIssuedSession,
+  toTokenResponse,
   userIdSchema,
   type UserId,
 } from './auth';
@@ -257,5 +260,86 @@ describe('clientDocumentSchema', () => {
   it('refuses an empty name and a document listing no redirect', () => {
     expect(clientDocumentSchema.safeParse({ ...document, client_name: '' }).success).toBe(false);
     expect(clientDocumentSchema.safeParse({ ...document, redirect_uris: [] }).success).toBe(false);
+  });
+});
+
+describe('connectionIdSchema', () => {
+  it('accepts a uuid v7 and refuses a uuid v4', () => {
+    expect(connectionIdSchema.parse(USER_ID)).toBe(USER_ID);
+    expect(connectionIdSchema.safeParse('9b2f6d1e-3c4a-4f5b-8a6d-7e8f9a0b1c2d').success).toBe(false);
+  });
+});
+
+describe('codeExchangeSchema', () => {
+  const VERIFIER = 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk';
+  const form = {
+    grant_type: 'authorization_code',
+    code: 'the-code',
+    code_verifier: VERIFIER,
+    redirect_uri: 'https://client.example/callback',
+    client_id: 'https://client.example/client.json',
+    resource: 'https://books.example/mcp',
+  };
+
+  it('takes an authorization_code grant with its verifier, redirect, client and resource', () => {
+    expect(codeExchangeSchema.parse(form)).toEqual({
+      code: 'the-code',
+      codeVerifier: VERIFIER,
+      redirectUri: 'https://client.example/callback',
+      clientId: 'https://client.example/client.json',
+      resource: 'https://books.example/mcp',
+    });
+  });
+
+  it.each(['code', 'code_verifier', 'redirect_uri', 'client_id', 'resource'])(
+    'refuses an exchange without %s',
+    (name) => {
+      expect(codeExchangeSchema.safeParse({ ...form, [name]: undefined }).success).toBe(false);
+      expect(codeExchangeSchema.safeParse({ ...form, [name]: '' }).success).toBe(false);
+    },
+  );
+
+  it('refuses another grant type', () => {
+    expect(codeExchangeSchema.safeParse({ ...form, grant_type: 'refresh_token' }).success).toBe(
+      false,
+    );
+  });
+
+  it('takes a verifier of 43 to 128 unreserved characters and no other', () => {
+    const verifier = (value: string): boolean =>
+      codeExchangeSchema.safeParse({ ...form, code_verifier: value }).success;
+
+    expect(verifier('a'.repeat(43))).toBe(true);
+    expect(verifier('A-z.0_9~'.repeat(16))).toBe(true);
+    expect(verifier('a'.repeat(42))).toBe(false);
+    expect(verifier('a'.repeat(129))).toBe(false);
+    expect(verifier(`${'a'.repeat(42)}+`)).toBe(false);
+    expect(verifier(`x${'a'.repeat(43)}`)).toBe(true);
+    expect(verifier(`${'a'.repeat(43)}\n`)).toBe(false);
+  });
+});
+
+describe('toTokenResponse', () => {
+  it('answers a Bearer Access token, its lifetime, a refresh token and the scopes as one string', () => {
+    const response = toTokenResponse({
+      accessToken: 'access',
+      refreshToken: 'refresh',
+      expiresIn: 3600,
+      scopes: ['read', 'write'],
+    });
+
+    expect(response).toEqual({
+      access_token: 'access',
+      token_type: 'Bearer',
+      expires_in: 3600,
+      refresh_token: 'refresh',
+      scope: 'read write',
+    });
+  });
+
+  it('names a single scope alone', () => {
+    expect(
+      toTokenResponse({ accessToken: 'a', refreshToken: 'r', expiresIn: 1, scopes: ['read'] }).scope,
+    ).toBe('read');
   });
 });

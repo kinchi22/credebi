@@ -1,21 +1,26 @@
 import {
   McpServer,
   OAuthError,
+  OAuthErrorCode,
+  bearerAuthChallengeResponse,
   createMcpHandler,
   getOAuthProtectedResourceMetadataUrl,
   oauthMetadataResponse,
   requireBearerAuth,
+  type AuthInfo,
   type AuthMetadataOptions,
   type OAuthTokenVerifier,
 } from '@modelcontextprotocol/server';
-import { SCOPES } from '@repo/contracts';
+import { SCOPES, scopeSchema, userIdSchema } from '@repo/contracts';
+import { type AuthContext, type ResolveAccessToken } from '@repo/core';
+import { z } from 'zod';
+import { registerTools, toolScope, type ToolDependencies } from './mcp-tools';
 import { AUTHORIZE_PATH, MCP_PATH, TOKEN_PATH, requestOrigin } from './oauth';
 
 const SERVER_INFO = { name: 'credebi', version: '1.0.0' };
 
-export const NO_LIVE_ACCESS_TOKEN: OAuthTokenVerifier = {
-  verifyAccessToken: () =>
-    Promise.reject(new OAuthError('invalid_token', 'This Access token is not live.')),
+export type McpDependencies = ToolDependencies & {
+  readonly resolveAccessToken: ResolveAccessToken;
 };
 
 function discovery(origin: string): AuthMetadataOptions {
@@ -46,15 +51,94 @@ export function discoveryResponse(request: Request): Response {
   return oauthMetadataResponse(request, discovery(origin)) ?? new Response(null, { status: 404 });
 }
 
-const handler = createMcpHandler(() => new McpServer(SERVER_INFO, { capabilities: { tools: {} } }));
+export function accessTokenVerifier(resolveAccessToken: ResolveAccessToken): OAuthTokenVerifier {
+  return {
+    verifyAccessToken: async (token) => {
+      const resolved = await resolveAccessToken(token);
+      if (!resolved.ok) {
+        throw new OAuthError(OAuthErrorCode.ServerError, resolved.error.message);
+      }
+      if (resolved.value === undefined) {
+        throw new OAuthError(OAuthErrorCode.InvalidToken, 'This Access token is not live.');
+      }
+      const { auth, clientId, expiresAt } = resolved.value;
+      return {
+        token,
+        clientId,
+        scopes: [...(auth.scopes ?? [])],
+        expiresAt: Math.floor(expiresAt.getTime() / 1000),
+        extra: { userId: auth.userId },
+      };
+    },
+  };
+}
 
-export function serveMcp(verifier: OAuthTokenVerifier): (request: Request) => Promise<Response> {
+export function authContextOf(authInfo: AuthInfo | undefined): AuthContext {
+  const userId = userIdSchema.safeParse(authInfo?.extra?.['userId']);
+  return {
+    userId: userId.success ? userId.data : undefined,
+    scopes: (authInfo?.scopes ?? []).flatMap((scope) => {
+      const parsed = scopeSchema.safeParse(scope);
+      return parsed.success ? [parsed.data] : [];
+    }),
+  };
+}
+
+const toolCallSchema = z.object({
+  method: z.literal('tools/call'),
+  params: z.object({ name: z.string() }),
+});
+
+function calledTools(body: unknown): readonly string[] {
+  const messages: readonly unknown[] = Array.isArray(body) ? body : [body];
+  return messages.flatMap((message) => {
+    const parsed = toolCallSchema.safeParse(message);
+    return parsed.success ? [parsed.data.params.name] : [];
+  });
+}
+
+async function scopeChallenge(
+  request: Request,
+  authInfo: AuthInfo,
+  resourceMetadataUrl: string,
+): Promise<Response | undefined> {
+  const body: unknown = await request
+    .clone()
+    .json()
+    .catch(() => undefined);
+  const missing = calledTools(body)
+    .map(toolScope)
+    .find((scope) => scope !== undefined && !authInfo.scopes.includes(scope));
+  return missing === undefined
+    ? undefined
+    : bearerAuthChallengeResponse(
+        new OAuthError(OAuthErrorCode.InsufficientScope, `This tool needs the ${missing} scope.`),
+        { requiredScopes: [missing], resourceMetadataUrl },
+      );
+}
+
+export function serveMcp(
+  dependencies: () => McpDependencies,
+): (request: Request) => Promise<Response> {
+  const handler = createMcpHandler(({ authInfo }) => {
+    const server = new McpServer(SERVER_INFO, { capabilities: { tools: {} } });
+    registerTools(server, authContextOf(authInfo), dependencies());
+    return server;
+  });
   return async (request) => {
-    const resource = new URL(MCP_PATH, originOf(request));
+    const resourceMetadataUrl = getOAuthProtectedResourceMetadataUrl(
+      new URL(MCP_PATH, originOf(request)),
+    );
     const access = await requireBearerAuth({
-      verifier,
-      resourceMetadataUrl: getOAuthProtectedResourceMetadataUrl(resource),
+      verifier: accessTokenVerifier(dependencies().resolveAccessToken),
+      resourceMetadataUrl,
     })(request);
-    return access instanceof Response ? access : handler.fetch(request, { authInfo: access });
+    if (access instanceof Response) {
+      return access;
+    }
+    return (
+      (await scopeChallenge(request, access, resourceMetadataUrl)) ??
+      handler.fetch(request, { authInfo: access })
+    );
   };
 }

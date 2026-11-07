@@ -2,6 +2,7 @@ import 'server-only';
 import {
   accountGroupIdSchema,
   accountIdSchema,
+  connectionIdSchema,
   domainError,
   entryIdSchema,
   err,
@@ -15,6 +16,7 @@ import {
   createApproveAuthorization,
   createBeginAuthorization,
   createDenyAuthorization,
+  createExchangeCode,
   createDeleteAccount,
   createDeleteAccountGroup,
   createBeginGoogleSignIn,
@@ -36,6 +38,7 @@ import {
   createGetSettings,
   createGetTitles,
   createPostEntry,
+  createResolveAccessToken,
   createResolveSession,
   createSearchEntries,
   createSignOut,
@@ -45,6 +48,7 @@ import {
   type ApproveAuthorization,
   type BeginAuthorization,
   type DenyAuthorization,
+  type ExchangeCode,
   type DeleteAccount,
   type DeleteAccountGroup,
   type BeginGoogleSignIn,
@@ -67,6 +71,7 @@ import {
   type GetTitles,
   type Logger,
   type PostEntry,
+  type ResolveAccessToken,
   type ResolveSession,
   type SearchEntries,
   type SignOut,
@@ -77,6 +82,7 @@ import {
   createOpenIdGoogleSignIn,
   createPostgresAuthorizationCodeRepository,
   createPostgresAccountRepository,
+  createPostgresConnectionRepository,
   createPostgresChartViewRepository,
   createPostgresEntryRepository,
   createPostgresHealthProbe,
@@ -84,10 +90,15 @@ import {
   createPostgresSettingsRepository,
   createPostgresUnitOfWork,
   createPostgresUserRepository,
+  hashAccessToken,
   hashAuthorizationCode,
+  hashRefreshToken,
   hashSessionToken,
+  newAccessToken,
   newAuthorizationCode,
+  newRefreshToken,
   newSessionToken,
+  pkceChallengeOf,
 } from '@repo/core/server';
 import { v7 as uuidv7 } from 'uuid';
 import { startingChartCopy } from './catalogues';
@@ -127,6 +138,8 @@ export type Container = {
   readonly beginAuthorization: BeginAuthorization;
   readonly approveAuthorization: ApproveAuthorization;
   readonly denyAuthorization: DenyAuthorization;
+  readonly exchangeCode: ExchangeCode;
+  readonly resolveAccessToken: ResolveAccessToken;
 };
 
 const noTestSignIn: TestSignIn = () =>
@@ -156,6 +169,8 @@ export function createContainer({ databaseUrl, google, testSignIn, deployment }:
   };
   const googleSignIn = createOpenIdGoogleSignIn(google, logger);
   const clientDocuments = createHttpClientDocuments({ allowHttpLoopback: testSignIn });
+  const codes = createPostgresAuthorizationCodeRepository(databaseUrl, logger);
+  const connections = createPostgresConnectionRepository(databaseUrl, logger);
 
   return {
     logger,
@@ -212,12 +227,29 @@ export function createContainer({ databaseUrl, google, testSignIn, deployment }:
     beginAuthorization: createBeginAuthorization({ clientDocuments }),
     approveAuthorization: createApproveAuthorization({
       clientDocuments,
-      codes: createPostgresAuthorizationCodeRepository(databaseUrl, logger),
+      codes,
       newAuthorizationCode,
       hashAuthorizationCode,
       now: () => new Date(),
     }),
     denyAuthorization: createDenyAuthorization({ clientDocuments }),
+    exchangeCode: createExchangeCode({
+      codes,
+      connections,
+      hashAuthorizationCode,
+      pkceChallengeOf,
+      newConnectionId: () => connectionIdSchema.parse(uuidv7()),
+      newAccessToken,
+      hashAccessToken,
+      newRefreshToken,
+      hashRefreshToken,
+      now: () => new Date(),
+    }),
+    resolveAccessToken: createResolveAccessToken({
+      connections,
+      hashAccessToken,
+      now: () => new Date(),
+    }),
   };
 }
 

@@ -3,6 +3,8 @@
 **Status:** Accepted
 **Date:** 2026-09-18
 **Amended:** 2026-09-24, PR #116
+**Amended:** 2026-11-07, PR #PRNUM, which adds the routes of ADR-0031 to those
+that answer anybody
 
 ## Problem
 
@@ -88,7 +90,11 @@ a Session answers `UNAUTHORIZED`, 401.
 
 Four things answer anybody: `/`, `/sign-in` -- with the route under it that
 begins a sign-in with Google, `/sign-in/google` -- the Google callback at
-`/auth/callback/google`, and `health.get` (ADR-0020). `/` is the page a
+`/auth/callback/google`, and `health.get` (ADR-0020). The MCP routes of
+ADR-0031 join them: `/mcp`, `/.well-known/oauth-protected-resource/mcp`,
+`/.well-known/oauth-authorization-server` and `/oauth/token`. None reads the
+Session cookie, the proxy leaves them alone, and `/mcp` answers a request
+without a live Access token with 401 rather than a redirect. `/` is the page a
 signed-out visitor meets, a welcome page in time, and it sends a signed-in User
 to `/entries`. Every other page sends a request with no Session to `/sign-in`;
 that redirect is a courtesy, and the use case check is the one that holds. After

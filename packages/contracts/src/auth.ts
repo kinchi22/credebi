@@ -12,6 +12,51 @@ export const scopeSchema = z.enum(SCOPES);
 
 export type Scope = z.infer<typeof scopeSchema>;
 
+export type ConnectionId = Brand<string, 'ConnectionId'>;
+export const connectionIdSchema = uuidV7Schema.transform((id): ConnectionId => id as ConnectionId);
+
+export const codeExchangeSchema = z
+  .object({
+    grant_type: z.literal('authorization_code'),
+    code: z.string().min(1),
+    code_verifier: z.string().regex(/^[A-Za-z0-9._~-]{43,128}$/),
+    redirect_uri: z.string().min(1),
+    client_id: z.string().min(1),
+    resource: z.string().min(1),
+  })
+  .transform((form) => ({
+    code: form.code,
+    codeVerifier: form.code_verifier,
+    redirectUri: form.redirect_uri,
+    clientId: form.client_id,
+    resource: form.resource,
+  }));
+
+export type CodeExchangeInput = z.output<typeof codeExchangeSchema>;
+
+export type TokenResponse = {
+  readonly access_token: string;
+  readonly token_type: 'Bearer';
+  readonly expires_in: number;
+  readonly refresh_token: string;
+  readonly scope: string;
+};
+
+export function toTokenResponse(granted: {
+  readonly accessToken: string;
+  readonly refreshToken: string;
+  readonly expiresIn: number;
+  readonly scopes: readonly Scope[];
+}): TokenResponse {
+  return {
+    access_token: granted.accessToken,
+    token_type: 'Bearer',
+    expires_in: granted.expiresIn,
+    refresh_token: granted.refreshToken,
+    scope: granted.scopes.join(' '),
+  };
+}
+
 export const authorizationInputSchema = z.object({
   query: z.string(),
   origin: z.url(),

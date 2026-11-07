@@ -10,11 +10,21 @@ describe('proxy', () => {
     '/mcp',
     '/.well-known/oauth-protected-resource/mcp',
     '/.well-known/oauth-authorization-server',
+    '/oauth/token',
   ])('leaves %s alone', (path) => {
     expect(runsOn(path)).toBe(false);
   });
 
-  it.each(['/', '/entries', '/mcp-guide', '/mcpx/entries', '/sign-in', '/auth/callback/google'])(
+  it.each([
+    '/',
+    '/entries',
+    '/mcp-guide',
+    '/mcpx/entries',
+    '/sign-in',
+    '/auth/callback/google',
+    '/oauth/authorize',
+    '/oauth/tokens',
+  ])(
     'runs on %s',
     (path) => {
       expect(runsOn(path)).toBe(true);

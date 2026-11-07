@@ -188,3 +188,29 @@ export function authorizationResponse(
 export function authorizationCodeExpiry(now: Date): Date {
   return new Date(now.getTime() + AUTHORIZATION_CODE_SECONDS * 1000);
 }
+
+export type CodeExchange = {
+  readonly code: string;
+  readonly codeVerifier: string;
+  readonly redirectUri: string;
+  readonly clientId: string;
+  readonly resource: string;
+};
+
+export type PresentedCode = Omit<CodeExchange, 'code' | 'codeVerifier'> & {
+  readonly verifierChallenge: string;
+};
+
+export function codeRedeemable(
+  code: IssuedAuthorizationCode,
+  presented: PresentedCode,
+  now: Date,
+): boolean {
+  return (
+    now.getTime() < code.expiresAt.getTime() &&
+    code.codeChallenge === presented.verifierChallenge &&
+    code.redirectUri === presented.redirectUri &&
+    code.clientId === presented.clientId &&
+    code.resource === presented.resource
+  );
+}
