@@ -11,16 +11,29 @@ export { moneySchema } from './money';
 
 export { uuidV7Schema } from './id';
 
-export type { BeganSignIn, IssuedSessionOutput, PendingSignInInput, UserId } from './auth';
+export type {
+  AuthorizationInput,
+  AuthorizationOutcomeOutput,
+  BeganSignIn,
+  IssuedSessionOutput,
+  PendingSignInInput,
+  Scope,
+  UserId,
+} from './auth';
 export {
   SCOPES,
   TEST_SIGN_IN_FIELDS,
+  authorizationInputSchema,
+  authorizationOutcomeSchema,
+  authorizationRedirectSchema,
   beganSignInSchema,
   clientDocumentSchema,
   finishGoogleSignInInputSchema,
   issuedSessionSchema,
   pendingSignInSchema,
+  scopeSchema,
   testSignInInputSchema,
+  toAuthorizationOutcome,
   toBeganSignIn,
   toIssuedSession,
   userIdSchema,

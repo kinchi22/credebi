@@ -22,6 +22,30 @@ export type {
 
 export type { ClientDocument } from './domain/client-document';
 
+export { AUTHORIZATION_CODE_SECONDS } from './domain/authorization';
+export type {
+  ApprovedRequest,
+  AuthorizationCode,
+  AuthorizationCodeHash,
+  AuthorizationServer,
+  IssuedAuthorizationCode,
+} from './domain/authorization';
+
+export {
+  createApproveAuthorization,
+  createBeginAuthorization,
+  createDenyAuthorization,
+} from './application/authorize';
+export type {
+  ApproveAuthorization,
+  ApproveAuthorizationDependencies,
+  AuthorizationOutcome,
+  BeginAuthorization,
+  BeginAuthorizationDependencies,
+  ConsentRequest,
+  DenyAuthorization,
+} from './application/authorize';
+
 export { createFinishGoogleSignIn, createTestSignIn } from './application/sign-in';
 export type {
   FinishGoogleSignIn,
@@ -42,6 +66,7 @@ export type { ResolveSession, ResolveSessionDependencies } from './application/r
 export { createSignOut } from './application/sign-out';
 export type { SignOut, SignOutDependencies } from './application/sign-out';
 
+export type { AuthorizationCodeRepository } from './ports/authorization-code-repository';
 export type { ClientDocuments } from './ports/client-documents';
 export type { GoogleSignIn, PendingSignIn } from './ports/google-sign-in';
 export type { SessionRepository } from './ports/session-repository';

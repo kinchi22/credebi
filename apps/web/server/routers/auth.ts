@@ -1,13 +1,18 @@
 import {
+  authorizationInputSchema,
+  authorizationOutcomeSchema,
+  authorizationRedirectSchema,
   beganSignInSchema,
   finishGoogleSignInInputSchema,
   issuedSessionSchema,
   testSignInInputSchema,
+  toAuthorizationOutcome,
   toBeganSignIn,
   toIssuedSession,
 } from '@repo/contracts';
 import { z } from 'zod';
 import { toTrpcError } from '../domain-error';
+import { authorizationServerAt } from '../oauth';
 import { publicProcedure, router, sessionProcedure } from '../trpc';
 
 export const authRouter = router({
@@ -56,6 +61,45 @@ export const authRouter = router({
         throw toTrpcError(result.error);
       }
       return toIssuedSession(result.value);
+    }),
+
+  beginAuthorization: publicProcedure
+    .input(authorizationInputSchema)
+    .output(authorizationOutcomeSchema)
+    .query(async ({ ctx, input }) =>
+      toAuthorizationOutcome(
+        await ctx.container.beginAuthorization(input.query, authorizationServerAt(input.origin)),
+      ),
+    ),
+
+  approveAuthorization: sessionProcedure
+    .input(authorizationInputSchema)
+    .output(authorizationRedirectSchema)
+    .mutation(async ({ ctx, input }) => {
+      const result = await ctx.container.approveAuthorization(
+        ctx.auth,
+        input.query,
+        authorizationServerAt(input.origin),
+      );
+      if (!result.ok) {
+        throw toTrpcError(result.error);
+      }
+      return { location: result.value.href };
+    }),
+
+  denyAuthorization: sessionProcedure
+    .input(authorizationInputSchema)
+    .output(authorizationRedirectSchema)
+    .mutation(async ({ ctx, input }) => {
+      const result = await ctx.container.denyAuthorization(
+        ctx.auth,
+        input.query,
+        authorizationServerAt(input.origin),
+      );
+      if (!result.ok) {
+        throw toTrpcError(result.error);
+      }
+      return { location: result.value.href };
     }),
 
   signOut: publicProcedure.mutation(async ({ ctx }) => {

@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
+  authorizationInputSchema,
+  authorizationOutcomeSchema,
+  authorizationRedirectSchema,
   beganSignInSchema,
+  clientDocumentSchema,
   finishGoogleSignInInputSchema,
   issuedSessionSchema,
   pendingSignInSchema,
   testSignInInputSchema,
+  toAuthorizationOutcome,
   toBeganSignIn,
   toIssuedSession,
   userIdSchema,
@@ -141,5 +146,116 @@ describe('testSignInInputSchema', () => {
 
   it.each([undefined, 'fr'])('refuses %j as the Language', (language) => {
     expect(testSignInInputSchema.safeParse({ identifier: 'e2e-1', language }).success).toBe(false);
+  });
+});
+
+describe('toAuthorizationOutcome', () => {
+  it('carries what the consent page shows, and nothing the client could use', () => {
+    const outcome = toAuthorizationOutcome({
+      kind: 'consent',
+      request: {
+        approved: { clientName: 'Claude', scopes: ['read', 'write'] },
+        redirectHost: 'claude.ai',
+      },
+    });
+
+    expect(outcome).toStrictEqual({
+      outcome: 'consent',
+      clientName: 'Claude',
+      redirectHost: 'claude.ai',
+      scopes: ['read', 'write'],
+    });
+    expect(authorizationOutcomeSchema.parse(outcome)).toEqual(outcome);
+  });
+
+  it('carries the location of a redirect', () => {
+    const outcome = toAuthorizationOutcome({
+      kind: 'redirect',
+      to: { href: 'https://claude.ai/callback?error=invalid_target' },
+    });
+
+    expect(outcome).toStrictEqual({
+      outcome: 'redirect',
+      location: 'https://claude.ai/callback?error=invalid_target',
+    });
+    expect(authorizationOutcomeSchema.parse(outcome)).toEqual(outcome);
+  });
+
+  it('carries nothing of a request that cannot be trusted', () => {
+    const outcome = toAuthorizationOutcome({ kind: 'untrusted' });
+
+    expect(outcome).toStrictEqual({ outcome: 'untrusted' });
+    expect(authorizationOutcomeSchema.parse(outcome)).toEqual(outcome);
+  });
+});
+
+describe('authorizationOutcomeSchema', () => {
+  const consent = {
+    outcome: 'consent',
+    clientName: 'Claude',
+    redirectHost: 'claude.ai',
+    scopes: ['read'],
+  };
+
+  it('refuses a consent with no client name, no redirect host or no scope', () => {
+    expect(authorizationOutcomeSchema.safeParse({ ...consent, clientName: '' }).success).toBe(false);
+    expect(authorizationOutcomeSchema.safeParse({ ...consent, redirectHost: '' }).success).toBe(false);
+    expect(authorizationOutcomeSchema.safeParse({ ...consent, scopes: [] }).success).toBe(false);
+  });
+
+  it('refuses a scope it does not know', () => {
+    expect(authorizationOutcomeSchema.safeParse({ ...consent, scopes: ['admin'] }).success).toBe(
+      false,
+    );
+  });
+
+  it('refuses a redirect to something that is not a URL', () => {
+    expect(
+      authorizationOutcomeSchema.safeParse({ outcome: 'redirect', location: 'nowhere' }).success,
+    ).toBe(false);
+  });
+});
+
+describe('authorizationInputSchema', () => {
+  it('takes the query as it is and the origin the request reached', () => {
+    const input = { query: 'client_id=x', origin: 'https://books.example' };
+
+    expect(authorizationInputSchema.parse(input)).toEqual(input);
+  });
+
+  it('refuses an origin that is not a URL', () => {
+    expect(authorizationInputSchema.safeParse({ query: '', origin: 'books' }).success).toBe(false);
+  });
+});
+
+describe('authorizationRedirectSchema', () => {
+  it('carries the location the browser is sent to', () => {
+    expect(authorizationRedirectSchema.safeParse({}).success).toBe(false);
+    expect(authorizationRedirectSchema.parse({ location: 'https://claude.ai/callback' })).toEqual({
+      location: 'https://claude.ai/callback',
+    });
+  });
+});
+
+describe('clientDocumentSchema', () => {
+  const document = {
+    client_id: 'https://claude.ai/oauth/client.json',
+    client_name: 'Claude',
+    redirect_uris: ['https://claude.ai/callback', 'http://127.0.0.1/callback'],
+  };
+
+  it('accepts a document listing several redirects', () => {
+    expect(clientDocumentSchema.parse(document)).toEqual(document);
+  });
+
+  it('accepts a document stating no name', () => {
+    expect(clientDocumentSchema.safeParse({ ...document, client_name: undefined }).success).toBe(
+      true,
+    );
+  });
+
+  it('refuses an empty name and a document listing no redirect', () => {
+    expect(clientDocumentSchema.safeParse({ ...document, client_name: '' }).success).toBe(false);
+    expect(clientDocumentSchema.safeParse({ ...document, redirect_uris: [] }).success).toBe(false);
   });
 });
