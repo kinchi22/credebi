@@ -1,5 +1,11 @@
 import { domainError, err, ok, type DomainError, type Result } from '@repo/contracts';
-import { type AccessToken, type CodeExchange, type GrantedTokens, type RefreshToken } from '@repo/core';
+import {
+  type AccessToken,
+  type CodeExchange,
+  type CodeExchangeOutcome,
+  type GrantedTokens,
+  type RefreshToken,
+} from '@repo/core';
 import { describe, expect, it } from 'vitest';
 import { serveToken } from './oauth-token';
 
@@ -21,7 +27,9 @@ const GRANTED: GrantedTokens = {
   scopes: ['read', 'write'],
 };
 
-function exchanging(answer: Result<GrantedTokens, DomainError> = ok(GRANTED)) {
+function exchanging(
+  answer: Result<CodeExchangeOutcome, DomainError> = ok({ kind: 'granted', tokens: GRANTED }),
+) {
   const exchanges: CodeExchange[] = [];
   const serve = serveToken(() => ({
     exchangeCode: (exchange) => {
@@ -98,16 +106,18 @@ describe('serveToken', () => {
   });
 
   it('answers invalid_grant to a code the exchange refuses', async () => {
-    const refused = domainError('INVALID_INPUT', 'This authorization code is unknown.');
-
-    await expectOAuthError(await exchanging(err(refused)).serve(post(form())), 'invalid_grant');
+    await expectOAuthError(
+      await exchanging(ok({ kind: 'refused' })).serve(post(form())),
+      'invalid_grant',
+    );
   });
 
-  it('answers server_error to a failure of the exchange itself', async () => {
-    const unavailable = domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.');
-
+  it.each([
+    ['a failure of the exchange itself', 'DEPENDENCY_UNAVAILABLE'],
+    ['an invalid input the exchange reports', 'INVALID_INPUT'],
+  ] as const)('answers server_error to %s, never invalid_grant', async (_, code) => {
     await expectOAuthError(
-      await exchanging(err(unavailable)).serve(post(form())),
+      await exchanging(err(domainError(code, 'It went wrong.'))).serve(post(form())),
       'server_error',
       500,
     );

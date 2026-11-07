@@ -1,6 +1,4 @@
 import {
-  domainError,
-  err,
   ok,
   type ConnectionId,
   type DomainError,
@@ -45,12 +43,15 @@ export type ExchangeCodeDependencies = {
   readonly now: () => Date;
 };
 
-export type ExchangeCode = (exchange: CodeExchange) => Promise<Result<GrantedTokens, DomainError>>;
+export type CodeExchangeOutcome =
+  | { readonly kind: 'granted'; readonly tokens: GrantedTokens }
+  | { readonly kind: 'refused' };
 
-const INVALID_GRANT = domainError(
-  'INVALID_INPUT',
-  'This authorization code is unknown, used, expired, or was issued for another request.',
-);
+export type ExchangeCode = (
+  exchange: CodeExchange,
+) => Promise<Result<CodeExchangeOutcome, DomainError>>;
+
+const REFUSED: CodeExchangeOutcome = { kind: 'refused' };
 
 export function createExchangeCode(dependencies: ExchangeCodeDependencies): ExchangeCode {
   const { codes, connections, hashAuthorizationCode, pkceChallengeOf, now } = dependencies;
@@ -63,7 +64,7 @@ export function createExchangeCode(dependencies: ExchangeCodeDependencies): Exch
     const code = taken.value;
     const presented = { ...exchange, verifierChallenge: pkceChallengeOf(exchange.codeVerifier) };
     if (code === undefined || !codeRedeemable(code, presented, issuedAt)) {
-      return err(INVALID_GRANT);
+      return ok(REFUSED);
     }
     const accessToken = dependencies.newAccessToken();
     const refreshToken = dependencies.newRefreshToken();
@@ -79,6 +80,9 @@ export function createExchangeCode(dependencies: ExchangeCodeDependencies): Exch
     if (!opened.ok) {
       return opened;
     }
-    return ok({ accessToken, refreshToken, expiresIn: ACCESS_TOKEN_SECONDS, scopes: code.scopes });
+    return ok({
+      kind: 'granted',
+      tokens: { accessToken, refreshToken, expiresIn: ACCESS_TOKEN_SECONDS, scopes: code.scopes },
+    });
   };
 }

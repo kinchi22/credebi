@@ -113,6 +113,7 @@ export {
   type AccessGrant,
   type AccessToken,
   type CodeExchange,
+  type CodeExchangeOutcome,
   type ExchangeCode,
   type GrantedTokens,
   type RefreshToken,

@@ -46,6 +46,7 @@ export type {
 
 export { createExchangeCode } from './application/exchange-code';
 export type {
+  CodeExchangeOutcome,
   ExchangeCode,
   ExchangeCodeDependencies,
   GrantedTokens,

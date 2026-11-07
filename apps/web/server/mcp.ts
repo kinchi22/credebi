@@ -14,7 +14,7 @@ import {
 import { SCOPES, scopeSchema, userIdSchema } from '@repo/contracts';
 import { type AuthContext, type ResolveAccessToken } from '@repo/core';
 import { z } from 'zod';
-import { registerTools, toolScope, type ToolDependencies } from './mcp-tools';
+import { registerTools, scopeGranted, toolScope, type ToolDependencies } from './mcp-tools';
 import { AUTHORIZE_PATH, MCP_PATH, TOKEN_PATH, requestOrigin } from './oauth';
 
 const SERVER_INFO = { name: 'credebi', version: '1.0.0' };
@@ -108,7 +108,7 @@ async function scopeChallenge(
     .catch(() => undefined);
   const missing = calledTools(body)
     .map(toolScope)
-    .find((scope) => scope !== undefined && !authInfo.scopes.includes(scope));
+    .find((scope) => scope !== undefined && !scopeGranted(authInfo.scopes, scope));
   return missing === undefined
     ? undefined
     : bearerAuthChallengeResponse(

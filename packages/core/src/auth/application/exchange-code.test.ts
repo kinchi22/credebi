@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   domainError,
   err,
-  isErr,
   ok,
   type ConnectionId,
   type DomainError,
@@ -113,7 +112,10 @@ describe('createExchangeCode', () => {
     const result = await exchanging()(EXCHANGE);
 
     expect(result).toEqual(
-      ok({ accessToken: 'access-1', refreshToken: 'refresh-2', expiresIn: 3600, scopes: ['read'] }),
+      ok({
+        kind: 'granted',
+        tokens: { accessToken: 'access-1', refreshToken: 'refresh-2', expiresIn: 3600, scopes: ['read'] },
+      }),
     );
   });
 
@@ -151,7 +153,7 @@ describe('createExchangeCode', () => {
 
     const again = await exchange(EXCHANGE);
 
-    expect(isErr(again) && again.error.code).toBe('INVALID_INPUT');
+    expect(again).toEqual(ok({ kind: 'refused' }));
     expect(connections.opened).toHaveLength(1);
   });
 
@@ -160,7 +162,7 @@ describe('createExchangeCode', () => {
 
     const result = await exchanging(codeStore([]), connections)(EXCHANGE);
 
-    expect(isErr(result) && result.error.code).toBe('INVALID_INPUT');
+    expect(result).toEqual(ok({ kind: 'refused' }));
     expect(connections.opened).toEqual([]);
   });
 
@@ -176,7 +178,7 @@ describe('createExchangeCode', () => {
 
     const result = await exchange({ ...EXCHANGE, ...change });
 
-    expect(isErr(result) && result.error.code).toBe('INVALID_INPUT');
+    expect(result).toEqual(ok({ kind: 'refused' }));
     expect(connections.opened).toEqual([]);
     expect(codes.codes).toEqual([]);
   });
@@ -184,7 +186,7 @@ describe('createExchangeCode', () => {
   it('refuses a code whose 60 seconds have passed', async () => {
     const result = await exchanging(codeStore([{ ...CODE, expiresAt: NOW }]))(EXCHANGE);
 
-    expect(isErr(result) && result.error.code).toBe('INVALID_INPUT');
+    expect(result).toEqual(ok({ kind: 'refused' }));
   });
 
   it('passes on a failure to read the code', async () => {

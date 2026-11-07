@@ -4,6 +4,7 @@ import {
   err,
   ok,
   type Brand,
+  type CodeExchangeInput,
   type DomainError,
   type Result,
   type Scope,
@@ -189,13 +190,7 @@ export function authorizationCodeExpiry(now: Date): Date {
   return new Date(now.getTime() + AUTHORIZATION_CODE_SECONDS * 1000);
 }
 
-export type CodeExchange = {
-  readonly code: string;
-  readonly codeVerifier: string;
-  readonly redirectUri: string;
-  readonly clientId: string;
-  readonly resource: string;
-};
+export type CodeExchange = CodeExchangeInput;
 
 export type PresentedCode = Omit<CodeExchange, 'code' | 'codeVerifier'> & {
   readonly verifierChallenge: string;

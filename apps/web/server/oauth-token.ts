@@ -1,5 +1,5 @@
-import { codeExchangeSchema, toTokenResponse, type DomainError } from '@repo/contracts';
-import { type ExchangeCode } from '@repo/core';
+import { codeExchangeSchema, toTokenResponse } from '@repo/contracts';
+import { type CodeExchangeOutcome, type ExchangeCode } from '@repo/core';
 
 export type TokenEndpointDependencies = {
   readonly exchangeCode: ExchangeCode;
@@ -24,10 +24,13 @@ function repeatsAParameter(form: URLSearchParams): boolean {
   return [...form.keys()].some((name) => form.getAll(name).length > 1);
 }
 
-function refusal(error: DomainError): Response {
-  return error.code === 'INVALID_INPUT'
-    ? oauthError('invalid_grant', error.message)
-    : oauthError('server_error', error.message, 500);
+function tokenResponse(outcome: CodeExchangeOutcome): Response {
+  return outcome.kind === 'granted'
+    ? Response.json(toTokenResponse(outcome.tokens), { headers: NO_STORE })
+    : oauthError(
+        'invalid_grant',
+        'This authorization code is unknown, used, expired, or was issued for another request.',
+      );
 }
 
 export function serveToken(
@@ -51,9 +54,9 @@ export function serveToken(
         'An authorization_code grant names its code, code_verifier, redirect_uri, client_id and resource.',
       );
     }
-    const granted = await dependencies().exchangeCode(exchange.data);
-    return granted.ok
-      ? Response.json(toTokenResponse(granted.value), { headers: NO_STORE })
-      : refusal(granted.error);
+    const exchanged = await dependencies().exchangeCode(exchange.data);
+    return exchanged.ok
+      ? tokenResponse(exchanged.value)
+      : oauthError('server_error', exchanged.error.message, 500);
   };
 }
