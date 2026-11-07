@@ -215,3 +215,47 @@ describe('postgresRequestKeysOn', () => {
     expect(logged.map((fields) => fields.event)).toEqual(['entries.request_key_record_failed']);
   });
 });
+
+function arrivingTogether(): () => Promise<void> {
+  let waiting = 2;
+  let release: () => void = () => undefined;
+  const bothArrived = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  return () => {
+    waiting -= 1;
+    if (waiting === 0) {
+      release();
+    }
+    return bothArrived;
+  };
+}
+
+describe('two posts with one Request key in flight at once', () => {
+  it('lets one record the key with its Entry and rolls the other back whole, Entry included', async () => {
+    const bothLookedUp = arrivingTogether();
+    const posting = (entry: Entry) =>
+      unitOfWork.run(async (entries, requestKeys) => {
+        const found = await requestKeys.find(ADA, KEY);
+        await bothLookedUp();
+        expect(found).toEqual(ok(undefined));
+        const saved = await entries.save(ADA, entry);
+        return saved.ok ? requestKeys.record(ADA, keyed(entry, PHONE)) : saved;
+      });
+    const coffee = entryOf(ADA);
+    const tea = entryOf(ADA);
+
+    const outcomes = await Promise.all([posting(coffee), posting(tea)]);
+
+    expect(outcomes.filter(isOk)).toHaveLength(1);
+    expect(outcomes.filter(isErr)).toEqual([
+      err(domainError('CONFLICT', `Request key "${KEY}" is used already.`)),
+    ]);
+    const winner = outcomes[0].ok ? coffee : tea;
+    const loser = winner === coffee ? tea : coffee;
+    expect(await findKey(ADA)).toEqual(ok(winner.id));
+    expect(isOk(await repository.find(ADA, winner.id))).toBe(true);
+    expect(isErr(await repository.find(ADA, loser.id))).toBe(true);
+    expect(await storedKeys()).toHaveLength(1);
+  });
+});

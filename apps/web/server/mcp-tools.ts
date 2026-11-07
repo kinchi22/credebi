@@ -169,7 +169,7 @@ const MCP_TOOLS: readonly McpTool[] = [
     name: 'create_entry',
     scope: 'write',
     description:
-      "Posts an Entry to the User's books and answers it as search_entries answers one. entryDate is a calendar day (YYYY-MM-DD); title and memo are optional text; lines are two or more, each naming an Account id from list_accounts, a side (debit or credit) and an amount in minor units greater than zero. The debits must equal the credits, and every Account must be active on entryDate. Send a requestKey of your choosing, new for each Entry, to make a retry safe: a call repeating an earlier call's requestKey and content posts nothing and answers the Entry the earlier call posted, and one repeating its requestKey with other content, or after that Entry was deleted, answers CONFLICT. Without a requestKey every call posts a new Entry, so do not repeat a call that succeeded.",
+      "Posts an Entry to the User's books and answers it as search_entries answers one. entryDate is a calendar day (YYYY-MM-DD); title and memo are optional text; lines are two or more, each naming an Account id from list_accounts, a side (debit or credit) and an amount in minor units greater than zero. The debits must equal the credits, and every Account must be active on entryDate. Send a requestKey of your choosing, new for each Entry, to make a retry safe: a call repeating an earlier call's requestKey and content posts nothing and answers the Entry the earlier call posted, and one repeating its requestKey with other content, or after that Entry was deleted or corrected, answers CONFLICT. Without a requestKey every call posts a new Entry, so do not repeat a call that succeeded.",
     inputSchema: createEntryInputSchema,
     annotations: {
       readOnlyHint: false,

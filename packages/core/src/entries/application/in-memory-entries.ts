@@ -152,7 +152,7 @@ function requestKeysOver(keys: StoredRequestKey[]): RequestKeyRepository {
     find: (userId, requestKey) => Promise.resolve(ok(held(userId, requestKey)?.entryId)),
     record: (userId, recorded) => {
       if (held(userId, recorded.requestKey) !== undefined) {
-        return Promise.resolve(err(domainError('CONFLICT', 'Request key taken.')));
+        return Promise.resolve(err(domainError('CONFLICT', `Request key "${recorded.requestKey}" is used already.`)));
       }
       keys.push({ userId, ...recorded });
       return Promise.resolve(ok(undefined));

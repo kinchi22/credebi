@@ -1,16 +1,11 @@
 import { domainError, err, ok, type DomainError, type Result } from '@repo/contracts';
 import { changesEntry } from './correction';
-import { type Entry, type EntryDraft } from './entry';
-
-export type KeyedEntry = {
-  readonly entry: Entry;
-  readonly reversed: boolean;
-};
+import { type Entry, type EntryDraft, type FoundEntry } from './entry';
 
 export function retriedEntry(
   requestKey: string,
   draft: EntryDraft,
-  keyed: KeyedEntry,
+  keyed: FoundEntry,
 ): Result<Entry, DomainError> {
   if (keyed.reversed) {
     return err(

@@ -20,6 +20,7 @@ import { SIGNED_OUT, type AuthContext } from '../../auth/domain/auth-context';
 import { type Entry, type EntryDraft } from '../domain/entry';
 import { NO_CRITERIA } from '../domain/search-criteria';
 import { type EntryRepository } from '../ports/entry-repository';
+import { type RequestKeyRepository } from '../ports/request-key-repository';
 import { type UnitOfWork } from '../ports/unit-of-work';
 import { createDeleteEntry } from './delete-entry';
 import { inMemoryEntries as inMemoryBooks, type InMemoryEntries } from './in-memory-entries';
@@ -288,6 +289,18 @@ function posted(result: Result<Entry, DomainError>): Entry {
   return isOk(result) ? result.value : ({} as Entry);
 }
 
+const DOWN = domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.');
+
+function withRequestKeys(
+  books: InMemoryEntries,
+  replaced: Partial<RequestKeyRepository>,
+): UnitOfWork {
+  return {
+    run: (work) =>
+      books.unitOfWork.run((entries, requestKeys) => work(entries, { ...requestKeys, ...replaced })),
+  };
+}
+
 describe('createPostEntry with a Request key', () => {
   it('posts the Entry and records the key against it, with the Connection that posted it', async () => {
     const { books, postEntry, visible } = keyedUseCases();
@@ -420,31 +433,19 @@ describe('createPostEntry with a Request key', () => {
 
   it('posts nothing when the key cannot be recorded, and reports why', async () => {
     const books = inMemoryBooks();
-    const down = domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.');
-    const failing: UnitOfWork = {
-      run: (work) =>
-        books.unitOfWork.run((entries, requestKeys) =>
-          work(entries, { ...requestKeys, record: () => Promise.resolve(err(down)) }),
-        ),
-    };
+    const failing = withRequestKeys(books, { record: () => Promise.resolve(err(DOWN)) });
     const { postEntry, visible } = keyedUseCases(books, failing);
 
-    expect(await postEntry(ADA_ON_PHONE, draft(12500, 12500), KEY)).toEqual(err(down));
+    expect(await postEntry(ADA_ON_PHONE, draft(12500, 12500), KEY)).toEqual(err(DOWN));
     expect(await visible(ADA)).toEqual([]);
   });
 
   it('posts nothing when the key cannot be looked up, and reports why', async () => {
     const books = inMemoryBooks();
-    const down = domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.');
-    const failing: UnitOfWork = {
-      run: (work) =>
-        books.unitOfWork.run((entries, requestKeys) =>
-          work(entries, { ...requestKeys, find: () => Promise.resolve(err(down)) }),
-        ),
-    };
+    const failing = withRequestKeys(books, { find: () => Promise.resolve(err(DOWN)) });
     const { postEntry, visible } = keyedUseCases(books, failing);
 
-    expect(await postEntry(ADA_ON_PHONE, draft(12500, 12500), KEY)).toEqual(err(down));
+    expect(await postEntry(ADA_ON_PHONE, draft(12500, 12500), KEY)).toEqual(err(DOWN));
     expect(await visible(ADA)).toEqual([]);
     expect(books.keys).toEqual([]);
   });

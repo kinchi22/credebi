@@ -1,4 +1,10 @@
-import { type DomainError, type EntryId, type Result, type UserId } from '@repo/contracts';
+import {
+  type ConnectionId,
+  type DomainError,
+  type EntryId,
+  type Result,
+  type UserId,
+} from '@repo/contracts';
 import { type AccountRepository } from '../../accounts/ports/account-repository';
 import { requireUser, type AuthContext } from '../../auth/domain/auth-context';
 import { makePostedEntry, type Entry, type EntryDraft } from '../domain/entry';
@@ -27,7 +33,7 @@ export function createPostEntry({
   newEntryId,
   now,
 }: PostEntryDependencies): PostEntry {
-  const made = async (userId: UserId, draft: EntryDraft): Promise<Result<Entry, DomainError>> => {
+  const madeEntry = async (userId: UserId, draft: EntryDraft): Promise<Result<Entry, DomainError>> => {
     const chart = await accounts.readChart(userId);
     if (!chart.ok) {
       return chart;
@@ -36,7 +42,7 @@ export function createPostEntry({
   };
 
   const postedOnce = (
-    auth: AuthContext,
+    connectionId: ConnectionId | undefined,
     userId: UserId,
     draft: EntryDraft,
     requestKey: string,
@@ -51,7 +57,7 @@ export function createPostEntry({
         return found.ok ? retriedEntry(requestKey, draft, found.value) : found;
       }
 
-      const entry = await made(userId, draft);
+      const entry = await madeEntry(userId, draft);
       if (!entry.ok) {
         return entry;
       }
@@ -59,12 +65,12 @@ export function createPostEntry({
       if (!saved.ok) {
         return saved;
       }
-      const keyed = await requestKeys.record(userId, {
+      const recording = await requestKeys.record(userId, {
         requestKey,
         entryId: entry.value.id,
-        connectionId: auth.connectionId,
+        connectionId,
       });
-      return keyed.ok ? entry : keyed;
+      return recording.ok ? entry : recording;
     });
 
   return async (auth, draft, requestKey) => {
@@ -74,13 +80,13 @@ export function createPostEntry({
     }
 
     if (requestKey !== undefined) {
-      const first = await postedOnce(auth, userId.value, draft, requestKey);
-      return first.ok || first.error.code !== 'CONFLICT'
-        ? first
-        : postedOnce(auth, userId.value, draft, requestKey);
+      const posting = await postedOnce(auth.connectionId, userId.value, draft, requestKey);
+      return posting.ok || posting.error.code !== 'CONFLICT'
+        ? posting
+        : postedOnce(auth.connectionId, userId.value, draft, requestKey);
     }
 
-    const entry = await made(userId.value, draft);
+    const entry = await madeEntry(userId.value, draft);
     if (!entry.ok) {
       return entry;
     }
