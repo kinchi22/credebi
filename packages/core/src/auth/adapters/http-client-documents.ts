@@ -1,67 +1,60 @@
-import { lookup as resolve } from 'node:dns';
+import { lookup as dnsLookup } from 'node:dns/promises';
 import { request as httpRequest, type IncomingMessage } from 'node:http';
 import { request as httpsRequest } from 'node:https';
-import { BlockList, isIP, type LookupFunction } from 'node:net';
+import { isIP, type LookupFunction } from 'node:net';
 import { domainError, err, ok, type DomainError, type Err, type Result } from '@repo/contracts';
-import { clientDocumentUrl, readClientDocument } from '../domain/client-document';
+import { clientAddressAllowed, type ClientAddressPolicy } from '../domain/client-address';
+import {
+  clientDocumentUrl,
+  readClientDocument,
+  type ClientDocumentPolicy,
+} from '../domain/client-document';
 import { type ClientDocuments } from '../ports/client-documents';
 
-export type HttpClientDocumentsOptions = {
-  readonly allowHttpLoopback: boolean;
+export type ResolvedAddress = { readonly address: string; readonly family: number };
+
+export type ResolveHost = (hostname: string) => Promise<readonly ResolvedAddress[]>;
+
+export type HttpClientDocumentsOptions = ClientDocumentPolicy & {
   readonly timeoutMs?: number;
+  readonly resolveHost?: ResolveHost;
 };
 
 export const CLIENT_DOCUMENT_MAX_BYTES = 5 * 1024;
 
-export const CLIENT_DOCUMENT_TIMEOUT_MS = 5000;
-
-const NOT_PUBLIC = subnets(
-  [
-    '0.0.0.0/8',
-    '10.0.0.0/8',
-    '100.64.0.0/10',
-    '127.0.0.0/8',
-    '169.254.0.0/16',
-    '172.16.0.0/12',
-    '192.0.0.0/24',
-    '192.0.2.0/24',
-    '192.168.0.0/16',
-    '198.18.0.0/15',
-    '198.51.100.0/24',
-    '203.0.113.0/24',
-    '224.0.0.0/3',
-  ],
-  ['::/3', '2001::/32', '2001:db8::/32', '2002::/16', '4000::/2', '8000::/1'],
-);
-
-const LOOPBACK = subnets(['127.0.0.0/8'], ['::1/128']);
-
-type AddressRule = (address: string) => boolean;
-
-const isPublic: AddressRule = (address) => !within(NOT_PUBLIC, address);
-
-const isLoopback: AddressRule = (address) => within(LOOPBACK, address);
+const CLIENT_DOCUMENT_TIMEOUT_MS = 5000;
 
 const NOT_FETCHABLE = 'The client document is not served from an address it may be fetched from.';
 const UNFETCHED = 'The client document could not be fetched.';
 const TOO_LARGE = 'The client document is larger than allowed.';
 
+const resolveByDns: ResolveHost = (hostname) => dnsLookup(hostname, { all: true });
+
+type Fetch = {
+  readonly url: URL;
+  readonly policy: ClientAddressPolicy;
+  readonly resolveHost: ResolveHost;
+  readonly timeoutMs: number;
+};
+
 export function createHttpClientDocuments(options: HttpClientDocumentsOptions): ClientDocuments {
-  const timeoutMs = options.timeoutMs ?? CLIENT_DOCUMENT_TIMEOUT_MS;
   return {
     fetch: async (clientId) => {
-      const url = clientDocumentUrl(clientId, {
-        allowHttpLoopback: options.allowHttpLoopback,
-      });
+      const url = clientDocumentUrl(clientId, options);
       if (!url.ok) {
         return url;
       }
-      const allowed = url.value.protocol === 'https:' ? isPublic : isLoopback;
+      const policy = url.value.protocol === 'https:' ? 'public' : 'loopback';
       const host = url.value.hostname.replace(/^\[(.*)\]$/, '$1');
-      if (isIP(host) !== 0 && !allowed(host)) {
+      if (isIP(host) !== 0 && !clientAddressAllowed(host, policy)) {
         return refused(NOT_FETCHABLE);
       }
-      const body = await download(url.value, allowed, timeoutMs);
+      const body = await download({
+        url: url.value,
+        policy,
+        resolveHost: options.resolveHost ?? resolveByDns,
+        timeoutMs: options.timeoutMs ?? CLIENT_DOCUMENT_TIMEOUT_MS,
+      });
       if (!body.ok) {
         return body;
       }
@@ -70,31 +63,37 @@ export function createHttpClientDocuments(options: HttpClientDocumentsOptions): 
   };
 }
 
-function download(
-  url: URL,
-  allowed: AddressRule,
-  timeoutMs: number,
-): Promise<Result<string, DomainError>> {
+function download({
+  url,
+  policy,
+  resolveHost,
+  timeoutMs,
+}: Fetch): Promise<Result<string, DomainError>> {
   return new Promise((settle) => {
     let addressRefused = false;
     const lookup: LookupFunction = (hostname, lookupOptions, callback) => {
-      resolve(hostname, { ...lookupOptions, all: true }, (error, addresses) => {
-        if (error !== null) {
-          callback(error, '');
-          return;
-        }
-        if (addresses.length === 0 || !addresses.every(({ address }) => allowed(address))) {
-          addressRefused = true;
-          callback(new Error(NOT_FETCHABLE), '');
-          return;
-        }
-        if (lookupOptions.all === true) {
-          callback(null, addresses);
-          return;
-        }
-        const [first] = addresses;
-        callback(null, first?.address ?? '', first?.family);
-      });
+      resolveHost(hostname).then(
+        (addresses) => {
+          const allowed = addresses.every(({ address }) => clientAddressAllowed(address, policy));
+          const [first] = addresses;
+          if (first === undefined || !allowed) {
+            addressRefused = true;
+            callback(new Error(NOT_FETCHABLE), '');
+            return;
+          }
+          if (lookupOptions.all === true) {
+            callback(
+              null,
+              addresses.map(({ address, family }) => ({ address, family })),
+            );
+            return;
+          }
+          callback(null, first.address, first.family);
+        },
+        (error: unknown) => {
+          callback(error instanceof Error ? error : new Error(UNFETCHED), '');
+        },
+      );
     };
     const send = url.protocol === 'https:' ? httpsRequest : httpRequest;
     const request = send(url, {
@@ -141,25 +140,4 @@ async function read(response: IncomingMessage): Promise<Result<string, DomainErr
 
 function refused(message: string): Err<DomainError> {
   return err(domainError('INVALID_INPUT', message));
-}
-
-type Subnets = { readonly ipv4: BlockList; readonly ipv6: BlockList };
-
-function within(lists: Subnets, address: string): boolean {
-  return isIP(address) === 6
-    ? lists.ipv6.check(address, 'ipv6')
-    : lists.ipv4.check(address, 'ipv4');
-}
-
-function subnets(ipv4: readonly string[], ipv6: readonly string[]): Subnets {
-  return { ipv4: blockList(ipv4, 'ipv4'), ipv6: blockList(ipv6, 'ipv6') };
-}
-
-function blockList(cidrs: readonly string[], type: 'ipv4' | 'ipv6'): BlockList {
-  const list = new BlockList();
-  for (const cidr of cidrs) {
-    const [network = '', prefix = ''] = cidr.split('/');
-    list.addSubnet(network, Number(prefix), type);
-  }
-  return list;
 }

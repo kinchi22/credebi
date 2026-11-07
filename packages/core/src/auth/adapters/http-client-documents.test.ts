@@ -7,6 +7,7 @@ import {
   CLIENT_DOCUMENT_MAX_BYTES,
   createHttpClientDocuments,
   type HttpClientDocumentsOptions,
+  type ResolveHost,
 } from './http-client-documents';
 
 type Answer = (response: ServerResponse) => void;
@@ -35,6 +36,13 @@ const fetchWith = (
 ): Promise<Result<ClientDocument, DomainError>> =>
   createHttpClientDocuments({ allowHttpLoopback: true, ...options }).fetch(url);
 
+const resolvingTo =
+  (addresses: readonly string[]): ResolveHost =>
+  () =>
+    Promise.resolve(
+      addresses.map((address) => ({ address, family: address.includes(':') ? 6 : 4 })),
+    );
+
 const refusal = (result: Result<ClientDocument, DomainError>): DomainError | undefined =>
   result.ok ? undefined : result.error;
 
@@ -57,6 +65,25 @@ beforeEach(() => {
 });
 
 describe('createHttpClientDocuments, where an http loopback document is allowed', () => {
+  it('fetches from the loopback address its host name resolves to', async () => {
+    const byName = clientId.replace('127.0.0.1', 'client.test');
+    answer = json(200, documentFor(byName));
+
+    const result = await fetchWith(byName, { resolveHost: resolvingTo(['127.0.0.1']) });
+
+    expect(result.ok && result.value.clientId).toBe(byName);
+  });
+
+  it('refuses an http document whose host name resolves to an address that is not loopback', async () => {
+    const result = await fetchWith('http://client.test/client.json', {
+      resolveHost: resolvingTo(['10.0.0.5']),
+    });
+
+    expect(refusal(result)?.message).toBe(
+      'The client document is not served from an address it may be fetched from.',
+    );
+  });
+
   it('fetches the document its URL serves', async () => {
     expect(await fetchWith(clientId)).toEqual({
       ok: true,
@@ -197,13 +224,41 @@ describe('createHttpClientDocuments, where no http loopback document is allowed'
   });
 
   it.each([
-    ['IPv4', 'https://1.1.1.1:1/client.json'],
-    ['IPv6', 'https://[2606:4700:4700::1111]:1/client.json'],
-  ])('lets an https document at a public %s address be fetched', async (_case, url) => {
-    expect(refusal(await fetchWith(url, { allowHttpLoopback: false, timeoutMs: 50 }))).toEqual({
-      code: 'INVALID_INPUT',
-      message: 'The client document could not be fetched.',
+    ['a private address', ['10.0.0.5']],
+    ['a link-local address', ['169.254.169.254']],
+    ['a loopback address', ['127.0.0.1']],
+    ['an IPv6 unique local address', ['fd00::5']],
+    ['a public address and a private one', ['160.79.104.10', '10.0.0.5']],
+  ])('refuses an https document whose host name resolves to %s', async (_case, addresses) => {
+    const result = await fetchWith('https://client.example.com/client.json', {
+      allowHttpLoopback: false,
+      resolveHost: resolvingTo(addresses),
     });
+
+    expect(refusal(result)).toEqual({
+      code: 'INVALID_INPUT',
+      message: 'The client document is not served from an address it may be fetched from.',
+    });
+  });
+
+  it('refuses an https document whose host name resolves to nothing', async () => {
+    const result = await fetchWith('https://client.example.com/client.json', {
+      allowHttpLoopback: false,
+      resolveHost: resolvingTo([]),
+    });
+
+    expect(refusal(result)?.message).toBe(
+      'The client document is not served from an address it may be fetched from.',
+    );
+  });
+
+  it('refuses an https document whose host name cannot be resolved', async () => {
+    const result = await fetchWith('https://client.example.com/client.json', {
+      allowHttpLoopback: false,
+      resolveHost: () => Promise.reject(new Error('ENOTFOUND')),
+    });
+
+    expect(refusal(result)?.message).toBe('The client document could not be fetched.');
   });
 
   it('refuses an https document whose host name resolves to a loopback address', async () => {
