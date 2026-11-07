@@ -3,11 +3,14 @@ import {
   type McpServer,
   type StandardSchemaWithJSON,
   type ToolAnnotations,
-  type ToolCallback,
 } from '@modelcontextprotocol/server';
 import {
   assetsAndLiabilitiesQuerySchema,
+  domainError,
+  err,
   incomeStatementQuerySchema,
+  ok,
+  parseSearchQuery,
   searchCriteriaSchema,
   toAssetsAndLiabilities,
   toChart,
@@ -41,21 +44,30 @@ type McpTool = {
   readonly register: (server: McpServer, auth: AuthContext, dependencies: ToolDependencies) => void;
 };
 
-function tool<Input extends StandardSchemaWithJSON>(definition: {
-  readonly name: string;
-  readonly scope: Scope;
-  readonly description: string;
-  readonly inputSchema: Input;
-  readonly annotations: ToolAnnotations;
-  readonly run: (auth: AuthContext, dependencies: ToolDependencies) => ToolCallback<Input>;
-}): McpTool {
-  const { name, scope, description, inputSchema, annotations, run } = definition;
+const toolArgumentsSchema = z.record(z.string(), z.unknown());
+
+type ToolArguments = z.output<typeof toolArgumentsSchema>;
+
+function advertised(contract: z.ZodType): StandardSchemaWithJSON<ToolArguments> {
   return {
-    name,
-    scope,
-    register: (server, auth, dependencies) => {
-      server.registerTool(name, { description, inputSchema, annotations }, run(auth, dependencies));
-    },
+    '~standard': { ...toolArgumentsSchema['~standard'], jsonSchema: contract['~standard'].jsonSchema },
+  };
+}
+
+function parsedBy<Contract extends z.ZodType>(
+  name: string,
+  contract: Contract,
+): (args: ToolArguments) => Result<z.output<Contract>, DomainError> {
+  return (args) => {
+    const parsed = contract.safeParse(args);
+    return parsed.success
+      ? ok(parsed.data)
+      : err(
+          domainError(
+            'INVALID_INPUT',
+            `The arguments of ${name} are malformed: ${z.prettifyError(parsed.error)}`,
+          ),
+        );
   };
 }
 
@@ -73,6 +85,39 @@ function toolResult<T>(
   return { content: [{ type: 'text', text: JSON.stringify(value) }], structuredContent: value };
 }
 
+function tool<Contract extends z.ZodType>(definition: {
+  readonly name: string;
+  readonly scope: Scope;
+  readonly description: string;
+  readonly inputSchema: Contract;
+  readonly parse?: (args: ToolArguments) => Result<z.output<Contract>, DomainError>;
+  readonly annotations: ToolAnnotations;
+  readonly handle: (
+    auth: AuthContext,
+    dependencies: ToolDependencies,
+    input: z.output<Contract>,
+  ) => Promise<CallToolResult>;
+}): McpTool {
+  const { name, scope, description, inputSchema, annotations, handle } = definition;
+  const parse = definition.parse ?? parsedBy(name, inputSchema);
+  return {
+    name,
+    scope,
+    register: (server, auth, dependencies) => {
+      server.registerTool(
+        name,
+        { description, inputSchema: advertised(inputSchema), annotations },
+        async (args) => {
+          const input = parse(args);
+          return input.ok
+            ? handle(auth, dependencies, input.value)
+            : toolResult(input, () => ({}));
+        },
+      );
+    },
+  };
+}
+
 const MCP_TOOLS: readonly McpTool[] = [
   tool({
     name: 'list_accounts',
@@ -81,7 +126,7 @@ const MCP_TOOLS: readonly McpTool[] = [
       "Lists the User's Chart of accounts in order: each Account, alone or inside its Account group, with its id, name, description, Account type, group and Active period. Use an Account's id to search or post Entries.",
     inputSchema: z.object({}),
     annotations: { readOnlyHint: true },
-    run: (auth, { getChart }) => async () =>
+    handle: async (auth, { getChart }) =>
       toolResult(await getChart(auth), (chart) => ({ chart: toChart(chart) })),
   }),
   tool({
@@ -89,8 +134,9 @@ const MCP_TOOLS: readonly McpTool[] = [
     scope: 'read',
     description: `Searches the User's Entries, most recent first. Every criterion is optional: from and to are calendar days (YYYY-MM-DD) bounding the Entry's day inclusively, account is an Account id from list_accounts, title matches the Title exactly and memo is a substring of the memo. Answers at most ${String(SEARCH_LIMIT)} Entries, each with its lines, total and creation time, and truncated is true when more matched: narrow the range of days to see the rest. Reversals and the Entries they reverse never appear.`,
     inputSchema: searchCriteriaSchema,
+    parse: parseSearchQuery,
     annotations: { readOnlyHint: true },
-    run: (auth, { searchEntries }) => async (criteria) =>
+    handle: async (auth, { searchEntries }, criteria) =>
       toolResult(await searchEntries(auth, criteria), (entries) => ({
         entries: entries.slice(0, SEARCH_LIMIT).map(toPostedEntry),
         truncated: entries.length > SEARCH_LIMIT,
@@ -103,7 +149,7 @@ const MCP_TOOLS: readonly McpTool[] = [
       "Reads the User's Assets and liabilities at the end of a calendar day (YYYY-MM-DD): each section's total and its rows in Chart of accounts order, an Account group with its Accounts, and the net worth. Amounts are in minor units.",
     inputSchema: assetsAndLiabilitiesQuerySchema,
     annotations: { readOnlyHint: true },
-    run: (auth, { getAssetsAndLiabilities }) => async ({ date }) =>
+    handle: async (auth, { getAssetsAndLiabilities }, { date }) =>
       toolResult(await getAssetsAndLiabilities(auth, date), toAssetsAndLiabilities),
   }),
   tool({
@@ -113,7 +159,7 @@ const MCP_TOOLS: readonly McpTool[] = [
       "Reads the User's Income statement for an inclusive range of calendar days, from and to (YYYY-MM-DD): revenue and expense, each with its total and its rows in Chart of accounts order, an Account group with its Accounts, and the net income. Amounts are in minor units.",
     inputSchema: incomeStatementQuerySchema,
     annotations: { readOnlyHint: true },
-    run: (auth, { getIncomeStatement }) => async (range) =>
+    handle: async (auth, { getIncomeStatement }, range) =>
       toolResult(await getIncomeStatement(auth, range), toIncomeStatement),
   }),
 ];

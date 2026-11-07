@@ -13,11 +13,11 @@ import {
 } from '@repo/contracts';
 import {
   type AccessGrant,
+  type AssetsAndLiabilities,
   type AuthContext,
   type ChartNode,
   type Entry,
-  type GetAssetsAndLiabilities,
-  type GetIncomeStatement,
+  type IncomeStatement,
 } from '@repo/core';
 import { describe, expect, it } from 'vitest';
 import {
@@ -27,6 +27,7 @@ import {
   serveMcp,
   type McpDependencies,
 } from './mcp';
+import { SEARCH_LIMIT } from './mcp-tools';
 
 const MCP_PATH = '/mcp';
 
@@ -121,18 +122,13 @@ const sectionOf = (total: number) => ({
   ],
 });
 
-type Report<Use extends (...args: never[]) => Promise<Result<unknown, DomainError>>> = Result<
-  Extract<Awaited<ReturnType<Use>>, { ok: true }>['value'],
-  DomainError
->;
-
-const ASSETS_AND_LIABILITIES: Report<GetAssetsAndLiabilities> = ok({
+const ASSETS_AND_LIABILITIES: Result<AssetsAndLiabilities, DomainError> = ok({
   assets: sectionOf(87500),
   liabilities: { total: won(0), rows: [] },
   netWorth: won(87500),
 });
 
-const INCOME_STATEMENT: Report<GetIncomeStatement> = ok({
+const INCOME_STATEMENT: Result<IncomeStatement, DomainError> = ok({
   revenue: { total: won(0), rows: [] },
   expense: {
     total: won(12500),
@@ -167,8 +163,8 @@ function fakes({
 }: {
   readonly chart?: Result<readonly ChartNode[], DomainError>;
   readonly found?: Result<readonly Entry[], DomainError>;
-  readonly assetsAndLiabilities?: Report<GetAssetsAndLiabilities>;
-  readonly statement?: Report<GetIncomeStatement>;
+  readonly assetsAndLiabilities?: Result<AssetsAndLiabilities, DomainError>;
+  readonly statement?: Result<IncomeStatement, DomainError>;
   readonly resolved?: Result<AccessGrant | undefined, DomainError>;
 } = {}): Fakes {
   const charted: AuthContext[] = [];
@@ -473,26 +469,40 @@ describe('serveMcp', () => {
     expect(dependencies.asked.map(({ query }) => query)).toEqual([{}]);
   });
 
-  it('answers every Entry found, untruncated, when exactly 100 match', async () => {
+  it('caps a search at 100 Entries', () => {
+    expect(SEARCH_LIMIT).toBe(100);
+  });
+
+  it('answers every Entry found, untruncated, when exactly as many as the cap match', async () => {
     const result = await resultOf(
-      await callTool('reader', 'search_entries', fakes({ found: ok(entriesNewestFirst(100)) })),
+      await callTool('reader', 'search_entries', fakes({ found: ok(entriesNewestFirst(SEARCH_LIMIT)) })),
     );
 
     expect(result['structuredContent']).toEqual({
-      entries: entriesNewestFirst(100).map(postedEntry),
+      entries: entriesNewestFirst(SEARCH_LIMIT).map(postedEntry),
       truncated: false,
     });
   });
 
-  it('answers the 100 most recent Entries and says it truncated when more match', async () => {
-    const result = await resultOf(
-      await callTool('reader', 'search_entries', fakes({ found: ok(entriesNewestFirst(101)) })),
-    );
+  it('answers the most recent Entries up to the cap and says it truncated when more match', async () => {
+    const found = entriesNewestFirst(SEARCH_LIMIT + 1);
+
+    const result = await resultOf(await callTool('reader', 'search_entries', fakes({ found: ok(found) })));
 
     expect(result['structuredContent']).toEqual({
-      entries: entriesNewestFirst(101).slice(0, 100).map(postedEntry),
+      entries: found.slice(0, SEARCH_LIMIT).map(postedEntry),
       truncated: true,
     });
+  });
+
+  it('takes an empty Search criterion as one not given, as Entry search on the web does', async () => {
+    const dependencies = fakes();
+
+    await resultOf(
+      await callTool('reader', 'search_entries', dependencies, { from: '', to: '2026-09-30', account: '', title: '', memo: '' }),
+    );
+
+    expect(dependencies.asked.map(({ query }) => query)).toEqual([{ to: '2026-09-30' }]);
   });
 
   it('reads the Access token\'s User\'s Assets and liabilities on the day it was given', async () => {
@@ -546,15 +556,29 @@ describe('serveMcp', () => {
 
   it.each([
     ['search_entries', { from: 'last week' }],
+    ['search_entries', { account: 7 }],
     ['get_assets_and_liabilities', {}],
+    ['get_assets_and_liabilities', { date: '16 September' }],
     ['get_income_statement', { from: '2026-09-01' }],
-  ])('refuses %s arguments that are malformed as a tool error, reading nothing', async (name, args) => {
+  ])('refuses %s arguments %j that are malformed as INVALID_INPUT, reading nothing', async (name, args) => {
     const dependencies = fakes();
 
     const result = await resultOf(await callTool('reader', name, dependencies, args));
 
     expect(result['isError']).toBe(true);
+    expect(result['content']).toEqual([
+      { type: 'text', text: expect.stringMatching(/^INVALID_INPUT: \S/) as unknown },
+    ]);
     expect(dependencies.asked).toEqual([]);
+  });
+
+  it.each([
+    ['get_assets_and_liabilities', { date: '16 September' }, /get_assets_and_liabilities.*date/s],
+    ['get_income_statement', { from: '2026-09-01' }, /get_income_statement.*to/s],
+  ])('names the tool and the malformed argument when refusing %s', async (name, args, message) => {
+    const result = await resultOf(await callTool('reader', name, fakes(), args));
+
+    expect((result['content'] as { text: string }[])[0]?.text).toMatch(message);
   });
 
   it.each(READ_CALLS)('answers 403 insufficient_scope to %s called with write alone, reading nothing', async (name, args) => {
