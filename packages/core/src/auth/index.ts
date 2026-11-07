@@ -20,6 +20,8 @@ export type {
   User,
 } from './domain/user';
 
+export type { ClientDocument } from './domain/client-document';
+
 export { createFinishGoogleSignIn, createTestSignIn } from './application/sign-in';
 export type {
   FinishGoogleSignIn,
@@ -40,6 +42,7 @@ export type { ResolveSession, ResolveSessionDependencies } from './application/r
 export { createSignOut } from './application/sign-out';
 export type { SignOut, SignOutDependencies } from './application/sign-out';
 
+export type { ClientDocuments } from './ports/client-documents';
 export type { GoogleSignIn, PendingSignIn } from './ports/google-sign-in';
 export type { SessionRepository } from './ports/session-repository';
 export type { UserRepository } from './ports/user-repository';

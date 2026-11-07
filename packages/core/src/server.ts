@@ -23,4 +23,6 @@ export { createPostgresSessionRepository } from './auth/adapters/postgres-sessio
 export type { PostgresSessionRepository } from './auth/adapters/postgres-session-repository';
 export { createOpenIdGoogleSignIn } from './auth/adapters/openid-google-sign-in';
 export type { OpenIdGoogleSignInOptions } from './auth/adapters/openid-google-sign-in';
+export { createHttpClientDocuments } from './auth/adapters/http-client-documents';
+export type { HttpClientDocumentsOptions } from './auth/adapters/http-client-documents';
 export { hashSessionToken, newSessionToken } from './auth/adapters/session-token';
