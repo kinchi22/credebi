@@ -78,6 +78,13 @@
       "when": 1793258194149,
       "tag": "0010_user_chart_views",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794020117424,
+      "tag": "0011_connections_and_request_keys",
+      "breakpoints": true
     }
   ]
 }
