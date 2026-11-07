@@ -39,13 +39,24 @@ describe('clientDocumentUrl', () => {
     expect(result.ok && result.value.href).toBe('http://127.0.0.1:4000/client.json');
   });
 
-  it.each([
-    ['another scheme', 'ftp://client.example.com/client.json'],
-    ['no URL at all', 'client.json'],
-  ])('refuses %s even where an http loopback document is allowed', (_case, clientId) => {
-    const result = clientDocumentUrl(clientId, { allowHttpLoopback: true });
+  it('refuses another scheme even where an http loopback document is allowed', () => {
+    const result = clientDocumentUrl('ftp://client.example.com/client.json', {
+      allowHttpLoopback: true,
+    });
 
-    expect(isErr(result) && result.error.code).toBe('INVALID_INPUT');
+    expect(isErr(result) && result.error).toEqual({
+      code: 'INVALID_INPUT',
+      message: 'A client document must be served over https.',
+    });
+  });
+
+  it('refuses a client id that is not a URL', () => {
+    const result = clientDocumentUrl('client.json', { allowHttpLoopback: true });
+
+    expect(isErr(result) && result.error).toEqual({
+      code: 'INVALID_INPUT',
+      message: 'A client id must be a URL.',
+    });
   });
 
   it.each([
