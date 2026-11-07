@@ -161,6 +161,7 @@ export {
   parseEntryForm,
   parseIncomeStatementQuery,
   parseSearchQuery,
+  createEntryInputSchema,
   postEntryInputSchema,
   postedEntrySchema,
   postedLineSchema,

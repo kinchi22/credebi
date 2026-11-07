@@ -6,6 +6,7 @@ import {
 } from '@modelcontextprotocol/server';
 import {
   assetsAndLiabilitiesQuerySchema,
+  createEntryInputSchema,
   domainError,
   err,
   incomeStatementQuerySchema,
@@ -25,6 +26,7 @@ import {
   type GetAssetsAndLiabilities,
   type GetChart,
   type GetIncomeStatement,
+  type PostEntry,
   type SearchEntries,
 } from '@repo/core';
 import { z } from 'zod';
@@ -36,6 +38,7 @@ export type ToolDependencies = {
   readonly searchEntries: SearchEntries;
   readonly getAssetsAndLiabilities: GetAssetsAndLiabilities;
   readonly getIncomeStatement: GetIncomeStatement;
+  readonly postEntry: PostEntry;
 };
 
 type McpTool = {
@@ -161,6 +164,21 @@ const MCP_TOOLS: readonly McpTool[] = [
     annotations: { readOnlyHint: true },
     handle: async (auth, { getIncomeStatement }, range) =>
       toolResult(await getIncomeStatement(auth, range), toIncomeStatement),
+  }),
+  tool({
+    name: 'create_entry',
+    scope: 'write',
+    description:
+      "Posts an Entry to the User's books and answers it as search_entries answers one. entryDate is a calendar day (YYYY-MM-DD); title and memo are optional text; lines are two or more, each naming an Account id from list_accounts, a side (debit or credit) and an amount in minor units greater than zero. The debits must equal the credits, and every Account must be active on entryDate. Every call posts a new Entry, so do not repeat a call that succeeded.",
+    inputSchema: createEntryInputSchema,
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
+    handle: async (auth, { postEntry }, draft) =>
+      toolResult(await postEntry(auth, draft), toPostedEntry),
   }),
 ];
 

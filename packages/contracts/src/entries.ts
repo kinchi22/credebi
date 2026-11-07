@@ -46,6 +46,11 @@ export const postEntryInputSchema = z.object({
 
 export type PostEntryInput = z.infer<typeof postEntryInputSchema>;
 
+export const createEntryInputSchema = postEntryInputSchema.extend({
+  title: z.string().default(''),
+  memo: z.string().default(''),
+});
+
 export const deleteEntryInputSchema = z.object({
   id: entryIdSchema,
 });
