@@ -141,10 +141,11 @@ export type SearchQuery = {
   readonly [name: string]: string | readonly string[] | undefined;
 };
 
-const asked = (value: SearchQuery[string]): SearchQuery[string] =>
-  value === '' ? undefined : value;
+const asked = (value: unknown): unknown => (value === '' ? undefined : value);
 
-export function parseSearchQuery(query: SearchQuery): Result<SearchCriteriaInput, DomainError> {
+export function parseSearchQuery(
+  query: Readonly<Record<string, unknown>>,
+): Result<SearchCriteriaInput, DomainError> {
   const parsed = searchCriteriaSchema.safeParse({
     from: asked(query[SEARCH_CRITERIA_FIELDS.from]),
     to: asked(query[SEARCH_CRITERIA_FIELDS.to]),

@@ -5,11 +5,20 @@ import {
   type AccountGroupId,
   type AccountId,
   type DomainError,
+  type EntryId,
+  type Money,
   type Result,
   type Scope,
   type UserId,
 } from '@repo/contracts';
-import { type AccessGrant, type AuthContext, type ChartNode } from '@repo/core';
+import {
+  type AccessGrant,
+  type AssetsAndLiabilities,
+  type AuthContext,
+  type ChartNode,
+  type Entry,
+  type IncomeStatement,
+} from '@repo/core';
 import { describe, expect, it } from 'vitest';
 import {
   accessTokenVerifier,
@@ -18,6 +27,7 @@ import {
   serveMcp,
   type McpDependencies,
 } from './mcp';
+import { SEARCH_LIMIT } from './mcp-tools';
 
 const MCP_PATH = '/mcp';
 
@@ -72,6 +82,61 @@ const CARDS: ChartNode = {
   ],
 };
 
+const CASH_ID = '01920000-0000-7000-8000-0000000000a1' as AccountId;
+
+const FOOD_ID = '01920000-0000-7000-8000-0000000000a3' as AccountId;
+
+const GROUP_ID = '01920000-0000-7000-8000-0000000000b1' as AccountGroupId;
+
+const won = (amount: number): Money => amount as Money;
+
+function entryOn(day: number): Entry {
+  const entryDate = new Date(Date.UTC(2026, 0, day)).toISOString().slice(0, 10);
+  return {
+    id: `01920000-0000-7000-8000-${String(day).padStart(12, '0')}` as EntryId,
+    entryDate,
+    title: 'Lunch',
+    memo: `Noodles on ${entryDate}`,
+    lines: [
+      { account: FOOD_ID, accountName: 'Food', side: 'debit', amount: won(9000) },
+      { account: CASH_ID, accountName: 'Cash', side: 'credit', amount: won(9000) },
+    ],
+    total: won(9000),
+    createdAt: new Date(`${entryDate}T03:04:05.678Z`),
+  };
+}
+
+const entriesNewestFirst = (count: number): readonly Entry[] =>
+  Array.from({ length: count }, (_, index) => entryOn(count - index));
+
+const sectionOf = (total: number) => ({
+  total: won(total),
+  rows: [
+    {
+      kind: 'group' as const,
+      group: GROUP_ID,
+      name: 'Cash and deposits',
+      total: won(total),
+      accounts: [{ kind: 'account' as const, account: CASH_ID, name: 'Cash', total: won(total) }],
+    },
+  ],
+});
+
+const ASSETS_AND_LIABILITIES: Result<AssetsAndLiabilities, DomainError> = ok({
+  assets: sectionOf(87500),
+  liabilities: { total: won(0), rows: [] },
+  netWorth: won(87500),
+});
+
+const INCOME_STATEMENT: Result<IncomeStatement, DomainError> = ok({
+  revenue: { total: won(0), rows: [] },
+  expense: {
+    total: won(12500),
+    rows: [{ kind: 'account', account: FOOD_ID, name: 'Food', total: won(12500) }],
+  },
+  netIncome: won(-12500),
+});
+
 const grantFor = (scopes: readonly Scope[]): AccessGrant => ({
   auth: { userId: USER_ID, scopes },
   clientId: CLIENT_ID,
@@ -84,22 +149,45 @@ const GRANTS: Readonly<Record<string, AccessGrant>> = {
   both: grantFor(['read', 'write']),
 };
 
-type Fakes = McpDependencies & { readonly charted: AuthContext[] };
+type Fakes = McpDependencies & {
+  readonly charted: AuthContext[];
+  readonly asked: { readonly auth: AuthContext; readonly query: unknown }[];
+};
 
 function fakes({
   chart = ok([CASH, CARDS]),
+  found = ok([]),
+  assetsAndLiabilities = ASSETS_AND_LIABILITIES,
+  statement = INCOME_STATEMENT,
   resolved,
 }: {
   readonly chart?: Result<readonly ChartNode[], DomainError>;
+  readonly found?: Result<readonly Entry[], DomainError>;
+  readonly assetsAndLiabilities?: Result<AssetsAndLiabilities, DomainError>;
+  readonly statement?: Result<IncomeStatement, DomainError>;
   readonly resolved?: Result<AccessGrant | undefined, DomainError>;
 } = {}): Fakes {
   const charted: AuthContext[] = [];
+  const asked: { auth: AuthContext; query: unknown }[] = [];
   return {
     charted,
+    asked,
     resolveAccessToken: (token) => Promise.resolve(resolved ?? ok(GRANTS[token])),
     getChart: (auth) => {
       charted.push(auth);
       return Promise.resolve(chart);
+    },
+    searchEntries: (auth, criteria) => {
+      asked.push({ auth, query: criteria });
+      return Promise.resolve(found);
+    },
+    getAssetsAndLiabilities: (auth, day) => {
+      asked.push({ auth, query: day });
+      return Promise.resolve(assetsAndLiabilities);
+    },
+    getIncomeStatement: (auth, range) => {
+      asked.push({ auth, query: range });
+      return Promise.resolve(statement);
     },
   };
 }
@@ -216,8 +304,31 @@ async function toolNames(token: string, dependencies?: McpDependencies): Promise
   return (result['tools'] as { name: string }[]).map(({ name }) => name);
 }
 
-const callTool = (token: string, name: string, dependencies?: McpDependencies) =>
-  serving(dependencies)(mcpCall(token, 'tools/call', { name, arguments: {} }));
+const callTool = (
+  token: string,
+  name: string,
+  dependencies?: McpDependencies,
+  args: Readonly<Record<string, unknown>> = {},
+) => serving(dependencies)(mcpCall(token, 'tools/call', { name, arguments: args }));
+
+const READ_TOOLS = ['list_accounts', 'search_entries', 'get_assets_and_liabilities', 'get_income_statement'];
+
+const READ_CALLS: readonly (readonly [string, Readonly<Record<string, unknown>>])[] = [
+  ['list_accounts', {}],
+  ['search_entries', {}],
+  ['get_assets_and_liabilities', { date: '2026-09-16' }],
+  ['get_income_statement', { from: '2026-09-01', to: '2026-09-30' }],
+];
+
+const postedEntry = (entry: Entry) => ({
+  id: entry.id,
+  entryDate: entry.entryDate,
+  title: entry.title,
+  memo: entry.memo,
+  lines: entry.lines.map(({ account, accountName, side, amount }) => ({ account, accountName, side, amount })),
+  total: entry.total,
+  createdAt: entry.createdAt.toISOString(),
+});
 
 describe('serveMcp', () => {
   it.each([
@@ -265,21 +376,27 @@ describe('serveMcp', () => {
   });
 
   it('lists the reading tools to a Connection with read', async () => {
-    expect(await toolNames('reader')).toEqual(['list_accounts']);
-    expect(await toolNames('both')).toEqual(['list_accounts']);
+    expect(await toolNames('reader')).toEqual(READ_TOOLS);
+    expect(await toolNames('both')).toEqual(READ_TOOLS);
   });
 
-  it('describes list_accounts as a read-only tool taking no arguments', async () => {
+  it.each([
+    ['list_accounts', /Chart of accounts/, []],
+    ['search_entries', /most recent first/, ['from', 'to', 'account', 'title', 'memo']],
+    ['get_assets_and_liabilities', /Assets and liabilities/, ['date']],
+    ['get_income_statement', /Income statement/, ['from', 'to']],
+  ])('describes %s as a read-only tool and the arguments it takes', async (name, description, properties) => {
     const result = await resultOf(await serving()(mcpCall('reader', 'tools/list')));
 
-    expect(result['tools']).toEqual([
-      expect.objectContaining({
-        name: 'list_accounts',
-        description: expect.stringMatching(/Chart of accounts/) as unknown,
-        inputSchema: expect.objectContaining({ type: 'object' }) as unknown,
-        annotations: { readOnlyHint: true },
-      }),
-    ]);
+    const listed = (result['tools'] as { name: string; inputSchema: { properties?: object } }[]).find(
+      (tool) => tool.name === name,
+    );
+    expect(listed).toMatchObject({
+      description: expect.stringMatching(description) as unknown,
+      inputSchema: { type: 'object' },
+      annotations: { readOnlyHint: true },
+    });
+    expect(Object.keys(listed?.inputSchema.properties ?? {})).toEqual(properties);
   });
 
   it('lists no reading tool to a Connection with write alone', async () => {
@@ -331,15 +448,147 @@ describe('serveMcp', () => {
     expect(dependencies.charted).toEqual([{ userId: USER_ID, scopes: ['read'] }]);
   });
 
-  it('answers a Domain error as a tool result carrying its code and message', async () => {
+  it('searches the Access token\'s User\'s Entries by the Search criteria it was given', async () => {
+    const dependencies = fakes({ found: ok([entryOn(20), entryOn(10)]) });
+    const criteria = { from: '2026-09-01', to: '2026-09-30', account: FOOD_ID, title: 'Lunch', memo: 'Noodles' };
+
+    const result = await resultOf(await callTool('reader', 'search_entries', dependencies, criteria));
+
+    const found = { entries: [postedEntry(entryOn(20)), postedEntry(entryOn(10))], truncated: false };
+    expect(result['structuredContent']).toEqual(found);
+    expect(result['content']).toEqual([{ type: 'text', text: JSON.stringify(found) }]);
+    expect(dependencies.asked).toEqual([{ auth: { userId: USER_ID, scopes: ['read'] }, query: criteria }]);
+  });
+
+  it('searches with no Search criteria when given none', async () => {
+    const dependencies = fakes();
+
+    const result = await resultOf(await callTool('reader', 'search_entries', dependencies));
+
+    expect(result['structuredContent']).toEqual({ entries: [], truncated: false });
+    expect(dependencies.asked.map(({ query }) => query)).toEqual([{}]);
+  });
+
+  it('caps a search at 100 Entries', () => {
+    expect(SEARCH_LIMIT).toBe(100);
+  });
+
+  it('answers every Entry found, untruncated, when exactly as many as the cap match', async () => {
     const result = await resultOf(
-      await callTool('reader', 'list_accounts', fakes({ chart: err(UNAVAILABLE) })),
+      await callTool('reader', 'search_entries', fakes({ found: ok(entriesNewestFirst(SEARCH_LIMIT)) })),
     );
 
+    expect(result['structuredContent']).toEqual({
+      entries: entriesNewestFirst(SEARCH_LIMIT).map(postedEntry),
+      truncated: false,
+    });
+  });
+
+  it('answers the most recent Entries up to the cap and says it truncated when more match', async () => {
+    const found = entriesNewestFirst(SEARCH_LIMIT + 1);
+
+    const result = await resultOf(await callTool('reader', 'search_entries', fakes({ found: ok(found) })));
+
+    expect(result['structuredContent']).toEqual({
+      entries: found.slice(0, SEARCH_LIMIT).map(postedEntry),
+      truncated: true,
+    });
+  });
+
+  it('takes an empty Search criterion as one not given, as Entry search on the web does', async () => {
+    const dependencies = fakes();
+
+    await resultOf(
+      await callTool('reader', 'search_entries', dependencies, { from: '', to: '2026-09-30', account: '', title: '', memo: '' }),
+    );
+
+    expect(dependencies.asked.map(({ query }) => query)).toEqual([{ to: '2026-09-30' }]);
+  });
+
+  it('reads the Access token\'s User\'s Assets and liabilities on the day it was given', async () => {
+    const dependencies = fakes();
+
+    const result = await resultOf(
+      await callTool('reader', 'get_assets_and_liabilities', dependencies, { date: '2026-09-16' }),
+    );
+
+    expect(result['structuredContent']).toEqual({
+      assets: sectionOf(87500),
+      liabilities: { total: 0, rows: [] },
+      netWorth: 87500,
+    });
+    expect(dependencies.asked).toEqual([{ auth: { userId: USER_ID, scopes: ['read'] }, query: '2026-09-16' }]);
+  });
+
+  it('reads the Access token\'s User\'s Income statement for the inclusive range it was given', async () => {
+    const dependencies = fakes();
+    const range = { from: '2026-09-01', to: '2026-09-30' };
+
+    const result = await resultOf(await callTool('reader', 'get_income_statement', dependencies, range));
+
+    expect(result['structuredContent']).toEqual({
+      revenue: { total: 0, rows: [] },
+      expense: {
+        total: 12500,
+        rows: [{ kind: 'account', account: FOOD_ID, name: 'Food', total: 12500 }],
+      },
+      netIncome: -12500,
+    });
+    expect(dependencies.asked).toEqual([{ auth: { userId: USER_ID, scopes: ['read'] }, query: range }]);
+  });
+
+  it.each(READ_CALLS)('answers a Domain error from %s as a tool result carrying its code and message', async (name, args) => {
+    const refused = fakes({
+      chart: err(UNAVAILABLE),
+      found: err(UNAVAILABLE),
+      assetsAndLiabilities: err(UNAVAILABLE),
+      statement: err(UNAVAILABLE),
+    });
+
+    const result = await resultOf(await callTool('reader', name, refused, args));
+
     expect(result['isError']).toBe(true);
+    expect(result['structuredContent']).toBeUndefined();
     expect(result['content']).toEqual([
       { type: 'text', text: 'DEPENDENCY_UNAVAILABLE: The database is down.' },
     ]);
+  });
+
+  it.each([
+    ['search_entries', { from: 'last week' }],
+    ['search_entries', { account: 7 }],
+    ['get_assets_and_liabilities', {}],
+    ['get_assets_and_liabilities', { date: '16 September' }],
+    ['get_income_statement', { from: '2026-09-01' }],
+  ])('refuses %s arguments %j that are malformed as INVALID_INPUT, reading nothing', async (name, args) => {
+    const dependencies = fakes();
+
+    const result = await resultOf(await callTool('reader', name, dependencies, args));
+
+    expect(result['isError']).toBe(true);
+    expect(result['content']).toEqual([
+      { type: 'text', text: expect.stringMatching(/^INVALID_INPUT: \S/) as unknown },
+    ]);
+    expect(dependencies.asked).toEqual([]);
+  });
+
+  it.each([
+    ['get_assets_and_liabilities', { date: '16 September' }, /get_assets_and_liabilities.*date/s],
+    ['get_income_statement', { from: '2026-09-01' }, /get_income_statement.*to/s],
+  ])('names the tool and the malformed argument when refusing %s', async (name, args, message) => {
+    const result = await resultOf(await callTool('reader', name, fakes(), args));
+
+    expect((result['content'] as { text: string }[])[0]?.text).toMatch(message);
+  });
+
+  it.each(READ_CALLS)('answers 403 insufficient_scope to %s called with write alone, reading nothing', async (name, args) => {
+    const dependencies = fakes();
+
+    const response = await callTool('writer', name, dependencies, args);
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get('www-authenticate')).toContain('scope="read"');
+    expect([...dependencies.charted, ...dependencies.asked]).toEqual([]);
   });
 
   it('answers 403 insufficient_scope to a tool outside the Access token\'s scopes, running nothing', async () => {
