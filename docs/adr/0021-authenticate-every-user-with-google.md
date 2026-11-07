@@ -3,7 +3,7 @@
 **Status:** Accepted
 **Date:** 2026-09-18
 **Amended:** 2026-09-24, PR #116
-**Amended:** 2026-11-07, PR #PRNUM, which adds the routes of ADR-0031 to those
+**Amended:** 2026-11-07, PR #669, which adds the routes of ADR-0031 to those
 that answer anybody
 
 ## Problem
