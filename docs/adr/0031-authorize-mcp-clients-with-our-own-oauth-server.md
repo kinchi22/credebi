@@ -2,6 +2,8 @@
 
 **Status:** Accepted
 **Date:** 2026-11-04
+**Amended:** 2026-11-07, PR #670, which makes a discarded successor revoke its
+Connection and has each rotation delete expired refresh tokens
 
 ## Problem
 
@@ -79,7 +81,15 @@ only as their SHA-256 hash.
 | Connection | until revoked, or 30 days without use |
 
 The refresh token a rotation replaced stays usable until its successor is first
-used. A refresh token presented after that revokes its whole Connection.
+used. A refresh token presented after that revokes its whole Connection. Using
+the replaced token again in that grace issues a new successor and discards the
+unused one; the discarded token is kept, marked discarded, and presenting it
+revokes the whole Connection as a replay does; it is stored as replaced by
+itself, which needs no column of its own. A client that sends two refreshes
+at once and keeps the first answer therefore loses its Connection and asks the
+User to consent again. Each rotation deletes, in the same transaction, its
+Connection's refresh tokens whose 30 days have passed, so replay is detected
+only within a token's lifetime, after which it is refused anyway.
 
 **Paths.** `/mcp`, `/.well-known/oauth-protected-resource/mcp`,
 `/.well-known/oauth-authorization-server` and `/oauth/token` answer anybody,

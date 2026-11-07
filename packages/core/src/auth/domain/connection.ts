@@ -54,6 +54,46 @@ export type AccessGrant = {
   readonly expiresAt: Date;
 };
 
+export type RefreshSuccessor = {
+  readonly tokenHash: RefreshTokenHash;
+  readonly used: boolean;
+};
+
+export type StoredRefreshToken = {
+  readonly tokenHash: RefreshTokenHash;
+  readonly connectionId: ConnectionId;
+  readonly clientId: string;
+  readonly scopes: readonly Scope[];
+  readonly expiresAt: Date;
+  readonly discarded: boolean;
+  readonly successor: RefreshSuccessor | undefined;
+};
+
+export type PresentedRefreshToken = {
+  readonly clientId: string;
+};
+
+export type RefreshDecision =
+  | {
+      readonly kind: 'rotate';
+      readonly connectionId: ConnectionId;
+      readonly scopes: readonly Scope[];
+      readonly replaced: RefreshTokenHash;
+      readonly discards: RefreshTokenHash | undefined;
+    }
+  | { readonly kind: 'revoke'; readonly connectionId: ConnectionId }
+  | { readonly kind: 'refuse' };
+
+export type RefreshRotation = {
+  readonly connectionId: ConnectionId;
+  readonly replaced: RefreshTokenHash;
+  readonly discards: RefreshTokenHash | undefined;
+  readonly tokens: IssuedTokens;
+  readonly rotatedAt: Date;
+};
+
+export type RotationOutcome = 'rotated' | 'overtaken';
+
 export function accessTokenExpiry(issuedAt: Date): Date {
   return new Date(issuedAt.getTime() + ACCESS_TOKEN_SECONDS * SECOND_MS);
 }
@@ -88,5 +128,42 @@ export function connectionFrom(
     scopes: code.scopes,
     createdAt: now,
     lastUsedAt: now,
+  };
+}
+
+export function issuedTokensOf(
+  hashes: Pick<IssuedTokens, 'accessTokenHash' | 'refreshTokenHash'>,
+  issuedAt: Date,
+): IssuedTokens {
+  return {
+    accessTokenHash: hashes.accessTokenHash,
+    accessTokenExpiresAt: accessTokenExpiry(issuedAt),
+    refreshTokenHash: hashes.refreshTokenHash,
+    refreshTokenExpiresAt: refreshTokenExpiry(issuedAt),
+  };
+}
+
+export function refreshDecision(
+  token: StoredRefreshToken | undefined,
+  presented: PresentedRefreshToken,
+  now: Date,
+): RefreshDecision {
+  if (
+    token === undefined ||
+    now.getTime() >= token.expiresAt.getTime() ||
+    token.clientId !== presented.clientId
+  ) {
+    return { kind: 'refuse' };
+  }
+  const { successor } = token;
+  if (token.discarded || successor?.used === true) {
+    return { kind: 'revoke', connectionId: token.connectionId };
+  }
+  return {
+    kind: 'rotate',
+    connectionId: token.connectionId,
+    scopes: token.scopes,
+    replaced: token.tokenHash,
+    discards: successor?.tokenHash,
   };
 }

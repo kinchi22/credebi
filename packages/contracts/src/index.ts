@@ -36,6 +36,7 @@ export {
   finishGoogleSignInInputSchema,
   issuedSessionSchema,
   pendingSignInSchema,
+  refreshGrantSchema,
   scopeSchema,
   testSignInInputSchema,
   toAuthorizationOutcome,

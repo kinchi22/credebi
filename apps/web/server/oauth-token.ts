@@ -1,8 +1,19 @@
-import { codeExchangeSchema, toTokenResponse } from '@repo/contracts';
-import { type CodeExchangeOutcome, type ExchangeCode } from '@repo/core';
+import {
+  codeExchangeSchema,
+  refreshGrantSchema,
+  toTokenResponse,
+  type DomainError,
+  type Result,
+} from '@repo/contracts';
+import {
+  type TokenOutcome,
+  type ExchangeCode,
+  type RefreshAccessToken,
+} from '@repo/core';
 
 export type TokenEndpointDependencies = {
   readonly exchangeCode: ExchangeCode;
+  readonly refreshAccessToken: RefreshAccessToken;
 };
 
 const FORM_TYPE = 'application/x-www-form-urlencoded';
@@ -24,13 +35,47 @@ function repeatsAParameter(form: URLSearchParams): boolean {
   return [...form.keys()].some((name) => form.getAll(name).length > 1);
 }
 
-function tokenResponse(outcome: CodeExchangeOutcome): Response {
-  return outcome.kind === 'granted'
-    ? Response.json(toTokenResponse(outcome.tokens), { headers: NO_STORE })
-    : oauthError(
-        'invalid_grant',
-        'This authorization code is unknown, used, expired, or was issued for another request.',
-      );
+function tokenResponse(
+  answered: Result<TokenOutcome, DomainError>,
+  refusal: string,
+): Response {
+  if (!answered.ok) {
+    return oauthError('server_error', answered.error.message, 500);
+  }
+  return answered.value.kind === 'granted'
+    ? Response.json(toTokenResponse(answered.value.tokens), { headers: NO_STORE })
+    : oauthError('invalid_grant', refusal);
+}
+
+async function exchangeCode(
+  form: URLSearchParams,
+  { exchangeCode: exchange }: TokenEndpointDependencies,
+): Promise<Response> {
+  const parsed = codeExchangeSchema.safeParse(Object.fromEntries(form));
+  if (!parsed.success) {
+    return oauthError(
+      'invalid_request',
+      'An authorization_code grant names its code, code_verifier, redirect_uri, client_id and resource.',
+    );
+  }
+  return tokenResponse(
+    await exchange(parsed.data),
+    'This authorization code is unknown, used, expired, or was issued for another request.',
+  );
+}
+
+async function refresh(
+  form: URLSearchParams,
+  { refreshAccessToken }: TokenEndpointDependencies,
+): Promise<Response> {
+  const parsed = refreshGrantSchema.safeParse(Object.fromEntries(form));
+  if (!parsed.success) {
+    return oauthError('invalid_request', 'A refresh_token grant names its refresh_token and client_id.');
+  }
+  return tokenResponse(
+    await refreshAccessToken(parsed.data),
+    'This refresh token is unknown, expired, revoked, or was issued to another client.',
+  );
 }
 
 export function serveToken(
@@ -42,21 +87,15 @@ export function serveToken(
       return oauthError('invalid_request', 'A token request is form-encoded, each parameter once.');
     }
     const grantType = form.get('grant_type');
-    if (grantType !== 'authorization_code') {
-      return grantType === null
-        ? oauthError('invalid_request', 'A token request names its grant_type.')
-        : oauthError('unsupported_grant_type', `The grant_type ${grantType} is not supported.`);
+    switch (grantType) {
+      case 'authorization_code':
+        return exchangeCode(form, dependencies());
+      case 'refresh_token':
+        return refresh(form, dependencies());
+      case null:
+        return oauthError('invalid_request', 'A token request names its grant_type.');
+      default:
+        return oauthError('unsupported_grant_type', `The grant_type ${grantType} is not supported.`);
     }
-    const exchange = codeExchangeSchema.safeParse(Object.fromEntries(form));
-    if (!exchange.success) {
-      return oauthError(
-        'invalid_request',
-        'An authorization_code grant names its code, code_verifier, redirect_uri, client_id and resource.',
-      );
-    }
-    const exchanged = await dependencies().exchangeCode(exchange.data);
-    return exchanged.ok
-      ? tokenResponse(exchanged.value)
-      : oauthError('server_error', exchanged.error.message, 500);
   };
 }

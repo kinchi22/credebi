@@ -39,18 +39,31 @@ export type {
   AccessTokenHash,
   Connection,
   IssuedTokens,
+  RefreshRotation,
+  RefreshSuccessor,
   RefreshToken,
   RefreshTokenHash,
+  RotationOutcome,
   StoredAccessToken,
+  StoredRefreshToken,
 } from './domain/connection';
 
 export { createExchangeCode } from './application/exchange-code';
+export type { ExchangeCode, ExchangeCodeDependencies } from './application/exchange-code';
+
 export type {
-  CodeExchangeOutcome,
-  ExchangeCode,
-  ExchangeCodeDependencies,
   GrantedTokens,
-} from './application/exchange-code';
+  IssuedCredentials,
+  TokenIssuer,
+  TokenOutcome,
+} from './application/issue-tokens';
+
+export { createRefreshAccessToken } from './application/refresh-access-token';
+export type {
+  RefreshAccessToken,
+  RefreshAccessTokenDependencies,
+  RefreshGrant,
+} from './application/refresh-access-token';
 
 export { createResolveAccessToken } from './application/resolve-access-token';
 export type {
