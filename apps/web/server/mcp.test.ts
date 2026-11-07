@@ -1,13 +1,12 @@
 import { OAuthError, type OAuthTokenVerifier } from '@modelcontextprotocol/server';
 import { describe, expect, it } from 'vitest';
-import {
-  AUTHORIZATION_SERVER_PATH,
-  MCP_PATH,
-  NO_LIVE_ACCESS_TOKEN,
-  PROTECTED_RESOURCE_PATH,
-  discoveryResponse,
-  serveMcp,
-} from './mcp';
+import { NO_LIVE_ACCESS_TOKEN, discoveryResponse, serveMcp } from './mcp';
+
+const MCP_PATH = '/mcp';
+
+const PROTECTED_RESOURCE_PATH = '/.well-known/oauth-protected-resource/mcp';
+
+const AUTHORIZATION_SERVER_PATH = '/.well-known/oauth-authorization-server';
 
 const ORIGIN = 'https://books.example';
 
@@ -114,11 +113,6 @@ describe('discoveryResponse', () => {
     expect(await discoveryResponse(request).json()).toMatchObject({ issuer: 'http://127.0.0.1:3000' });
   });
 
-  it('serves the documents at their well-known paths', () => {
-    expect(PROTECTED_RESOURCE_PATH).toBe('/.well-known/oauth-protected-resource/mcp');
-    expect(AUTHORIZATION_SERVER_PATH).toBe('/.well-known/oauth-authorization-server');
-    expect(MCP_PATH).toBe('/mcp');
-  });
 
   it('answers 404 for a path that is neither document', () => {
     expect(discoveryResponse(get('/.well-known/openid-configuration')).status).toBe(404);

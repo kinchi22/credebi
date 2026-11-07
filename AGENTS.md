@@ -133,6 +133,9 @@ weaken a rule to make a change pass without saying so explicitly in the PR.
 
 - Element patterns in `packages/config/eslint/boundaries.mjs` match **folders**.
   A pattern ending in `/**/*` matches nothing and silently disables that rule.
+- A glob skips a dot folder, so `apps/web/app/.well-known/` is named on its own
+  in `apps/web/tsconfig.json` and in `boundaries.mjs`. A new dot folder needs
+  the same, or its files escape type-aware lint and the boundaries.
 - `include` and `exclude` in an extended tsconfig resolve relative to the file
   that declares them, so they live in each package, never in the shared preset.
 - TypeScript is pinned to `~6.0.x`. Raising it past 6.1 silently disables every

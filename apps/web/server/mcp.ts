@@ -10,11 +10,7 @@ import {
 } from '@modelcontextprotocol/server';
 import { SCOPES } from '@repo/contracts';
 
-export const MCP_PATH = '/mcp';
-
-export const PROTECTED_RESOURCE_PATH = '/.well-known/oauth-protected-resource/mcp';
-
-export const AUTHORIZATION_SERVER_PATH = '/.well-known/oauth-authorization-server';
+const MCP_PATH = '/mcp';
 
 const AUTHORIZE_PATH = '/oauth/authorize';
 

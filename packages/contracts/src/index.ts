@@ -11,7 +11,7 @@ export { moneySchema } from './money';
 
 export { uuidV7Schema } from './id';
 
-export type { BeganSignIn, IssuedSessionOutput, PendingSignInInput, Scope, UserId } from './auth';
+export type { BeganSignIn, IssuedSessionOutput, PendingSignInInput, UserId } from './auth';
 export {
   SCOPES,
   TEST_SIGN_IN_FIELDS,
