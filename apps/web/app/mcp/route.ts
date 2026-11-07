@@ -1,6 +1,7 @@
-import { NO_LIVE_ACCESS_TOKEN, serveMcp } from '../../server/mcp';
+import { getContainer } from '../../server/container';
+import { serveMcp } from '../../server/mcp';
 
-const serve = serveMcp(NO_LIVE_ACCESS_TOKEN);
+const serve = serveMcp(getContainer);
 
 export const GET = serve;
 

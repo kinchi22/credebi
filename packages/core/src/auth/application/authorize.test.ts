@@ -56,7 +56,10 @@ function documents(answer: Result<ClientDocument, DomainError> = ok(DOCUMENT)): 
   };
 }
 
-function codeStore(answer: Result<void, DomainError> = ok(undefined)): AuthorizationCodeRepository & {
+function codeStore(answer: Result<void, DomainError> = ok(undefined)): Pick<
+  AuthorizationCodeRepository,
+  'add'
+> & {
   readonly codes: IssuedAuthorizationCode[];
 } {
   const codes: IssuedAuthorizationCode[] = [];
@@ -94,7 +97,7 @@ const query = (changes: Readonly<Record<string, string | null>> = {}): string =>
 
 function approval(
   clientDocuments: ClientDocuments = documents(),
-  codes: AuthorizationCodeRepository = codeStore(),
+  codes: Pick<AuthorizationCodeRepository, 'add'> = codeStore(),
 ) {
   return createApproveAuthorization({
     clientDocuments,

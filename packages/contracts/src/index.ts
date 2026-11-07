@@ -15,9 +15,12 @@ export type {
   AuthorizationInput,
   AuthorizationOutcomeOutput,
   BeganSignIn,
+  CodeExchangeInput,
+  ConnectionId,
   IssuedSessionOutput,
   PendingSignInInput,
   Scope,
+  TokenResponse,
   UserId,
 } from './auth';
 export {
@@ -28,6 +31,8 @@ export {
   authorizationRedirectSchema,
   beganSignInSchema,
   clientDocumentSchema,
+  codeExchangeSchema,
+  connectionIdSchema,
   finishGoogleSignInInputSchema,
   issuedSessionSchema,
   pendingSignInSchema,
@@ -36,6 +41,7 @@ export {
   toAuthorizationOutcome,
   toBeganSignIn,
   toIssuedSession,
+  toTokenResponse,
   userIdSchema,
 } from './auth';
 

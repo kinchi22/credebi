@@ -1,6 +1,23 @@
-import { OAuthError, type OAuthTokenVerifier } from '@modelcontextprotocol/server';
+import {
+  domainError,
+  err,
+  ok,
+  type AccountGroupId,
+  type AccountId,
+  type DomainError,
+  type Result,
+  type Scope,
+  type UserId,
+} from '@repo/contracts';
+import { type AccessGrant, type AuthContext, type ChartNode } from '@repo/core';
 import { describe, expect, it } from 'vitest';
-import { NO_LIVE_ACCESS_TOKEN, discoveryResponse, serveMcp } from './mcp';
+import {
+  accessTokenVerifier,
+  authContextOf,
+  discoveryResponse,
+  serveMcp,
+  type McpDependencies,
+} from './mcp';
 
 const MCP_PATH = '/mcp';
 
@@ -12,19 +29,82 @@ const ORIGIN = 'https://books.example';
 
 const PROTOCOL_VERSION = '2026-07-28';
 
-const ACCEPTING: OAuthTokenVerifier = {
-  verifyAccessToken: (token) =>
-    Promise.resolve({
-      token,
-      clientId: 'https://client.example/client.json',
-      scopes: ['read'],
-      expiresAt: Math.floor(Date.now() / 1000) + 3600,
-    }),
+const USER_ID = '01920000-0000-7000-8000-000000000001' as UserId;
+
+const CLIENT_ID = 'https://client.example/client.json';
+
+const UNAVAILABLE = domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.');
+
+const CASH: ChartNode = {
+  kind: 'account',
+  account: {
+    id: '01920000-0000-7000-8000-0000000000a1' as AccountId,
+    accountType: 'asset',
+    groupId: null,
+    name: 'Cash',
+    description: 'Notes and coins',
+    position: 0,
+    activeFrom: '2026-01-01',
+    activeUntil: null,
+  },
 };
 
-const REFUSING: OAuthTokenVerifier = {
-  verifyAccessToken: () => Promise.reject(new OAuthError('invalid_token', 'Unknown token.')),
+const CARDS: ChartNode = {
+  kind: 'group',
+  group: {
+    id: '01920000-0000-7000-8000-0000000000b1' as AccountGroupId,
+    accountType: 'liability',
+    name: 'Cards',
+    description: null,
+    position: 1,
+  },
+  accounts: [
+    {
+      id: '01920000-0000-7000-8000-0000000000a2' as AccountId,
+      accountType: 'liability',
+      groupId: '01920000-0000-7000-8000-0000000000b1' as AccountGroupId,
+      name: 'Credit card',
+      description: null,
+      position: 0,
+      activeFrom: '2026-01-01',
+      activeUntil: '2026-12-31',
+    },
+  ],
 };
+
+const grantFor = (scopes: readonly Scope[]): AccessGrant => ({
+  auth: { userId: USER_ID, scopes },
+  clientId: CLIENT_ID,
+  expiresAt: new Date(Date.now() + 3_600_000),
+});
+
+const GRANTS: Readonly<Record<string, AccessGrant>> = {
+  reader: grantFor(['read']),
+  writer: grantFor(['write']),
+  both: grantFor(['read', 'write']),
+};
+
+type Fakes = McpDependencies & { readonly charted: AuthContext[] };
+
+function fakes({
+  chart = ok([CASH, CARDS]),
+  resolved,
+}: {
+  readonly chart?: Result<readonly ChartNode[], DomainError>;
+  readonly resolved?: Result<AccessGrant | undefined, DomainError>;
+} = {}): Fakes {
+  const charted: AuthContext[] = [];
+  return {
+    charted,
+    resolveAccessToken: (token) => Promise.resolve(resolved ?? ok(GRANTS[token])),
+    getChart: (auth) => {
+      charted.push(auth);
+      return Promise.resolve(chart);
+    },
+  };
+}
+
+const serving = (dependencies: McpDependencies = fakes()) => serveMcp(() => dependencies);
 
 const get = (path: string, origin = ORIGIN): Request => new Request(`${origin}${path}`);
 
@@ -34,7 +114,11 @@ async function documentAt(path: string, origin = ORIGIN): Promise<Record<string,
   return (await response.json()) as Record<string, unknown>;
 }
 
-function mcpCall(token: string | undefined, method: string): Request {
+function mcpCall(
+  token: string | undefined,
+  method: string,
+  params: Readonly<Record<string, unknown>> = {},
+): Request {
   return new Request(`${ORIGIN}${MCP_PATH}`, {
     method: 'POST',
     headers: {
@@ -43,12 +127,14 @@ function mcpCall(token: string | undefined, method: string): Request {
       'content-type': 'application/json',
       'mcp-protocol-version': PROTOCOL_VERSION,
       'mcp-method': method,
+      ...(typeof params['name'] === 'string' ? { 'mcp-name': params['name'] } : {}),
     },
     body: JSON.stringify({
       jsonrpc: '2.0',
       id: 1,
       method,
       params: {
+        ...params,
         _meta: {
           'io.modelcontextprotocol/protocolVersion': PROTOCOL_VERSION,
           'io.modelcontextprotocol/clientCapabilities': {},
@@ -119,12 +205,26 @@ describe('discoveryResponse', () => {
   });
 });
 
+async function resultOf(response: Response): Promise<Record<string, unknown>> {
+  expect(response.status).toBe(200);
+  const { result } = (await response.json()) as { result: Record<string, unknown> };
+  return result;
+}
+
+async function toolNames(token: string, dependencies?: McpDependencies): Promise<string[]> {
+  const result = await resultOf(await serving(dependencies)(mcpCall(token, 'tools/list')));
+  return (result['tools'] as { name: string }[]).map(({ name }) => name);
+}
+
+const callTool = (token: string, name: string, dependencies?: McpDependencies) =>
+  serving(dependencies)(mcpCall(token, 'tools/call', { name, arguments: {} }));
+
 describe('serveMcp', () => {
   it.each([
     ['no Access token', undefined],
     ['a token that is not live', 'not-a-live-token'],
   ])('answers a call with %s with a challenge naming the protected resource metadata', async (_, token) => {
-    const response = await serveMcp(REFUSING)(mcpCall(token, 'tools/list'));
+    const response = await serving()(mcpCall(token, 'tools/list'));
 
     expect(response.status).toBe(401);
     expect(response.headers.get('www-authenticate')).toMatch(
@@ -138,25 +238,22 @@ describe('serveMcp', () => {
       headers: { 'x-forwarded-host': 'books.example', 'x-forwarded-proto': 'https' },
     });
 
-    const response = await serveMcp(REFUSING)(request);
+    const response = await serving()(request);
 
     expect(response.headers.get('www-authenticate')).toContain(
       `resource_metadata="https://books.example${PROTECTED_RESOURCE_PATH}"`,
     );
   });
 
-  it('refuses every token while none is live', async () => {
-    const response = await serveMcp(NO_LIVE_ACCESS_TOKEN)(mcpCall('any-token', 'tools/list'));
+  it('answers 500 when the Access token cannot be looked up', async () => {
+    const response = await serving(fakes({ resolved: err(UNAVAILABLE) }))(mcpCall('reader', 'tools/list'));
 
-    expect(response.status).toBe(401);
-    expect(await response.json()).toEqual({
-      error: 'invalid_token',
-      error_description: expect.stringMatching(/\S/) as unknown,
-    });
+    expect(response.status).toBe(500);
+    expect(await response.json()).toMatchObject({ error: 'server_error' });
   });
 
   it('names itself to a client discovering it', async () => {
-    const response = await serveMcp(ACCEPTING)(mcpCall('live', 'server/discover'));
+    const response = await serving()(mcpCall('reader', 'server/discover'));
 
     const { result } = (await response.json()) as {
       result: { _meta: Record<string, { name: string; version: string }> };
@@ -167,10 +264,208 @@ describe('serveMcp', () => {
     });
   });
 
-  it('answers a call with a live Access token over Streamable HTTP, offering no tools', async () => {
-    const response = await serveMcp(ACCEPTING)(mcpCall('live', 'tools/list'));
+  it('lists the reading tools to a Connection with read', async () => {
+    expect(await toolNames('reader')).toEqual(['list_accounts']);
+    expect(await toolNames('both')).toEqual(['list_accounts']);
+  });
+
+  it('describes list_accounts as a read-only tool taking no arguments', async () => {
+    const result = await resultOf(await serving()(mcpCall('reader', 'tools/list')));
+
+    expect(result['tools']).toEqual([
+      expect.objectContaining({
+        name: 'list_accounts',
+        description: expect.stringMatching(/Chart of accounts/) as unknown,
+        inputSchema: expect.objectContaining({ type: 'object' }) as unknown,
+        annotations: { readOnlyHint: true },
+      }),
+    ]);
+  });
+
+  it('lists no reading tool to a Connection with write alone', async () => {
+    expect(await toolNames('writer')).toEqual([]);
+  });
+
+  it('lists the Chart of accounts of the Access token\'s User, in order', async () => {
+    const dependencies = fakes();
+
+    const result = await resultOf(await callTool('reader', 'list_accounts', dependencies));
+
+    const chart = [
+      {
+        kind: 'account',
+        account: {
+          id: '01920000-0000-7000-8000-0000000000a1',
+          accountType: 'asset',
+          groupId: null,
+          name: 'Cash',
+          description: 'Notes and coins',
+          activeFrom: '2026-01-01',
+          activeUntil: null,
+        },
+      },
+      {
+        kind: 'group',
+        group: {
+          id: '01920000-0000-7000-8000-0000000000b1',
+          accountType: 'liability',
+          name: 'Cards',
+          description: null,
+        },
+        accounts: [
+          {
+            id: '01920000-0000-7000-8000-0000000000a2',
+            accountType: 'liability',
+            groupId: '01920000-0000-7000-8000-0000000000b1',
+            name: 'Credit card',
+            description: null,
+            activeFrom: '2026-01-01',
+            activeUntil: '2026-12-31',
+          },
+        ],
+      },
+    ];
+    expect(result['structuredContent']).toEqual({ chart });
+    expect(result['isError']).toBeUndefined();
+    expect(result['content']).toEqual([{ type: 'text', text: JSON.stringify({ chart }) }]);
+    expect(dependencies.charted).toEqual([{ userId: USER_ID, scopes: ['read'] }]);
+  });
+
+  it('answers a Domain error as a tool result carrying its code and message', async () => {
+    const result = await resultOf(
+      await callTool('reader', 'list_accounts', fakes({ chart: err(UNAVAILABLE) })),
+    );
+
+    expect(result['isError']).toBe(true);
+    expect(result['content']).toEqual([
+      { type: 'text', text: 'DEPENDENCY_UNAVAILABLE: The database is down.' },
+    ]);
+  });
+
+  it('answers 403 insufficient_scope to a tool outside the Access token\'s scopes, running nothing', async () => {
+    const dependencies = fakes();
+
+    const response = await callTool('writer', 'list_accounts', dependencies);
+
+    expect(response.status).toBe(403);
+    const challenge = response.headers.get('www-authenticate') ?? '';
+    expect(challenge).toContain('error="insufficient_scope"');
+    expect(challenge).toContain('scope="read"');
+    expect(challenge).toContain(`resource_metadata="${ORIGIN}${PROTECTED_RESOURCE_PATH}"`);
+    expect(await response.json()).toEqual({
+      error: 'insufficient_scope',
+      error_description: 'This tool needs the read scope.',
+    });
+    expect(dependencies.charted).toEqual([]);
+  });
+
+  it('answers 403 insufficient_scope to a batch that calls a tool outside the scopes', async () => {
+    const call = (await mcpCall('writer', 'tools/call', { name: 'list_accounts', arguments: {} }).json()) as unknown;
+    const request = new Request(`${ORIGIN}${MCP_PATH}`, {
+      method: 'POST',
+      headers: {
+        authorization: 'Bearer writer',
+        accept: 'application/json, text/event-stream',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify([call]),
+    });
+
+    expect((await serving()(request)).status).toBe(403);
+  });
+
+  it('leaves a tool it does not know to the MCP server, which refuses it as a protocol error', async () => {
+    const response = await callTool('reader', 'drop_tables');
 
     expect(response.status).toBe(200);
-    expect(await response.text()).toContain('"tools":[]');
+    expect(await response.json()).toMatchObject({ error: { message: expect.stringContaining('drop_tables') as unknown } });
+  });
+
+  it('leaves a tool it does not know to the MCP server whatever the scopes', async () => {
+    expect((await callTool('writer', 'drop_tables')).status).toBe(200);
+  });
+
+  it('leaves a body that is not JSON to the MCP server', async () => {
+    const request = new Request(`${ORIGIN}${MCP_PATH}`, {
+      method: 'POST',
+      headers: {
+        authorization: 'Bearer writer',
+        accept: 'application/json, text/event-stream',
+        'content-type': 'application/json',
+      },
+      body: '{not json',
+    });
+
+    const response = await serving()(request);
+
+    expect(response.status).toBe(400);
+    expect(response.headers.get('www-authenticate')).toBeNull();
+  });
+});
+
+describe('accessTokenVerifier', () => {
+  it('answers a live Access token with its client, scopes, expiry in seconds and User', async () => {
+    const expiresAt = new Date('2026-11-07T01:00:00.900Z');
+    const verifier = accessTokenVerifier(() =>
+      Promise.resolve(ok({ ...grantFor(['read', 'write']), expiresAt })),
+    );
+
+    expect(await verifier.verifyAccessToken('the-token')).toEqual({
+      token: 'the-token',
+      clientId: CLIENT_ID,
+      scopes: ['read', 'write'],
+      expiresAt: Math.floor(expiresAt.getTime() / 1000),
+      extra: { userId: USER_ID },
+    });
+  });
+
+  it('answers no scope for an Auth context that carries none', async () => {
+    const verifier = accessTokenVerifier(() =>
+      Promise.resolve(ok({ ...grantFor([]), auth: { userId: USER_ID } })),
+    );
+
+    expect(await verifier.verifyAccessToken('the-token')).toMatchObject({ scopes: [] });
+  });
+
+  it('refuses a token that is not live as an invalid token', async () => {
+    const verifier = accessTokenVerifier(() => Promise.resolve(ok(undefined)));
+
+    await expect(verifier.verifyAccessToken('the-token')).rejects.toMatchObject({
+      code: 'invalid_token',
+      message: 'This Access token is not live.',
+    });
+  });
+
+  it('reports a failure to look the token up as a server error', async () => {
+    const verifier = accessTokenVerifier(() => Promise.resolve(err(UNAVAILABLE)));
+
+    await expect(verifier.verifyAccessToken('the-token')).rejects.toMatchObject({
+      code: 'server_error',
+      message: 'The database is down.',
+    });
+  });
+});
+
+describe('authContextOf', () => {
+  it('is the User and the scopes the verified Access token carries', () => {
+    expect(
+      authContextOf({ token: 't', clientId: CLIENT_ID, scopes: ['write', 'read'], extra: { userId: USER_ID } }),
+    ).toEqual({ userId: USER_ID, scopes: ['write', 'read'] });
+  });
+
+  it('keeps only the scopes it knows', () => {
+    expect(
+      authContextOf({ token: 't', clientId: CLIENT_ID, scopes: ['admin', 'read'], extra: { userId: USER_ID } }),
+    ).toEqual({ userId: USER_ID, scopes: ['read'] });
+  });
+
+  it('reaches no User and no scope without a verified Access token', () => {
+    expect(authContextOf(undefined)).toEqual({ userId: undefined, scopes: [] });
+  });
+
+  it('reaches no User when the token carries something that is not a User id', () => {
+    expect(
+      authContextOf({ token: 't', clientId: CLIENT_ID, scopes: ['read'], extra: { userId: 'someone' } }),
+    ).toEqual({ userId: undefined, scopes: ['read'] });
   });
 });

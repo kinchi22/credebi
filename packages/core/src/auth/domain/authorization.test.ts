@@ -1,16 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { isErr } from '@repo/contracts';
+import { isErr, type UserId } from '@repo/contracts';
 import {
   AUTHORIZATION_CODE_SECONDS,
   authorizationCodeExpiry,
   authorizationParameters,
   authorizationResponse,
   clientNameOf,
+  codeRedeemable,
   pkceChallengeAccepted,
   redirectUriListed,
   requestedGrant,
   requestedScopes,
+  type AuthorizationCodeHash,
   type AuthorizationParameters,
+  type IssuedAuthorizationCode,
+  type PresentedCode,
   resourceAccepted,
 } from './authorization';
 
@@ -415,5 +419,47 @@ describe('requestedGrant', () => {
       ok: false,
       error: 'invalid_target',
     });
+  });
+});
+
+describe('codeRedeemable', () => {
+  const issuedAt = new Date('2026-11-07T00:00:00.000Z');
+  const code: IssuedAuthorizationCode = {
+    codeHash: 'hash' as AuthorizationCodeHash,
+    userId: '01920000-0000-7000-8000-000000000001' as UserId,
+    clientId: 'https://client.example/client.json',
+    clientName: 'Example client',
+    redirectUris: ['https://client.example/callback'],
+    scopes: ['read', 'write'],
+    codeChallenge: CHALLENGE,
+    redirectUri: 'https://client.example/callback',
+    resource: 'https://books.example/mcp',
+    expiresAt: authorizationCodeExpiry(issuedAt),
+  };
+  const presented: PresentedCode = {
+    verifierChallenge: CHALLENGE,
+    redirectUri: 'https://client.example/callback',
+    clientId: 'https://client.example/client.json',
+    resource: 'https://books.example/mcp',
+  };
+  const after = (milliseconds: number): Date => new Date(issuedAt.getTime() + milliseconds);
+
+  it('redeems a code with its own verifier, redirect, client and resource within its 60 seconds', () => {
+    expect(codeRedeemable(code, presented, issuedAt)).toBe(true);
+    expect(codeRedeemable(code, presented, after(59_999))).toBe(true);
+  });
+
+  it('refuses a code once its 60 seconds have passed', () => {
+    expect(codeRedeemable(code, presented, after(60_000))).toBe(false);
+    expect(codeRedeemable(code, presented, after(60_001))).toBe(false);
+  });
+
+  it.each([
+    ['another verifier', { verifierChallenge: 'other-challenge' }],
+    ['another redirect', { redirectUri: 'https://client.example/elsewhere' }],
+    ['another client', { clientId: 'https://other.example/client.json' }],
+    ['another resource', { resource: 'https://other.example/mcp' }],
+  ])('refuses a code presented with %s', (_, change) => {
+    expect(codeRedeemable(code, { ...presented, ...change }, issuedAt)).toBe(false);
   });
 });

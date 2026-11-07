@@ -28,8 +28,35 @@ export type {
   AuthorizationCode,
   AuthorizationCodeHash,
   AuthorizationServer,
+  CodeExchange,
   IssuedAuthorizationCode,
 } from './domain/authorization';
+
+export { ACCESS_TOKEN_SECONDS, REFRESH_TOKEN_DAYS } from './domain/connection';
+export type {
+  AccessGrant,
+  AccessToken,
+  AccessTokenHash,
+  Connection,
+  IssuedTokens,
+  RefreshToken,
+  RefreshTokenHash,
+  StoredAccessToken,
+} from './domain/connection';
+
+export { createExchangeCode } from './application/exchange-code';
+export type {
+  CodeExchangeOutcome,
+  ExchangeCode,
+  ExchangeCodeDependencies,
+  GrantedTokens,
+} from './application/exchange-code';
+
+export { createResolveAccessToken } from './application/resolve-access-token';
+export type {
+  ResolveAccessToken,
+  ResolveAccessTokenDependencies,
+} from './application/resolve-access-token';
 
 export {
   createApproveAuthorization,
@@ -68,6 +95,7 @@ export type { SignOut, SignOutDependencies } from './application/sign-out';
 
 export type { AuthorizationCodeRepository } from './ports/authorization-code-repository';
 export type { ClientDocuments } from './ports/client-documents';
+export type { ConnectionRepository } from './ports/connection-repository';
 export type { GoogleSignIn, PendingSignIn } from './ports/google-sign-in';
 export type { SessionRepository } from './ports/session-repository';
 export type { UserRepository } from './ports/user-repository';

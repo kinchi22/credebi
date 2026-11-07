@@ -36,7 +36,7 @@ export type BeginAuthorization = (
 ) => Promise<AuthorizationOutcome>;
 
 export type ApproveAuthorizationDependencies = BeginAuthorizationDependencies & {
-  readonly codes: AuthorizationCodeRepository;
+  readonly codes: Pick<AuthorizationCodeRepository, 'add'>;
   readonly newAuthorizationCode: () => AuthorizationCode;
   readonly hashAuthorizationCode: (code: string) => AuthorizationCodeHash;
   readonly now: () => Date;
