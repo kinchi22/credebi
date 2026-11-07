@@ -66,6 +66,8 @@ status in the ADR itself.
 | [ADR-0028: Remove an Account no shown Entry names](adr/0028-remove-an-account-no-shown-entry-names.md) | Accepted |
 | [ADR-0029: Run the engine-dependent specs in mobile WebKit too](adr/0029-run-engine-dependent-specs-in-mobile-webkit.md) | Accepted |
 | [ADR-0030: Draw charts with Recharts](adr/0030-draw-charts-with-recharts.md) | Accepted |
+| [ADR-0031: Authorize MCP clients with our own OAuth server](adr/0031-authorize-mcp-clients-with-our-own-oauth-server.md) | Accepted |
+| [ADR-0032: Identify a retried post by its Request key](adr/0032-identify-a-retried-post-by-its-request-key.md) | Accepted |
 
 ## Package layout
 
