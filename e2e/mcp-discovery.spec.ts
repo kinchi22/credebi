@@ -3,6 +3,11 @@ import { signIn } from './session';
 import { expectUnauthorized, listTools, mcpPost, READ_TOOLS, WRITE_TOOLS } from './mcp';
 import {
   AUTHORIZATION_SERVER_PATH,
+  AUTHORIZE_PATH,
+  exchangeCode,
+  MCP_PATH,
+  SCOPES,
+  TOKEN_PATH,
   authorizeQuery,
   codeFrom,
   expect,
@@ -24,9 +29,9 @@ test('names the MCP URL, this deployment as its authorization server and both sc
 
   expect(response.status()).toBe(200);
   const metadata = recordOf(await response.json(), 'the protected resource metadata');
-  expect(metadata['resource']).toBe(`${origin}/mcp`);
+  expect(metadata['resource']).toBe(`${origin}${MCP_PATH}`);
   expect(metadata['authorization_servers']).toEqual([origin]);
-  expect(metadata['scopes_supported']).toEqual(['read', 'write']);
+  expect(metadata['scopes_supported']).toEqual([...SCOPES]);
 });
 
 test('describes the authorization server with code and PKCE S256, no client secret, Client ID Metadata Documents and no registration endpoint', async ({ request, baseURL }) => {
@@ -38,15 +43,15 @@ test('describes the authorization server with code and PKCE S256, no client secr
   const metadata = recordOf(await response.json(), 'the authorization server metadata');
   expect(metadata).toMatchObject({
     issuer: origin,
-    authorization_endpoint: `${origin}/oauth/authorize`,
-    token_endpoint: `${origin}/oauth/token`,
+    authorization_endpoint: `${origin}${AUTHORIZE_PATH}`,
+    token_endpoint: `${origin}${TOKEN_PATH}`,
     response_types_supported: ['code'],
     grant_types_supported: ['authorization_code', 'refresh_token'],
     code_challenge_methods_supported: ['S256'],
     token_endpoint_auth_methods_supported: ['none'],
     client_id_metadata_document_supported: true,
     authorization_response_iss_parameter_supported: true,
-    scopes_supported: ['read', 'write'],
+    scopes_supported: [...SCOPES],
   });
   expect(metadata['registration_endpoint']).toBeUndefined();
 });
@@ -84,16 +89,7 @@ test('connects an MCP client that starts from the MCP URL alone, finding every e
   const code = codeFrom(callback, authorization);
 
   const tokens = await tokensFrom(
-    await request.post(stringAt(server, 'token_endpoint'), {
-      form: {
-        grant_type: 'authorization_code',
-        code,
-        code_verifier: authorization.pkce.verifier,
-        redirect_uri: authorization.redirectUri,
-        client_id: authorization.clientId,
-        resource: authorization.resource,
-      },
-    }),
+    await exchangeCode(request, authorization, code, {}, stringAt(server, 'token_endpoint')),
   );
 
   expect(await listTools(request, tokens.accessToken)).toEqual([...READ_TOOLS, ...WRITE_TOOLS].sort());

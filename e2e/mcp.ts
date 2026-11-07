@@ -1,6 +1,16 @@
 import { randomBytes, randomUUID } from 'node:crypto';
-import { expect, type APIRequestContext, type APIResponse, type Locator, type Page } from '@playwright/test';
-import { MCP_PATH, PROTECTED_RESOURCE_PATH, recordOf, type Scope } from './oauth';
+import { expect, type APIRequestContext, type APIResponse, type Page } from '@playwright/test';
+import {
+  connect,
+  MCP_PATH,
+  PROTECTED_RESOURCE_PATH,
+  recordOf,
+  type AuthorizationOptions,
+  type Connected,
+  type McpClient,
+  type Scope,
+} from './oauth';
+import { BOOKS_OPEN, signIn } from './session';
 
 export const PROTOCOL_VERSION = '2026-07-28';
 
@@ -293,34 +303,25 @@ export function uuidV7Like(): string {
   ].join('-');
 }
 
-const isoDay = (date: Date): string =>
-  [date.getFullYear(), date.getMonth() + 1, date.getDate()]
-    .map((part, index) => String(part).padStart(index === 0 ? 4 : 2, '0'))
-    .join('-');
+export type ConnectedBooks = Connected & {
+  readonly token: string;
+  readonly ids: Readonly<Record<string, string>>;
+  readonly food: string;
+  readonly cash: string;
+  readonly lines: readonly McpLineInput[];
+};
 
-export const todayCandidates = (): readonly string[] => [
-  ...new Set([isoDay(new Date()), new Date().toISOString().slice(0, 10)]),
-];
-
-export const shownOnToday = (label: string): RegExp =>
-  new RegExp(`${label}\\W*(${todayCandidates().join('|')})`, 'i');
-
-export const connectionsSection = (page: Page): Locator =>
-  page.getByRole('region', { name: 'Connections', exact: true });
-
-export const connectionItems = (page: Page, clientName: string): Locator =>
-  page.getByRole('listitem').filter({ hasText: clientName });
-
-export const revokeButton = (scope: Locator): Locator =>
-  scope.getByRole('button', { name: 'Revoke', exact: true });
-
-export const revokeDialog = (page: Page): Locator =>
-  page.getByRole('dialog', { name: 'Revoke connection', exact: true });
-
-export async function revokeConnection(item: Locator): Promise<void> {
-  await revokeButton(item).click();
-  const dialog = revokeDialog(item.page());
-  await expect(dialog).toBeVisible();
-  await revokeButton(dialog).click();
-  await expect(dialog).toBeHidden();
+export async function connectBooks(
+  page: Page,
+  request: APIRequestContext,
+  client: McpClient,
+  options: AuthorizationOptions = {},
+): Promise<ConnectedBooks> {
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
+  const connected = await connect(page, request, client, options);
+  const token = connected.tokens.accessToken;
+  const ids = await accountIds(request, token);
+  const food = idOf(ids, 'Food');
+  const cash = idOf(ids, 'Cash');
+  return { ...connected, token, ids, food, cash, lines: twoLines(food, cash, 12500) };
 }

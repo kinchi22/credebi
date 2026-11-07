@@ -35,6 +35,8 @@ export const SCOPE_SHOWN: Readonly<Record<Scope, RegExp>> = {
   write: /post entries/i,
 };
 
+export const RAW_SCOPE_NAME = /\bwrite\b|\bread\b(?! your books)/i;
+
 export const UNVERIFIED_NAME = /not verified/i;
 
 export const CALLBACK_PATH = '/callback';
@@ -122,12 +124,23 @@ export async function startClient(name = `E2E client ${randomUUID()}`): Promise<
   };
 }
 
-export const test = base.extend<{ client: McpClient }>({
+async function useClient(use: (client: McpClient) => Promise<void>): Promise<void> {
+  const client = await startClient();
+  try {
+    await use(client);
+  } finally {
+    await client.close();
+  }
+}
+
+export const test = base.extend<{ client: McpClient; otherClient: McpClient }>({
   client: async ({ baseURL }, use) => {
     expect(baseURL, 'an MCP client needs the app origin to connect to').toBeDefined();
-    const client = await startClient();
-    await use(client);
-    await client.close();
+    await useClient(use);
+  },
+  otherClient: async ({ baseURL }, use) => {
+    expect(baseURL, 'an MCP client needs the app origin to connect to').toBeDefined();
+    await useClient(use);
   },
 });
 
@@ -249,8 +262,9 @@ export const exchangeCode = (
   authorization: Authorization,
   code: string,
   changes: ParamChanges = {},
+  tokenEndpoint: string = TOKEN_PATH,
 ): Promise<APIResponse> =>
-  request.post(TOKEN_PATH, {
+  request.post(tokenEndpoint, {
     form: Object.fromEntries(
       withChanges(
         {

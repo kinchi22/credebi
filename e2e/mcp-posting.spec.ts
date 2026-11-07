@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import { type APIRequestContext, type Page } from '@playwright/test';
 import {
   deleteListed,
   listedEntry,
@@ -10,42 +9,26 @@ import {
   TWELVE_THOUSAND_FIVE_HUNDRED,
 } from './entries';
 import {
-  accountIds,
+  connectBooks,
   createEntry,
   expectNothingPosted,
   expectToolError,
   idOf,
+  accountIds,
   postEntry,
   searchEntries,
   twoLines,
   uuidV7Like,
+  type ConnectedBooks,
   type McpEntryInput,
-  type McpLineInput,
 } from './mcp';
-import { connect, expect, test, type McpClient } from './oauth';
+import { connect, expect, test } from './oauth';
 import { ENTRIES_URL, UUID_V7 } from './routes';
-import { BOOKS_OPEN, signIn } from './session';
 
 const DAY = '2026-09-15';
 
-type Books = {
-  readonly token: string;
-  readonly food: string;
-  readonly cash: string;
-  readonly lines: readonly McpLineInput[];
-};
-
-async function openBooks(page: Page, request: APIRequestContext, client: McpClient): Promise<Books> {
-  await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  const { tokens } = await connect(page, request, client);
-  const ids = await accountIds(request, tokens.accessToken);
-  const food = idOf(ids, 'Food');
-  const cash = idOf(ids, 'Cash');
-  return { token: tokens.accessToken, food, cash, lines: twoLines(food, cash, 12500) };
-}
-
 test('posts an Entry and returns it exactly as a search reads it', async ({ page, request, client }) => {
-  const { token, food, cash } = await openBooks(page, request, client);
+  const { token, food, cash } = await connectBooks(page, request, client);
   const memo = `Coffee ${randomUUID()}`;
 
   const posted = await postEntry(request, token, {
@@ -73,7 +56,7 @@ test('posts an Entry and returns it exactly as a search reads it', async ({ page
 });
 
 test('posts an Entry of more than two lines, without a Title or memo', async ({ page, request, client }) => {
-  const { token, food, cash } = await openBooks(page, request, client);
+  const { token, food, cash } = await connectBooks(page, request, client);
   const transport = idOf(await accountIds(request, token), 'Transportation');
   const day = '2026-09-17';
 
@@ -92,7 +75,7 @@ test('posts an Entry of more than two lines, without a Title or memo', async ({ 
 });
 
 test('shows an MCP-posted Entry at `/entries` like any other, and lets the User delete it there', async ({ page, request, client }) => {
-  const { token, lines } = await openBooks(page, request, client);
+  const { token, lines } = await connectBooks(page, request, client);
   const memo = `Bakery ${randomUUID()}`;
   await postEntry(request, token, { entryDate: DAY, title: 'Bread', memo, lines });
 
@@ -116,7 +99,7 @@ test('shows an MCP-posted Entry at `/entries` like any other, and lets the User 
 });
 
 test('searches only the corrected Entry once the User corrects an MCP-posted one in the web app, never the Reversal or the Entry it reverses', async ({ page, request, client }) => {
-  const { token, lines } = await openBooks(page, request, client);
+  const { token, lines } = await connectBooks(page, request, client);
   const run = randomUUID();
   const posted = await postEntry(request, token, { entryDate: DAY, memo: `Taxi ${run}`, lines });
   const corrected = `Bus ${run}`;
@@ -137,10 +120,10 @@ test.describe('refuses, posting nothing', () => {
   const refuses = (
     what: string,
     code: string,
-    input: (books: Books, memo: string) => McpEntryInput,
+    input: (books: ConnectedBooks, memo: string) => McpEntryInput,
   ): void => {
     test(`${what} with ${code}`, async ({ page, request, client }) => {
-      const books = await openBooks(page, request, client);
+      const books = await connectBooks(page, request, client);
       const memo = `Refused ${randomUUID()}`;
 
       expectToolError(await createEntry(request, books.token, input(books, memo)), code);
@@ -196,7 +179,7 @@ test.describe('refuses, posting nothing', () => {
   }));
 
   test('a memo too long with MEMO_TOO_LONG', async ({ page, request, client }) => {
-    const books = await openBooks(page, request, client);
+    const books = await connectBooks(page, request, client);
     const run = randomUUID();
     const memo = `${run} ${'m'.repeat(MEMO_MAX)}`;
 
@@ -211,7 +194,7 @@ test.describe('refuses, posting nothing', () => {
 
 test.describe('with a Request key', () => {
   test('answers a repeated post with the Entry the first one posted, and posts nothing more', async ({ page, request, client }) => {
-    const { token, lines } = await openBooks(page, request, client);
+    const { token, lines } = await connectBooks(page, request, client);
     const memo = `Retried ${randomUUID()}`;
     const post: McpEntryInput = { entryDate: DAY, memo, lines, requestKey: randomUUID() };
 
@@ -223,7 +206,7 @@ test.describe('with a Request key', () => {
   });
 
   test('refuses with CONFLICT a key already used for other content', async ({ page, request, client }) => {
-    const { token, food, cash, lines } = await openBooks(page, request, client);
+    const { token, food, cash, lines } = await connectBooks(page, request, client);
     const memo = `Reused ${randomUUID()}`;
     const requestKey = randomUUID();
     const first = await postEntry(request, token, { entryDate: DAY, memo, lines, requestKey });
@@ -242,7 +225,7 @@ test.describe('with a Request key', () => {
   });
 
   test('refuses with CONFLICT a key whose Entry has since been deleted', async ({ page, request, client }) => {
-    const { token, lines } = await openBooks(page, request, client);
+    const { token, lines } = await connectBooks(page, request, client);
     const memo = `Deleted ${randomUUID()}`;
     const post: McpEntryInput = { entryDate: DAY, memo, lines, requestKey: randomUUID() };
     await postEntry(request, token, post);
@@ -256,7 +239,7 @@ test.describe('with a Request key', () => {
   });
 
   test('posts once for the same key sent through two of the User\'s Connections', async ({ page, request, client }) => {
-    const { token, lines } = await openBooks(page, request, client);
+    const { token, lines } = await connectBooks(page, request, client);
     const second = await connect(page, request, client);
     const memo = `Twice ${randomUUID()}`;
     const post: McpEntryInput = { entryDate: DAY, memo, lines, requestKey: randomUUID() };
@@ -269,25 +252,28 @@ test.describe('with a Request key', () => {
   });
 
   test('posts for each User who sends the same key', async ({ page, browser, request, client }) => {
-    const owner = await openBooks(page, request, client);
-    const otherPage = await (await browser.newContext()).newPage();
-    const other = await openBooks(otherPage, request, client);
-    const memo = `Shared key ${randomUUID()}`;
-    const requestKey = randomUUID();
+    const owner = await connectBooks(page, request, client);
+    const otherContext = await browser.newContext();
+    try {
+      const other = await connectBooks(await otherContext.newPage(), request, client);
+      const memo = `Shared key ${randomUUID()}`;
+      const requestKey = randomUUID();
 
-    const owners = await postEntry(request, owner.token, { entryDate: DAY, memo, lines: owner.lines, requestKey });
-    const others = await postEntry(request, other.token, { entryDate: DAY, memo, lines: other.lines, requestKey });
+      const owners = await postEntry(request, owner.token, { entryDate: DAY, memo, lines: owner.lines, requestKey });
+      const others = await postEntry(request, other.token, { entryDate: DAY, memo, lines: other.lines, requestKey });
 
-    expect(others.id).not.toBe(owners.id);
-    expect((await searchEntries(request, owner.token, { memo })).entries).toEqual([owners]);
-    expect((await searchEntries(request, other.token, { memo })).entries).toEqual([others]);
-    await otherPage.context().close();
+      expect(others.id).not.toBe(owners.id);
+      expect((await searchEntries(request, owner.token, { memo })).entries).toEqual([owners]);
+      expect((await searchEntries(request, other.token, { memo })).entries).toEqual([others]);
+    } finally {
+      await otherContext.close();
+    }
   });
 });
 
 test.describe('posts two Entries for two alike posts', () => {
   test('without a Request key', async ({ page, request, client }) => {
-    const { token, lines } = await openBooks(page, request, client);
+    const { token, lines } = await connectBooks(page, request, client);
     const memo = `Two coffees ${randomUUID()}`;
 
     const first = await postEntry(request, token, { entryDate: DAY, memo, lines });
@@ -298,7 +284,7 @@ test.describe('posts two Entries for two alike posts', () => {
   });
 
   test('with different Request keys', async ({ page, request, client }) => {
-    const { token, lines } = await openBooks(page, request, client);
+    const { token, lines } = await connectBooks(page, request, client);
     const memo = `Two keys ${randomUUID()}`;
 
     const first = await postEntry(request, token, { entryDate: DAY, memo, lines, requestKey: randomUUID() });

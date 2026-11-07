@@ -1,12 +1,11 @@
 import { randomUUID } from 'node:crypto';
-import { type APIRequestContext, type Browser, type Page } from '@playwright/test';
 import { ACCOUNT_TYPES, type AccountType } from './entries';
 import { INITIAL_CHART, namesOf } from './initial-chart';
 import {
-  accountIds,
   accountsOf,
   callTool,
   callToolResponse,
+  connectBooks,
   expectInsufficientScope,
   expectToolError,
   expectUnauthorized,
@@ -26,7 +25,7 @@ import {
   type McpChartNode,
   type McpEntry,
 } from './mcp';
-import { connect, expect, originOf, recordOf, test, type McpClient } from './oauth';
+import { connect, expect, originOf, recordOf, test } from './oauth';
 import { ENTRIES_URL, SIGN_IN_URL, UUID_V7 } from './routes';
 import { BOOKS_OPEN, SESSION_COOKIE, signIn } from './session';
 
@@ -48,17 +47,6 @@ const dayAfter = (start: string, days: number): string => {
   date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().slice(0, 10);
 };
-
-async function connectedUser(
-  browser: Browser,
-  request: APIRequestContext,
-  client: McpClient,
-): Promise<{ readonly page: Page; readonly token: string }> {
-  const page = await (await browser.newContext()).newPage();
-  await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  const { tokens } = await connect(page, request, client);
-  return { page, token: tokens.accessToken };
-}
 
 test.describe('lists only the tools a Connection\'s scopes reach', () => {
   test('read', async ({ page, request, client }) => {
@@ -141,13 +129,8 @@ test('lists the User\'s Accounts and Account groups in Chart of accounts order, 
 
 test.describe('searches the User\'s Entries', () => {
   test('by a range of days, an Account, a Title and a memo substring, as the web app does', async ({ page, request, client }) => {
-    await signIn(page, { accountsStartOn: BOOKS_OPEN });
-    const { tokens } = await connect(page, request, client);
-    const token = tokens.accessToken;
+    const { token, ids, food, cash } = await connectBooks(page, request, client);
     const run = randomUUID();
-    const ids = await accountIds(request, token);
-    const food = idOf(ids, 'Food');
-    const cash = idOf(ids, 'Cash');
     const card = idOf(ids, 'Credit card payable');
     const lunch = await postEntry(request, token, {
       entryDate: '2026-09-10',
@@ -172,17 +155,9 @@ test.describe('searches the User\'s Entries', () => {
   });
 
   test('carrying each Entry\'s id, day, Title, memo, lines with Account names, total and creation time', async ({ page, request, client }) => {
-    await signIn(page, { accountsStartOn: BOOKS_OPEN });
-    const { tokens } = await connect(page, request, client);
-    const token = tokens.accessToken;
+    const { token, food, cash, lines } = await connectBooks(page, request, client);
     const memo = `Groceries ${randomUUID()}`;
-    const ids = await accountIds(request, token);
-    await postEntry(request, token, {
-      entryDate: '2026-09-15',
-      title: 'Market',
-      memo,
-      lines: twoLines(idOf(ids, 'Food'), idOf(ids, 'Cash'), 12500),
-    });
+    await postEntry(request, token, { entryDate: '2026-09-15', title: 'Market', memo, lines });
 
     const [found] = (await searchEntries(request, token, { memo })).entries;
 
@@ -192,8 +167,8 @@ test.describe('searches the User\'s Entries', () => {
       memo,
       total: 12500,
       lines: [
-        { account: idOf(ids, 'Food'), accountName: 'Food', side: 'debit', amount: 12500 },
-        { account: idOf(ids, 'Cash'), accountName: 'Cash', side: 'credit', amount: 12500 },
+        { account: food, accountName: 'Food', side: 'debit', amount: 12500 },
+        { account: cash, accountName: 'Cash', side: 'credit', amount: 12500 },
       ],
     });
     expect(found?.id).toMatch(UUID_V7);
@@ -202,12 +177,9 @@ test.describe('searches the User\'s Entries', () => {
 
   test(`returning the ${String(SEARCH_LIMIT)} most recent and saying it truncated when more match`, async ({ page, request, client }) => {
     test.slow();
-    await signIn(page, { accountsStartOn: BOOKS_OPEN });
-    const { tokens } = await connect(page, request, client);
-    const token = tokens.accessToken;
+    const { token, food, cash } = await connectBooks(page, request, client);
     const run = randomUUID();
-    const ids = await accountIds(request, token);
-    const lines = twoLines(idOf(ids, 'Food'), idOf(ids, 'Cash'), 100);
+    const lines = twoLines(food, cash, 100);
     const start = '2026-01-01';
     for (let day = 0; day <= SEARCH_LIMIT; day += 1) {
       await postEntry(request, token, { entryDate: dayAfter(start, day), memo: `Snack ${run}`, lines });
@@ -227,11 +199,7 @@ test.describe('searches the User\'s Entries', () => {
 });
 
 test('reads the User\'s Assets and liabilities on a day', async ({ page, request, client }) => {
-  await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  const { tokens } = await connect(page, request, client);
-  const token = tokens.accessToken;
-  const ids = await accountIds(request, token);
-  const cash = idOf(ids, 'Cash');
+  const { token, ids, food, cash } = await connectBooks(page, request, client);
   await postEntry(request, token, {
     entryDate: '2026-09-15',
     memo: `Opening ${randomUUID()}`,
@@ -240,7 +208,7 @@ test('reads the User\'s Assets and liabilities on a day', async ({ page, request
   await postEntry(request, token, {
     entryDate: '2026-09-16',
     memo: `Lunch ${randomUUID()}`,
-    lines: twoLines(idOf(ids, 'Food'), cash, 12500),
+    lines: twoLines(food, cash, 12500),
   });
 
   const report = recordOf(
@@ -271,16 +239,8 @@ test('reads the User\'s Assets and liabilities on a day', async ({ page, request
 });
 
 test('reads the User\'s Income statement for a range of days', async ({ page, request, client }) => {
-  await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  const { tokens } = await connect(page, request, client);
-  const token = tokens.accessToken;
-  const ids = await accountIds(request, token);
-  const food = idOf(ids, 'Food');
-  await postEntry(request, token, {
-    entryDate: '2026-09-16',
-    memo: `Lunch ${randomUUID()}`,
-    lines: twoLines(food, idOf(ids, 'Cash'), 12500),
-  });
+  const { token, food, lines } = await connectBooks(page, request, client);
+  await postEntry(request, token, { entryDate: '2026-09-16', memo: `Lunch ${randomUUID()}`, lines });
 
   const statement = await toolValue(request, token, 'get_income_statement', {
     from: '2026-09-01',
@@ -344,58 +304,79 @@ test.describe('refuses with INVALID_INPUT, as the web app does', () => {
   });
 });
 
-test('keeps each User\'s Connection to that User\'s books, and answers another User\'s id as one that does not exist', async ({ browser, request, client }) => {
-  const owner = await connectedUser(browser, request, client);
-  const other = await connectedUser(browser, request, client);
-  const run = randomUUID();
-  const ownerIds = await accountIds(request, owner.token);
-  const otherIds = await accountIds(request, other.token);
-  const ownerFood = idOf(ownerIds, 'Food');
-  const unknown = uuidV7Like();
-  const posted: McpEntry = await postEntry(request, owner.token, {
-    entryDate: '2026-09-15',
-    memo: `Private ${run}`,
-    lines: twoLines(ownerFood, idOf(ownerIds, 'Cash'), 12500),
-  });
+test('keeps each User\'s Connection to that User\'s books, and answers another User\'s id as one that does not exist', async ({ page, browser, request, client }) => {
+  const owner = await connectBooks(page, request, client);
+  const otherContext = await browser.newContext();
+  try {
+    const other = await connectBooks(await otherContext.newPage(), request, client);
+    const run = randomUUID();
+    const unknown = uuidV7Like();
+    const posted: McpEntry = await postEntry(request, owner.token, {
+      entryDate: '2026-09-15',
+      memo: `Private ${run}`,
+      lines: owner.lines,
+    });
 
-  expect(Object.values(otherIds)).not.toContain(ownerFood);
-  expect((await searchEntries(request, other.token, { memo: run })).entries).toEqual([]);
-  expect((await searchEntries(request, owner.token, { memo: run })).entries).toEqual([posted]);
+    expect(Object.values(other.ids)).not.toContain(owner.food);
+    expect((await searchEntries(request, owner.token, { memo: run })).entries).toEqual([posted]);
+    expect((await searchEntries(request, other.token, { memo: run })).entries).toEqual([]);
 
-  const asOwnersAccount = await callTool(request, other.token, 'search_entries', { account: ownerFood });
-  const asUnknownAccount = await callTool(request, other.token, 'search_entries', { account: unknown });
-  expectToolError(asOwnersAccount, 'INVALID_INPUT');
-  expect(asOwnersAccount.text.replace(ownerFood, unknown)).toBe(asUnknownAccount.text);
+    const day = { date: '2026-09-15' };
+    const month = { from: '2026-09-01', to: '2026-09-30' };
+    expect(await toolValue(request, owner.token, 'get_assets_and_liabilities', day)).toMatchObject({
+      assets: { total: -12500 },
+    });
+    expect(await toolValue(request, owner.token, 'get_income_statement', month)).toMatchObject({
+      expense: { total: 12500 },
+    });
+    expect(await toolValue(request, other.token, 'get_assets_and_liabilities', day)).toMatchObject({
+      assets: { total: 0 },
+      liabilities: { total: 0 },
+      netWorth: 0,
+    });
+    expect(await toolValue(request, other.token, 'get_income_statement', month)).toMatchObject({
+      revenue: { total: 0 },
+      expense: { total: 0 },
+      netIncome: 0,
+    });
 
-  const postOwners = await callTool(request, other.token, 'create_entry', {
-    entryDate: '2026-09-15',
-    memo: `Intruder ${run}`,
-    lines: twoLines(ownerFood, idOf(otherIds, 'Cash'), 100),
-  });
-  const postUnknown = await callTool(request, other.token, 'create_entry', {
-    entryDate: '2026-09-15',
-    memo: `Intruder ${run}`,
-    lines: twoLines(unknown, idOf(otherIds, 'Cash'), 100),
-  });
-  expectToolError(postOwners, 'INVALID_INPUT');
-  expect(postOwners.text.replace(ownerFood, unknown)).toBe(postUnknown.text);
-  expect((await searchEntries(request, owner.token, { memo: run })).entries).toEqual([posted]);
+    const asOwnersAccount = await callTool(request, other.token, 'search_entries', { account: owner.food });
+    const asUnknownAccount = await callTool(request, other.token, 'search_entries', { account: unknown });
+    expectToolError(asOwnersAccount, 'INVALID_INPUT');
+    expect(asOwnersAccount.text.replace(owner.food, unknown)).toBe(asUnknownAccount.text);
 
-  await owner.page.context().close();
-  await other.page.context().close();
+    const postOwners = await callTool(request, other.token, 'create_entry', {
+      entryDate: '2026-09-15',
+      memo: `Intruder ${run}`,
+      lines: twoLines(owner.food, other.cash, 100),
+    });
+    const postUnknown = await callTool(request, other.token, 'create_entry', {
+      entryDate: '2026-09-15',
+      memo: `Intruder ${run}`,
+      lines: twoLines(unknown, other.cash, 100),
+    });
+    expectToolError(postOwners, 'INVALID_INPUT');
+    expect(postOwners.text.replace(owner.food, unknown)).toBe(postUnknown.text);
+    expect((await searchEntries(request, owner.token, { memo: run })).entries).toEqual([posted]);
+  } finally {
+    await otherContext.close();
+  }
 });
 
 test('never lets an Access token sign a browser in', async ({ page, request, browser, baseURL, client }) => {
   await signIn(page);
   const { tokens } = await connect(page, request, client);
   const visitor = await browser.newContext();
-  await visitor.addCookies([{ name: SESSION_COOKIE, value: tokens.accessToken, url: baseURL ?? '' }]);
-  const visitorPage = await visitor.newPage();
+  try {
+    await visitor.addCookies([{ name: SESSION_COOKIE, value: tokens.accessToken, url: baseURL ?? '' }]);
+    const visitorPage = await visitor.newPage();
 
-  await visitorPage.goto('/entries');
+    await visitorPage.goto('/entries');
 
-  await expect(visitorPage).toHaveURL(SIGN_IN_URL);
-  await visitor.close();
+    await expect(visitorPage).toHaveURL(SIGN_IN_URL);
+  } finally {
+    await visitor.close();
+  }
 });
 
 test('never takes a Session cookie as an Access token', async ({ page, request, context, baseURL }) => {

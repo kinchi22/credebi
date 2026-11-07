@@ -17,6 +17,7 @@ import {
   newAuthorization,
   openConsent,
   originOf,
+  RAW_SCOPE_NAME,
   redirectedTo,
   SCOPE_SHOWN,
   test,
@@ -60,6 +61,7 @@ test('shows the MCP client name as unverified, the host it returns to and what i
   await expect(consent.getByRole('listitem').filter({ hasText: SCOPE_SHOWN.read })).toHaveCount(1);
   await expect(consent.getByRole('listitem').filter({ hasText: SCOPE_SHOWN.write })).toHaveCount(1);
   await expect(denyButton(page)).toBeVisible();
+  await expect(consent.getByRole('listitem').filter({ hasText: RAW_SCOPE_NAME })).toHaveCount(0);
 });
 
 test('lists only the scopes the MCP client asks for', async ({ page, baseURL, client }) => {
