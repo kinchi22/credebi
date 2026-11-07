@@ -16,6 +16,7 @@ export {
   SCOPES,
   TEST_SIGN_IN_FIELDS,
   beganSignInSchema,
+  clientDocumentSchema,
   finishGoogleSignInInputSchema,
   issuedSessionSchema,
   pendingSignInSchema,

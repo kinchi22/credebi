@@ -8,6 +8,12 @@ export const userIdSchema = uuidV7Schema.transform((id): UserId => id as UserId)
 
 export const SCOPES = ['read', 'write'] as const;
 
+export const clientDocumentSchema = z.object({
+  client_id: z.string(),
+  client_name: z.string().min(1).optional(),
+  redirect_uris: z.array(z.url()).min(1),
+});
+
 export const pendingSignInSchema = z.object({
   state: z.string().min(1),
   codeVerifier: z.string().min(1),
