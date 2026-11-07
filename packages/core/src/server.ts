@@ -25,4 +25,11 @@ export { createOpenIdGoogleSignIn } from './auth/adapters/openid-google-sign-in'
 export type { OpenIdGoogleSignInOptions } from './auth/adapters/openid-google-sign-in';
 export { createHttpClientDocuments } from './auth/adapters/http-client-documents';
 export type { HttpClientDocumentsOptions } from './auth/adapters/http-client-documents';
-export { hashSessionToken, newSessionToken } from './auth/adapters/session-token';
+export {
+  hashAuthorizationCode,
+  hashSessionToken,
+  newAuthorizationCode,
+  newSessionToken,
+} from './auth/adapters/opaque-token';
+export { createPostgresAuthorizationCodeRepository } from './auth/adapters/postgres-authorization-code-repository';
+export type { PostgresAuthorizationCodeRepository } from './auth/adapters/postgres-authorization-code-repository';

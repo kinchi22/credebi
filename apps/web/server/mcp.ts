@@ -9,12 +9,7 @@ import {
   type OAuthTokenVerifier,
 } from '@modelcontextprotocol/server';
 import { SCOPES } from '@repo/contracts';
-
-const MCP_PATH = '/mcp';
-
-const AUTHORIZE_PATH = '/oauth/authorize';
-
-const TOKEN_PATH = '/oauth/token';
+import { AUTHORIZE_PATH, MCP_PATH, TOKEN_PATH, requestOrigin } from './oauth';
 
 const SERVER_INFO = { name: 'credebi', version: '1.0.0' };
 
@@ -43,11 +38,7 @@ function discovery(origin: string): AuthMetadataOptions {
 }
 
 function originOf(request: Request): string {
-  const url = new URL(request.url);
-  const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? url.host;
-  const forwardedProtocol = request.headers.get('x-forwarded-proto');
-  const protocol = forwardedProtocol === null ? url.protocol : `${forwardedProtocol}:`;
-  return `${protocol}//${host}`;
+  return requestOrigin(request.headers, new URL(request.url));
 }
 
 export function discoveryResponse(request: Request): Response {

@@ -12,6 +12,9 @@ import {
 import {
   createAddAccount,
   createAddAccountGroup,
+  createApproveAuthorization,
+  createBeginAuthorization,
+  createDenyAuthorization,
   createDeleteAccount,
   createDeleteAccountGroup,
   createBeginGoogleSignIn,
@@ -39,6 +42,9 @@ import {
   createTestSignIn,
   type AddAccount,
   type AddAccountGroup,
+  type ApproveAuthorization,
+  type BeginAuthorization,
+  type DenyAuthorization,
   type DeleteAccount,
   type DeleteAccountGroup,
   type BeginGoogleSignIn,
@@ -67,7 +73,9 @@ import {
   type TestSignIn,
 } from '@repo/core';
 import {
+  createHttpClientDocuments,
   createOpenIdGoogleSignIn,
+  createPostgresAuthorizationCodeRepository,
   createPostgresAccountRepository,
   createPostgresChartViewRepository,
   createPostgresEntryRepository,
@@ -76,7 +84,9 @@ import {
   createPostgresSettingsRepository,
   createPostgresUnitOfWork,
   createPostgresUserRepository,
+  hashAuthorizationCode,
   hashSessionToken,
+  newAuthorizationCode,
   newSessionToken,
 } from '@repo/core/server';
 import { v7 as uuidv7 } from 'uuid';
@@ -114,6 +124,9 @@ export type Container = {
   readonly testSignInOffered: boolean;
   readonly testSignIn: TestSignIn;
   readonly signOut: SignOut;
+  readonly beginAuthorization: BeginAuthorization;
+  readonly approveAuthorization: ApproveAuthorization;
+  readonly denyAuthorization: DenyAuthorization;
 };
 
 const noTestSignIn: TestSignIn = () =>
@@ -142,6 +155,7 @@ export function createContainer({ databaseUrl, google, testSignIn, deployment }:
     now: () => new Date(),
   };
   const googleSignIn = createOpenIdGoogleSignIn(google, logger);
+  const clientDocuments = createHttpClientDocuments({ allowHttpLoopback: testSignIn });
 
   return {
     logger,
@@ -195,6 +209,15 @@ export function createContainer({ databaseUrl, google, testSignIn, deployment }:
     testSignInOffered: testSignIn,
     testSignIn: testSignIn ? createTestSignIn(signIn) : noTestSignIn,
     signOut: createSignOut({ sessions, hashSessionToken }),
+    beginAuthorization: createBeginAuthorization({ clientDocuments }),
+    approveAuthorization: createApproveAuthorization({
+      clientDocuments,
+      codes: createPostgresAuthorizationCodeRepository(databaseUrl, logger),
+      newAuthorizationCode,
+      hashAuthorizationCode,
+      now: () => new Date(),
+    }),
+    denyAuthorization: createDenyAuthorization({ clientDocuments }),
   };
 }
 

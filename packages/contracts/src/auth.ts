@@ -8,6 +8,32 @@ export const userIdSchema = uuidV7Schema.transform((id): UserId => id as UserId)
 
 export const SCOPES = ['read', 'write'] as const;
 
+export const scopeSchema = z.enum(SCOPES);
+
+export type Scope = z.infer<typeof scopeSchema>;
+
+export const authorizationInputSchema = z.object({
+  query: z.string(),
+  origin: z.url(),
+});
+
+export type AuthorizationInput = z.infer<typeof authorizationInputSchema>;
+
+export const authorizationOutcomeSchema = z.discriminatedUnion('outcome', [
+  z.object({
+    outcome: z.literal('consent'),
+    clientName: z.string().min(1),
+    redirectHost: z.string().min(1),
+    scopes: z.array(scopeSchema).min(1),
+  }),
+  z.object({ outcome: z.literal('redirect'), location: z.url() }),
+  z.object({ outcome: z.literal('untrusted') }),
+]);
+
+export type AuthorizationOutcomeOutput = z.infer<typeof authorizationOutcomeSchema>;
+
+export const authorizationRedirectSchema = z.object({ location: z.url() });
+
 export const clientDocumentSchema = z.object({
   client_id: z.string(),
   client_name: z.string().min(1).optional(),
@@ -74,4 +100,32 @@ export function toBeganSignIn(began: {
     authorizationUrl: began.authorizationUrl.href,
     pending: { state: began.pending.state, codeVerifier: began.pending.codeVerifier },
   };
+}
+
+export function toAuthorizationOutcome(
+  outcome:
+    | { readonly kind: 'untrusted' }
+    | { readonly kind: 'redirect'; readonly to: { readonly href: string } }
+    | {
+        readonly kind: 'consent';
+        readonly request: {
+          readonly clientName: string;
+          readonly redirectHost: string;
+          readonly scopes: readonly Scope[];
+        };
+      },
+): AuthorizationOutcomeOutput {
+  switch (outcome.kind) {
+    case 'untrusted':
+      return { outcome: 'untrusted' };
+    case 'redirect':
+      return { outcome: 'redirect', location: outcome.to.href };
+    case 'consent':
+      return {
+        outcome: 'consent',
+        clientName: outcome.request.clientName,
+        redirectHost: outcome.request.redirectHost,
+        scopes: [...outcome.request.scopes],
+      };
+  }
 }

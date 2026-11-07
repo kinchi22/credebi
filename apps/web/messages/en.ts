@@ -81,6 +81,20 @@ export const en = {
     google: 'Sign in with Google',
     failed: 'Signing in did not work. Try again.',
   },
+  consentPage: {
+    title: 'Connect an application',
+    statedName: 'The name it gives itself, not verified by Credebi',
+    returnsTo: 'Sends you back to',
+    asks: 'It asks to',
+    scopes: {
+      read: 'Read your books',
+      write: 'Post Entries to your books',
+    },
+    approve: 'Approve',
+    deny: 'Deny',
+    untrusted:
+      'This connection request cannot be trusted, so nothing was sent back to the application. Close this page and connect again from the application.',
+  },
   testSignIn: {
     title: 'Test sign-in',
     identifier: 'Identifier',
