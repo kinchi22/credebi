@@ -1,16 +1,13 @@
 import { type DomainError, type EntryId, type Result, type UserId } from '@repo/contracts';
 import { type MonthRange, type TrendSums } from '../domain/assets-and-liabilities-trend';
-import { type Entry } from '../domain/entry';
+import { type Entry, type FoundEntry } from '../domain/entry';
 import { type AccountSums } from '../domain/statement';
 import { type TitledEntry } from '../domain/offered-titles';
 import { type Reversal } from '../domain/reversal';
 import { type SearchCriteria } from '../domain/search-criteria';
 import { type OpenDayRange } from '../domain/search-range';
 
-export type FoundEntry = {
-  readonly entry: Entry;
-  readonly reversed: boolean;
-};
+export type { FoundEntry } from '../domain/entry';
 
 export type EntryRepository = {
   readonly save: (userId: UserId, entry: Entry) => Promise<Result<void, DomainError>>;

@@ -100,7 +100,7 @@ function useCases(books: InMemoryEntries = inMemoryEntries()): {
     account(GRACES_CASH, 'asset', 'Cash'),
     account(GRACES_EXPENSES, 'expense', 'Expenses'),
   ]);
-  const postEntry = createPostEntry({ entries: books.entries, accounts, newEntryId, now });
+  const postEntry = createPostEntry({ ...books, accounts, newEntryId, now });
   const searchEntries = createSearchEntries({ entries: books.entries, accounts });
   return {
     rows: books.rows,

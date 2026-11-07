@@ -2,6 +2,7 @@ import {
   domainError,
   err,
   ok,
+  type ConnectionId,
   type DomainError,
   type Result,
   type Scope,
@@ -11,6 +12,7 @@ import {
 export type AuthContext = {
   readonly userId: UserId | undefined;
   readonly scopes?: readonly Scope[];
+  readonly connectionId?: ConnectionId;
 };
 
 export const SIGNED_OUT: AuthContext = { userId: undefined };

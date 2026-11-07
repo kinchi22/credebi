@@ -174,6 +174,7 @@ export function createContainer({ databaseUrl, google, testSignIn, deployment }:
   const clientDocuments = createHttpClientDocuments({ allowHttpLoopback: testSignIn });
   const codes = createPostgresAuthorizationCodeRepository(databaseUrl, logger);
   const connections = createPostgresConnectionRepository(databaseUrl, logger);
+  const unitOfWork = createPostgresUnitOfWork(databaseUrl, logger);
 
   return {
     logger,
@@ -185,6 +186,7 @@ export function createContainer({ databaseUrl, google, testSignIn, deployment }:
     postEntry: createPostEntry({
       entries,
       accounts,
+      unitOfWork,
       newEntryId: () => entryIdSchema.parse(uuidv7()),
       now: () => new Date(),
     }),
@@ -196,7 +198,7 @@ export function createContainer({ databaseUrl, google, testSignIn, deployment }:
     editEntry: createEditEntry({
       entries,
       accounts,
-      unitOfWork: createPostgresUnitOfWork(databaseUrl, logger),
+      unitOfWork,
       newEntryId: () => entryIdSchema.parse(uuidv7()),
       now: () => new Date(),
     }),

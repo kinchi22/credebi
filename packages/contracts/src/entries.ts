@@ -46,9 +46,14 @@ export const postEntryInputSchema = z.object({
 
 export type PostEntryInput = z.infer<typeof postEntryInputSchema>;
 
+export const REQUEST_KEY_MAX_LENGTH = 255;
+
+export const requestKeySchema = z.string().min(1).max(REQUEST_KEY_MAX_LENGTH);
+
 export const createEntryInputSchema = postEntryInputSchema.extend({
   title: z.string().default(''),
   memo: z.string().default(''),
+  requestKey: requestKeySchema.optional(),
 });
 
 export const deleteEntryInputSchema = z.object({

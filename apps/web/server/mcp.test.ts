@@ -4,6 +4,7 @@ import {
   ok,
   type AccountGroupId,
   type AccountId,
+  type ConnectionId,
   type DomainError,
   type EntryId,
   type Money,
@@ -43,6 +44,8 @@ const PROTOCOL_VERSION = '2026-07-28';
 const USER_ID = '01920000-0000-7000-8000-000000000001' as UserId;
 
 const CLIENT_ID = 'https://client.example/client.json';
+
+const CONNECTION_ID = '01920000-0000-7000-8000-0000000000e1' as ConnectionId;
 
 const UNAVAILABLE = domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.');
 
@@ -148,12 +151,17 @@ const GRANTS: Readonly<Record<string, AccessGrant>> = {
   reader: grantFor(['read']),
   writer: grantFor(['write']),
   both: grantFor(['read', 'write']),
+  connected: { ...grantFor(['write']), auth: { userId: USER_ID, scopes: ['write'], connectionId: CONNECTION_ID } },
 };
 
 type Fakes = McpDependencies & {
   readonly charted: AuthContext[];
   readonly asked: { readonly auth: AuthContext; readonly query: unknown }[];
-  readonly drafts: { readonly auth: AuthContext; readonly draft: EntryDraft }[];
+  readonly drafts: {
+    readonly auth: AuthContext;
+    readonly draft: EntryDraft;
+    readonly requestKey?: string | undefined;
+  }[];
 };
 
 function fakes({
@@ -173,7 +181,7 @@ function fakes({
 } = {}): Fakes {
   const charted: AuthContext[] = [];
   const asked: { auth: AuthContext; query: unknown }[] = [];
-  const drafts: { auth: AuthContext; draft: EntryDraft }[] = [];
+  const drafts: { auth: AuthContext; draft: EntryDraft; requestKey?: string | undefined }[] = [];
   return {
     charted,
     asked,
@@ -195,8 +203,8 @@ function fakes({
       asked.push({ auth, query: range });
       return Promise.resolve(statement);
     },
-    postEntry: (auth, draft) => {
-      drafts.push({ auth, draft });
+    postEntry: (auth, draft, requestKey) => {
+      drafts.push({ auth, draft, requestKey });
       return Promise.resolve(posting ?? ok(entryOn(drafts.length)));
     },
   };
@@ -407,7 +415,7 @@ describe('serveMcp', () => {
     expect(await toolNames('both')).toEqual([...READ_TOOLS, 'create_entry']);
   });
 
-  it('describes create_entry as a tool that adds, never destroys, does not repeat safely, and the arguments it takes', async () => {
+  it('describes create_entry as a tool that adds, never destroys, repeats safely only with a Request key, and the arguments it takes', async () => {
     const result = await resultOf(await serving()(mcpCall('writer', 'tools/list')));
 
     const [listed] = result['tools'] as {
@@ -419,13 +427,20 @@ describe('serveMcp', () => {
     expect(listed?.name).toBe('create_entry');
     expect(listed?.description).toMatch(/Posts an Entry/);
     expect(listed?.description).toMatch(/minor units/);
+    expect(listed?.description).toMatch(/requestKey/);
     expect(listed?.annotations).toEqual({
       readOnlyHint: false,
       destructiveHint: false,
       idempotentHint: false,
       openWorldHint: false,
     });
-    expect(Object.keys(listed?.inputSchema.properties ?? {})).toEqual(['entryDate', 'title', 'memo', 'lines']);
+    expect(Object.keys(listed?.inputSchema.properties ?? {})).toEqual([
+      'entryDate',
+      'title',
+      'memo',
+      'lines',
+      'requestKey',
+    ]);
     expect(listed?.inputSchema.required).toEqual(['entryDate', 'lines']);
   });
 
@@ -603,6 +618,33 @@ describe('serveMcp', () => {
     expect(dependencies.drafts.map(({ draft }) => draft)).toEqual([{ entryDate, title: '', memo: '', lines }]);
   });
 
+  it('posts with the Request key it was given, on behalf of the Access token\'s Connection', async () => {
+    const dependencies = fakes();
+
+    await resultOf(
+      await callTool('connected', 'create_entry', dependencies, { ...COFFEE, requestKey: 'coffee-1' }),
+    );
+
+    expect(dependencies.drafts).toEqual([
+      {
+        auth: { userId: USER_ID, scopes: ['write'], connectionId: CONNECTION_ID },
+        draft: COFFEE,
+        requestKey: 'coffee-1',
+      },
+    ]);
+  });
+
+  it('answers a post refused for its Request key as a tool result carrying CONFLICT', async () => {
+    const refused = fakes({ posting: err(domainError('CONFLICT', 'The Request key is used already.')) });
+
+    const result = await resultOf(
+      await callTool('writer', 'create_entry', refused, { ...COFFEE, requestKey: 'coffee-1' }),
+    );
+
+    expect(result['isError']).toBe(true);
+    expect(result['content']).toEqual([{ type: 'text', text: 'CONFLICT: The Request key is used already.' }]);
+  });
+
   it('posts two Entries for two identical posts', async () => {
     const dependencies = fakes();
 
@@ -635,6 +677,7 @@ describe('serveMcp', () => {
     ['an amount that is not a whole number', { ...COFFEE, lines: [{ ...COFFEE.lines[0], amount: 45.5 }, COFFEE.lines[1]] }],
     ['a side that is neither debit nor credit', { ...COFFEE, lines: [{ ...COFFEE.lines[0], side: 'left' }, COFFEE.lines[1]] }],
     ['a Title that is not text', { ...COFFEE, title: 7 }],
+    ['an empty Request key', { ...COFFEE, requestKey: '' }],
   ])('refuses a post with %s as INVALID_INPUT naming create_entry, posting nothing', async (_, args) => {
     const dependencies = fakes();
 
@@ -789,6 +832,14 @@ describe('accessTokenVerifier', () => {
     });
   });
 
+  it('answers the Connection the Access token was issued to', async () => {
+    const verifier = accessTokenVerifier(() => Promise.resolve(ok(GRANTS['connected'])));
+
+    expect(await verifier.verifyAccessToken('the-token')).toMatchObject({
+      extra: { userId: USER_ID, connectionId: CONNECTION_ID },
+    });
+  });
+
   it('answers no scope for an Auth context that carries none', async () => {
     const verifier = accessTokenVerifier(() =>
       Promise.resolve(ok({ ...grantFor([]), auth: { userId: USER_ID } })),
@@ -821,6 +872,28 @@ describe('authContextOf', () => {
     expect(
       authContextOf({ token: 't', clientId: CLIENT_ID, scopes: ['write', 'read'], extra: { userId: USER_ID } }),
     ).toEqual({ userId: USER_ID, scopes: ['write', 'read'] });
+  });
+
+  it('is on behalf of the Connection the verified Access token was issued to', () => {
+    expect(
+      authContextOf({
+        token: 't',
+        clientId: CLIENT_ID,
+        scopes: ['write'],
+        extra: { userId: USER_ID, connectionId: CONNECTION_ID },
+      }),
+    ).toStrictEqual({ userId: USER_ID, connectionId: CONNECTION_ID, scopes: ['write'] });
+  });
+
+  it('is on behalf of no Connection when the token carries something that is not a Connection id', () => {
+    expect(
+      authContextOf({
+        token: 't',
+        clientId: CLIENT_ID,
+        scopes: ['write'],
+        extra: { userId: USER_ID, connectionId: 'phone' },
+      }).connectionId,
+    ).toBeUndefined();
   });
 
   it('keeps only the scopes it knows', () => {

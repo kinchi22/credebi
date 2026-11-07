@@ -18,6 +18,7 @@ import {
   parseIncomeStatementQuery,
   parseSearchQuery,
   createEntryInputSchema,
+  REQUEST_KEY_MAX_LENGTH,
   postEntryInputSchema,
   postedEntrySchema,
   searchCriteriaSchema,
@@ -162,6 +163,24 @@ describe('createEntryInputSchema', () => {
   it('refuses a Title or memo that is not one string', () => {
     expect(createEntryInputSchema.safeParse({ ...input, title: ['Salary'] }).success).toBe(false);
     expect(createEntryInputSchema.safeParse({ ...input, memo: 7 }).success).toBe(false);
+  });
+
+  it('keeps the Request key it is given', () => {
+    const keyed = { ...input, requestKey: 'coffee-2026-09-15' };
+
+    expect(createEntryInputSchema.parse(keyed)).toEqual(keyed);
+  });
+
+  it('keeps a Request key as long as a key may be', () => {
+    const requestKey = 'k'.repeat(REQUEST_KEY_MAX_LENGTH);
+
+    expect(createEntryInputSchema.parse({ ...input, requestKey }).requestKey).toBe(requestKey);
+  });
+
+  it('refuses a Request key that is empty, too long or not one string', () => {
+    for (const requestKey of ['', 'k'.repeat(REQUEST_KEY_MAX_LENGTH + 1), 7, ['key']]) {
+      expect(createEntryInputSchema.safeParse({ ...input, requestKey }).success).toBe(false);
+    }
   });
 });
 
