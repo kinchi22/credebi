@@ -55,7 +55,7 @@ describe('accessTokenLive', () => {
 });
 
 describe('accessGrantOf', () => {
-  it('reaches its Connection\'s User with its Connection\'s scopes alone', () => {
+  it('reaches its Connection\'s User with its Connection\'s scopes alone, on behalf of its Connection', () => {
     const stored: StoredAccessToken = {
       connectionId: CONNECTION_ID,
       userId: USER_ID,
@@ -65,7 +65,7 @@ describe('accessGrantOf', () => {
     };
 
     expect(accessGrantOf(stored)).toEqual({
-      auth: { userId: USER_ID, scopes: ['read'] },
+      auth: { userId: USER_ID, scopes: ['read'], connectionId: CONNECTION_ID },
       clientId: 'https://client.example/client.json',
       expiresAt: accessTokenExpiry(ISSUED_AT),
     });

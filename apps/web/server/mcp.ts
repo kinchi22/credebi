@@ -11,7 +11,7 @@ import {
   type AuthMetadataOptions,
   type OAuthTokenVerifier,
 } from '@modelcontextprotocol/server';
-import { SCOPES, scopeSchema, userIdSchema } from '@repo/contracts';
+import { SCOPES, connectionIdSchema, scopeSchema, userIdSchema } from '@repo/contracts';
 import { type AuthContext, type ResolveAccessToken } from '@repo/core';
 import { z } from 'zod';
 import { registerTools, scopeGranted, toolScope, type ToolDependencies } from './mcp-tools';
@@ -67,7 +67,7 @@ export function accessTokenVerifier(resolveAccessToken: ResolveAccessToken): OAu
         clientId,
         scopes: [...(auth.scopes ?? [])],
         expiresAt: Math.floor(expiresAt.getTime() / 1000),
-        extra: { userId: auth.userId },
+        extra: { userId: auth.userId, connectionId: auth.connectionId },
       };
     },
   };
@@ -75,8 +75,10 @@ export function accessTokenVerifier(resolveAccessToken: ResolveAccessToken): OAu
 
 export function authContextOf(authInfo: AuthInfo | undefined): AuthContext {
   const userId = userIdSchema.safeParse(authInfo?.extra?.['userId']);
+  const connectionId = connectionIdSchema.safeParse(authInfo?.extra?.['connectionId']);
   return {
     userId: userId.success ? userId.data : undefined,
+    ...(connectionId.success ? { connectionId: connectionId.data } : {}),
     scopes: (authInfo?.scopes ?? []).flatMap((scope) => {
       const parsed = scopeSchema.safeParse(scope);
       return parsed.success ? [parsed.data] : [];

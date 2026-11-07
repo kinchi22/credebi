@@ -75,7 +75,7 @@ function books(): {
   hold(ADA_ID, CHART);
   hold(GRACE_ID, CHART);
   const { entries, unitOfWork } = inMemoryEntries();
-  const postEntry = createPostEntry({ entries, accounts, newEntryId, now });
+  const postEntry = createPostEntry({ entries, accounts, unitOfWork, newEntryId, now });
   const editEntry = createEditEntry({ entries, accounts, unitOfWork, newEntryId, now });
   const deleteEntry = createDeleteEntry({ entries, newEntryId, now });
 

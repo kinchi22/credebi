@@ -108,7 +108,7 @@ export function accessTokenLive(token: Pick<StoredAccessToken, 'expiresAt'>, now
 
 export function accessGrantOf(token: StoredAccessToken): AccessGrant {
   return {
-    auth: { userId: token.userId, scopes: token.scopes },
+    auth: { userId: token.userId, scopes: token.scopes, connectionId: token.connectionId },
     clientId: token.clientId,
     expiresAt: token.expiresAt,
   };
