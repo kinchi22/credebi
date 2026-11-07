@@ -109,9 +109,8 @@ export function toAuthorizationOutcome(
     | {
         readonly kind: 'consent';
         readonly request: {
-          readonly clientName: string;
+          readonly approved: { readonly clientName: string; readonly scopes: readonly Scope[] };
           readonly redirectHost: string;
-          readonly scopes: readonly Scope[];
         };
       },
 ): AuthorizationOutcomeOutput {
@@ -123,9 +122,9 @@ export function toAuthorizationOutcome(
     case 'consent':
       return {
         outcome: 'consent',
-        clientName: outcome.request.clientName,
+        clientName: outcome.request.approved.clientName,
         redirectHost: outcome.request.redirectHost,
-        scopes: [...outcome.request.scopes],
+        scopes: [...outcome.request.approved.scopes],
       };
   }
 }

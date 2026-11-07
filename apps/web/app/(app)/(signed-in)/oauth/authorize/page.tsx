@@ -10,7 +10,7 @@ import { BUTTON, PRIMARY_BUTTON } from '../../../../../components/control-classe
 import { DANGER_TEXT, MUTED_TEXT, PAGE_HEADING } from '../../../../../components/text-classes';
 import { createContext } from '../../../../../server/context';
 import { AUTHORIZE_PATH, requestOrigin } from '../../../../../server/oauth';
-import { pathWithQuery, signInPath } from '../../../../../server/return-path';
+import { queryOf, signInPath } from '../../../../../server/return-path';
 import { createCaller } from '../../../../../server/root-router';
 import { approve, deny } from './actions';
 
@@ -26,8 +26,8 @@ type AuthorizePageProps = {
 };
 
 export default async function AuthorizePage({ searchParams }: AuthorizePageProps): Promise<ReactNode> {
-  const path = pathWithQuery(AUTHORIZE_PATH, await searchParams);
-  const query = path.slice(AUTHORIZE_PATH.length);
+  const query = queryOf(await searchParams);
+  const path = `${AUTHORIZE_PATH}${query}`;
   const t = await getTranslations();
   const caller = createCaller(await createContext());
   if (!(await caller.auth.signedIn())) {

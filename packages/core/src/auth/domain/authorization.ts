@@ -18,9 +18,7 @@ export type AuthorizationCodeHash = Brand<string, 'AuthorizationCodeHash'>;
 
 export const AUTHORIZATION_CODE_SECONDS = 60;
 
-export type IssuedAuthorizationCode = {
-  readonly codeHash: AuthorizationCodeHash;
-  readonly userId: UserId;
+export type ApprovedRequest = {
   readonly clientId: string;
   readonly clientName: string;
   readonly redirectUris: readonly string[];
@@ -28,6 +26,11 @@ export type IssuedAuthorizationCode = {
   readonly codeChallenge: string;
   readonly redirectUri: string;
   readonly resource: string;
+};
+
+export type IssuedAuthorizationCode = ApprovedRequest & {
+  readonly codeHash: AuthorizationCodeHash;
+  readonly userId: UserId;
   readonly expiresAt: Date;
 };
 
@@ -79,6 +82,10 @@ export function authorizationParameters(
 
 export function redirectUriListed(listed: readonly string[], requested: string): boolean {
   if (!URL.canParse(requested) || requested.includes('#')) {
+    return false;
+  }
+  const { protocol, hostname } = new URL(requested);
+  if (protocol === 'http:' && !isLoopback(hostname)) {
     return false;
   }
   return listed.some((one) => one === requested || loopbackMatches(one, requested));

@@ -1,4 +1,4 @@
-import { domainError, err, ok, type DomainError, type Result, type Scope } from '@repo/contracts';
+import { domainError, err, ok, type DomainError, type Result } from '@repo/contracts';
 import { requireUser, type AuthContext } from '../domain/auth-context';
 import {
   authorizationCodeExpiry,
@@ -9,21 +9,16 @@ import {
   requestedGrant,
   type AuthorizationCode,
   type AuthorizationCodeHash,
+  type ApprovedRequest,
   type AuthorizationServer,
 } from '../domain/authorization';
 import { type AuthorizationCodeRepository } from '../ports/authorization-code-repository';
 import { type ClientDocuments } from '../ports/client-documents';
 
 export type ConsentRequest = {
-  readonly clientId: string;
-  readonly clientName: string;
-  readonly redirectUris: readonly string[];
-  readonly redirectUri: string;
+  readonly approved: ApprovedRequest;
   readonly redirectHost: string;
   readonly state: string | undefined;
-  readonly scopes: readonly Scope[];
-  readonly codeChallenge: string;
-  readonly resource: string;
 };
 
 export type AuthorizationOutcome =
@@ -54,6 +49,7 @@ export type ApproveAuthorization = (
 ) => Promise<Result<URL, DomainError>>;
 
 export type DenyAuthorization = (
+  auth: AuthContext,
   query: string,
   server: AuthorizationServer,
 ) => Promise<Result<URL, DomainError>>;
@@ -96,11 +92,13 @@ export function createBeginAuthorization({
     return {
       kind: 'consent',
       request: {
-        ...grant.value,
-        clientId,
-        clientName: clientNameOf(document.value),
-        redirectUris: document.value.redirectUris,
-        redirectUri,
+        approved: {
+          ...grant.value,
+          clientId,
+          clientName: clientNameOf(document.value),
+          redirectUris: document.value.redirectUris,
+          redirectUri,
+        },
         redirectHost: new URL(redirectUri).host,
         state: parameters.value.state,
       },
@@ -125,27 +123,21 @@ export function createApproveAuthorization({
     if (outcome.kind !== 'consent') {
       return settled(outcome);
     }
-    const { request } = outcome;
+    const { approved, state } = outcome.request;
     const code = newAuthorizationCode();
     const stored = await codes.add({
+      ...approved,
       codeHash: hashAuthorizationCode(code),
       userId: userId.value,
-      clientId: request.clientId,
-      clientName: request.clientName,
-      redirectUris: request.redirectUris,
-      scopes: request.scopes,
-      codeChallenge: request.codeChallenge,
-      redirectUri: request.redirectUri,
-      resource: request.resource,
       expiresAt: authorizationCodeExpiry(now()),
     });
     if (!stored.ok) {
       return stored;
     }
     return ok(
-      authorizationResponse(request.redirectUri, {
+      authorizationResponse(approved.redirectUri, {
         code,
-        state: request.state,
+        state,
         iss: server.issuer,
       }),
     );
@@ -156,13 +148,17 @@ export function createDenyAuthorization({
   clientDocuments,
 }: BeginAuthorizationDependencies): DenyAuthorization {
   const begin = createBeginAuthorization({ clientDocuments });
-  return async (query, server) => {
+  return async (auth, query, server) => {
+    const userId = requireUser(auth);
+    if (!userId.ok) {
+      return userId;
+    }
     const outcome = await begin(query, server);
     if (outcome.kind !== 'consent') {
       return settled(outcome);
     }
     return ok(
-      authorizationResponse(outcome.request.redirectUri, {
+      authorizationResponse(outcome.request.approved.redirectUri, {
         error: 'access_denied',
         state: outcome.request.state,
         iss: server.issuer,

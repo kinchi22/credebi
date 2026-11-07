@@ -106,7 +106,7 @@ export const ja = {
     asks: '求めている権限',
     scopes: {
       read: '帳簿を読む',
-      write: '帳簿に仕訳を記帳する',
+      write: '仕訳を記帳する',
     },
     approve: '許可',
     deny: '拒否',

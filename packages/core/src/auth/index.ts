@@ -24,6 +24,7 @@ export type { ClientDocument } from './domain/client-document';
 
 export { AUTHORIZATION_CODE_SECONDS } from './domain/authorization';
 export type {
+  ApprovedRequest,
   AuthorizationCode,
   AuthorizationCodeHash,
   AuthorizationServer,

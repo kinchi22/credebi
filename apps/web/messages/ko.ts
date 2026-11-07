@@ -105,7 +105,7 @@ export const ko = {
     asks: '요청하는 권한',
     scopes: {
       read: '장부 읽기',
-      write: '장부에 거래 기록',
+      write: '거래 기록',
     },
     approve: '허용',
     deny: '거부',

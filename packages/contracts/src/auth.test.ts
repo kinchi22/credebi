@@ -154,9 +154,8 @@ describe('toAuthorizationOutcome', () => {
     const outcome = toAuthorizationOutcome({
       kind: 'consent',
       request: {
-        clientName: 'Claude',
+        approved: { clientName: 'Claude', scopes: ['read', 'write'] },
         redirectHost: 'claude.ai',
-        scopes: ['read', 'write'],
       },
     });
 

@@ -87,11 +87,12 @@ export const authRouter = router({
       return { location: result.value.href };
     }),
 
-  denyAuthorization: publicProcedure
+  denyAuthorization: sessionProcedure
     .input(authorizationInputSchema)
     .output(authorizationRedirectSchema)
     .mutation(async ({ ctx, input }) => {
       const result = await ctx.container.denyAuthorization(
+        ctx.auth,
         input.query,
         authorizationServerAt(input.origin),
       );

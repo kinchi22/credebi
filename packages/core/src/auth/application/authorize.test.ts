@@ -112,15 +112,17 @@ describe('createBeginAuthorization', () => {
     expect(await begin(query(), SERVER)).toEqual({
       kind: 'consent',
       request: {
-        clientId: CLIENT_ID,
-        clientName: 'Example client',
-        redirectUris: [REDIRECT],
-        redirectUri: REDIRECT,
+        approved: {
+          clientId: CLIENT_ID,
+          clientName: 'Example client',
+          redirectUris: [REDIRECT],
+          redirectUri: REDIRECT,
+          scopes: ['read', 'write'],
+          codeChallenge: CHALLENGE,
+          resource: SERVER.mcpUrl,
+        },
         redirectHost: 'app.client.example',
         state: 'the-state',
-        scopes: ['read', 'write'],
-        codeChallenge: CHALLENGE,
-        resource: SERVER.mcpUrl,
       },
     });
   });
@@ -140,7 +142,7 @@ describe('createBeginAuthorization', () => {
 
     const outcome = await begin(query(), SERVER);
 
-    expect(outcome.kind === 'consent' && outcome.request.clientName).toBe('client.example');
+    expect(outcome.kind === 'consent' && outcome.request.approved.clientName).toBe('client.example');
   });
 
   it('refuses without redirecting a request whose client document cannot be fetched', async () => {
@@ -310,10 +312,20 @@ describe('createApproveAuthorization', () => {
 });
 
 describe('createDenyAuthorization', () => {
+  it('sends nothing back for a signed-out User', async () => {
+    const clientDocuments = documents();
+    const deny = createDenyAuthorization({ clientDocuments });
+
+    const result = await deny(SIGNED_OUT, query(), SERVER);
+
+    expect(isErr(result) && result.error.code).toBe('UNAUTHENTICATED');
+    expect(clientDocuments.fetched).toEqual([]);
+  });
+
   it('redirects with access_denied, the state and the issuer', async () => {
     const deny = createDenyAuthorization({ clientDocuments: documents() });
 
-    const result = await deny(query(), SERVER);
+    const result = await deny(SIGNED_IN, query(), SERVER);
 
     expect(result.ok && result.value.href).toBe(
       `${REDIRECT}?error=access_denied&state=the-state&iss=https%3A%2F%2Fbooks.example`,
@@ -323,7 +335,7 @@ describe('createDenyAuthorization', () => {
   it('redirects nowhere for a request that cannot be trusted to redirect', async () => {
     const deny = createDenyAuthorization({ clientDocuments: documents(err(UNREACHABLE)) });
 
-    const result = await deny(query(), SERVER);
+    const result = await deny(SIGNED_IN, query(), SERVER);
 
     expect(isErr(result) && result.error).toEqual(UNREACHABLE);
   });
@@ -331,7 +343,7 @@ describe('createDenyAuthorization', () => {
   it('redirects with the refusal for a request it refuses', async () => {
     const deny = createDenyAuthorization({ clientDocuments: documents() });
 
-    const result = await deny(query({ response_type: 'token' }), SERVER);
+    const result = await deny(SIGNED_IN, query({ response_type: 'token' }), SERVER);
 
     expect(result.ok && result.value.searchParams.get('error')).toBe('unsupported_response_type');
   });

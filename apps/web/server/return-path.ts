@@ -56,7 +56,7 @@ const values = (value: SearchQuery[string]): readonly string[] => {
   return typeof value === 'string' ? [value] : value;
 };
 
-export function pathWithQuery(path: string, query: SearchQuery): string {
+export function queryOf(query: SearchQuery): string {
   const parameters = new URLSearchParams();
   for (const [name, value] of Object.entries(query)) {
     for (const one of values(value)) {
@@ -64,7 +64,11 @@ export function pathWithQuery(path: string, query: SearchQuery): string {
     }
   }
   const search = parameters.toString();
-  return search === '' ? path : `${path}?${search}`;
+  return search === '' ? '' : `?${search}`;
+}
+
+export function pathWithQuery(path: string, query: SearchQuery): string {
+  return `${path}${queryOf(query)}`;
 }
 
 export function accountSearchPath(account: AccountId, range: IncomeStatementQuery): string {

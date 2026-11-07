@@ -88,7 +88,7 @@ export const en = {
     asks: 'It asks to',
     scopes: {
       read: 'Read your books',
-      write: 'Post Entries to your books',
+      write: 'Post entries',
     },
     approve: 'Approve',
     deny: 'Deny',

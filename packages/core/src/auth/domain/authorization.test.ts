@@ -120,6 +120,22 @@ describe('redirectUriListed', () => {
     ).toBe(false);
   });
 
+  it('refuses an http redirect to a host that is not loopback, even one listed', () => {
+    expect(
+      redirectUriListed(['http://client.example/callback'], 'http://client.example/callback'),
+    ).toBe(false);
+  });
+
+  it('accepts a listed http loopback redirect on its own port', () => {
+    expect(
+      redirectUriListed(['http://127.0.0.1:3000/callback'], 'http://127.0.0.1:3000/callback'),
+    ).toBe(true);
+  });
+
+  it('accepts a listed redirect with a scheme of its own', () => {
+    expect(redirectUriListed(['com.client.app:/callback'], 'com.client.app:/callback')).toBe(true);
+  });
+
   it('refuses an http redirect on another port to a host that is not loopback', () => {
     expect(
       redirectUriListed(['http://client.example/callback'], 'http://client.example:8080/callback'),
