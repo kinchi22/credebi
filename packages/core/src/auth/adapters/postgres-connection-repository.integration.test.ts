@@ -6,8 +6,11 @@ import { type LogFields, type Logger } from '../../logging/ports/logger';
 import { DEFAULT_SETTINGS } from '../../settings/domain/settings';
 import {
   ACCESS_TOKEN_SECONDS,
+  CONNECTION_IDLE_DAYS,
   accessTokenExpiry,
   accessTokenLive,
+  connectionLapsed,
+  lapseCutoff,
   refreshTokenExpiry,
   type AccessTokenHash,
   type Connection,
@@ -90,6 +93,11 @@ const tokens = (name: string): IssuedTokens => ({
 
 const CONNECTION_A = '01920000-0000-7000-8000-0000000000c1';
 const CONNECTION_B = '01920000-0000-7000-8000-0000000000c2';
+const CONNECTION_C = '01920000-0000-7000-8000-0000000000c3';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const later = (milliseconds: number): Date => new Date(ISSUED_AT.getTime() + milliseconds);
 
 const findRefresh = (name: string) =>
   repository.findRefreshToken(`refresh-${name}` as RefreshTokenHash);
@@ -141,6 +149,7 @@ describe('createPostgresConnectionRepository', () => {
         clientId: 'https://client.example/client.json',
         scopes: ['read'],
         expiresAt: accessTokenExpiry(ISSUED_AT),
+        lastUsedAt: ISSUED_AT,
       },
     });
   });
@@ -150,7 +159,7 @@ describe('createPostgresConnectionRepository', () => {
 
     const found = await find('a');
     const expiresAt = isOk(found) ? found.value?.expiresAt : undefined;
-    const token = { expiresAt: expiresAt ?? new Date(0) };
+    const token = { expiresAt: expiresAt ?? new Date(0), lastUsedAt: ISSUED_AT };
     const hour = ACCESS_TOKEN_SECONDS * 1000;
 
     expect(expiresAt).toEqual(new Date(ISSUED_AT.getTime() + hour));
@@ -221,6 +230,7 @@ describe('createPostgresConnectionRepository', () => {
         expiresAt: refreshTokenExpiry(ISSUED_AT),
         discarded: false,
         successor: undefined,
+        lastUsedAt: ISSUED_AT,
       },
     });
   });
@@ -373,23 +383,111 @@ describe('createPostgresConnectionRepository', () => {
     expect(await findRefresh('bob')).toMatchObject({ value: { connectionId: CONNECTION_B } });
   });
 
+  it('records a use as its Connection\'s last use, seen through its tokens', async () => {
+    await repository.open(connection(CONNECTION_A, ADA.id), tokens('ada'));
+    await repository.open(connection(CONNECTION_B, BOB.id), tokens('bob'));
+    const usedAt = later(DAY_MS);
+
+    expect(await repository.markUsed(CONNECTION_A as ConnectionId, usedAt)).toEqual({
+      ok: true,
+      value: undefined,
+    });
+
+    expect(await find('ada')).toMatchObject({ value: { lastUsedAt: usedAt } });
+    expect(await findRefresh('ada')).toMatchObject({ value: { lastUsedAt: usedAt } });
+    expect(await find('bob')).toMatchObject({ value: { lastUsedAt: ISSUED_AT } });
+  });
+
+  it('records a refresh as its Connection\'s last use', async () => {
+    await repository.open(connection(CONNECTION_A), tokens('a'));
+    const rotatedAt = later(DAY_MS);
+
+    await repository.rotate({ ...rotation('a', 'b'), rotatedAt });
+
+    expect(await find('b')).toMatchObject({ value: { lastUsedAt: rotatedAt } });
+  });
+
+  it('records no use through a refresh that was overtaken', async () => {
+    await repository.open(connection(CONNECTION_A), tokens('a'));
+    await repository.rotate(rotation('a', 'b'));
+    await repository.rotate(rotation('b', 'c'));
+
+    await repository.rotate({ ...rotation('a', 'd', 'b'), rotatedAt: later(DAY_MS) });
+
+    expect(await find('c')).toMatchObject({ value: { lastUsedAt: ISSUED_AT } });
+  });
+
+  it('lists a User\'s Connections, most recently created first, and never another User\'s', async () => {
+    const newer = { ...connection(CONNECTION_B, ADA.id), createdAt: later(1000), lastUsedAt: later(1000) };
+    await repository.open(connection(CONNECTION_A, ADA.id), tokens('a'));
+    await repository.open(newer, tokens('b'));
+    await repository.open(connection(CONNECTION_C, BOB.id), tokens('c'));
+
+    expect(await repository.listOf(ADA.id, lapseCutoff(ISSUED_AT))).toEqual({
+      ok: true,
+      value: [newer, connection(CONNECTION_A, ADA.id)],
+    });
+    expect(await repository.listOf(BOB.id, lapseCutoff(ISSUED_AT))).toEqual({
+      ok: true,
+      value: [connection(CONNECTION_C, BOB.id)],
+    });
+  });
+
+  it('leaves out of the list a Connection unused for 30 days, whose tokens then stop working', async () => {
+    await repository.open(connection(CONNECTION_A), tokens('a'));
+    const idle = CONNECTION_IDLE_DAYS * DAY_MS;
+
+    expect(await repository.listOf(ADA.id, lapseCutoff(later(idle - 1)))).toMatchObject({
+      value: [{ id: CONNECTION_A }],
+    });
+    expect(await repository.listOf(ADA.id, lapseCutoff(later(idle)))).toEqual({ ok: true, value: [] });
+    const found = await find('a');
+    const lastUsedAt = isOk(found) ? found.value?.lastUsedAt : undefined;
+    expect(lastUsedAt !== undefined && connectionLapsed(lastUsedAt, later(idle))).toBe(true);
+  });
+
+  it('revokes a User\'s own Connection, and nothing through another User\'s', async () => {
+    await repository.open(connection(CONNECTION_A, ADA.id), tokens('ada'));
+    await repository.open(connection(CONNECTION_B, BOB.id), tokens('bob'));
+
+    expect(await repository.revokeOf(ADA.id, CONNECTION_B as ConnectionId)).toEqual({
+      ok: true,
+      value: undefined,
+    });
+    expect(await find('bob')).toMatchObject({ value: { userId: BOB.id } });
+
+    expect(await repository.revokeOf(ADA.id, CONNECTION_A as ConnectionId)).toEqual({
+      ok: true,
+      value: undefined,
+    });
+    expect(await find('ada')).toEqual({ ok: true, value: undefined });
+    expect(await findRefresh('ada')).toEqual({ ok: true, value: undefined });
+    expect(await repository.listOf(ADA.id, lapseCutoff(ISSUED_AT))).toEqual({ ok: true, value: [] });
+  });
+
   it('reports an unreachable database as a result, never by throwing, without logging a hash', async () => {
     const opened = await dead.open(connection(CONNECTION_A), tokens('a'));
     const found = await dead.findAccessToken('access-a' as AccessTokenHash);
     const foundRefresh = await dead.findRefreshToken('refresh-a' as RefreshTokenHash);
     const rotated = await dead.rotate(rotation('a', 'b'));
     const revoked = await dead.revoke(CONNECTION_A as ConnectionId);
+    const marked = await dead.markUsed(CONNECTION_A as ConnectionId, ISSUED_AT);
+    const listed = await dead.listOf(ADA.id, ISSUED_AT);
+    const revokedOf = await dead.revokeOf(ADA.id, CONNECTION_A as ConnectionId);
 
     expect(
-      [opened, found, foundRefresh, rotated, revoked].map(
+      [opened, found, foundRefresh, rotated, revoked, marked, listed, revokedOf].map(
         (result) => !result.ok && result.error.code,
       ),
-    ).toEqual(Array.from({ length: 5 }, () => 'DEPENDENCY_UNAVAILABLE'));
+    ).toEqual(Array.from({ length: 8 }, () => 'DEPENDENCY_UNAVAILABLE'));
     expect(logged.map((fields) => fields.event)).toEqual([
       'auth.open_connection_failed',
       'auth.find_access_token_failed',
       'auth.find_refresh_token_failed',
       'auth.rotate_refresh_token_failed',
+      'auth.revoke_connection_failed',
+      'auth.mark_connection_used_failed',
+      'auth.list_connections_failed',
       'auth.revoke_connection_failed',
     ]);
     for (const hash of ['access-a', 'refresh-a', 'refresh-b']) {

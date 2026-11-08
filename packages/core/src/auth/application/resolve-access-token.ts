@@ -28,6 +28,11 @@ export function createResolveAccessToken({
       return found;
     }
     const stored = found.value;
-    return ok(stored !== undefined && accessTokenLive(stored, now()) ? accessGrantOf(stored) : undefined);
+    const usedAt = now();
+    if (stored === undefined || !accessTokenLive(stored, usedAt)) {
+      return ok(undefined);
+    }
+    const marked = await connections.markUsed(stored.connectionId, usedAt);
+    return marked.ok ? ok(accessGrantOf(stored)) : marked;
   };
 }

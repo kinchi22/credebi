@@ -6,11 +6,15 @@ import {
 } from './authorization';
 import {
   ACCESS_TOKEN_SECONDS,
+  CONNECTION_IDLE_DAYS,
   REFRESH_TOKEN_DAYS,
   accessGrantOf,
   accessTokenExpiry,
   accessTokenLive,
   connectionFrom,
+  connectionLapsed,
+  lapseCutoff,
+  redirectHostsOf,
   issuedTokensOf,
   refreshDecision,
   refreshTokenExpiry,
@@ -26,6 +30,8 @@ const CONNECTION_ID = '01920000-0000-7000-8000-0000000000c1' as ConnectionId;
 
 const later = (milliseconds: number): Date => new Date(ISSUED_AT.getTime() + milliseconds);
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 describe('accessTokenExpiry', () => {
   it('is one hour after the Access token is issued', () => {
     expect(ACCESS_TOKEN_SECONDS).toBe(3600);
@@ -40,8 +46,39 @@ describe('refreshTokenExpiry', () => {
   });
 });
 
+describe('lapseCutoff', () => {
+  it('is 30 days before now', () => {
+    expect(CONNECTION_IDLE_DAYS).toBe(30);
+    expect(lapseCutoff(new Date('2026-12-07T00:00:00.000Z'))).toEqual(ISSUED_AT);
+  });
+});
+
+describe('connectionLapsed', () => {
+  it('keeps a Connection used within the last 30 days', () => {
+    expect(connectionLapsed(ISSUED_AT, ISSUED_AT)).toBe(false);
+    expect(connectionLapsed(ISSUED_AT, later(CONNECTION_IDLE_DAYS * DAY_MS - 1))).toBe(false);
+  });
+
+  it('lapses a Connection 30 days after its last use, and from then on', () => {
+    expect(connectionLapsed(ISSUED_AT, later(CONNECTION_IDLE_DAYS * DAY_MS))).toBe(true);
+    expect(connectionLapsed(ISSUED_AT, later(CONNECTION_IDLE_DAYS * DAY_MS + 1))).toBe(true);
+  });
+});
+
+describe('redirectHostsOf', () => {
+  it('names each host the client may be sent back to once, in the order its redirects list them', () => {
+    expect(
+      redirectHostsOf([
+        'https://client.example/callback',
+        'http://127.0.0.1:8123/callback',
+        'https://client.example/other',
+      ]),
+    ).toEqual(['client.example', '127.0.0.1:8123']);
+  });
+});
+
 describe('accessTokenLive', () => {
-  const token = { expiresAt: accessTokenExpiry(ISSUED_AT) };
+  const token = { expiresAt: accessTokenExpiry(ISSUED_AT), lastUsedAt: ISSUED_AT };
 
   it('is live from its issue until just before its hour is up', () => {
     expect(accessTokenLive(token, ISSUED_AT)).toBe(true);
@@ -51,6 +88,13 @@ describe('accessTokenLive', () => {
   it('is refused one hour after it was issued, and from then on', () => {
     expect(accessTokenLive(token, later(ACCESS_TOKEN_SECONDS * 1000))).toBe(false);
     expect(accessTokenLive(token, later(ACCESS_TOKEN_SECONDS * 1000 + 1))).toBe(false);
+  });
+
+  it('is refused once its Connection has lapsed, however long it would otherwise live', () => {
+    const lasting = { expiresAt: later(365 * DAY_MS), lastUsedAt: ISSUED_AT };
+
+    expect(accessTokenLive(lasting, later(CONNECTION_IDLE_DAYS * DAY_MS - 1))).toBe(true);
+    expect(accessTokenLive(lasting, later(CONNECTION_IDLE_DAYS * DAY_MS))).toBe(false);
   });
 });
 
@@ -62,6 +106,7 @@ describe('accessGrantOf', () => {
       clientId: 'https://client.example/client.json',
       scopes: ['read'],
       expiresAt: accessTokenExpiry(ISSUED_AT),
+      lastUsedAt: ISSUED_AT,
     };
 
     expect(accessGrantOf(stored)).toEqual({
@@ -112,6 +157,7 @@ describe('refreshDecision', () => {
     expiresAt: refreshTokenExpiry(ISSUED_AT),
     discarded: false,
     successor: undefined,
+    lastUsedAt: ISSUED_AT,
     ...changes,
   });
   const presented = { clientId: CLIENT_ID };
@@ -174,6 +220,21 @@ describe('refreshDecision', () => {
     expect(refreshDecision(stored(), presented, lastMoment)).toMatchObject({ kind: 'rotate' });
     expect(refreshDecision(stored(), presented, later(thirtyDays))).toEqual({ kind: 'refuse' });
     expect(refreshDecision(stored(), presented, later(thirtyDays + 1))).toEqual({ kind: 'refuse' });
+  });
+
+  it('refuses a refresh token, even a replayed one, once its Connection has lapsed', () => {
+    const lasting = stored({ expiresAt: later(365 * DAY_MS) });
+    const replayed = stored({
+      expiresAt: later(365 * DAY_MS),
+      successor: { tokenHash: SUCCESSOR_HASH, used: true },
+    });
+    const lapsedAt = later(CONNECTION_IDLE_DAYS * DAY_MS);
+
+    expect(refreshDecision(lasting, presented, later(CONNECTION_IDLE_DAYS * DAY_MS - 1))).toMatchObject({
+      kind: 'rotate',
+    });
+    expect(refreshDecision(lasting, presented, lapsedAt)).toEqual({ kind: 'refuse' });
+    expect(refreshDecision(replayed, presented, lapsedAt)).toEqual({ kind: 'refuse' });
   });
 
   it('refuses an expired replaced refresh token without revoking its Connection', () => {

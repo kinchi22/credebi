@@ -32,6 +32,7 @@ const STORED: StoredRefreshToken = {
   expiresAt: new Date('2026-12-01T00:00:00.000Z'),
   discarded: false,
   successor: undefined,
+  lastUsedAt: new Date('2026-11-07T00:00:00.000Z'),
 };
 
 const REPLAYED: StoredRefreshToken = { ...STORED, successor: { tokenHash: 'hash:next' as RefreshTokenHash, used: true } };
@@ -72,6 +73,9 @@ function connectionStore(
       }
       return Promise.resolve(answer);
     },
+    markUsed: () => Promise.resolve(ok(undefined)),
+    listOf: () => Promise.resolve(ok([])),
+    revokeOf: () => Promise.resolve(ok(undefined)),
     revoke: (connectionId) => {
       const answer = answers.revoke ?? ok(undefined);
       if (answer.ok) {

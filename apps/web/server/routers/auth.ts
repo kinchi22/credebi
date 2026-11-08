@@ -3,13 +3,17 @@ import {
   authorizationOutcomeSchema,
   authorizationRedirectSchema,
   beganSignInSchema,
+  connectionOutputSchema,
   finishGoogleSignInInputSchema,
   issuedSessionSchema,
+  revokeConnectionInputSchema,
   testSignInInputSchema,
   toAuthorizationOutcome,
   toBeganSignIn,
+  toConnectionOutput,
   toIssuedSession,
 } from '@repo/contracts';
+import { redirectHostsOf } from '@repo/core';
 import { z } from 'zod';
 import { toTrpcError } from '../domain-error';
 import { authorizationServerAt } from '../oauth';
@@ -100,6 +104,25 @@ export const authRouter = router({
         throw toTrpcError(result.error);
       }
       return { location: result.value.href };
+    }),
+
+  connections: sessionProcedure.output(z.array(connectionOutputSchema)).query(async ({ ctx }) => {
+    const result = await ctx.container.listConnections(ctx.auth);
+    if (!result.ok) {
+      throw toTrpcError(result.error);
+    }
+    return result.value.map((connection) =>
+      toConnectionOutput({ ...connection, redirectHosts: redirectHostsOf(connection.redirectUris) }),
+    );
+  }),
+
+  revokeConnection: sessionProcedure
+    .input(revokeConnectionInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const result = await ctx.container.revokeConnection(ctx.auth, input.id);
+      if (!result.ok) {
+        throw toTrpcError(result.error);
+      }
     }),
 
   signOut: publicProcedure.mutation(async ({ ctx }) => {

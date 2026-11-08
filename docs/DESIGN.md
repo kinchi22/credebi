@@ -552,7 +552,8 @@ numerals.
   a transparent edge as wide as a secondary button's, so the two stand the same
   height side by side. It is kept for the action a confirmation dialog asks
   about when that action takes something away: `Delete` in `Delete entry`,
-  `Delete account` and `Delete group`, and `Discard` in `Discard changes`.
+  `Delete account` and `Delete group`, `Revoke` in `Revoke connection`, and
+  `Discard` in `Discard changes`.
 - **Google sign-in button.** "Sign in with Google" follows Google's sign-in
   branding rather than the primary button: a `surface` fill, `text`, a
   `border-google` edge, 40px tall and as wide as the Sign in card, with Google's
@@ -657,6 +658,15 @@ numerals.
   move is saved or refused, the section holds still: its rows, bands and
   `Show ended accounts` are at 60% opacity, every button, grip and the toggle
   is disabled, nothing can be dragged, and the section is `aria-busy`.
+- **Connections section.** The User's Connections in Settings, below the
+  Language, under its `Connections` heading, semibold in `body-sm`. Its rows
+  sit in one list drawn as a panel, as the Accounts section's do, in `body-sm`,
+  between `border` hairlines, most recently created first. Each row holds the
+  MCP client's name, semibold; its redirect host in the monospace face and
+  `text-muted`; its scopes in the consent page's words; and `Created` and
+  `Last used`, each with its day in the browser's time zone, in `text-muted`.
+  A secondary `Revoke` button ends the row, beside the text from `wide` up and
+  below it otherwise. With no Connection the section says so in `text-muted`.
 - **Entry search form.** After From and To come Account, Title and Memo, in
   that order, then the submit. Account is as wide as a closed select of its
   choices would be, sized by the widest of `Any account` and the Account
@@ -996,6 +1006,10 @@ numerals.
   It is also `Delete account` and `Delete group`, opened by a row's `Delete`
   in the Accounts section, with the Account type in `text-muted` below the
   title and the Account's or group's name, semibold, as the thing.
+  It is also `Revoke connection`, opened by a Connection's `Revoke` in the
+  Connections section, whose thing is the MCP client's name, semibold, over
+  its redirect host, followed by a sentence in `text-muted` saying the
+  application loses access at once; its danger button is `Revoke`.
 - **Edit entry dialog.** `Edit entry`, opened by an Entry's `Edit`, holds the
   entry form filled with the Entry. Below `wide` it is a full-screen modal
   dialog on the `ground`, as the Date presets sheet is: a `surface` bar holds

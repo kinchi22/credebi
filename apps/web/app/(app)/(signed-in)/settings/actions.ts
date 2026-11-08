@@ -9,6 +9,7 @@ import {
   moveChartNodeInputSchema,
   parseAccountForm,
   parseAccountGroupForm,
+  revokeConnectionInputSchema,
   type DomainError,
   type DomainErrorCode,
   type Result,
@@ -16,6 +17,7 @@ import {
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { type ChartChange } from '../../../../components/account-dialog';
+import { type ConnectionRevocation } from '../../../../components/connections-section';
 import { type ChartDeletionOutcome } from '../../../../components/delete-account-dialog';
 import { type SettingChange } from '../../../../components/use-saved-choice';
 import { createContext } from '../../../../server/context';
@@ -154,4 +156,20 @@ export async function moveChartNode(move: unknown): Promise<ChartChange> {
 
   const code = await refusalOf((caller) => caller.accounts.move(input.data));
   return code === undefined ? { outcome: 'saved' } : { outcome: 'rejected', code };
+}
+
+export async function revokeConnection(id: string): Promise<ConnectionRevocation> {
+  const input = revokeConnectionInputSchema.safeParse({ id });
+  if (!input.success) {
+    return { outcome: 'rejected' };
+  }
+
+  try {
+    await createCaller(await createContext()).auth.revokeConnection(input.data);
+  } catch {
+    return { outcome: 'rejected' };
+  }
+
+  revalidatePath(SETTINGS_PATH);
+  return { outcome: 'revoked' };
 }

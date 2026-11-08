@@ -1,4 +1,4 @@
-import { and, eq, isNull, lte } from 'drizzle-orm';
+import { and, desc, eq, gt, isNull, lte } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import {
   ok,
@@ -99,6 +99,7 @@ export function createPostgresConnectionRepository(
             clientId: schema.connections.clientId,
             scopes: schema.connections.scopes,
             expiresAt: schema.accessTokens.expiresAt,
+            lastUsedAt: schema.connections.lastUsedAt,
           })
           .from(schema.accessTokens)
           .innerJoin(schema.connections, eq(schema.connections.id, schema.accessTokens.connectionId))
@@ -136,6 +137,7 @@ export function createPostgresConnectionRepository(
             replacedByHash: schema.refreshTokens.replacedByHash,
             successorReplacedByHash: successors.replacedByHash,
             successorHash: successors.tokenHash,
+            lastUsedAt: schema.connections.lastUsedAt,
           })
           .from(schema.refreshTokens)
           .innerJoin(schema.connections, eq(schema.connections.id, schema.refreshTokens.connectionId))
@@ -152,6 +154,7 @@ export function createPostgresConnectionRepository(
                 expiresAt: row.expiresAt,
                 discarded: row.replacedByHash === tokenHash,
                 successor: successorOf(tokenHash, row),
+                lastUsedAt: row.lastUsedAt,
               },
         );
       } catch (error) {
@@ -207,6 +210,10 @@ export function createPostgresConnectionRepository(
                 lte(schema.refreshTokens.expiresAt, rotatedAt),
               ),
             );
+          await transaction
+            .update(schema.connections)
+            .set({ lastUsedAt: rotatedAt })
+            .where(eq(schema.connections.id, connectionId));
           await transaction.insert(schema.accessTokens).values({
             tokenHash: tokens.accessTokenHash,
             connectionId,
@@ -228,6 +235,72 @@ export function createPostgresConnectionRepository(
           'auth.rotate_refresh_token_failed',
           error,
           'The refresh token could not be rotated.',
+        );
+      }
+    },
+
+    markUsed: async (connectionId: ConnectionId, at: Date): Promise<Result<void, DomainError>> => {
+      try {
+        await database
+          .update(schema.connections)
+          .set({ lastUsedAt: at })
+          .where(eq(schema.connections.id, connectionId));
+        return ok(undefined);
+      } catch (error) {
+        return databaseFailure(
+          logger,
+          'auth.mark_connection_used_failed',
+          error,
+          'The Connection\'s last use could not be recorded.',
+        );
+      }
+    },
+
+    listOf: async (
+      userId: UserId,
+      usedAfter: Date,
+    ): Promise<Result<readonly Connection[], DomainError>> => {
+      try {
+        const rows = await database
+          .select()
+          .from(schema.connections)
+          .where(
+            and(eq(schema.connections.userId, userId), gt(schema.connections.lastUsedAt, usedAfter)),
+          )
+          .orderBy(desc(schema.connections.createdAt), desc(schema.connections.id));
+        return ok(
+          rows.map((row) => ({
+            ...row,
+            id: row.id as ConnectionId,
+            userId: row.userId as UserId,
+            scopes: row.scopes as Scope[],
+          })),
+        );
+      } catch (error) {
+        return databaseFailure(
+          logger,
+          'auth.list_connections_failed',
+          error,
+          'The Connections could not be read.',
+        );
+      }
+    },
+
+    revokeOf: async (
+      userId: UserId,
+      connectionId: ConnectionId,
+    ): Promise<Result<void, DomainError>> => {
+      try {
+        await database
+          .delete(schema.connections)
+          .where(and(eq(schema.connections.id, connectionId), eq(schema.connections.userId, userId)));
+        return ok(undefined);
+      } catch (error) {
+        return databaseFailure(
+          logger,
+          'auth.revoke_connection_failed',
+          error,
+          'The Connection could not be revoked.',
         );
       }
     },

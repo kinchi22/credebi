@@ -19,6 +19,8 @@ export const ACCESS_TOKEN_SECONDS = 60 * 60;
 
 export const REFRESH_TOKEN_DAYS = 30;
 
+export const CONNECTION_IDLE_DAYS = 30;
+
 const SECOND_MS = 1000;
 const DAY_MS = 24 * 60 * 60 * SECOND_MS;
 
@@ -46,6 +48,7 @@ export type StoredAccessToken = {
   readonly clientId: string;
   readonly scopes: readonly Scope[];
   readonly expiresAt: Date;
+  readonly lastUsedAt: Date;
 };
 
 export type AccessGrant = {
@@ -67,6 +70,7 @@ export type StoredRefreshToken = {
   readonly expiresAt: Date;
   readonly discarded: boolean;
   readonly successor: RefreshSuccessor | undefined;
+  readonly lastUsedAt: Date;
 };
 
 export type PresentedRefreshToken = {
@@ -102,8 +106,23 @@ export function refreshTokenExpiry(issuedAt: Date): Date {
   return new Date(issuedAt.getTime() + REFRESH_TOKEN_DAYS * DAY_MS);
 }
 
-export function accessTokenLive(token: Pick<StoredAccessToken, 'expiresAt'>, now: Date): boolean {
-  return now.getTime() < token.expiresAt.getTime();
+export function lapseCutoff(now: Date): Date {
+  return new Date(now.getTime() - CONNECTION_IDLE_DAYS * DAY_MS);
+}
+
+export function connectionLapsed(lastUsedAt: Date, now: Date): boolean {
+  return lastUsedAt.getTime() <= lapseCutoff(now).getTime();
+}
+
+export function redirectHostsOf(redirectUris: readonly string[]): readonly string[] {
+  return [...new Set(redirectUris.map((uri) => new URL(uri).host))];
+}
+
+export function accessTokenLive(
+  token: Pick<StoredAccessToken, 'expiresAt' | 'lastUsedAt'>,
+  now: Date,
+): boolean {
+  return now.getTime() < token.expiresAt.getTime() && !connectionLapsed(token.lastUsedAt, now);
 }
 
 export function accessGrantOf(token: StoredAccessToken): AccessGrant {
@@ -151,6 +170,7 @@ export function refreshDecision(
   if (
     token === undefined ||
     now.getTime() >= token.expiresAt.getTime() ||
+    connectionLapsed(token.lastUsedAt, now) ||
     token.clientId !== presented.clientId
   ) {
     return { kind: 'refuse' };
