@@ -118,7 +118,7 @@ describe('createPostgresConnectionRepository', () => {
 
     expect(
       await database.select().from(schema.connections).where(eq(schema.connections.id, CONNECTION_A)),
-    ).toEqual([connection(CONNECTION_A)]);
+    ).toEqual([{ ...connection(CONNECTION_A), approvedRedirectUri: '' }]);
     expect(await database.select().from(schema.refreshTokens)).toEqual([
       {
         tokenHash: 'refresh-a',
