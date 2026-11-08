@@ -346,16 +346,10 @@ export async function connect(
   client: McpClient,
   options: AuthorizationOptions = {},
 ): Promise<Connected> {
-  const authorization = newAuthorization(client, appOriginOf(page), options);
+  const authorization = newAuthorization(client, base.info().project.use.baseURL, options);
   const code = await authorizationCode(page, authorization);
   const tokens = await tokensFrom(await exchangeCode(request, authorization, code));
   return { authorization, tokens };
-}
-
-export function appOriginOf(page: Page): string {
-  const url = page.url();
-  expect(url.startsWith('http'), 'the page is signed in on the app before connecting').toBe(true);
-  return new URL(url).origin;
 }
 
 export async function closedClient(): Promise<McpClient> {
