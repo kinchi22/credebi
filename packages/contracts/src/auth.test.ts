@@ -20,7 +20,6 @@ import {
   toIssuedSession,
   toTokenResponse,
   userIdSchema,
-  type ConnectionId,
   type UserId,
 } from './auth';
 
@@ -384,9 +383,9 @@ describe('toTokenResponse', () => {
 describe('toConnectionOutput', () => {
   it('carries what the Connections list shows, its instants as ISO strings, and nothing of its client\'s id', () => {
     const output = toConnectionOutput({
-      id: USER_ID as string as ConnectionId,
+      id: connectionIdSchema.parse(USER_ID),
       clientName: 'Claude',
-      redirectHosts: ['claude.ai'],
+      redirectHost: 'claude.ai',
       scopes: ['read', 'write'],
       createdAt: new Date('2026-11-07T00:00:00.000Z'),
       lastUsedAt: new Date('2026-11-08T12:30:00.000Z'),
@@ -395,7 +394,7 @@ describe('toConnectionOutput', () => {
     expect(output).toStrictEqual({
       id: USER_ID,
       clientName: 'Claude',
-      redirectHosts: ['claude.ai'],
+      redirectHost: 'claude.ai',
       scopes: ['read', 'write'],
       createdAt: '2026-11-07T00:00:00.000Z',
       lastUsedAt: '2026-11-08T12:30:00.000Z',

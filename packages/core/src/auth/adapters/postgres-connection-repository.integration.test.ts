@@ -9,7 +9,6 @@ import {
   CONNECTION_IDLE_DAYS,
   accessTokenExpiry,
   accessTokenLive,
-  connectionLapsed,
   lapseCutoff,
   refreshTokenExpiry,
   type AccessTokenHash,
@@ -79,6 +78,7 @@ const connection = (id: string, userId: UserId = ADA.id): Connection => ({
   clientId: 'https://client.example/client.json',
   clientName: 'Example client',
   redirectUris: ['https://client.example/callback', 'http://127.0.0.1/callback'],
+  approvedRedirectUri: 'http://127.0.0.1:8123/callback',
   scopes: ['read'],
   createdAt: ISSUED_AT,
   lastUsedAt: ISSUED_AT,
@@ -126,7 +126,7 @@ describe('createPostgresConnectionRepository', () => {
 
     expect(
       await database.select().from(schema.connections).where(eq(schema.connections.id, CONNECTION_A)),
-    ).toEqual([{ ...connection(CONNECTION_A), approvedRedirectUri: '' }]);
+    ).toEqual([connection(CONNECTION_A)]);
     expect(await database.select().from(schema.refreshTokens)).toEqual([
       {
         tokenHash: 'refresh-a',
@@ -423,46 +423,54 @@ describe('createPostgresConnectionRepository', () => {
     await repository.open(newer, tokens('b'));
     await repository.open(connection(CONNECTION_C, BOB.id), tokens('c'));
 
-    expect(await repository.listOf(ADA.id, lapseCutoff(ISSUED_AT))).toEqual({
+    expect(await repository.listLive(ADA.id, lapseCutoff(ISSUED_AT))).toEqual({
       ok: true,
       value: [newer, connection(CONNECTION_A, ADA.id)],
     });
-    expect(await repository.listOf(BOB.id, lapseCutoff(ISSUED_AT))).toEqual({
+    expect(await repository.listLive(BOB.id, lapseCutoff(ISSUED_AT))).toEqual({
       ok: true,
       value: [connection(CONNECTION_C, BOB.id)],
     });
   });
 
-  it('leaves out of the list a Connection unused for 30 days, whose tokens then stop working', async () => {
-    await repository.open(connection(CONNECTION_A), tokens('a'));
+  it('deletes, as it lists them, a User\'s Connections unused for 30 days, with their tokens, and no other User\'s', async () => {
     const idle = CONNECTION_IDLE_DAYS * DAY_MS;
+    const recent = { ...connection(CONNECTION_B, ADA.id), lastUsedAt: later(1) };
+    await repository.open(connection(CONNECTION_A, ADA.id), tokens('lapsed'));
+    await repository.open(recent, tokens('recent'));
+    await repository.open(connection(CONNECTION_C, BOB.id), tokens('bob'));
 
-    expect(await repository.listOf(ADA.id, lapseCutoff(later(idle - 1)))).toMatchObject({
-      value: [{ id: CONNECTION_A }],
+    expect(await repository.listLive(ADA.id, lapseCutoff(later(idle - 1)))).toMatchObject({
+      value: [{ id: CONNECTION_B }, { id: CONNECTION_A }],
     });
-    expect(await repository.listOf(ADA.id, lapseCutoff(later(idle)))).toEqual({ ok: true, value: [] });
-    const found = await find('a');
-    const lastUsedAt = isOk(found) ? found.value?.lastUsedAt : undefined;
-    expect(lastUsedAt !== undefined && connectionLapsed(lastUsedAt, later(idle))).toBe(true);
+    expect(await repository.listLive(ADA.id, lapseCutoff(later(idle)))).toEqual({
+      ok: true,
+      value: [recent],
+    });
+
+    expect(await find('lapsed')).toEqual({ ok: true, value: undefined });
+    expect(await findRefresh('lapsed')).toEqual({ ok: true, value: undefined });
+    expect(await find('recent')).toMatchObject({ value: { connectionId: CONNECTION_B } });
+    expect(await find('bob')).toMatchObject({ value: { connectionId: CONNECTION_C } });
   });
 
   it('revokes a User\'s own Connection, and nothing through another User\'s', async () => {
     await repository.open(connection(CONNECTION_A, ADA.id), tokens('ada'));
     await repository.open(connection(CONNECTION_B, BOB.id), tokens('bob'));
 
-    expect(await repository.revokeOf(ADA.id, CONNECTION_B as ConnectionId)).toEqual({
+    expect(await repository.revokeOwnedBy(ADA.id, CONNECTION_B as ConnectionId)).toEqual({
       ok: true,
       value: undefined,
     });
     expect(await find('bob')).toMatchObject({ value: { userId: BOB.id } });
 
-    expect(await repository.revokeOf(ADA.id, CONNECTION_A as ConnectionId)).toEqual({
+    expect(await repository.revokeOwnedBy(ADA.id, CONNECTION_A as ConnectionId)).toEqual({
       ok: true,
       value: undefined,
     });
     expect(await find('ada')).toEqual({ ok: true, value: undefined });
     expect(await findRefresh('ada')).toEqual({ ok: true, value: undefined });
-    expect(await repository.listOf(ADA.id, lapseCutoff(ISSUED_AT))).toEqual({ ok: true, value: [] });
+    expect(await repository.listLive(ADA.id, lapseCutoff(ISSUED_AT))).toEqual({ ok: true, value: [] });
   });
 
   it('reports an unreachable database as a result, never by throwing, without logging a hash', async () => {
@@ -472,8 +480,8 @@ describe('createPostgresConnectionRepository', () => {
     const rotated = await dead.rotate(rotation('a', 'b'));
     const revoked = await dead.revoke(CONNECTION_A as ConnectionId);
     const marked = await dead.markUsed(CONNECTION_A as ConnectionId, ISSUED_AT);
-    const listed = await dead.listOf(ADA.id, ISSUED_AT);
-    const revokedOf = await dead.revokeOf(ADA.id, CONNECTION_A as ConnectionId);
+    const listed = await dead.listLive(ADA.id, ISSUED_AT);
+    const revokedOf = await dead.revokeOwnedBy(ADA.id, CONNECTION_A as ConnectionId);
 
     expect(
       [opened, found, foundRefresh, rotated, revoked, marked, listed, revokedOf].map(

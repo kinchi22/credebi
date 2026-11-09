@@ -115,7 +115,7 @@ export {
   createRefreshAccessToken,
   createResolveAccessToken,
   createRevokeConnection,
-  redirectHostsOf,
+  redirectHostOf,
   type Connection,
   type ListConnections,
   type RevokeConnection,

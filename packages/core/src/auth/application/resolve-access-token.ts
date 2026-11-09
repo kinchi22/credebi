@@ -2,6 +2,7 @@ import { ok, type DomainError, type Result } from '@repo/contracts';
 import {
   accessGrantOf,
   accessTokenLive,
+  connectionLapsed,
   type AccessGrant,
   type AccessTokenHash,
 } from '../domain/connection';
@@ -29,7 +30,14 @@ export function createResolveAccessToken({
     }
     const stored = found.value;
     const usedAt = now();
-    if (stored === undefined || !accessTokenLive(stored, usedAt)) {
+    if (stored === undefined) {
+      return ok(undefined);
+    }
+    if (connectionLapsed(stored.lastUsedAt, usedAt)) {
+      const revoked = await connections.revoke(stored.connectionId);
+      return revoked.ok ? ok(undefined) : revoked;
+    }
+    if (!accessTokenLive(stored, usedAt)) {
       return ok(undefined);
     }
     const marked = await connections.markUsed(stored.connectionId, usedAt);

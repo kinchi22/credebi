@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, isNull, lte } from 'drizzle-orm';
+import { and, desc, eq, isNull, lte } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import {
   ok,
@@ -256,18 +256,26 @@ export function createPostgresConnectionRepository(
       }
     },
 
-    listOf: async (
+    listLive: async (
       userId: UserId,
-      usedAfter: Date,
+      lapseCutoff: Date,
     ): Promise<Result<readonly Connection[], DomainError>> => {
       try {
-        const rows = await database
-          .select()
-          .from(schema.connections)
-          .where(
-            and(eq(schema.connections.userId, userId), gt(schema.connections.lastUsedAt, usedAfter)),
-          )
-          .orderBy(desc(schema.connections.createdAt), desc(schema.connections.id));
+        const rows = await database.transaction(async (transaction) => {
+          await transaction
+            .delete(schema.connections)
+            .where(
+              and(
+                eq(schema.connections.userId, userId),
+                lte(schema.connections.lastUsedAt, lapseCutoff),
+              ),
+            );
+          return transaction
+            .select()
+            .from(schema.connections)
+            .where(eq(schema.connections.userId, userId))
+            .orderBy(desc(schema.connections.createdAt), desc(schema.connections.id));
+        });
         return ok(
           rows.map((row) => ({
             ...row,
@@ -286,7 +294,7 @@ export function createPostgresConnectionRepository(
       }
     },
 
-    revokeOf: async (
+    revokeOwnedBy: async (
       userId: UserId,
       connectionId: ConnectionId,
     ): Promise<Result<void, DomainError>> => {

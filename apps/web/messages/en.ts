@@ -132,12 +132,14 @@ export const en = {
   connectionsSection: {
     title: 'Connections',
     empty: 'No application is connected to your books.',
-    created: 'Created {day}',
-    lastUsed: 'Last used {day}',
+    scopes: {
+      read: 'Read your books',
+      write: 'Post entries',
+    },
+    created: 'Created',
+    lastUsed: 'Last used',
     revoke: 'Revoke',
     revokeTitle: 'Revoke connection',
-    revokeExplained:
-      'The application loses access to your books at once. To use it again, connect it again from the application.',
     pending: 'Revoking...',
     cancel: 'Cancel',
     notRevoked: 'The connection could not be revoked just now, so it still works. Try again.',

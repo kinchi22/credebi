@@ -11,7 +11,8 @@ import {
 import { SIGNED_OUT } from '../domain/auth-context';
 import { type Connection } from '../domain/connection';
 import { type ConnectionRepository } from '../ports/connection-repository';
-import { createListConnections, createRevokeConnection } from './manage-connections';
+import { createListConnections } from './list-connections';
+import { createRevokeConnection } from './revoke-connection';
 
 const NOW = new Date('2026-12-07T00:00:00.000Z');
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -29,6 +30,7 @@ const connection = (
   clientId: 'https://client.example/client.json',
   clientName: 'Example client',
   redirectUris: ['https://client.example/callback'],
+  approvedRedirectUri: 'https://client.example/callback',
   scopes: ['read'],
   createdAt: new Date('2026-11-01T00:00:00.000Z'),
   lastUsedAt,
@@ -51,7 +53,7 @@ function store(failures: Failures = {}): ConnectionRepository & { stored: Connec
     findRefreshToken: () => Promise.resolve(ok(undefined)),
     rotate: () => Promise.resolve(ok('overtaken' as const)),
     markUsed: () => Promise.resolve(ok(undefined)),
-    listOf: (userId: UserId, usedAfter: Date): Promise<Result<readonly Connection[], DomainError>> =>
+    listLive: (userId: UserId, usedAfter: Date): Promise<Result<readonly Connection[], DomainError>> =>
       Promise.resolve(
         failures.list === undefined
           ? ok(
@@ -62,7 +64,7 @@ function store(failures: Failures = {}): ConnectionRepository & { stored: Connec
           : err(failures.list),
       ),
     revoke: () => Promise.resolve(ok(undefined)),
-    revokeOf: (userId: UserId, connectionId: ConnectionId): Promise<Result<void, DomainError>> => {
+    revokeOwnedBy: (userId: UserId, connectionId: ConnectionId): Promise<Result<void, DomainError>> => {
       if (failures.revoke !== undefined) {
         return Promise.resolve(err(failures.revoke));
       }

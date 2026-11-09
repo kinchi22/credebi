@@ -14,7 +14,7 @@ import {
   connectionFrom,
   connectionLapsed,
   lapseCutoff,
-  redirectHostsOf,
+  redirectHostOf,
   issuedTokensOf,
   refreshDecision,
   refreshTokenExpiry,
@@ -65,20 +65,19 @@ describe('connectionLapsed', () => {
   });
 });
 
-describe('redirectHostsOf', () => {
-  it('names each host the client may be sent back to once, in the order its redirects list them', () => {
-    expect(
-      redirectHostsOf([
-        'https://client.example/callback',
-        'http://127.0.0.1:8123/callback',
-        'https://client.example/other',
-      ]),
-    ).toEqual(['client.example', '127.0.0.1:8123']);
+describe('redirectHostOf', () => {
+  it('names the host, with its port, of the redirect the User approved', () => {
+    expect(redirectHostOf('https://client.example/callback?x=1')).toBe('client.example');
+    expect(redirectHostOf('http://127.0.0.1:8123/callback')).toBe('127.0.0.1:8123');
+  });
+
+  it('names no host for a Connection with no approved redirect stored', () => {
+    expect(redirectHostOf('')).toBe('');
   });
 });
 
 describe('accessTokenLive', () => {
-  const token = { expiresAt: accessTokenExpiry(ISSUED_AT), lastUsedAt: ISSUED_AT };
+  const token = { expiresAt: accessTokenExpiry(ISSUED_AT) };
 
   it('is live from its issue until just before its hour is up', () => {
     expect(accessTokenLive(token, ISSUED_AT)).toBe(true);
@@ -88,13 +87,6 @@ describe('accessTokenLive', () => {
   it('is refused one hour after it was issued, and from then on', () => {
     expect(accessTokenLive(token, later(ACCESS_TOKEN_SECONDS * 1000))).toBe(false);
     expect(accessTokenLive(token, later(ACCESS_TOKEN_SECONDS * 1000 + 1))).toBe(false);
-  });
-
-  it('is refused once its Connection has lapsed, however long it would otherwise live', () => {
-    const lasting = { expiresAt: later(365 * DAY_MS), lastUsedAt: ISSUED_AT };
-
-    expect(accessTokenLive(lasting, later(CONNECTION_IDLE_DAYS * DAY_MS - 1))).toBe(true);
-    expect(accessTokenLive(lasting, later(CONNECTION_IDLE_DAYS * DAY_MS))).toBe(false);
   });
 });
 
@@ -138,6 +130,7 @@ describe('connectionFrom', () => {
       clientId: 'https://client.example/client.json',
       clientName: 'Example client',
       redirectUris: ['https://client.example/callback'],
+      approvedRedirectUri: 'https://client.example/callback',
       scopes: ['write'],
       createdAt: ISSUED_AT,
       lastUsedAt: ISSUED_AT,
@@ -216,25 +209,26 @@ describe('refreshDecision', () => {
 
   it('refuses a refresh token 30 days after it was issued, and from then on', () => {
     const thirtyDays = REFRESH_TOKEN_DAYS * 24 * 60 * 60 * 1000;
+    const usedSince = stored({ lastUsedAt: later(thirtyDays - 1) });
 
-    expect(refreshDecision(stored(), presented, lastMoment)).toMatchObject({ kind: 'rotate' });
-    expect(refreshDecision(stored(), presented, later(thirtyDays))).toEqual({ kind: 'refuse' });
-    expect(refreshDecision(stored(), presented, later(thirtyDays + 1))).toEqual({ kind: 'refuse' });
+    expect(refreshDecision(usedSince, presented, lastMoment)).toMatchObject({ kind: 'rotate' });
+    expect(refreshDecision(usedSince, presented, later(thirtyDays))).toEqual({ kind: 'refuse' });
+    expect(refreshDecision(usedSince, presented, later(thirtyDays + 1))).toEqual({ kind: 'refuse' });
   });
 
-  it('refuses a refresh token, even a replayed one, once its Connection has lapsed', () => {
+  it('revokes a lapsed Connection when one of its refresh tokens is presented, whoever presents it', () => {
     const lasting = stored({ expiresAt: later(365 * DAY_MS) });
-    const replayed = stored({
-      expiresAt: later(365 * DAY_MS),
-      successor: { tokenHash: SUCCESSOR_HASH, used: true },
-    });
     const lapsedAt = later(CONNECTION_IDLE_DAYS * DAY_MS);
+    const revoked = { kind: 'revoke', connectionId: CONNECTION_ID };
 
     expect(refreshDecision(lasting, presented, later(CONNECTION_IDLE_DAYS * DAY_MS - 1))).toMatchObject({
       kind: 'rotate',
     });
-    expect(refreshDecision(lasting, presented, lapsedAt)).toEqual({ kind: 'refuse' });
-    expect(refreshDecision(replayed, presented, lapsedAt)).toEqual({ kind: 'refuse' });
+    expect(refreshDecision(lasting, presented, lapsedAt)).toEqual(revoked);
+    expect(refreshDecision(stored(), presented, lapsedAt)).toEqual(revoked);
+    expect(
+      refreshDecision(lasting, { clientId: 'https://other.example/client.json' }, lapsedAt),
+    ).toEqual(revoked);
   });
 
   it('refuses an expired replaced refresh token without revoking its Connection', () => {

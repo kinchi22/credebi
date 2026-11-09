@@ -30,6 +30,7 @@ export type Connection = {
   readonly clientId: string;
   readonly clientName: string;
   readonly redirectUris: readonly string[];
+  readonly approvedRedirectUri: string;
   readonly scopes: readonly Scope[];
   readonly createdAt: Date;
   readonly lastUsedAt: Date;
@@ -114,15 +115,12 @@ export function connectionLapsed(lastUsedAt: Date, now: Date): boolean {
   return lastUsedAt.getTime() <= lapseCutoff(now).getTime();
 }
 
-export function redirectHostsOf(redirectUris: readonly string[]): readonly string[] {
-  return [...new Set(redirectUris.map((uri) => new URL(uri).host))];
+export function redirectHostOf(redirectUri: string): string {
+  return URL.canParse(redirectUri) ? new URL(redirectUri).host : '';
 }
 
-export function accessTokenLive(
-  token: Pick<StoredAccessToken, 'expiresAt' | 'lastUsedAt'>,
-  now: Date,
-): boolean {
-  return now.getTime() < token.expiresAt.getTime() && !connectionLapsed(token.lastUsedAt, now);
+export function accessTokenLive(token: Pick<StoredAccessToken, 'expiresAt'>, now: Date): boolean {
+  return now.getTime() < token.expiresAt.getTime();
 }
 
 export function accessGrantOf(token: StoredAccessToken): AccessGrant {
@@ -144,6 +142,7 @@ export function connectionFrom(
     clientId: code.clientId,
     clientName: code.clientName,
     redirectUris: code.redirectUris,
+    approvedRedirectUri: code.redirectUri,
     scopes: code.scopes,
     createdAt: now,
     lastUsedAt: now,
@@ -167,12 +166,13 @@ export function refreshDecision(
   presented: PresentedRefreshToken,
   now: Date,
 ): RefreshDecision {
-  if (
-    token === undefined ||
-    now.getTime() >= token.expiresAt.getTime() ||
-    connectionLapsed(token.lastUsedAt, now) ||
-    token.clientId !== presented.clientId
-  ) {
+  if (token === undefined) {
+    return { kind: 'refuse' };
+  }
+  if (connectionLapsed(token.lastUsedAt, now)) {
+    return { kind: 'revoke', connectionId: token.connectionId };
+  }
+  if (now.getTime() >= token.expiresAt.getTime() || token.clientId !== presented.clientId) {
     return { kind: 'refuse' };
   }
   const { successor } = token;

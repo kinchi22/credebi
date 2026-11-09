@@ -36,7 +36,7 @@ export {
   ACCESS_TOKEN_SECONDS,
   CONNECTION_IDLE_DAYS,
   REFRESH_TOKEN_DAYS,
-  redirectHostsOf,
+  redirectHostOf,
 } from './domain/connection';
 export type {
   AccessGrant,
@@ -70,13 +70,14 @@ export type {
   RefreshGrant,
 } from './application/refresh-access-token';
 
-export { createListConnections, createRevokeConnection } from './application/manage-connections';
+export { createListConnections } from './application/list-connections';
+export type { ListConnections, ListConnectionsDependencies } from './application/list-connections';
+
+export { createRevokeConnection } from './application/revoke-connection';
 export type {
-  ListConnections,
-  ListConnectionsDependencies,
   RevokeConnection,
   RevokeConnectionDependencies,
-} from './application/manage-connections';
+} from './application/revoke-connection';
 
 export { createResolveAccessToken } from './application/resolve-access-token';
 export type {

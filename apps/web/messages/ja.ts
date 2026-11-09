@@ -150,12 +150,14 @@ export const ja = {
   connectionsSection: {
     title: '接続',
     empty: '帳簿に接続しているアプリケーションはありません。',
-    created: '接続日 {day}',
-    lastUsed: '最終利用 {day}',
+    scopes: {
+      read: '帳簿を読む',
+      write: '仕訳を記帳する',
+    },
+    created: '接続日',
+    lastUsed: '最終利用',
     revoke: '接続を解除',
     revokeTitle: '接続を解除',
-    revokeExplained:
-      'このアプリケーションはすぐに帳簿にアクセスできなくなります。再び使うには、アプリケーションからもう一度接続してください。',
     pending: '解除中...',
     cancel: 'キャンセル',
     notRevoked: '接続を解除できなかったため、接続はそのままです。もう一度お試しください。',

@@ -28,12 +28,12 @@ export type ConnectionRepository = {
   ) => Promise<Result<StoredRefreshToken | undefined, DomainError>>;
   readonly rotate: (rotation: RefreshRotation) => Promise<Result<RotationOutcome, DomainError>>;
   readonly markUsed: (connectionId: ConnectionId, at: Date) => Promise<Result<void, DomainError>>;
-  readonly listOf: (
+  readonly listLive: (
     userId: UserId,
-    usedAfter: Date,
+    lapseCutoff: Date,
   ) => Promise<Result<readonly Connection[], DomainError>>;
   readonly revoke: (connectionId: ConnectionId) => Promise<Result<void, DomainError>>;
-  readonly revokeOf: (
+  readonly revokeOwnedBy: (
     userId: UserId,
     connectionId: ConnectionId,
   ) => Promise<Result<void, DomainError>>;

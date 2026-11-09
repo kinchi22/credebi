@@ -149,12 +149,14 @@ export const ko = {
   connectionsSection: {
     title: '연결',
     empty: '장부에 연결된 애플리케이션이 없습니다.',
-    created: '연결한 날 {day}',
-    lastUsed: '마지막 사용 {day}',
+    scopes: {
+      read: '장부 읽기',
+      write: '거래 기록',
+    },
+    created: '연결한 날',
+    lastUsed: '마지막 사용',
     revoke: '연결 해제',
     revokeTitle: '연결 해제',
-    revokeExplained:
-      '이 애플리케이션은 즉시 장부에 접근할 수 없게 됩니다. 다시 쓰려면 애플리케이션에서 다시 연결해 주세요.',
     pending: '해제 중...',
     cancel: '취소',
     notRevoked: '지금은 연결을 해제하지 못해 연결이 그대로 유지됩니다. 다시 시도해 주세요.',

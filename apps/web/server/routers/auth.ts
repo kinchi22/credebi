@@ -13,7 +13,7 @@ import {
   toConnectionOutput,
   toIssuedSession,
 } from '@repo/contracts';
-import { redirectHostsOf } from '@repo/core';
+import { redirectHostOf } from '@repo/core';
 import { z } from 'zod';
 import { toTrpcError } from '../domain-error';
 import { authorizationServerAt } from '../oauth';
@@ -112,7 +112,10 @@ export const authRouter = router({
       throw toTrpcError(result.error);
     }
     return result.value.map((connection) =>
-      toConnectionOutput({ ...connection, redirectHosts: redirectHostsOf(connection.redirectUris) }),
+      toConnectionOutput({
+        ...connection,
+        redirectHost: redirectHostOf(connection.approvedRedirectUri),
+      }),
     );
   }),
 

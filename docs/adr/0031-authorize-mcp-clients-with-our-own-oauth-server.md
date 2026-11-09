@@ -4,6 +4,8 @@
 **Date:** 2026-11-04
 **Amended:** 2026-11-07, PR #670, which makes a discarded successor revoke its
 Connection and has each rotation delete expired refresh tokens
+**Amended:** 2026-11-09, PR #676, which records each MCP call and refresh as
+the Connection's last use and deletes a lapsed Connection when it is met
 
 ## Problem
 
@@ -121,7 +123,12 @@ the server reaching a URL a stranger chose. The mutation score and the
 integration suite judge it as they judge the Session.
 
 Revoking a Connection takes effect on the next request, because every request
-looks its Access token up. That lookup is a database read per tool call.
+looks its Access token up. That lookup is a database read per tool call, and
+recording the call as the Connection's last use is a write per tool call.
+
+A lapsed Connection is deleted, with its tokens, when it is met: when one of
+its tokens is presented, and when its User's Connections are listed. No job
+sweeps them.
 
 A client that supports only Dynamic Client Registration cannot connect. Claude
 and ChatGPT both support CIMD as of this decision.
