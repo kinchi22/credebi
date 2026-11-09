@@ -1,0 +1,1 @@
+ALTER TABLE "connections" ADD COLUMN "approved_redirect_uri" text DEFAULT '' NOT NULL;
