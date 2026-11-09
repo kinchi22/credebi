@@ -1,0 +1,1 @@
+ALTER TABLE "connections" ALTER COLUMN "approved_redirect_uri" DROP DEFAULT;

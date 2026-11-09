@@ -81,6 +81,20 @@ export const en = {
     google: 'Sign in with Google',
     failed: 'Signing in did not work. Try again.',
   },
+  consentPage: {
+    title: 'Connect an application',
+    statedName: 'The name it gives itself, not verified by Credebi',
+    returnsTo: 'Sends you back to',
+    asks: 'It asks to',
+    scopes: {
+      read: 'Read your books',
+      write: 'Post entries',
+    },
+    approve: 'Approve',
+    deny: 'Deny',
+    untrusted:
+      'This connection request cannot be trusted, so nothing was sent back to the application. Close this page and connect again from the application.',
+  },
   testSignIn: {
     title: 'Test sign-in',
     identifier: 'Identifier',
@@ -114,6 +128,21 @@ export const en = {
     },
     notSaved: 'Your choice was not saved, so your Entry form mode is unchanged. Try again.',
     languageNotSaved: 'Your choice was not saved, so your Language is unchanged. Try again.',
+  },
+  connectionsSection: {
+    title: 'Connections',
+    empty: 'No application is connected to your books.',
+    scopes: {
+      read: 'Read your books',
+      write: 'Post entries',
+    },
+    created: 'Created',
+    lastUsed: 'Last used',
+    revoke: 'Revoke',
+    revokeTitle: 'Revoke connection',
+    pending: 'Revoking...',
+    cancel: 'Cancel',
+    notRevoked: 'The connection could not be revoked just now, so it still works. Try again.',
   },
   accountsSection: {
     title: 'Accounts',

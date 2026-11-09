@@ -18,6 +18,10 @@ import {
 import { type Entry } from '../domain/entry';
 import { type AccountSums } from '../domain/statement';
 import { type EntryRepository, type FoundEntry } from '../ports/entry-repository';
+import {
+  type RecordedRequestKey,
+  type RequestKeyRepository,
+} from '../ports/request-key-repository';
 import { type UnitOfWork } from '../ports/unit-of-work';
 
 export type StoredEntry = {
@@ -26,8 +30,13 @@ export type StoredEntry = {
   readonly reverses?: EntryId;
 };
 
+export type StoredRequestKey = RecordedRequestKey & {
+  readonly userId: UserId;
+};
+
 export type InMemoryEntries = {
   readonly rows: readonly StoredEntry[];
+  readonly keys: readonly StoredRequestKey[];
   readonly entries: EntryRepository;
   readonly unitOfWork: UnitOfWork;
 };
@@ -136,17 +145,39 @@ function repositoryOver(rows: StoredEntry[]): EntryRepository {
   };
 }
 
+function requestKeysOver(keys: StoredRequestKey[]): RequestKeyRepository {
+  const held = (userId: UserId, requestKey: string): StoredRequestKey | undefined =>
+    keys.find((key) => key.userId === userId && key.requestKey === requestKey);
+  return {
+    find: (userId, requestKey) => Promise.resolve(ok(held(userId, requestKey)?.entryId)),
+    record: (userId, recorded) => {
+      if (held(userId, recorded.requestKey) !== undefined) {
+        return Promise.resolve(err(domainError('CONFLICT', `Request key "${recorded.requestKey}" is used already.`)));
+      }
+      keys.push({ userId, ...recorded });
+      return Promise.resolve(ok(undefined));
+    },
+  };
+}
+
 export function inMemoryEntries(inTransaction: Partial<EntryRepository> = {}): InMemoryEntries {
   const rows: StoredEntry[] = [];
+  const keys: StoredRequestKey[] = [];
   return {
     rows,
+    keys,
     entries: repositoryOver(rows),
     unitOfWork: {
       run: async (work) => {
         const working = [...rows];
-        const done = await work({ ...repositoryOver(working), ...inTransaction });
+        const workingKeys = [...keys];
+        const done = await work(
+          { ...repositoryOver(working), ...inTransaction },
+          requestKeysOver(workingKeys),
+        );
         if (done.ok) {
           rows.splice(0, rows.length, ...working);
+          keys.splice(0, keys.length, ...workingKeys);
         }
         return done;
       },

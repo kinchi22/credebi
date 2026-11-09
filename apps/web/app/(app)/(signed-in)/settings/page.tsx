@@ -2,6 +2,7 @@ import { type Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { type ReactNode } from 'react';
 import { AccountsSection } from '../../../../components/accounts-section';
+import { ConnectionsSection } from '../../../../components/connections-section';
 import { EntryFormModeChoice } from '../../../../components/entry-form-mode-choice';
 import { LanguageChoice } from '../../../../components/language-choice';
 import { PAGE_HEADING } from '../../../../components/text-classes';
@@ -19,6 +20,7 @@ import {
   editAccount,
   editAccountGroup,
   moveChartNode,
+  revokeConnection,
 } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -31,9 +33,10 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function SettingsPage(): Promise<ReactNode> {
   const t = await getTranslations();
   const caller = createCaller(await createContext());
-  const [settings, chart] = await Promise.all([
+  const [settings, chart, connections] = await Promise.all([
     orSignIn(caller.settings.read(), SETTINGS_PATH),
     orSignIn(caller.accounts.chart(), SETTINGS_PATH),
+    orSignIn(caller.auth.connections(), SETTINGS_PATH),
   ]);
 
   return (
@@ -53,6 +56,7 @@ export default async function SettingsPage(): Promise<ReactNode> {
         }}
       />
       <LanguageChoice chosen={settings.language} action={changeLanguage} />
+      <ConnectionsSection connections={connections} action={revokeConnection} />
     </>
   );
 }

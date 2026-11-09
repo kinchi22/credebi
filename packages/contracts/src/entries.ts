@@ -46,6 +46,16 @@ export const postEntryInputSchema = z.object({
 
 export type PostEntryInput = z.infer<typeof postEntryInputSchema>;
 
+export const REQUEST_KEY_MAX_LENGTH = 255;
+
+export const requestKeySchema = z.string().min(1).max(REQUEST_KEY_MAX_LENGTH);
+
+export const createEntryInputSchema = postEntryInputSchema.extend({
+  title: z.string().default(''),
+  memo: z.string().default(''),
+  requestKey: requestKeySchema.optional(),
+});
+
 export const deleteEntryInputSchema = z.object({
   id: entryIdSchema,
 });
@@ -141,10 +151,11 @@ export type SearchQuery = {
   readonly [name: string]: string | readonly string[] | undefined;
 };
 
-const asked = (value: SearchQuery[string]): SearchQuery[string] =>
-  value === '' ? undefined : value;
+const asked = (value: unknown): unknown => (value === '' ? undefined : value);
 
-export function parseSearchQuery(query: SearchQuery): Result<SearchCriteriaInput, DomainError> {
+export function parseSearchQuery(
+  query: Readonly<Record<string, unknown>>,
+): Result<SearchCriteriaInput, DomainError> {
   const parsed = searchCriteriaSchema.safeParse({
     from: asked(query[SEARCH_CRITERIA_FIELDS.from]),
     to: asked(query[SEARCH_CRITERIA_FIELDS.to]),

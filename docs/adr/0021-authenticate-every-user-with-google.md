@@ -3,6 +3,8 @@
 **Status:** Accepted
 **Date:** 2026-09-18
 **Amended:** 2026-09-24, PR #116
+**Amended:** 2026-11-07, PR #669, which adds the routes of ADR-0031 to those
+that answer anybody
 
 ## Problem
 
@@ -86,9 +88,13 @@ data takes it and checks it at its entry point: the fixed decision in
 `docs/ARCHITECTURE.md`, exercised for the first time. A procedure called without
 a Session answers `UNAUTHORIZED`, 401.
 
-Four things answer anybody: `/`, `/sign-in` -- with the route under it that
+Eight things answer anybody: `/`, `/sign-in` -- with the route under it that
 begins a sign-in with Google, `/sign-in/google` -- the Google callback at
-`/auth/callback/google`, and `health.get` (ADR-0020). `/` is the page a
+`/auth/callback/google`, `health.get` (ADR-0020), and the four MCP routes of
+ADR-0031: `/mcp`, `/.well-known/oauth-protected-resource/mcp`,
+`/.well-known/oauth-authorization-server` and `/oauth/token`. None of those four
+reads the Session cookie, the proxy leaves them alone, and `/mcp` answers a request
+without a live Access token with 401 rather than a redirect. `/` is the page a
 signed-out visitor meets, a welcome page in time, and it sends a signed-in User
 to `/entries`. Every other page sends a request with no Session to `/sign-in`;
 that redirect is a courtesy, and the use case check is the one that holds. After

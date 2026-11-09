@@ -19,3 +19,25 @@ export async function setEntryFormMode(page: Page, mode: EntryFormMode): Promise
   }
   await expect(choice).toBeChecked();
 }
+
+export const connectionsSection = (page: Page): Locator =>
+  page.getByRole('region', { name: 'Connections', exact: true });
+
+export const connectionItems = (page: Page, clientName: string): Locator =>
+  page.getByRole('listitem').filter({ hasText: clientName });
+
+export const shownOn = (label: string, day: string): RegExp => new RegExp(`${label}\\W*${day}`, 'i');
+
+export const revokeButton = (scope: Locator): Locator =>
+  scope.getByRole('button', { name: 'Revoke', exact: true });
+
+export const revokeDialog = (page: Page): Locator =>
+  page.getByRole('dialog', { name: 'Revoke connection', exact: true });
+
+export async function revokeConnection(item: Locator): Promise<void> {
+  await revokeButton(item).click();
+  const dialog = revokeDialog(item.page());
+  await expect(dialog).toBeVisible();
+  await revokeButton(dialog).click();
+  await expect(dialog).toBeHidden();
+}

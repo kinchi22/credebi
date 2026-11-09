@@ -11,16 +11,42 @@ export { moneySchema } from './money';
 
 export { uuidV7Schema } from './id';
 
-export type { BeganSignIn, IssuedSessionOutput, PendingSignInInput, UserId } from './auth';
+export type {
+  AuthorizationInput,
+  AuthorizationOutcomeOutput,
+  BeganSignIn,
+  CodeExchangeInput,
+  ConnectionId,
+  ConnectionOutput,
+  IssuedSessionOutput,
+  PendingSignInInput,
+  Scope,
+  TokenResponse,
+  UserId,
+} from './auth';
 export {
+  SCOPES,
   TEST_SIGN_IN_FIELDS,
+  authorizationInputSchema,
+  authorizationOutcomeSchema,
+  authorizationRedirectSchema,
   beganSignInSchema,
+  clientDocumentSchema,
+  codeExchangeSchema,
+  connectionIdSchema,
+  connectionOutputSchema,
   finishGoogleSignInInputSchema,
   issuedSessionSchema,
   pendingSignInSchema,
+  refreshGrantSchema,
+  revokeConnectionInputSchema,
+  scopeSchema,
   testSignInInputSchema,
+  toAuthorizationOutcome,
   toBeganSignIn,
+  toConnectionOutput,
   toIssuedSession,
+  toTokenResponse,
   userIdSchema,
 } from './auth';
 
@@ -139,6 +165,7 @@ export {
   parseEntryForm,
   parseIncomeStatementQuery,
   parseSearchQuery,
+  createEntryInputSchema,
   postEntryInputSchema,
   postedEntrySchema,
   postedLineSchema,

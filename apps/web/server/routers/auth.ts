@@ -1,13 +1,22 @@
 import {
+  authorizationInputSchema,
+  authorizationOutcomeSchema,
+  authorizationRedirectSchema,
   beganSignInSchema,
+  connectionOutputSchema,
   finishGoogleSignInInputSchema,
   issuedSessionSchema,
+  revokeConnectionInputSchema,
   testSignInInputSchema,
+  toAuthorizationOutcome,
   toBeganSignIn,
+  toConnectionOutput,
   toIssuedSession,
 } from '@repo/contracts';
+import { redirectHostOf } from '@repo/core';
 import { z } from 'zod';
 import { toTrpcError } from '../domain-error';
+import { authorizationServerAt } from '../oauth';
 import { publicProcedure, router, sessionProcedure } from '../trpc';
 
 export const authRouter = router({
@@ -56,6 +65,67 @@ export const authRouter = router({
         throw toTrpcError(result.error);
       }
       return toIssuedSession(result.value);
+    }),
+
+  beginAuthorization: publicProcedure
+    .input(authorizationInputSchema)
+    .output(authorizationOutcomeSchema)
+    .query(async ({ ctx, input }) =>
+      toAuthorizationOutcome(
+        await ctx.container.beginAuthorization(input.query, authorizationServerAt(input.origin)),
+      ),
+    ),
+
+  approveAuthorization: sessionProcedure
+    .input(authorizationInputSchema)
+    .output(authorizationRedirectSchema)
+    .mutation(async ({ ctx, input }) => {
+      const result = await ctx.container.approveAuthorization(
+        ctx.auth,
+        input.query,
+        authorizationServerAt(input.origin),
+      );
+      if (!result.ok) {
+        throw toTrpcError(result.error);
+      }
+      return { location: result.value.href };
+    }),
+
+  denyAuthorization: sessionProcedure
+    .input(authorizationInputSchema)
+    .output(authorizationRedirectSchema)
+    .mutation(async ({ ctx, input }) => {
+      const result = await ctx.container.denyAuthorization(
+        ctx.auth,
+        input.query,
+        authorizationServerAt(input.origin),
+      );
+      if (!result.ok) {
+        throw toTrpcError(result.error);
+      }
+      return { location: result.value.href };
+    }),
+
+  connections: sessionProcedure.output(z.array(connectionOutputSchema)).query(async ({ ctx }) => {
+    const result = await ctx.container.listConnections(ctx.auth);
+    if (!result.ok) {
+      throw toTrpcError(result.error);
+    }
+    return result.value.map((connection) =>
+      toConnectionOutput({
+        ...connection,
+        redirectHost: redirectHostOf(connection.approvedRedirectUri),
+      }),
+    );
+  }),
+
+  revokeConnection: sessionProcedure
+    .input(revokeConnectionInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const result = await ctx.container.revokeConnection(ctx.auth, input.id);
+      if (!result.ok) {
+        throw toTrpcError(result.error);
+      }
     }),
 
   signOut: publicProcedure.mutation(async ({ ctx }) => {

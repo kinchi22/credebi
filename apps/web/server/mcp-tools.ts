@@ -1,0 +1,203 @@
+import {
+  type CallToolResult,
+  type McpServer,
+  type StandardSchemaWithJSON,
+  type ToolAnnotations,
+} from '@modelcontextprotocol/server';
+import {
+  assetsAndLiabilitiesQuerySchema,
+  createEntryInputSchema,
+  domainError,
+  err,
+  incomeStatementQuerySchema,
+  ok,
+  parseSearchQuery,
+  searchCriteriaSchema,
+  toAssetsAndLiabilities,
+  toChart,
+  toIncomeStatement,
+  toPostedEntry,
+  type DomainError,
+  type Result,
+  type Scope,
+} from '@repo/contracts';
+import {
+  type AuthContext,
+  type GetAssetsAndLiabilities,
+  type GetChart,
+  type GetIncomeStatement,
+  type PostEntry,
+  type SearchEntries,
+} from '@repo/core';
+import { z } from 'zod';
+
+export const SEARCH_LIMIT = 100;
+
+export type ToolDependencies = {
+  readonly getChart: GetChart;
+  readonly searchEntries: SearchEntries;
+  readonly getAssetsAndLiabilities: GetAssetsAndLiabilities;
+  readonly getIncomeStatement: GetIncomeStatement;
+  readonly postEntry: PostEntry;
+};
+
+type McpTool = {
+  readonly name: string;
+  readonly scope: Scope;
+  readonly register: (server: McpServer, auth: AuthContext, dependencies: ToolDependencies) => void;
+};
+
+const toolArgumentsSchema = z.record(z.string(), z.unknown());
+
+type ToolArguments = z.output<typeof toolArgumentsSchema>;
+
+function advertised(contract: z.ZodType): StandardSchemaWithJSON<ToolArguments> {
+  return {
+    '~standard': { ...toolArgumentsSchema['~standard'], jsonSchema: contract['~standard'].jsonSchema },
+  };
+}
+
+function parsedBy<Contract extends z.ZodType>(
+  name: string,
+  contract: Contract,
+): (args: ToolArguments) => Result<z.output<Contract>, DomainError> {
+  return (args) => {
+    const parsed = contract.safeParse(args);
+    return parsed.success
+      ? ok(parsed.data)
+      : err(
+          domainError(
+            'INVALID_INPUT',
+            `The arguments of ${name} are malformed: ${z.prettifyError(parsed.error)}`,
+          ),
+        );
+  };
+}
+
+function toolResult<T>(
+  result: Result<T, DomainError>,
+  map: (value: T) => Record<string, unknown>,
+): CallToolResult {
+  if (!result.ok) {
+    return {
+      isError: true,
+      content: [{ type: 'text', text: `${result.error.code}: ${result.error.message}` }],
+    };
+  }
+  const value = map(result.value);
+  return { content: [{ type: 'text', text: JSON.stringify(value) }], structuredContent: value };
+}
+
+function tool<Contract extends z.ZodType>(definition: {
+  readonly name: string;
+  readonly scope: Scope;
+  readonly description: string;
+  readonly inputSchema: Contract;
+  readonly parse?: (args: ToolArguments) => Result<z.output<Contract>, DomainError>;
+  readonly annotations: ToolAnnotations;
+  readonly handle: (
+    auth: AuthContext,
+    dependencies: ToolDependencies,
+    input: z.output<Contract>,
+  ) => Promise<CallToolResult>;
+}): McpTool {
+  const { name, scope, description, inputSchema, annotations, handle } = definition;
+  const parse = definition.parse ?? parsedBy(name, inputSchema);
+  return {
+    name,
+    scope,
+    register: (server, auth, dependencies) => {
+      server.registerTool(
+        name,
+        { description, inputSchema: advertised(inputSchema), annotations },
+        async (args) => {
+          const input = parse(args);
+          return input.ok
+            ? handle(auth, dependencies, input.value)
+            : toolResult(input, () => ({}));
+        },
+      );
+    },
+  };
+}
+
+const MCP_TOOLS: readonly McpTool[] = [
+  tool({
+    name: 'list_accounts',
+    scope: 'read',
+    description:
+      "Lists the User's Chart of accounts in order: each Account, alone or inside its Account group, with its id, name, description, Account type, group and Active period. Use an Account's id to search or post Entries.",
+    inputSchema: z.object({}),
+    annotations: { readOnlyHint: true },
+    handle: async (auth, { getChart }) =>
+      toolResult(await getChart(auth), (chart) => ({ chart: toChart(chart) })),
+  }),
+  tool({
+    name: 'search_entries',
+    scope: 'read',
+    description: `Searches the User's Entries, most recent first. Every criterion is optional: from and to are calendar days (YYYY-MM-DD) bounding the Entry's day inclusively, account is an Account id from list_accounts, title matches the Title exactly and memo is a substring of the memo. Answers at most ${String(SEARCH_LIMIT)} Entries, each with its lines, total and creation time, and truncated is true when more matched: narrow the range of days to see the rest. Reversals and the Entries they reverse never appear.`,
+    inputSchema: searchCriteriaSchema,
+    parse: parseSearchQuery,
+    annotations: { readOnlyHint: true },
+    handle: async (auth, { searchEntries }, criteria) =>
+      toolResult(await searchEntries(auth, criteria), (entries) => ({
+        entries: entries.slice(0, SEARCH_LIMIT).map(toPostedEntry),
+        truncated: entries.length > SEARCH_LIMIT,
+      })),
+  }),
+  tool({
+    name: 'get_assets_and_liabilities',
+    scope: 'read',
+    description:
+      "Reads the User's Assets and liabilities at the end of a calendar day (YYYY-MM-DD): each section's total and its rows in Chart of accounts order, an Account group with its Accounts, and the net worth. Amounts are in minor units.",
+    inputSchema: assetsAndLiabilitiesQuerySchema,
+    annotations: { readOnlyHint: true },
+    handle: async (auth, { getAssetsAndLiabilities }, { date }) =>
+      toolResult(await getAssetsAndLiabilities(auth, date), toAssetsAndLiabilities),
+  }),
+  tool({
+    name: 'get_income_statement',
+    scope: 'read',
+    description:
+      "Reads the User's Income statement for an inclusive range of calendar days, from and to (YYYY-MM-DD): revenue and expense, each with its total and its rows in Chart of accounts order, an Account group with its Accounts, and the net income. Amounts are in minor units.",
+    inputSchema: incomeStatementQuerySchema,
+    annotations: { readOnlyHint: true },
+    handle: async (auth, { getIncomeStatement }, range) =>
+      toolResult(await getIncomeStatement(auth, range), toIncomeStatement),
+  }),
+  tool({
+    name: 'create_entry',
+    scope: 'write',
+    description:
+      "Posts an Entry to the User's books and answers it as search_entries answers one. entryDate is a calendar day (YYYY-MM-DD); title and memo are optional text; lines are two or more, each naming an Account id from list_accounts, a side (debit or credit) and an amount in minor units greater than zero. The debits must equal the credits, and every Account must be active on entryDate. Send a requestKey of your choosing, new for each Entry, to make a retry safe: a call repeating an earlier call's requestKey and content posts nothing and answers the Entry the earlier call posted, and one repeating its requestKey with other content, or after that Entry was deleted or corrected, answers CONFLICT. Without a requestKey every call posts a new Entry, so do not repeat a call that succeeded.",
+    inputSchema: createEntryInputSchema,
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
+    handle: async (auth, { postEntry }, { requestKey, ...draft }) =>
+      toolResult(await postEntry(auth, draft, requestKey), toPostedEntry),
+  }),
+];
+
+export function scopeGranted(granted: readonly string[] | undefined, scope: Scope): boolean {
+  return granted?.includes(scope) === true;
+}
+
+export function toolScope(name: string): Scope | undefined {
+  return MCP_TOOLS.find((candidate) => candidate.name === name)?.scope;
+}
+
+export function registerTools(
+  server: McpServer,
+  auth: AuthContext,
+  dependencies: ToolDependencies,
+): void {
+  for (const { scope, register } of MCP_TOOLS) {
+    if (scopeGranted(auth.scopes, scope)) {
+      register(server, auth, dependencies);
+    }
+  }
+}

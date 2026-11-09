@@ -6,6 +6,124 @@ import { languageSchema, type Language } from './settings';
 export type UserId = Brand<string, 'UserId'>;
 export const userIdSchema = uuidV7Schema.transform((id): UserId => id as UserId);
 
+export const SCOPES = ['read', 'write'] as const;
+
+export const scopeSchema = z.enum(SCOPES);
+
+export type Scope = z.infer<typeof scopeSchema>;
+
+export type ConnectionId = Brand<string, 'ConnectionId'>;
+export const connectionIdSchema = uuidV7Schema.transform((id): ConnectionId => id as ConnectionId);
+
+export const codeExchangeSchema = z
+  .object({
+    grant_type: z.literal('authorization_code'),
+    code: z.string().min(1),
+    code_verifier: z.string().regex(/^[A-Za-z0-9._~-]{43,128}$/),
+    redirect_uri: z.string().min(1),
+    client_id: z.string().min(1),
+    resource: z.string().min(1),
+  })
+  .transform((form) => ({
+    code: form.code,
+    codeVerifier: form.code_verifier,
+    redirectUri: form.redirect_uri,
+    clientId: form.client_id,
+    resource: form.resource,
+  }));
+
+export type CodeExchangeInput = z.output<typeof codeExchangeSchema>;
+
+export const refreshGrantSchema = z
+  .object({
+    grant_type: z.literal('refresh_token'),
+    refresh_token: z.string().min(1),
+    client_id: z.string().min(1),
+  })
+  .transform((form) => ({ refreshToken: form.refresh_token, clientId: form.client_id }));
+
+export type TokenResponse = {
+  readonly access_token: string;
+  readonly token_type: 'Bearer';
+  readonly expires_in: number;
+  readonly refresh_token: string;
+  readonly scope: string;
+};
+
+export function toTokenResponse(granted: {
+  readonly accessToken: string;
+  readonly refreshToken: string;
+  readonly expiresIn: number;
+  readonly scopes: readonly Scope[];
+}): TokenResponse {
+  return {
+    access_token: granted.accessToken,
+    token_type: 'Bearer',
+    expires_in: granted.expiresIn,
+    refresh_token: granted.refreshToken,
+    scope: granted.scopes.join(' '),
+  };
+}
+
+export const authorizationInputSchema = z.object({
+  query: z.string(),
+  origin: z.url(),
+});
+
+export type AuthorizationInput = z.infer<typeof authorizationInputSchema>;
+
+export const authorizationOutcomeSchema = z.discriminatedUnion('outcome', [
+  z.object({
+    outcome: z.literal('consent'),
+    clientName: z.string().min(1),
+    redirectHost: z.string().min(1),
+    scopes: z.array(scopeSchema).min(1),
+  }),
+  z.object({ outcome: z.literal('redirect'), location: z.url() }),
+  z.object({ outcome: z.literal('untrusted') }),
+]);
+
+export type AuthorizationOutcomeOutput = z.infer<typeof authorizationOutcomeSchema>;
+
+export const authorizationRedirectSchema = z.object({ location: z.url() });
+
+export const connectionOutputSchema = z.object({
+  id: connectionIdSchema,
+  clientName: z.string().min(1),
+  redirectHost: z.string(),
+  scopes: z.array(scopeSchema).min(1),
+  createdAt: z.iso.datetime(),
+  lastUsedAt: z.iso.datetime(),
+});
+
+export type ConnectionOutput = z.output<typeof connectionOutputSchema>;
+
+export const revokeConnectionInputSchema = z.object({ id: connectionIdSchema });
+
+export function toConnectionOutput(connection: {
+  readonly id: ConnectionId;
+  readonly clientName: string;
+  readonly redirectHost: string;
+  readonly scopes: readonly Scope[];
+  readonly createdAt: Date;
+  readonly lastUsedAt: Date;
+}): ConnectionOutput {
+  return {
+    id: connection.id,
+    clientName: connection.clientName,
+    redirectHost: connection.redirectHost,
+    scopes: [...connection.scopes],
+    createdAt: connection.createdAt.toISOString(),
+    lastUsedAt: connection.lastUsedAt.toISOString(),
+  };
+}
+
+export const clientDocumentSchema = z.object({
+  client_id: z.string(),
+  client_name: z.string().min(1).optional(),
+  redirect_uris: z.array(z.url()).min(1),
+});
+
 export const pendingSignInSchema = z.object({
   state: z.string().min(1),
   codeVerifier: z.string().min(1),
@@ -66,4 +184,31 @@ export function toBeganSignIn(began: {
     authorizationUrl: began.authorizationUrl.href,
     pending: { state: began.pending.state, codeVerifier: began.pending.codeVerifier },
   };
+}
+
+export function toAuthorizationOutcome(
+  outcome:
+    | { readonly kind: 'untrusted' }
+    | { readonly kind: 'redirect'; readonly to: { readonly href: string } }
+    | {
+        readonly kind: 'consent';
+        readonly request: {
+          readonly approved: { readonly clientName: string; readonly scopes: readonly Scope[] };
+          readonly redirectHost: string;
+        };
+      },
+): AuthorizationOutcomeOutput {
+  switch (outcome.kind) {
+    case 'untrusted':
+      return { outcome: 'untrusted' };
+    case 'redirect':
+      return { outcome: 'redirect', location: outcome.to.href };
+    case 'consent':
+      return {
+        outcome: 'consent',
+        clientName: outcome.request.approved.clientName,
+        redirectHost: outcome.request.redirectHost,
+        scopes: [...outcome.request.approved.scopes],
+      };
+  }
 }

@@ -78,6 +78,27 @@
       "when": 1793258194149,
       "tag": "0010_user_chart_views",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794020117424,
+      "tag": "0011_connections_and_request_keys",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1794139415725,
+      "tag": "0012_connections_approved_redirect_uri",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794208342122,
+      "tag": "0013_connections_approved_redirect_uri_no_default",
+      "breakpoints": true
     }
   ]
 }

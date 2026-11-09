@@ -6,6 +6,7 @@ import {
   isOk,
   ok,
   type AccountId,
+  type ConnectionId,
   type DomainError,
   type EntryId,
   type Money,
@@ -19,6 +20,10 @@ import { SIGNED_OUT, type AuthContext } from '../../auth/domain/auth-context';
 import { type Entry, type EntryDraft } from '../domain/entry';
 import { NO_CRITERIA } from '../domain/search-criteria';
 import { type EntryRepository } from '../ports/entry-repository';
+import { type RequestKeyRepository } from '../ports/request-key-repository';
+import { type UnitOfWork } from '../ports/unit-of-work';
+import { createDeleteEntry } from './delete-entry';
+import { inMemoryEntries as inMemoryBooks, type InMemoryEntries } from './in-memory-entries';
 import { createSearchEntries, type SearchEntries } from './search-entries';
 import { createPostEntry, type PostEntry } from './post-entry';
 
@@ -106,6 +111,7 @@ function useCases(
     postEntry: createPostEntry({
       entries,
       accounts,
+      unitOfWork: inMemoryBooks().unitOfWork,
       newEntryId: () => ENTRY_ID,
       now: () => CREATED_AT,
     }),
@@ -226,5 +232,240 @@ describe('createPostEntry', () => {
 
     expect(isErr(posted) && posted.error.code).toBe('UNAUTHENTICATED');
     expect(await searchEntries(ADA, NO_CRITERIA)).toEqual(ok([]));
+  });
+});
+
+const PHONE = '01920000-0000-7000-8000-0000000000e1' as ConnectionId;
+const LAPTOP = '01920000-0000-7000-8000-0000000000e2' as ConnectionId;
+const ADA_ON_PHONE: AuthContext = { userId: ADA_ID, scopes: ['write'], connectionId: PHONE };
+const ADA_ON_LAPTOP: AuthContext = { userId: ADA_ID, scopes: ['write'], connectionId: LAPTOP };
+const GRACE_ON_PHONE: AuthContext = { userId: GRACE_ID, scopes: ['write'], connectionId: PHONE };
+
+const KEY = 'coffee-2026-09-15';
+
+const GRACES_DRAFT: EntryDraft = {
+  ...draft(12500, 12500),
+  lines: [
+    { account: GRACES_EXPENSES, side: 'debit', amount: 12500 as Money },
+    { account: GRACES_CASH, side: 'credit', amount: 12500 as Money },
+  ],
+};
+
+function keyedUseCases(
+  books: InMemoryEntries = inMemoryBooks(),
+  unitOfWork: UnitOfWork = books.unitOfWork,
+): {
+  readonly books: InMemoryEntries;
+  readonly postEntry: PostEntry;
+  readonly deleteEntry: ReturnType<typeof createDeleteEntry>;
+  readonly visible: (auth: AuthContext) => Promise<readonly Entry[]>;
+} {
+  let sequence = 0;
+  const newEntryId = (): EntryId => {
+    sequence += 1;
+    return `01920000-0000-7000-8000-${sequence.toString().padStart(12, '0')}` as EntryId;
+  };
+  const accounts = charts();
+  const searchEntries = createSearchEntries({ entries: books.entries, accounts });
+  return {
+    books,
+    postEntry: createPostEntry({
+      entries: books.entries,
+      accounts,
+      unitOfWork,
+      newEntryId,
+      now: () => CREATED_AT,
+    }),
+    deleteEntry: createDeleteEntry({ entries: books.entries, newEntryId, now: () => CREATED_AT }),
+    visible: async (auth) => {
+      const found = await searchEntries(auth, NO_CRITERIA);
+      return isOk(found) ? found.value : [];
+    },
+  };
+}
+
+function posted(result: Result<Entry, DomainError>): Entry {
+  expect(isOk(result), 'test setup posted an entry that breaks a rule').toBe(true);
+  return isOk(result) ? result.value : ({} as Entry);
+}
+
+const DOWN = domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.');
+
+function withRequestKeys(
+  books: InMemoryEntries,
+  replaced: Partial<RequestKeyRepository>,
+): UnitOfWork {
+  return {
+    run: (work) =>
+      books.unitOfWork.run((entries, requestKeys) => work(entries, { ...requestKeys, ...replaced })),
+  };
+}
+
+describe('createPostEntry with a Request key', () => {
+  it('posts the Entry and records the key against it, with the Connection that posted it', async () => {
+    const { books, postEntry, visible } = keyedUseCases();
+
+    const first = posted(await postEntry(ADA_ON_PHONE, draft(12500, 12500), KEY));
+
+    expect(await visible(ADA)).toEqual([first]);
+    expect(books.keys).toEqual([
+      { userId: ADA_ID, requestKey: KEY, entryId: first.id, connectionId: PHONE },
+    ]);
+  });
+
+  it('records no Connection for a key sent by a User signed in without one', async () => {
+    const { books, postEntry } = keyedUseCases();
+
+    const first = posted(await postEntry(ADA, draft(12500, 12500), KEY));
+
+    expect(books.keys).toEqual([
+      { userId: ADA_ID, requestKey: KEY, entryId: first.id, connectionId: undefined },
+    ]);
+  });
+
+  it('answers a repeated post with the Entry the first one posted, and posts nothing more', async () => {
+    const { books, postEntry, visible } = keyedUseCases();
+    const first = posted(await postEntry(ADA_ON_PHONE, draft(12500, 12500), KEY));
+
+    const again = await postEntry(ADA_ON_PHONE, draft(12500, 12500), KEY);
+
+    expect(again).toEqual(ok(first));
+    expect(await visible(ADA)).toEqual([first]);
+    expect(books.keys).toHaveLength(1);
+  });
+
+  it('refuses as a conflict a key already used for other content, and posts nothing more', async () => {
+    const { postEntry, visible } = keyedUseCases();
+    const first = posted(await postEntry(ADA_ON_PHONE, draft(12500, 12500), KEY));
+
+    const again = await postEntry(ADA_ON_PHONE, draft(9900, 9900), KEY);
+
+    expect(isErr(again) && again.error.code).toBe('CONFLICT');
+    expect(await visible(ADA)).toEqual([first]);
+  });
+
+  it('refuses as a conflict a key whose Entry has since been deleted, and posts nothing', async () => {
+    const { postEntry, deleteEntry, visible } = keyedUseCases();
+    const first = posted(await postEntry(ADA_ON_PHONE, draft(12500, 12500), KEY));
+    expect(await deleteEntry(ADA, first.id)).toEqual(ok(undefined));
+
+    const again = await postEntry(ADA_ON_PHONE, draft(12500, 12500), KEY);
+
+    expect(isErr(again) && again.error.code).toBe('CONFLICT');
+    expect(await visible(ADA)).toEqual([]);
+  });
+
+  it('posts once for the same key sent through two of the User\'s Connections', async () => {
+    const { books, postEntry, visible } = keyedUseCases();
+    const first = posted(await postEntry(ADA_ON_PHONE, draft(12500, 12500), KEY));
+
+    const again = await postEntry(ADA_ON_LAPTOP, draft(12500, 12500), KEY);
+
+    expect(again).toEqual(ok(first));
+    expect(await visible(ADA)).toEqual([first]);
+    expect(books.keys.map((key) => key.connectionId)).toEqual([PHONE]);
+  });
+
+  it('posts for each User who sends the same key', async () => {
+    const { postEntry, visible } = keyedUseCases();
+
+    const adas = posted(await postEntry(ADA_ON_PHONE, draft(12500, 12500), KEY));
+    const graces = posted(await postEntry(GRACE_ON_PHONE, GRACES_DRAFT, KEY));
+
+    expect(graces.id).not.toBe(adas.id);
+    expect(await visible(ADA)).toEqual([adas]);
+    expect(await visible(GRACE)).toEqual([graces]);
+  });
+
+  it('posts two Entries for two alike posts with different keys', async () => {
+    const { postEntry, visible } = keyedUseCases();
+
+    posted(await postEntry(ADA_ON_PHONE, draft(12500, 12500), KEY));
+    posted(await postEntry(ADA_ON_PHONE, draft(12500, 12500), 'another key'));
+
+    expect(await visible(ADA)).toHaveLength(2);
+  });
+
+  it('posts two Entries for two alike posts without a key, recording none', async () => {
+    const { books, postEntry, visible } = keyedUseCases();
+
+    posted(await postEntry(ADA_ON_PHONE, draft(12500, 12500)));
+    posted(await postEntry(ADA_ON_PHONE, draft(12500, 12500)));
+
+    expect(await visible(ADA)).toHaveLength(2);
+    expect(books.keys).toEqual([]);
+  });
+
+  it('refuses a keyed post the Entry rules refuse, recording no key, so the key still posts', async () => {
+    const { books, postEntry, visible } = keyedUseCases();
+
+    const refused = await postEntry(ADA_ON_PHONE, draft(12500, 12000), KEY);
+
+    expect(isErr(refused) && refused.error.code).toBe('UNBALANCED');
+    expect(books.keys).toEqual([]);
+    const first = posted(await postEntry(ADA_ON_PHONE, draft(12500, 12500), KEY));
+    expect(await visible(ADA)).toEqual([first]);
+  });
+
+  it('answers the Entry another post recorded the key for while this one was posting, leaving one Entry', async () => {
+    const books = inMemoryBooks();
+    const { postEntry: postFirst } = keyedUseCases(books);
+    const first = posted(await postFirst(ADA_ON_PHONE, draft(12500, 12500), KEY));
+    let lookups = 0;
+    const racing: UnitOfWork = {
+      run: (work) =>
+        books.unitOfWork.run((entries, requestKeys) => {
+          lookups += 1;
+          return work(entries, {
+            ...requestKeys,
+            find: lookups === 1 ? () => Promise.resolve(ok(undefined)) : requestKeys.find,
+          });
+        }),
+    };
+    const { postEntry, visible } = keyedUseCases(books, racing);
+
+    const again = await postEntry(ADA_ON_LAPTOP, draft(12500, 12500), KEY);
+
+    expect(again).toEqual(ok(first));
+    expect(await visible(ADA)).toEqual([first]);
+    expect(books.keys).toHaveLength(1);
+  });
+
+  it('posts nothing when the key cannot be recorded, and reports why', async () => {
+    const books = inMemoryBooks();
+    const failing = withRequestKeys(books, { record: () => Promise.resolve(err(DOWN)) });
+    const { postEntry, visible } = keyedUseCases(books, failing);
+
+    expect(await postEntry(ADA_ON_PHONE, draft(12500, 12500), KEY)).toEqual(err(DOWN));
+    expect(await visible(ADA)).toEqual([]);
+  });
+
+  it('posts nothing when the key cannot be looked up, and reports why', async () => {
+    const books = inMemoryBooks();
+    const failing = withRequestKeys(books, { find: () => Promise.resolve(err(DOWN)) });
+    const { postEntry, visible } = keyedUseCases(books, failing);
+
+    expect(await postEntry(ADA_ON_PHONE, draft(12500, 12500), KEY)).toEqual(err(DOWN));
+    expect(await visible(ADA)).toEqual([]);
+    expect(books.keys).toEqual([]);
+  });
+
+  it('reports a failure to read the Entry its key posted', async () => {
+    const down = domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.');
+    const books = inMemoryBooks({ find: () => Promise.resolve(err(down)) });
+    const { postEntry } = keyedUseCases(books);
+    posted(await postEntry(ADA_ON_PHONE, draft(12500, 12500), KEY));
+
+    expect(await postEntry(ADA_ON_PHONE, draft(12500, 12500), KEY)).toEqual(err(down));
+  });
+
+  it('refuses a keyed post for nobody, as unauthenticated, recording nothing', async () => {
+    const { books, postEntry } = keyedUseCases();
+
+    const refused = await postEntry(SIGNED_OUT, draft(12500, 12500), KEY);
+
+    expect(isErr(refused) && refused.error.code).toBe('UNAUTHENTICATED');
+    expect(books.rows).toEqual([]);
+    expect(books.keys).toEqual([]);
   });
 });

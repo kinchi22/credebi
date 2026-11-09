@@ -162,6 +162,89 @@ export const userChartViews = pgTable(
   (table) => [primaryKey({ columns: [table.userId, table.chartId] })],
 );
 
+export const connections = pgTable(
+  'connections',
+  {
+    id: uuid('id').primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    clientId: text('client_id').notNull(),
+    clientName: text('client_name').notNull(),
+    redirectUris: text('redirect_uris').array().notNull(),
+    approvedRedirectUri: text('approved_redirect_uri').notNull(),
+    scopes: text('scopes').array().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }).notNull(),
+  },
+  (table) => [index('connections_user_id_idx').on(table.userId)],
+);
+
+export const authorizationCodes = pgTable(
+  'authorization_codes',
+  {
+    codeHash: text('code_hash').primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    clientId: text('client_id').notNull(),
+    clientName: text('client_name').notNull(),
+    redirectUris: text('redirect_uris').array().notNull(),
+    scopes: text('scopes').array().notNull(),
+    codeChallenge: text('code_challenge').notNull(),
+    redirectUri: text('redirect_uri').notNull(),
+    resource: text('resource').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  },
+  (table) => [index('authorization_codes_user_id_idx').on(table.userId)],
+);
+
+export const accessTokens = pgTable(
+  'access_tokens',
+  {
+    tokenHash: text('token_hash').primaryKey(),
+    connectionId: uuid('connection_id')
+      .notNull()
+      .references(() => connections.id, { onDelete: 'cascade' }),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  },
+  (table) => [index('access_tokens_connection_id_idx').on(table.connectionId)],
+);
+
+export const refreshTokens = pgTable(
+  'refresh_tokens',
+  {
+    tokenHash: text('token_hash').primaryKey(),
+    connectionId: uuid('connection_id')
+      .notNull()
+      .references(() => connections.id, { onDelete: 'cascade' }),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    replacedByHash: text('replaced_by_hash'),
+  },
+  (table) => [index('refresh_tokens_connection_id_idx').on(table.connectionId)],
+);
+
+export const requestKeys = pgTable(
+  'request_keys',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    key: text('key').notNull(),
+    entryId: uuid('entry_id')
+      .notNull()
+      .references(() => entries.id),
+    connectionId: uuid('connection_id').references(() => connections.id, {
+      onDelete: 'set null',
+    }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.key] }),
+    index('request_keys_entry_id_idx').on(table.entryId),
+    index('request_keys_connection_id_idx').on(table.connectionId),
+  ],
+);
+
 export const schema = {
   users,
   identities,
@@ -172,6 +255,11 @@ export const schema = {
   entryLines,
   userSettings,
   userChartViews,
+  connections,
+  authorizationCodes,
+  accessTokens,
+  refreshTokens,
+  requestKeys,
 } as const;
 
 export type Schema = typeof schema;

@@ -9,6 +9,7 @@ import {
   returnPath,
   signInPath,
   signInPathFor,
+  queryOf,
 } from './return-path';
 
 describe('returnPath', () => {
@@ -47,6 +48,16 @@ describe('signInPath', () => {
     const query = new URL(signInPath('/entries'), 'http://app.test').searchParams;
 
     expect(returnPath(query.get('returnTo'))).toBe('/entries');
+  });
+});
+
+describe('queryOf', () => {
+  it('is empty when nothing was asked for', () => {
+    expect(queryOf({})).toBe('');
+  });
+
+  it('is the query with its question mark, each repeated value kept', () => {
+    expect(queryOf({ client_id: 'x', state: ['a', 'b'] })).toBe('?client_id=x&state=a&state=b');
   });
 });
 

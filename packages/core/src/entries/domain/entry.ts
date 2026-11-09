@@ -51,6 +51,11 @@ export type EntryDraft = {
   }[];
 };
 
+export type FoundEntry = {
+  readonly entry: Entry;
+  readonly reversed: boolean;
+};
+
 export type EntryStamp = {
   readonly id: EntryId;
   readonly createdAt: Date;

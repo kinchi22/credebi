@@ -30,6 +30,7 @@ export const ELEMENTS = [
   { type: 'ui', pattern: withLinkedPaths('packages/ui/src') },
 
   { type: 'web-server', pattern: 'apps/web/server' },
+  { type: 'web-app', pattern: 'apps/web/app/[.]well-known' },
   { type: 'web-app', pattern: 'apps/web/app' },
   { type: 'web-components', pattern: 'apps/web/components' },
   { type: 'web-messages', pattern: 'apps/web/messages' },
@@ -95,6 +96,7 @@ export const boundariesConfig = {
       'packages/db/src/**/*',
       'packages/ui/src/**/*',
       'apps/web/app/**/*',
+      'apps/web/app/.well-known/**/*',
       'apps/web/server/**/*',
       'apps/web/components/**/*',
       'apps/web/messages/**/*',

@@ -2,6 +2,7 @@ import 'server-only';
 import {
   accountGroupIdSchema,
   accountIdSchema,
+  connectionIdSchema,
   domainError,
   entryIdSchema,
   err,
@@ -12,6 +13,10 @@ import {
 import {
   createAddAccount,
   createAddAccountGroup,
+  createApproveAuthorization,
+  createBeginAuthorization,
+  createDenyAuthorization,
+  createExchangeCode,
   createDeleteAccount,
   createDeleteAccountGroup,
   createBeginGoogleSignIn,
@@ -32,13 +37,21 @@ import {
   createGetIncomeStatement,
   createGetSettings,
   createGetTitles,
+  createListConnections,
   createPostEntry,
+  createRefreshAccessToken,
+  createResolveAccessToken,
   createResolveSession,
+  createRevokeConnection,
   createSearchEntries,
   createSignOut,
   createTestSignIn,
   type AddAccount,
   type AddAccountGroup,
+  type ApproveAuthorization,
+  type BeginAuthorization,
+  type DenyAuthorization,
+  type ExchangeCode,
   type DeleteAccount,
   type DeleteAccountGroup,
   type BeginGoogleSignIn,
@@ -59,16 +72,23 @@ import {
   type GetIncomeStatement,
   type GetSettings,
   type GetTitles,
+  type ListConnections,
   type Logger,
   type PostEntry,
+  type RefreshAccessToken,
+  type ResolveAccessToken,
   type ResolveSession,
+  type RevokeConnection,
   type SearchEntries,
   type SignOut,
   type TestSignIn,
 } from '@repo/core';
 import {
+  createHttpClientDocuments,
   createOpenIdGoogleSignIn,
+  createPostgresAuthorizationCodeRepository,
   createPostgresAccountRepository,
+  createPostgresConnectionRepository,
   createPostgresChartViewRepository,
   createPostgresEntryRepository,
   createPostgresHealthProbe,
@@ -76,8 +96,15 @@ import {
   createPostgresSettingsRepository,
   createPostgresUnitOfWork,
   createPostgresUserRepository,
+  hashAccessToken,
+  hashAuthorizationCode,
+  hashRefreshToken,
   hashSessionToken,
+  newAccessToken,
+  newAuthorizationCode,
+  newRefreshToken,
   newSessionToken,
+  pkceChallengeOf,
 } from '@repo/core/server';
 import { v7 as uuidv7 } from 'uuid';
 import { startingChartCopy } from './catalogues';
@@ -114,6 +141,14 @@ export type Container = {
   readonly testSignInOffered: boolean;
   readonly testSignIn: TestSignIn;
   readonly signOut: SignOut;
+  readonly beginAuthorization: BeginAuthorization;
+  readonly approveAuthorization: ApproveAuthorization;
+  readonly denyAuthorization: DenyAuthorization;
+  readonly exchangeCode: ExchangeCode;
+  readonly refreshAccessToken: RefreshAccessToken;
+  readonly resolveAccessToken: ResolveAccessToken;
+  readonly listConnections: ListConnections;
+  readonly revokeConnection: RevokeConnection;
 };
 
 const noTestSignIn: TestSignIn = () =>
@@ -142,6 +177,10 @@ export function createContainer({ databaseUrl, google, testSignIn, deployment }:
     now: () => new Date(),
   };
   const googleSignIn = createOpenIdGoogleSignIn(google, logger);
+  const clientDocuments = createHttpClientDocuments({ allowHttpLoopback: testSignIn });
+  const codes = createPostgresAuthorizationCodeRepository(databaseUrl, logger);
+  const connections = createPostgresConnectionRepository(databaseUrl, logger);
+  const unitOfWork = createPostgresUnitOfWork(databaseUrl, logger);
 
   return {
     logger,
@@ -153,6 +192,7 @@ export function createContainer({ databaseUrl, google, testSignIn, deployment }:
     postEntry: createPostEntry({
       entries,
       accounts,
+      unitOfWork,
       newEntryId: () => entryIdSchema.parse(uuidv7()),
       now: () => new Date(),
     }),
@@ -164,7 +204,7 @@ export function createContainer({ databaseUrl, google, testSignIn, deployment }:
     editEntry: createEditEntry({
       entries,
       accounts,
-      unitOfWork: createPostgresUnitOfWork(databaseUrl, logger),
+      unitOfWork,
       newEntryId: () => entryIdSchema.parse(uuidv7()),
       now: () => new Date(),
     }),
@@ -195,6 +235,42 @@ export function createContainer({ databaseUrl, google, testSignIn, deployment }:
     testSignInOffered: testSignIn,
     testSignIn: testSignIn ? createTestSignIn(signIn) : noTestSignIn,
     signOut: createSignOut({ sessions, hashSessionToken }),
+    beginAuthorization: createBeginAuthorization({ clientDocuments }),
+    approveAuthorization: createApproveAuthorization({
+      clientDocuments,
+      codes,
+      newAuthorizationCode,
+      hashAuthorizationCode,
+      now: () => new Date(),
+    }),
+    denyAuthorization: createDenyAuthorization({ clientDocuments }),
+    exchangeCode: createExchangeCode({
+      codes,
+      connections,
+      hashAuthorizationCode,
+      pkceChallengeOf,
+      newConnectionId: () => connectionIdSchema.parse(uuidv7()),
+      newAccessToken,
+      hashAccessToken,
+      newRefreshToken,
+      hashRefreshToken,
+      now: () => new Date(),
+    }),
+    refreshAccessToken: createRefreshAccessToken({
+      connections,
+      newAccessToken,
+      hashAccessToken,
+      newRefreshToken,
+      hashRefreshToken,
+      now: () => new Date(),
+    }),
+    resolveAccessToken: createResolveAccessToken({
+      connections,
+      hashAccessToken,
+      now: () => new Date(),
+    }),
+    listConnections: createListConnections({ connections, now: () => new Date() }),
+    revokeConnection: createRevokeConnection({ connections }),
   };
 }
 
