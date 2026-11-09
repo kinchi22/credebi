@@ -172,7 +172,7 @@ export const connections = pgTable(
     clientId: text('client_id').notNull(),
     clientName: text('client_name').notNull(),
     redirectUris: text('redirect_uris').array().notNull(),
-    approvedRedirectUri: text('approved_redirect_uri').notNull().default(''),
+    approvedRedirectUri: text('approved_redirect_uri').notNull(),
     scopes: text('scopes').array().notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
     lastUsedAt: timestamp('last_used_at', { withTimezone: true }).notNull(),
