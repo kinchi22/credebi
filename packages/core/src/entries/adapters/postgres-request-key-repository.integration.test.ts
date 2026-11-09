@@ -79,9 +79,9 @@ beforeEach(async () => {
     );
   }
   await database.execute(
-    sql`insert into connections (id, user_id, client_id, client_name, redirect_uris, scopes, created_at, last_used_at)
+    sql`insert into connections (id, user_id, client_id, client_name, redirect_uris, approved_redirect_uri, scopes, created_at, last_used_at)
         values (${PHONE}, ${ADA}, 'https://client.example/client.json', 'Example client',
-                array['https://client.example/callback'], array['write'], now(), now())`,
+                array['https://client.example/callback'], 'https://client.example/callback', array['write'], now(), now())`,
   );
   logged.length = 0;
 });
