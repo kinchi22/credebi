@@ -22,14 +22,27 @@ const STORED: StoredAccessToken = {
   clientId: 'https://client.example/client.json',
   scopes: ['read', 'write'],
   expiresAt: new Date(ISSUED_AT.getTime() + HOUR_MS),
+  lastUsedAt: ISSUED_AT,
 };
+
+type Used = { readonly connectionId: ConnectionId; readonly at: Date };
 
 function connections(
   answer: Result<StoredAccessToken | undefined, DomainError> = ok(STORED),
-): ConnectionRepository & { readonly looked: string[] } {
+  marking: Result<void, DomainError> = ok(undefined),
+  revoking: Result<void, DomainError> = ok(undefined),
+): ConnectionRepository & {
+  readonly looked: string[];
+  readonly used: Used[];
+  readonly revoked: ConnectionId[];
+} {
   const looked: string[] = [];
+  const used: Used[] = [];
+  const revoked: ConnectionId[] = [];
   return {
     looked,
+    used,
+    revoked,
     open: () => Promise.resolve(ok(undefined)),
     findAccessToken: (tokenHash) => {
       looked.push(tokenHash);
@@ -37,7 +50,20 @@ function connections(
     },
     findRefreshToken: () => Promise.resolve(ok(undefined)),
     rotate: () => Promise.resolve(ok('overtaken' as const)),
-    revoke: () => Promise.resolve(ok(undefined)),
+    markUsed: (connectionId, at) => {
+      if (marking.ok) {
+        used.push({ connectionId, at });
+      }
+      return Promise.resolve(marking);
+    },
+    listLive: () => Promise.resolve(ok([])),
+    revoke: (connectionId) => {
+      if (revoking.ok) {
+        revoked.push(connectionId);
+      }
+      return Promise.resolve(revoking);
+    },
+    revokeOwnedBy: () => Promise.resolve(ok(undefined)),
   };
 }
 
@@ -62,6 +88,60 @@ describe('createResolveAccessToken', () => {
       }),
     );
     expect(repository.looked).toEqual(['hash:the-token']);
+  });
+
+  it('records the call as its Connection\'s last use', async () => {
+    const repository = connections();
+    const calledAt = new Date(ISSUED_AT.getTime() + HOUR_MS / 2);
+
+    await resolving(repository, calledAt)('the-token');
+
+    expect(repository.used).toEqual([{ connectionId: STORED.connectionId, at: calledAt }]);
+  });
+
+  it('records no use for a token it refuses', async () => {
+    const expired = connections();
+    const unknown = connections(ok(undefined));
+
+    await resolving(expired, new Date(ISSUED_AT.getTime() + HOUR_MS))('the-token');
+    await resolving(unknown, ISSUED_AT)('unknown');
+
+    expect(expired.used).toEqual([]);
+    expect(unknown.used).toEqual([]);
+  });
+
+  it('refuses an Access token whose Connection has lapsed, and deletes that Connection', async () => {
+    const lapsedToken = ok({ ...STORED, lastUsedAt: new Date(ISSUED_AT.getTime() - 30 * 24 * HOUR_MS) });
+    const lapsed = connections(lapsedToken);
+
+    expect(await resolving(lapsed, ISSUED_AT)('the-token')).toEqual(ok(undefined));
+    expect(lapsed.used).toEqual([]);
+    expect(lapsed.revoked).toEqual([STORED.connectionId]);
+  });
+
+  it('deletes no Connection for an Access token that has merely expired', async () => {
+    const expired = connections();
+
+    await resolving(expired, new Date(ISSUED_AT.getTime() + HOUR_MS))('the-token');
+
+    expect(expired.revoked).toEqual([]);
+  });
+
+  it('passes on a failure to delete a lapsed Connection', async () => {
+    const unavailable = domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.');
+    const lapsedToken = ok({ ...STORED, lastUsedAt: new Date(ISSUED_AT.getTime() - 30 * 24 * HOUR_MS) });
+
+    expect(
+      await resolving(connections(lapsedToken, ok(undefined), err(unavailable)), ISSUED_AT)('the-token'),
+    ).toEqual(err(unavailable));
+  });
+
+  it('passes on a failure to record the use', async () => {
+    const unavailable = domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.');
+
+    expect(
+      await resolving(connections(ok(STORED), err(unavailable)), ISSUED_AT)('the-token'),
+    ).toEqual(err(unavailable));
   });
 
   it('refuses an Access token one hour after it was issued', async () => {

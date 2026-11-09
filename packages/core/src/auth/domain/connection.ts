@@ -19,6 +19,8 @@ export const ACCESS_TOKEN_SECONDS = 60 * 60;
 
 export const REFRESH_TOKEN_DAYS = 30;
 
+export const CONNECTION_IDLE_DAYS = 30;
+
 const SECOND_MS = 1000;
 const DAY_MS = 24 * 60 * 60 * SECOND_MS;
 
@@ -28,6 +30,7 @@ export type Connection = {
   readonly clientId: string;
   readonly clientName: string;
   readonly redirectUris: readonly string[];
+  readonly approvedRedirectUri: string;
   readonly scopes: readonly Scope[];
   readonly createdAt: Date;
   readonly lastUsedAt: Date;
@@ -46,6 +49,7 @@ export type StoredAccessToken = {
   readonly clientId: string;
   readonly scopes: readonly Scope[];
   readonly expiresAt: Date;
+  readonly lastUsedAt: Date;
 };
 
 export type AccessGrant = {
@@ -67,6 +71,7 @@ export type StoredRefreshToken = {
   readonly expiresAt: Date;
   readonly discarded: boolean;
   readonly successor: RefreshSuccessor | undefined;
+  readonly lastUsedAt: Date;
 };
 
 export type PresentedRefreshToken = {
@@ -102,6 +107,18 @@ export function refreshTokenExpiry(issuedAt: Date): Date {
   return new Date(issuedAt.getTime() + REFRESH_TOKEN_DAYS * DAY_MS);
 }
 
+export function lapseCutoff(now: Date): Date {
+  return new Date(now.getTime() - CONNECTION_IDLE_DAYS * DAY_MS);
+}
+
+export function connectionLapsed(lastUsedAt: Date, now: Date): boolean {
+  return lastUsedAt.getTime() <= lapseCutoff(now).getTime();
+}
+
+export function redirectHostOf(redirectUri: string): string {
+  return URL.canParse(redirectUri) ? new URL(redirectUri).host : '';
+}
+
 export function accessTokenLive(token: Pick<StoredAccessToken, 'expiresAt'>, now: Date): boolean {
   return now.getTime() < token.expiresAt.getTime();
 }
@@ -125,6 +142,7 @@ export function connectionFrom(
     clientId: code.clientId,
     clientName: code.clientName,
     redirectUris: code.redirectUris,
+    approvedRedirectUri: code.redirectUri,
     scopes: code.scopes,
     createdAt: now,
     lastUsedAt: now,
@@ -148,11 +166,13 @@ export function refreshDecision(
   presented: PresentedRefreshToken,
   now: Date,
 ): RefreshDecision {
-  if (
-    token === undefined ||
-    now.getTime() >= token.expiresAt.getTime() ||
-    token.clientId !== presented.clientId
-  ) {
+  if (token === undefined) {
+    return { kind: 'refuse' };
+  }
+  if (connectionLapsed(token.lastUsedAt, now)) {
+    return { kind: 'revoke', connectionId: token.connectionId };
+  }
+  if (now.getTime() >= token.expiresAt.getTime() || token.clientId !== presented.clientId) {
     return { kind: 'refuse' };
   }
   const { successor } = token;

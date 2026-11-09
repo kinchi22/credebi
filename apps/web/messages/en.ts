@@ -129,6 +129,21 @@ export const en = {
     notSaved: 'Your choice was not saved, so your Entry form mode is unchanged. Try again.',
     languageNotSaved: 'Your choice was not saved, so your Language is unchanged. Try again.',
   },
+  connectionsSection: {
+    title: 'Connections',
+    empty: 'No application is connected to your books.',
+    scopes: {
+      read: 'Read your books',
+      write: 'Post entries',
+    },
+    created: 'Created',
+    lastUsed: 'Last used',
+    revoke: 'Revoke',
+    revokeTitle: 'Revoke connection',
+    pending: 'Revoking...',
+    cancel: 'Cancel',
+    notRevoked: 'The connection could not be revoked just now, so it still works. Try again.',
+  },
   accountsSection: {
     title: 'Accounts',
     showEnded: 'Show ended accounts',

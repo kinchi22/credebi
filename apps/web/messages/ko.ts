@@ -146,6 +146,21 @@ export const ko = {
     notSaved: '저장에 실패했습니다. 다시 시도해 주세요.',
     languageNotSaved: '저장에 실패했습니다. 다시 시도해 주세요.',
   },
+  connectionsSection: {
+    title: '연결',
+    empty: '장부에 연결된 애플리케이션이 없습니다.',
+    scopes: {
+      read: '장부 읽기',
+      write: '거래 기록',
+    },
+    created: '연결한 날',
+    lastUsed: '마지막 사용',
+    revoke: '연결 해제',
+    revokeTitle: '연결 해제',
+    pending: '해제 중...',
+    cancel: '취소',
+    notRevoked: '지금은 연결을 해제하지 못해 연결이 그대로 유지됩니다. 다시 시도해 주세요.',
+  },
   accountsSection: {
     title: '계정',
     showEnded: '종료된 계정 표시',

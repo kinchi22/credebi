@@ -87,6 +87,37 @@ export type AuthorizationOutcomeOutput = z.infer<typeof authorizationOutcomeSche
 
 export const authorizationRedirectSchema = z.object({ location: z.url() });
 
+export const connectionOutputSchema = z.object({
+  id: connectionIdSchema,
+  clientName: z.string().min(1),
+  redirectHost: z.string(),
+  scopes: z.array(scopeSchema).min(1),
+  createdAt: z.iso.datetime(),
+  lastUsedAt: z.iso.datetime(),
+});
+
+export type ConnectionOutput = z.output<typeof connectionOutputSchema>;
+
+export const revokeConnectionInputSchema = z.object({ id: connectionIdSchema });
+
+export function toConnectionOutput(connection: {
+  readonly id: ConnectionId;
+  readonly clientName: string;
+  readonly redirectHost: string;
+  readonly scopes: readonly Scope[];
+  readonly createdAt: Date;
+  readonly lastUsedAt: Date;
+}): ConnectionOutput {
+  return {
+    id: connection.id,
+    clientName: connection.clientName,
+    redirectHost: connection.redirectHost,
+    scopes: [...connection.scopes],
+    createdAt: connection.createdAt.toISOString(),
+    lastUsedAt: connection.lastUsedAt.toISOString(),
+  };
+}
+
 export const clientDocumentSchema = z.object({
   client_id: z.string(),
   client_name: z.string().min(1).optional(),

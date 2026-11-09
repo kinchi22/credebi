@@ -2,12 +2,10 @@
 
 import { useTranslations } from 'next-intl';
 import { type AccountType, type DomainErrorCode } from '@repo/contracts';
-import { typeClasses } from '@repo/ui/type-classes';
-import { useId, useState, useTransition, type ReactNode, type TransitionStartFunction } from 'react';
-import { BUTTON, CONFIRMATION_PANEL, DANGER_BUTTON } from './control-classes';
+import { useId, useTransition, type ReactNode, type TransitionStartFunction } from 'react';
+import { ConfirmationPanel } from './confirmation-panel';
 import { type ModalDialog } from './use-modal-dialog';
 import { PendingDialog } from './pending-dialog';
-import { DANGER_TEXT, MUTED_TEXT } from './text-classes';
 
 export type ChartDeletionOutcome =
   | { readonly outcome: 'deleted' }
@@ -32,8 +30,6 @@ export type DeleteAccountDialogProps = {
   readonly target: DeleteAccountTarget | undefined;
   readonly actions: ChartDeletions;
 };
-
-const UNDELETED: ChartDeletionOutcome = { outcome: 'rejected', code: 'DEPENDENCY_UNAVAILABLE' };
 
 const KINDS = {
   account: {
@@ -62,49 +58,29 @@ function DeletePanel({
   readonly startTransition: TransitionStartFunction;
 }): ReactNode {
   const t = useTranslations();
-  const [refusal, setRefusal] = useState<DomainErrorCode>();
   const kind = KINDS[target.kind];
   const remove = target.kind === 'account' ? actions.deleteAccount : actions.deleteAccountGroup;
-
-  const confirm = (): void => {
-    startTransition(async () => {
-      const change = await remove(target.id).then(
-        (deleted) => deleted,
-        () => UNDELETED,
-      );
-      if (change.outcome === 'deleted') {
-        onDone();
-        return;
-      }
-      setRefusal(change.code);
-    });
-  };
+  const refusalOf = (code: DomainErrorCode): string => t(`${kind.refusals}.${code}`);
 
   return (
-    <div className={CONFIRMATION_PANEL}>
-      <div className="flex flex-col gap-1">
-        <h2 id={titleId} className={typeClasses.h2}>
-          {t(kind.title)}
-        </h2>
-        <p className={MUTED_TEXT}>{t(`accountTypes.${target.accountType}`)}</p>
-      </div>
-      <p className={`border-y border-border py-2 font-semibold wrap-anywhere ${typeClasses['body-sm']}`}>
-        {target.name}
-      </p>
-      {refusal === undefined ? null : (
-        <p role="alert" className={DANGER_TEXT}>
-          {t(`${kind.refusals}.${refusal}`)}
-        </p>
-      )}
-      <div className="flex justify-end gap-3">
-        <button type="button" autoFocus onClick={onDone} disabled={pending} className={BUTTON}>
-          {t('deleteAccountDialog.cancel')}
-        </button>
-        <button type="button" onClick={confirm} disabled={pending} className={DANGER_BUTTON}>
-          {pending ? t('deleteAccountDialog.pending') : t('deleteAccountDialog.confirm')}
-        </button>
-      </div>
-    </div>
+    <ConfirmationPanel
+      titleId={titleId}
+      title={t(kind.title)}
+      subtitle={t(`accountTypes.${target.accountType}`)}
+      cancel={t('deleteAccountDialog.cancel')}
+      confirm={t('deleteAccountDialog.confirm')}
+      confirming={t('deleteAccountDialog.pending')}
+      unavailable={refusalOf('DEPENDENCY_UNAVAILABLE')}
+      act={async () => {
+        const change = await remove(target.id);
+        return change.outcome === 'deleted' ? undefined : refusalOf(change.code);
+      }}
+      onDone={onDone}
+      pending={pending}
+      startTransition={startTransition}
+    >
+      <p className="font-semibold wrap-anywhere">{target.name}</p>
+    </ConfirmationPanel>
   );
 }
 

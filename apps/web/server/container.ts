@@ -37,10 +37,12 @@ import {
   createGetIncomeStatement,
   createGetSettings,
   createGetTitles,
+  createListConnections,
   createPostEntry,
   createRefreshAccessToken,
   createResolveAccessToken,
   createResolveSession,
+  createRevokeConnection,
   createSearchEntries,
   createSignOut,
   createTestSignIn,
@@ -70,11 +72,13 @@ import {
   type GetIncomeStatement,
   type GetSettings,
   type GetTitles,
+  type ListConnections,
   type Logger,
   type PostEntry,
   type RefreshAccessToken,
   type ResolveAccessToken,
   type ResolveSession,
+  type RevokeConnection,
   type SearchEntries,
   type SignOut,
   type TestSignIn,
@@ -143,6 +147,8 @@ export type Container = {
   readonly exchangeCode: ExchangeCode;
   readonly refreshAccessToken: RefreshAccessToken;
   readonly resolveAccessToken: ResolveAccessToken;
+  readonly listConnections: ListConnections;
+  readonly revokeConnection: RevokeConnection;
 };
 
 const noTestSignIn: TestSignIn = () =>
@@ -263,6 +269,8 @@ export function createContainer({ databaseUrl, google, testSignIn, deployment }:
       hashAccessToken,
       now: () => new Date(),
     }),
+    listConnections: createListConnections({ connections, now: () => new Date() }),
+    revokeConnection: createRevokeConnection({ connections }),
   };
 }
 

@@ -32,6 +32,7 @@ const STORED: StoredRefreshToken = {
   expiresAt: new Date('2026-12-01T00:00:00.000Z'),
   discarded: false,
   successor: undefined,
+  lastUsedAt: new Date('2026-11-07T00:00:00.000Z'),
 };
 
 const REPLAYED: StoredRefreshToken = { ...STORED, successor: { tokenHash: 'hash:next' as RefreshTokenHash, used: true } };
@@ -72,6 +73,9 @@ function connectionStore(
       }
       return Promise.resolve(answer);
     },
+    markUsed: () => Promise.resolve(ok(undefined)),
+    listLive: () => Promise.resolve(ok([])),
+    revokeOwnedBy: () => Promise.resolve(ok(undefined)),
     revoke: (connectionId) => {
       const answer = answers.revoke ?? ok(undefined);
       if (answer.ok) {
@@ -158,6 +162,18 @@ describe('createRefreshAccessToken', () => {
 
   it('revokes the Connection and refuses a successor discarded by a grace use', async () => {
     const connections = connectionStore({ find: ok({ ...STORED, discarded: true }) });
+
+    const result = await refreshing(connections)(GRANT);
+
+    expect(result).toEqual(ok({ kind: 'refused' }));
+    expect(connections.revoked).toEqual([CONNECTION_ID]);
+    expect(connections.rotated).toEqual([]);
+  });
+
+  it('deletes a Connection unused for 30 days and refuses its refresh token', async () => {
+    const connections = connectionStore({
+      find: ok({ ...STORED, lastUsedAt: new Date('2026-10-08T00:00:30.000Z') }),
+    });
 
     const result = await refreshing(connections)(GRANT);
 

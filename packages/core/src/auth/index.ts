@@ -32,7 +32,12 @@ export type {
   IssuedAuthorizationCode,
 } from './domain/authorization';
 
-export { ACCESS_TOKEN_SECONDS, REFRESH_TOKEN_DAYS } from './domain/connection';
+export {
+  ACCESS_TOKEN_SECONDS,
+  CONNECTION_IDLE_DAYS,
+  REFRESH_TOKEN_DAYS,
+  redirectHostOf,
+} from './domain/connection';
 export type {
   AccessGrant,
   AccessToken,
@@ -64,6 +69,15 @@ export type {
   RefreshAccessTokenDependencies,
   RefreshGrant,
 } from './application/refresh-access-token';
+
+export { createListConnections } from './application/list-connections';
+export type { ListConnections, ListConnectionsDependencies } from './application/list-connections';
+
+export { createRevokeConnection } from './application/revoke-connection';
+export type {
+  RevokeConnection,
+  RevokeConnectionDependencies,
+} from './application/revoke-connection';
 
 export { createResolveAccessToken } from './application/resolve-access-token';
 export type {

@@ -147,6 +147,21 @@ export const ja = {
     notSaved: '保存に失敗しました。もう一度お試しください。',
     languageNotSaved: '保存に失敗しました。もう一度お試しください。',
   },
+  connectionsSection: {
+    title: '接続',
+    empty: '帳簿に接続しているアプリケーションはありません。',
+    scopes: {
+      read: '帳簿を読む',
+      write: '仕訳を記帳する',
+    },
+    created: '接続日',
+    lastUsed: '最終利用',
+    revoke: '接続を解除',
+    revokeTitle: '接続を解除',
+    pending: '解除中...',
+    cancel: 'キャンセル',
+    notRevoked: '接続を解除できなかったため、接続はそのままです。もう一度お試しください。',
+  },
   accountsSection: {
     title: '勘定科目',
     showEnded: '終了した勘定科目を表示',

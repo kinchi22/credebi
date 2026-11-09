@@ -35,7 +35,7 @@ const CODE: IssuedAuthorizationCode = {
   userId: USER_ID,
   clientId: 'https://client.example/client.json',
   clientName: 'Example client',
-  redirectUris: ['https://client.example/callback'],
+  redirectUris: ['https://other.example/callback', 'https://client.example/callback'],
   scopes: ['read'],
   codeChallenge: 'challenge:the-verifier',
   redirectUri: 'https://client.example/callback',
@@ -87,7 +87,10 @@ function connectionStore(
     findAccessToken: () => Promise.resolve(ok(undefined)),
     findRefreshToken: () => Promise.resolve(ok(undefined)),
     rotate: () => Promise.resolve(ok('overtaken' as const)),
+    markUsed: () => Promise.resolve(ok(undefined)),
+    listLive: () => Promise.resolve(ok([])),
     revoke: () => Promise.resolve(ok(undefined)),
+    revokeOwnedBy: () => Promise.resolve(ok(undefined)),
   };
 }
 
@@ -135,6 +138,7 @@ describe('createExchangeCode', () => {
           clientId: CODE.clientId,
           clientName: 'Example client',
           redirectUris: CODE.redirectUris,
+          approvedRedirectUri: 'https://client.example/callback',
           scopes: ['read'],
           createdAt: NOW,
           lastUsedAt: NOW,

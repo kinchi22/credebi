@@ -1,4 +1,9 @@
-import { type ConnectionId, type DomainError, type Result } from '@repo/contracts';
+import {
+  type ConnectionId,
+  type DomainError,
+  type Result,
+  type UserId,
+} from '@repo/contracts';
 import {
   type AccessTokenHash,
   type Connection,
@@ -22,5 +27,14 @@ export type ConnectionRepository = {
     tokenHash: RefreshTokenHash,
   ) => Promise<Result<StoredRefreshToken | undefined, DomainError>>;
   readonly rotate: (rotation: RefreshRotation) => Promise<Result<RotationOutcome, DomainError>>;
+  readonly markUsed: (connectionId: ConnectionId, at: Date) => Promise<Result<void, DomainError>>;
+  readonly listLive: (
+    userId: UserId,
+    lapseCutoff: Date,
+  ) => Promise<Result<readonly Connection[], DomainError>>;
   readonly revoke: (connectionId: ConnectionId) => Promise<Result<void, DomainError>>;
+  readonly revokeOwnedBy: (
+    userId: UserId,
+    connectionId: ConnectionId,
+  ) => Promise<Result<void, DomainError>>;
 };
