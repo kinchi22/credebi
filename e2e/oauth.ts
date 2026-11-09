@@ -9,6 +9,7 @@ import {
   type Locator,
   type Page,
 } from '@playwright/test';
+import { documentLanguage, type Language } from './language';
 
 export const MCP_PATH = '/mcp';
 
@@ -215,8 +216,19 @@ export const authorizePath = (authorization: Authorization, changes: ParamChange
 
 export const consentPage = (page: Page): Locator => page.getByRole('main');
 
-export const approveButton = (page: Page): Locator =>
-  consentPage(page).getByRole('button', { name: 'Approve', exact: true });
+const APPROVE_LABEL: Readonly<Record<Language, string>> = {
+  en: 'Approve',
+  ko: '\uD5C8\uC6A9',
+  ja: '\u8A31\u53EF',
+};
+
+const isLanguage = (value: string | null): value is Language =>
+  value !== null && Object.hasOwn(APPROVE_LABEL, value);
+
+const approveButtonIn = (page: Page, language: Language): Locator =>
+  consentPage(page).getByRole('button', { name: APPROVE_LABEL[language], exact: true });
+
+export const approveButton = (page: Page): Locator => approveButtonIn(page, 'en');
 
 export const denyButton = (page: Page): Locator =>
   consentPage(page).getByRole('button', { name: 'Deny', exact: true });
@@ -346,16 +358,14 @@ export async function connect(
   client: McpClient,
   options: AuthorizationOptions = {},
 ): Promise<Connected> {
-  const authorization = newAuthorization(client, appOriginOf(page), options);
-  const code = await authorizationCode(page, authorization);
+  const authorization = newAuthorization(client, base.info().project.use.baseURL, options);
+  await page.goto(authorizePath(authorization));
+  const language = await documentLanguage(page).getAttribute('lang');
+  expect(isLanguage(language), `the consent page is in a known Language, not ${String(language)}`).toBe(true);
+  await approveButtonIn(page, isLanguage(language) ? language : 'en').click();
+  const code = codeFrom(await redirectedTo(page, authorization.redirectUri), authorization);
   const tokens = await tokensFrom(await exchangeCode(request, authorization, code));
   return { authorization, tokens };
-}
-
-export function appOriginOf(page: Page): string {
-  const url = page.url();
-  expect(url.startsWith('http'), 'the page is signed in on the app before connecting').toBe(true);
-  return new URL(url).origin;
 }
 
 export async function closedClient(): Promise<McpClient> {
