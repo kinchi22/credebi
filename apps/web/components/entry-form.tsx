@@ -124,7 +124,6 @@ type FormVariant = {
   readonly pending: string;
   readonly refusal: (code: DomainErrorCode) => string;
   readonly entryDate: string | undefined;
-  readonly autoFocus: boolean;
   readonly onSaved: (form: HTMLFormElement | null) => void;
 };
 
@@ -147,7 +146,6 @@ function variantFor(
       pending: t('entryForm.pending'),
       refusal: newEntryRefusal(t, mode),
       entryDate: today,
-      autoFocus: false,
       onSaved: resetForm,
     };
   }
@@ -159,7 +157,6 @@ function variantFor(
     pending: t('editEntry.pending'),
     refusal: (code) => t(`editEntry.refusals.${code}`),
     entryDate: editing.entry.entryDate,
-    autoFocus: true,
     onSaved: editing.onSaved,
   };
 }
@@ -282,7 +279,6 @@ export function EntryFormShell({
             onChange={(event) => {
               setDay(event.target.value);
             }}
-            autoFocus={variant.autoFocus}
             required
             className={DATE_CONTROL}
           />

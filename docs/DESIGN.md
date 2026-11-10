@@ -1022,7 +1022,7 @@ numerals.
   The form has no `New entry` heading, since the dialog's title names it, and
   its submit is a primary button reading `Save`, and `Saving...` while it runs.
   A refusal shows in place, as the entry form's does, and the dialog stays open
-  with the input. Focus starts on Date. Below `wide` the Account sheet opens
+  with the input. Focus starts on the dialog. Below `wide` the Account sheet opens
   above it. `Close`, Escape or a click on the scrim closes it at once when the
   form holds what it opened with, and focus returns to the button that opened
   it; when the form holds changes, they open `Discard changes` instead.
