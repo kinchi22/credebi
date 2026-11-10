@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { expect, type BrowserContext, type Page } from '@playwright/test';
+import { expect, type BrowserContext, type Page, type Response } from '@playwright/test';
 import { ENTRIES_URL } from './routes';
 
 export const SESSION_COOKIE = 'session';
@@ -47,4 +47,19 @@ export async function signInForSmoke(
   }
   expect(baseURL, 'the smoke run needs a baseURL to scope the cookie to').toBeDefined();
   await context.addCookies([{ name: SESSION_COOKIE, value: token, url: baseURL ?? '' }]);
+}
+
+const SESSION_SET = new RegExp(`(?:^|\\n)${SESSION_COOKIE}=([^;]+)`);
+
+const sessionSetBy = async (response: Response): Promise<string | undefined> =>
+  SESSION_SET.exec((await response.headerValue('set-cookie')) ?? '')?.[1];
+
+export async function signInKeepingSessionOverHttp(page: Page, options: SignInOptions = {}): Promise<void> {
+  const issued = page.waitForResponse(async (response) => (await sessionSetBy(response)) !== undefined);
+  await signIn(page, options);
+  const context = page.context();
+  if ((await context.cookies()).some(({ name }) => name === SESSION_COOKIE)) return;
+  const token = await sessionSetBy(await issued);
+  expect(token, 'signing in sets a session cookie').toBeDefined();
+  await context.addCookies([{ name: SESSION_COOKIE, value: token ?? '', url: new URL('/', page.url()).href }]);
 }
