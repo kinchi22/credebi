@@ -26,13 +26,26 @@ export async function submitTestSignIn(
   await form.getByRole('button', { name: 'Sign in' }).click();
 }
 
+const SESSION_SET = new RegExp(`(?:^|\\n)${SESSION_COOKIE}=([^;]+)`);
+
+const sessionSetBy = async (response: Response): Promise<string | undefined> =>
+  SESSION_SET.exec((await response.headerValue('set-cookie')) ?? '')?.[1];
+
 export async function signIn(
   page: Page,
   { identifier = freshIdentifier(), accountsStartOn }: SignInOptions = {},
 ): Promise<void> {
+  const issued = page.waitForResponse(async (response) => (await sessionSetBy(response)) !== undefined);
   await page.goto('/sign-in');
   await submitTestSignIn(page, identifier, accountsStartOn);
   await expect(page).toHaveURL(ENTRIES_URL);
+  const { origin, protocol } = new URL(page.url());
+  if (protocol === 'https:') return;
+  const token = await sessionSetBy(await issued);
+  expect(token, 'signing in sets a session cookie').toBeDefined();
+  const context = page.context();
+  await context.clearCookies({ name: SESSION_COOKIE });
+  await context.addCookies([{ name: SESSION_COOKIE, value: token ?? '', url: origin, httpOnly: true, sameSite: 'Lax' }]);
 }
 
 export async function signInForSmoke(
@@ -47,26 +60,4 @@ export async function signInForSmoke(
   }
   expect(baseURL, 'the smoke run needs a baseURL to scope the cookie to').toBeDefined();
   await context.addCookies([{ name: SESSION_COOKIE, value: token, url: baseURL ?? '' }]);
-}
-
-const SESSION_SET = new RegExp(`(?:^|\\n)${SESSION_COOKIE}=([^;]+)`);
-
-const sessionSetBy = async (response: Response): Promise<string | undefined> =>
-  SESSION_SET.exec((await response.headerValue('set-cookie')) ?? '')?.[1];
-
-export async function signInForWebKit(
-  page: Page,
-  baseURL: string | undefined,
-  options: SignInOptions = {},
-): Promise<void> {
-  const issued = page.waitForResponse(async (response) => (await sessionSetBy(response)) !== undefined);
-  await signIn(page, options);
-  const context = page.context();
-  if ((await context.cookies()).some(({ name }) => name === SESSION_COOKIE)) return;
-  const token = await sessionSetBy(await issued);
-  expect(token, 'signing in sets a session cookie').toBeDefined();
-  expect(baseURL, 'keeping the session needs a baseURL to scope the cookie to').toBeDefined();
-  await context.addCookies([
-    { name: SESSION_COOKIE, value: token ?? '', url: baseURL ?? '', httpOnly: true, sameSite: 'Lax' },
-  ]);
 }
