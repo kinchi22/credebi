@@ -26,6 +26,7 @@ import {
   added,
   deleteListed,
   entryOn,
+  intoCash,
   listedEntry,
   openEditEntry,
   postEntries,
@@ -54,7 +55,7 @@ import {
 } from './routes';
 import { freshIdentifier, signIn, signInForSmoke, submitTestSignIn } from './session';
 import { linkTo, SIGNED_IN_PAGES, menu, sidebar } from './sidebar';
-import { HANGUL } from './typed-text';
+import { HANGUL, JAPANESE } from './typed-text';
 import { expectWithinPhone, PHONE, WIDE, WIDE_BELOW_SPLIT } from './viewport';
 
 const TODAY = '2026-09-15';
@@ -79,16 +80,11 @@ const EQUITY_LABEL = { ko: '\uC790\uBCF8', ja: '\u8CC7\u672C' } as const;
 
 const NET_WORTH_LABEL = { ko: KOREAN_NET_WORTH, ja: JAPANESE_NET_WORTH } as const;
 
-const JAPANESE = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
-
 const LONG_NAME = 'Savings kept for every single rainy day';
 
 const THREE_ACCOUNTS = ['First', 'Second', 'Third'] as const;
 
 const FIVE_ACCOUNTS = [...THREE_ACCOUNTS, 'Fourth', 'Fifth'] as const;
-
-const intoCash = (day: string, memo: string, amount: string): TwoLineEntry =>
-  entryOn(day, memo, 'Cash', 'Opening balance equity', amount);
 
 const outOfCash = (day: string, memo: string, amount: string): TwoLineEntry =>
   entryOn(day, memo, 'Food', 'Cash', amount);

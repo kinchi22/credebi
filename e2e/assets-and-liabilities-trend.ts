@@ -37,19 +37,21 @@ export const toMonth = (page: Page): Locator => rangeForm(page).getByLabel('To m
 export const showButton = (page: Page): Locator =>
   rangeForm(page).getByRole('button', { name: 'Show', exact: true });
 
-export const shownMonth = (month: string): string => month.replace('-', '/');
-
 export async function showTrend(page: Page, from: string, to: string): Promise<void> {
   await expect(rangeForm(page)).toBeVisible();
-  await fromMonth(page).fill(shownMonth(from));
-  await toMonth(page).fill(shownMonth(to));
+  await fromMonth(page).fill(from);
+  await toMonth(page).fill(to);
   await showButton(page).click();
 }
 
+const heldMonth = (month: string): RegExp => new RegExp(`^${month.slice(0, 4)}[-/]${month.slice(5, 7)}$`);
+
 export async function expectRange(page: Page, from: string, to: string): Promise<void> {
-  await expect(fromMonth(page)).toHaveValue(shownMonth(from));
-  await expect(toMonth(page)).toHaveValue(shownMonth(to));
+  await expect(fromMonth(page)).toHaveValue(heldMonth(from));
+  await expect(toMonth(page)).toHaveValue(heldMonth(to));
 }
+
+export const monthName = (index: number): string => MONTH_NAMES[index] ?? '';
 
 export const monthFields = (page: Page): Locator => page.getByRole('main').getByRole('form').getByRole('textbox');
 
@@ -62,10 +64,10 @@ export async function expectMonthFields(page: Page, from: string, to: string): P
 
 export type MonthField = 'From' | 'To';
 
-const FIELD_INDEX: Readonly<Record<MonthField, number>> = { From: 0, To: 1 };
+const FIELD_ORDER: Readonly<Record<MonthField, number>> = { From: 0, To: 1 };
 
 export const chooseMonth = (page: Page, field: MonthField): Locator =>
-  rangeForm(page).getByRole('button', { name: 'Choose month', exact: true }).nth(FIELD_INDEX[field]);
+  rangeForm(page).getByRole('button', { name: 'Choose month', exact: true }).nth(FIELD_ORDER[field]);
 
 export const gridMonth = (page: Page, name: string): Locator =>
   page.getByRole('button', { name, exact: true });
@@ -84,6 +86,8 @@ export const trendTooltip = (page: Page): Locator => page.getByRole('main').getB
 export const nothingRecorded = (page: Page): Locator => page.getByRole('main').getByText(/nothing recorded/i);
 
 export type TrendMonth = readonly [month: string, totalAssets: string, totalLiabilities: string, netWorth: string];
+
+export const cash = (month: string, amount: string): TrendMonth => [month, amount, '0', amount];
 
 export const monthCells = (page: Page, month: string): Locator =>
   reportRow(trendTable(page), monthLabel(month)).getByRole('cell');

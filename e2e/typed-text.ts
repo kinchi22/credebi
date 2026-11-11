@@ -12,6 +12,8 @@ export const SUTABA_IN_HIRAGANA = '\u3059\u305F\u3070';
 
 export const HANGUL = /\p{Script=Hangul}/u;
 
+export const JAPANESE = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
+
 export async function startComposing(page: Page, text: string): Promise<CDPSession> {
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('Input.imeSetComposition', { text, selectionStart: text.length, selectionEnd: text.length });

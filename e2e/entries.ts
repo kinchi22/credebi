@@ -90,6 +90,9 @@ export const entryOn = (
   amount: string,
 ): TwoLineEntry => ({ day, memo, debitAccount, creditAccount, amount });
 
+export const intoCash = (day: string, memo: string, amount: string): TwoLineEntry =>
+  entryOn(day, memo, 'Cash', 'Opening balance equity', amount);
+
 export const TITLE_MAX = 40;
 
 export const MEMO_MAX = 200;

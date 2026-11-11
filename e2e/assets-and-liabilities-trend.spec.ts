@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { BOOKS_OPEN } from './accounts';
 import {
+  cash,
   expectMonths,
   expectNothingRecorded,
   expectNoTrend,
@@ -22,13 +23,12 @@ import {
   trendTooltip,
 } from './assets-and-liabilities-trend';
 import { category, choosePeriod, choosePreset, datePresets, fixToday, periodSheet, presetChoice } from './date-presets';
-import { entryOn, postEntries, type TwoLineEntry } from './entries';
-import { documentLanguage, expectSettingsPageIn, languageChoice, pageTitle, tabTo } from './language';
+import { entryOn, intoCash, postEntries } from './entries';
+import { chooseLanguageAtSettings, documentLanguage, pageTitle, tabTo } from './language';
 import {
   abortServerActions,
   ASSETS_AND_LIABILITIES_PATH,
   INCOME_STATEMENT_PATH,
-  SETTINGS_PATH,
   SIGN_IN_URL,
   TREND_PATH as TREND,
   TREND_WITHOUT_QUERY,
@@ -36,7 +36,7 @@ import {
 } from './routes';
 import { freshIdentifier, signIn, signInForSmoke, submitTestSignIn } from './session';
 import { linkTo, menu, SIGNED_IN_PAGES, sidebar } from './sidebar';
-import { HANGUL } from './typed-text';
+import { HANGUL, JAPANESE } from './typed-text';
 import { expectWithinPhone, PHONE, WIDE } from './viewport';
 
 const TODAY = '2026-09-15';
@@ -55,8 +55,6 @@ const SIDEBAR_LINKS = [
   'Assets and liabilities trend',
   'Settings',
 ] as const;
-
-const JAPANESE = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
 
 type Translation = {
   readonly script: RegExp;
@@ -87,11 +85,6 @@ const RELATIVE_CHOICES = RELATIVE_SPANS.flatMap((months) => [
   `Next ${String(months)} months`,
   `${PLUS_MINUS}${String(months)} months`,
 ]);
-
-const intoCash = (day: string, memo: string, amount: string): TwoLineEntry =>
-  entryOn(day, memo, 'Cash', 'Opening balance equity', amount);
-
-const cash = (month: string, amount: string): TrendMonth => [month, amount, '0', amount];
 
 const cashIn = (months: readonly string[], amount: string): TrendMonth[] =>
   months.map((month) => cash(month, amount));
@@ -456,9 +449,7 @@ for (const language of ['ko', 'ja'] as const) {
     const { script, pageName, lines, categories } = TRANSLATIONS[language];
     await signIn(page, { accountsStartOn: BOOKS_OPEN });
     await postEntries(page, [intoCash(IN_JUNE, `Paid in ${randomUUID()}`, '1000')]);
-    await page.goto(SETTINGS_PATH);
-    await languageChoice(page, 'en', language).check();
-    await expectSettingsPageIn(page, language);
+    await chooseLanguageAtSettings(page, language);
     await page.setViewportSize(WIDE);
 
     await page.goto(ranged('2026-06', '2026-07'));

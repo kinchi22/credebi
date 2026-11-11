@@ -13,7 +13,7 @@ import {
   trendChart,
   trendTooltip,
 } from './assets-and-liabilities-trend';
-import { entryOn, postEntries, type TwoLineEntry } from './entries';
+import { entryOn, intoCash, postEntries } from './entries';
 import { tabTo } from './language';
 import { abortServerActions, TREND_PATH as TREND } from './routes';
 import { freshIdentifier, signIn } from './session';
@@ -23,9 +23,6 @@ const IN_JUNE = '2026-06-15';
 const ONE_HUNDRED_MILLION = 100_000_000;
 
 const TEN_MILLION = 10_000_000;
-
-const intoCash = (day: string, memo: string, amount: string): TwoLineEntry =>
-  entryOn(day, memo, 'Cash', 'Opening balance equity', amount);
 
 const juneAndJuly: readonly TrendMonth[] = [
   ['2026-06', '1,000', '0', '1,000'],

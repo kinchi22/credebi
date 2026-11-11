@@ -1,11 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
 import { addAccount, BOOKS_OPEN } from './accounts';
-import { expectMonths, type TrendMonth } from './assets-and-liabilities-trend';
+import { cash, expectMonths, type TrendMonth } from './assets-and-liabilities-trend';
 import {
   added,
   deleteListed,
   entryOn,
+  intoCash,
   listedEntry,
   openEditEntry,
   postEntries,
@@ -17,13 +18,8 @@ import { signIn } from './session';
 
 const IN_JUNE = '2026-06-15';
 
-const intoCash = (day: string, memo: string, amount: string): TwoLineEntry =>
-  entryOn(day, memo, 'Cash', 'Opening balance equity', amount);
-
 const outOfCash = (day: string, memo: string, amount: string): TwoLineEntry =>
   entryOn(day, memo, 'Food', 'Cash', amount);
-
-const cash = (month: string, amount: string): TrendMonth => [month, amount, '0', amount];
 
 const noBalance = (month: string): TrendMonth => [month, '0', '0', '0'];
 
