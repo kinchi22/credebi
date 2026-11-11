@@ -3,6 +3,9 @@ import { getTranslations } from 'next-intl/server';
 import { type ReactNode } from 'react';
 import { AccountsSection } from '../../../../components/accounts-section';
 import { ConnectionsSection } from '../../../../components/connections-section';
+import { ConnectionsPrototype } from '../../../../components/connections-prototype';
+import { headers } from 'next/headers';
+import { requestOrigin } from '../../../../server/oauth';
 import { EntryFormModeChoice } from '../../../../components/entry-form-mode-choice';
 import { LanguageChoice } from '../../../../components/language-choice';
 import { PAGE_HEADING } from '../../../../components/text-classes';
@@ -30,7 +33,13 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t('settingsPage.title') };
 }
 
-export default async function SettingsPage(): Promise<ReactNode> {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  readonly searchParams: Promise<Record<string, string | undefined>>;
+}): Promise<ReactNode> {
+  const prototype = (await searchParams)['variant'] !== undefined;
+  const mcpUrl = `${requestOrigin(await headers())}/mcp`;
   const t = await getTranslations();
   const caller = createCaller(await createContext());
   const [settings, chart, connections] = await Promise.all([
@@ -56,7 +65,11 @@ export default async function SettingsPage(): Promise<ReactNode> {
         }}
       />
       <LanguageChoice chosen={settings.language} action={changeLanguage} />
-      <ConnectionsSection connections={connections} action={revokeConnection} />
+      {prototype ? (
+        <ConnectionsPrototype mcpUrl={mcpUrl} connections={connections} />
+      ) : (
+        <ConnectionsSection connections={connections} action={revokeConnection} />
+      )}
     </>
   );
 }
