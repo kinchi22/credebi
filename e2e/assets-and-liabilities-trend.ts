@@ -37,17 +37,38 @@ export const toMonth = (page: Page): Locator => rangeForm(page).getByLabel('To m
 export const showButton = (page: Page): Locator =>
   rangeForm(page).getByRole('button', { name: 'Show', exact: true });
 
+export const shownMonth = (month: string): string => month.replace('-', '/');
+
 export async function showTrend(page: Page, from: string, to: string): Promise<void> {
   await expect(rangeForm(page)).toBeVisible();
-  await fromMonth(page).fill(from);
-  await toMonth(page).fill(to);
+  await fromMonth(page).fill(shownMonth(from));
+  await toMonth(page).fill(shownMonth(to));
   await showButton(page).click();
 }
 
 export async function expectRange(page: Page, from: string, to: string): Promise<void> {
-  await expect(fromMonth(page)).toHaveValue(from);
-  await expect(toMonth(page)).toHaveValue(to);
+  await expect(fromMonth(page)).toHaveValue(shownMonth(from));
+  await expect(toMonth(page)).toHaveValue(shownMonth(to));
 }
+
+export const monthFields = (page: Page): Locator => page.getByRole('main').getByRole('form').getByRole('textbox');
+
+export async function expectMonthFields(page: Page, from: string, to: string): Promise<void> {
+  const fields = monthFields(page);
+  await expect(fields).toHaveCount(2);
+  await expect(fields.nth(0)).toHaveValue(from);
+  await expect(fields.nth(1)).toHaveValue(to);
+}
+
+export type MonthField = 'From' | 'To';
+
+const FIELD_INDEX: Readonly<Record<MonthField, number>> = { From: 0, To: 1 };
+
+export const chooseMonth = (page: Page, field: MonthField): Locator =>
+  rangeForm(page).getByRole('button', { name: 'Choose month', exact: true }).nth(FIELD_INDEX[field]);
+
+export const gridMonth = (page: Page, name: string): Locator =>
+  page.getByRole('button', { name, exact: true });
 
 export const trendChart = (page: Page): Locator => page.getByRole('main').getByRole('application');
 

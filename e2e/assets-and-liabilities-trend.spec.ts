@@ -470,9 +470,11 @@ for (const language of ['ko', 'ja'] as const) {
 
     const form = page.getByRole('main').getByRole('form');
     await expect(form).toHaveAccessibleName(script);
-    for (const field of ['from', 'to']) {
-      await expect(form.locator(`input[name="${field}"]`)).toHaveAccessibleName(script);
-      await expect(form.locator(`input[name="${field}"]`)).not.toHaveAccessibleName(/month/i);
+    const fields = form.getByRole('textbox');
+    await expect(fields).toHaveCount(2);
+    for (const field of [fields.nth(0), fields.nth(1)]) {
+      await expect(field).toHaveAccessibleName(script);
+      await expect(field).not.toHaveAccessibleName(/month/i);
     }
     for (const name of categories) {
       await expect(page.getByRole('main').getByRole('button', { name, exact: true })).toBeVisible();
