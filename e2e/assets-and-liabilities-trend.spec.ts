@@ -15,6 +15,7 @@ import {
   rangeForm,
   showButton,
   showTrend,
+  trendRangePath,
   TREND_LINES,
   type TrendMonth,
   monthCells,
@@ -92,8 +93,6 @@ const cashIn = (months: readonly string[], amount: string): TrendMonth[] =>
 const cashFrom = (months: readonly string[], since: string, amount: string): TrendMonth[] =>
   months.map((month) => cash(month, month < since ? '0' : amount));
 
-const ranged = (from: string, to: string): string => `${TREND}?from=${from}&to=${to}`;
-
 const trendLinkIn = (navigation: Locator): Locator => linkTo(navigation, TREND);
 
 const trendLink = (page: Page): Locator => trendLinkIn(sidebar(page));
@@ -165,11 +164,11 @@ test('shows a range of a single month, and a range reaching into future months w
   await postEntries(page, [intoCash(IN_JUNE, `Now ${run}`, '1000'), intoCash('2027-01-15', `Ahead ${run}`, '5000')]);
   await fixToday(page, TODAY);
 
-  await page.goto(ranged('2026-06', '2026-06'));
+  await page.goto(trendRangePath('2026-06', '2026-06'));
   await expectRange(page, '2026-06', '2026-06');
   await expectMonths(page, [cash('2026-06', '1,000')]);
 
-  await page.goto(ranged('2026-11', '2027-02'));
+  await page.goto(trendRangePath('2026-11', '2027-02'));
   await expectRange(page, '2026-11', '2027-02');
   await expectMonths(page, [
     cash('2026-11', '1,000'),
@@ -185,7 +184,7 @@ test('shows every month of a 600-month range, one point each', async ({ page }) 
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [intoCash(IN_JUNE, `Paid in ${randomUUID()}`, '1000')]);
 
-  await page.goto(ranged('1980-01', '2029-12'));
+  await page.goto(trendRangePath('1980-01', '2029-12'));
 
   await expectRange(page, '1980-01', '2029-12');
   await expect(trendChart(page)).toBeVisible();
@@ -203,7 +202,7 @@ test('shows every month of a 600-month range, one point each', async ({ page }) 
 test('refuses a malformed, empty, repeated, reversed or over-600-month range in the URL, or only one of From and To, explains itself, and shows no chart', async ({ page }) => {
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [intoCash(IN_JUNE, `Paid in ${randomUUID()}`, '1000')]);
-  await page.goto(ranged('2026-06', '2026-06'));
+  await page.goto(trendRangePath('2026-06', '2026-06'));
   await expectMonths(page, [cash('2026-06', '1,000')]);
 
   for (const query of [
@@ -341,18 +340,18 @@ test('opens the presets at 390px from Choose a period, as a full-screen sheet, a
 test('says nothing is recorded yet, in place of the chart and legend, when no shown Entry is dated on or before the last month, and draws the chart when every Entry predates the range', async ({ page }) => {
   const run = randomUUID();
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await page.goto(ranged('2026-06', '2026-08'));
+  await page.goto(trendRangePath('2026-06', '2026-08'));
   await expectNothingRecorded(page);
 
   await postEntries(page, [intoCash('2026-12-15', `Later ${run}`, '1000')]);
-  await page.goto(ranged('2026-06', '2026-08'));
+  await page.goto(trendRangePath('2026-06', '2026-08'));
   await expectNothingRecorded(page);
 
-  await page.goto(ranged('2026-11', '2026-12'));
+  await page.goto(trendRangePath('2026-11', '2026-12'));
   await expectMonths(page, [cash('2026-11', '0'), cash('2026-12', '1,000')]);
 
   await postEntries(page, [intoCash('2026-01-15', `Earlier ${run}`, '2000')]);
-  await page.goto(ranged('2026-06', '2026-08'));
+  await page.goto(trendRangePath('2026-06', '2026-08'));
   await expectMonths(page, cashIn(monthsFrom('2026-06', 3), '2,000'));
 });
 
@@ -366,17 +365,17 @@ test("counts no other User's Accounts or Entries in a User's trend", async ({ br
     intoCash(IN_JUNE, `Private cash ${run}`, '1000'),
     entryOn(IN_JUNE, `Private debt ${run}`, 'Food', 'Credit card payable', '2000'),
   ]);
-  await ownerPage.goto(ranged('2026-06', '2026-06'));
+  await ownerPage.goto(trendRangePath('2026-06', '2026-06'));
   await expectMonths(ownerPage, [['2026-06', '1,000', '2,000', '-1,000']]);
 
   const other = await browser.newContext();
   const otherPage = await other.newPage();
   await signIn(otherPage, { accountsStartOn: BOOKS_OPEN });
-  await otherPage.goto(ranged('2026-06', '2026-06'));
+  await otherPage.goto(trendRangePath('2026-06', '2026-06'));
   await expectNothingRecorded(otherPage);
 
   await postEntries(otherPage, [intoCash(IN_JUNE, `Own cash ${run}`, '500')]);
-  await otherPage.goto(ranged('2026-06', '2026-06'));
+  await otherPage.goto(trendRangePath('2026-06', '2026-06'));
   await expectMonths(otherPage, [cash('2026-06', '500')]);
 
   await owner.close();
@@ -384,7 +383,7 @@ test("counts no other User's Accounts or Entries in a User's trend", async ({ br
 });
 
 test('sends a signed-out visitor to sign in, and back to the trend for the range they asked for once signed in', async ({ page }) => {
-  await page.goto(ranged('2026-06', '2026-08'));
+  await page.goto(trendRangePath('2026-06', '2026-08'));
   await expect(page).toHaveURL(SIGN_IN_URL);
 
   await submitTestSignIn(page, freshIdentifier(), BOOKS_OPEN);
@@ -452,7 +451,7 @@ for (const language of ['ko', 'ja'] as const) {
     await chooseLanguageAtSettings(page, language);
     await page.setViewportSize(WIDE);
 
-    await page.goto(ranged('2026-06', '2026-07'));
+    await page.goto(trendRangePath('2026-06', '2026-07'));
 
     await expect(documentLanguage(page)).toHaveAttribute('lang', language);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(pageName);
@@ -495,7 +494,7 @@ for (const language of ['ko', 'ja'] as const) {
     await expect(tooltip).toContainText(totalLiabilities);
     await expect(tooltip).not.toContainText(/Net worth|Total assets|Total liabilities/);
 
-    await page.goto(ranged('2026-07', '2026-06'));
+    await page.goto(trendRangePath('2026-07', '2026-06'));
     const refusal = page.getByRole('main').getByRole('alert');
     await expect(refusal).toHaveText(script);
     await expect(refusal).not.toContainText(/month/i);
@@ -508,7 +507,7 @@ test('fits the chart, its legend and the range form within the screen at 390px, 
   await postEntries(page, [intoCash(IN_JUNE, `Saved up ${randomUUID()}`, '1234567')]);
   await page.setViewportSize(PHONE);
 
-  await page.goto(ranged('2025-07', '2026-06'));
+  await page.goto(trendRangePath('2025-07', '2026-06'));
 
   await expectMonths(page, cashFrom(monthsFrom('2025-07', 12), '2026-06', '1,234,567'));
   await expectWithinPhone(page, trendChart(page));

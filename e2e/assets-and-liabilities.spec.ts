@@ -27,11 +27,11 @@ import {
   deleteListed,
   entryOn,
   intoCash,
+  outOfCash,
   listedEntry,
   openEditEntry,
   postEntries,
   saveEdit,
-  type TwoLineEntry,
 } from './entries';
 import { INITIAL_CHART, namesOf } from './initial-chart';
 import { documentLanguage, pageTitle, signUpAfterChoosing } from './language';
@@ -85,9 +85,6 @@ const LONG_NAME = 'Savings kept for every single rainy day';
 const THREE_ACCOUNTS = ['First', 'Second', 'Third'] as const;
 
 const FIVE_ACCOUNTS = [...THREE_ACCOUNTS, 'Fourth', 'Fifth'] as const;
-
-const outOfCash = (day: string, memo: string, amount: string): TwoLineEntry =>
-  entryOn(day, memo, 'Food', 'Cash', amount);
 
 const reportLinkIn = (navigation: Locator): Locator => linkTo(navigation, REPORT);
 

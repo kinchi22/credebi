@@ -7,19 +7,16 @@ import {
   deleteListed,
   entryOn,
   intoCash,
+  outOfCash,
   listedEntry,
   openEditEntry,
   postEntries,
   saveEdit,
-  type TwoLineEntry,
 } from './entries';
 import { SETTINGS_PATH, TREND_PATH as TREND } from './routes';
 import { signIn } from './session';
 
 const IN_JUNE = '2026-06-15';
-
-const outOfCash = (day: string, memo: string, amount: string): TwoLineEntry =>
-  entryOn(day, memo, 'Food', 'Cash', amount);
 
 const noBalance = (month: string): TrendMonth => [month, '0', '0', '0'];
 

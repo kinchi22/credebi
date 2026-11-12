@@ -1,6 +1,7 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import { escaped } from './entries';
 import { reportRow, reportTables } from './report-tables';
+import { TREND_PATH } from './routes';
 
 export const TREND_LINES = ['Net worth', 'Total assets', 'Total liabilities'] as const;
 
@@ -8,7 +9,7 @@ export type TrendLine = (typeof TREND_LINES)[number];
 
 export const MOST_MONTHS = 600;
 
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
+export const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
 
 const yearAndMonth = (month: string): readonly [number, number] => [
   Number(month.slice(0, 4)),
@@ -27,6 +28,8 @@ export const monthsFrom = (first: string, count: number): readonly string[] => {
     return `${String(Math.floor(index / 12)).padStart(4, '0')}-${String((index % 12) + 1).padStart(2, '0')}`;
   });
 };
+
+export const trendRangePath = (from: string, to: string): string => `${TREND_PATH}?from=${from}&to=${to}`;
 
 export const rangeForm = (page: Page): Locator => page.getByRole('form', { name: 'Trend range', exact: true });
 
@@ -50,8 +53,6 @@ export async function expectRange(page: Page, from: string, to: string): Promise
   await expect(fromMonth(page)).toHaveValue(heldMonth(from));
   await expect(toMonth(page)).toHaveValue(heldMonth(to));
 }
-
-export const monthName = (index: number): string => MONTH_NAMES[index] ?? '';
 
 export const monthFields = (page: Page): Locator => page.getByRole('main').getByRole('form').getByRole('textbox');
 

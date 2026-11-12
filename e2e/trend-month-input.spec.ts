@@ -10,11 +10,12 @@ import {
   gridMonth,
   monthFields,
   monthLabel,
-  monthName,
   monthsFrom,
+  MONTH_NAMES,
   rangeForm,
   showButton,
   toMonth,
+  trendRangePath,
 } from './assets-and-liabilities-trend';
 import { fixToday } from './date-presets';
 import { intoCash, postEntries } from './entries';
@@ -37,9 +38,13 @@ const MONTH_NUMBERS = Array.from({ length: 12 }, (_, index) => index + 1);
 
 const INVALID_MONTH = 'Enter a month as YYYY/MM';
 
-const ENGLISH_GRID = /^(?:Choose month|Previous year|Next year)$|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/;
+const ENGLISH_GRID = new RegExp(`^(?:Choose month|Previous year|Next year)$|\\b(?:${MONTH_NAMES.join('|')})\\b`);
 
-const POPOVER_GAP = 96;
+const POPOVER_GAP = 24;
+
+const POPOVER_ALIGNMENT = 24;
+
+const BUTTON_LINE = /^\s*- button "((?:[^"\\]|\\.)*)"/gm;
 
 const SHEET_TOLERANCE = 2;
 
@@ -54,7 +59,7 @@ const monthOf = (year: number, month: number): string => `${String(year)}-${Stri
 const GRID_TEXT: Readonly<Record<Language, GridText>> = {
   en: {
     script: undefined,
-    month: (month) => monthName(month - 1),
+    month: (month) => MONTH_NAMES[month - 1] ?? '',
     name: (year, month) => monthLabel(monthOf(year, month)),
   },
   ko: {
@@ -71,12 +76,17 @@ const GRID_TEXT: Readonly<Record<Language, GridText>> = {
 
 const LANGUAGES = ['en', 'ko', 'ja'] as const;
 
-const rangePath = (from: string, to: string): string => `${TREND}?from=${from}&to=${to}`;
+const atRange = (from: string, to: string): ((url: URL) => boolean) => withQuery(TREND, { from, to });
 
-const ranged = (from: string, to: string): ((url: URL) => boolean) => withQuery(TREND, { from, to });
+const gridAround = (page: Page, month: string, yearButton: string): Locator =>
+  page
+    .locator('*')
+    .filter({ has: page.getByRole('button', { name: month, exact: true }) })
+    .filter({ has: page.getByRole('button', { name: yearButton, exact: true }) })
+    .last();
 
-const yearHeader = (page: Page, year: number): Locator =>
-  page.getByText(new RegExp(`^\\s*${String(year)}\\s*[\\uB144\\u5E74]?\\s*$`));
+const yearHeader = (grid: Locator, year: number): Locator =>
+  grid.getByText(new RegExp(`^\\s*${String(year)}\\s*[\\uB144\\u5E74]?\\s*$`));
 
 async function useLanguage(page: Page, language: Language): Promise<void> {
   if (language !== 'en') await chooseLanguageAtSettings(page, language);
@@ -96,25 +106,13 @@ async function expectGridClosed(page: Page, year: number): Promise<void> {
   }
 }
 
-async function focusedAmong(page: Page, buttons: Locator): Promise<Locator> {
-  const count = await buttons.count();
-  for (let index = 0; index < count; index += 1) {
-    const button = buttons.nth(index);
-    if ((await button.and(page.locator(':focus')).count()) > 0) {
-      await expect(button).toBeFocused();
-      return button;
-    }
-  }
-  throw new Error('no button of the range form has focus');
+async function buttonNames(page: Page): Promise<string[]> {
+  const snapshot = await page.locator('body').ariaSnapshot();
+  return [...snapshot.matchAll(BUTTON_LINE)].map(([, name]) => String(JSON.parse(`"${name ?? ''}"`)));
 }
 
-const buttonNames = (page: Page): Promise<string[]> =>
-  page
-    .getByRole('button')
-    .evaluateAll(
-      (elements: readonly { getAttribute: (name: string) => string | null; readonly textContent: string | null }[]) =>
-        elements.map((element) => element.getAttribute('aria-label') ?? element.textContent?.trim() ?? ''),
-    );
+const valueMissing = (field: Locator): Promise<boolean> =>
+  field.evaluate((input: { readonly validity: { readonly valueMissing: boolean } }) => input.validity.valueMissing);
 
 const validationMessage = (field: Locator): Promise<string> =>
   field.evaluate((input: { readonly validationMessage: string }) => input.validationMessage);
@@ -137,7 +135,7 @@ for (const language of LANGUAGES) {
     await useLanguage(page, language);
     await fixToday(page, TODAY);
 
-    await page.goto(rangePath('2026-06', '2026-11'));
+    await page.goto(trendRangePath('2026-06', '2026-11'));
 
     await expect(documentLanguage(page)).toHaveAttribute('lang', language);
     await expectMonthFields(page, '2026/06', '2026/11');
@@ -151,17 +149,19 @@ for (const language of LANGUAGES) {
   test(`refuses a month not typed as YYYY/MM, saying so in ${language}`, async ({ page }) => {
     await signIn(page);
     await useLanguage(page, language);
-    await page.goto(rangePath('2026-06', '2026-07'));
+    await page.goto(trendRangePath('2026-06', '2026-07'));
     await expect(documentLanguage(page)).toHaveAttribute('lang', language);
     await expectMonthFields(page, '2026/06', '2026/07');
 
     const from = monthFields(page).nth(0);
     await from.fill('June 2026');
+    await page.keyboard.press('Tab');
+    await expect(from).not.toBeFocused();
     await from.press('Enter');
 
     await expectInvalidMonth(from, language);
     await expect(from).toHaveValue('June 2026');
-    await expect(page).toHaveURL(ranged('2026-06', '2026-07'));
+    await expect(page).toHaveURL(atRange('2026-06', '2026-07'));
   });
 
   test(`shows the month grid in ${language}: its button, its year header and year buttons, its twelve months and each month's full name`, async ({ page }) => {
@@ -169,12 +169,13 @@ for (const language of LANGUAGES) {
     await signIn(page);
     await useLanguage(page, language);
     await page.setViewportSize(WIDE);
-    await page.goto(rangePath('2026-06', '2026-11'));
+    await page.goto(trendRangePath('2026-06', '2026-11'));
     await expect(documentLanguage(page)).toHaveAttribute('lang', language);
 
     await tabTo(page, monthFields(page).nth(0));
     await page.keyboard.press('Tab');
-    const trigger = await focusedAmong(page, page.getByRole('main').getByRole('form').getByRole('button'));
+    const trigger = page.getByRole('main').getByRole('form').getByRole('button').and(page.locator(':focus'));
+    await expect(trigger).toHaveCount(1);
     if (script === undefined) {
       await expect(trigger).toHaveAccessibleName('Choose month');
     } else {
@@ -185,7 +186,6 @@ for (const language of LANGUAGES) {
     await page.keyboard.press('Enter');
 
     await expectGridYear(page, language, 2026);
-    await expect(yearHeader(page, 2026)).toBeVisible();
     const months = new Set(MONTH_NUMBERS.map((number) => name(2026, number)));
     const yearButtons = (await buttonNames(page)).filter((shown) => !before.includes(shown) && !months.has(shown));
     expect(yearButtons, 'the grid adds a Previous year and a Next year button').toHaveLength(2);
@@ -196,6 +196,8 @@ for (const language of LANGUAGES) {
       await expect(page.getByRole('button', { name: ENGLISH_GRID })).toHaveCount(0);
     }
 
+    const [aYearButton = ''] = yearButtons;
+    await expect(yearHeader(gridAround(page, name(2026, 1), aYearButton), 2026)).toBeVisible();
     const years: number[] = [];
     for (const shown of yearButtons) {
       await page.getByRole('button', { name: shown, exact: true }).click();
@@ -203,7 +205,7 @@ for (const language of LANGUAGES) {
       await expect(earlier.or(gridMonth(page, name(2027, 1)))).toBeVisible();
       const year = (await earlier.count()) > 0 ? 2025 : 2027;
       years.push(year);
-      await expect(yearHeader(page, year)).toBeVisible();
+      await expect(yearHeader(gridAround(page, name(year, 1), shown), year)).toBeVisible();
     }
     expect([...years].sort()).toEqual([2025, 2027]);
     await expectGridYear(page, language, 2026);
@@ -246,7 +248,7 @@ test('fills From month and To month from the month grid without showing the rang
 
   await showButton(page).click();
 
-  await expect(page).toHaveURL(ranged('2025-02', '2026-04'));
+  await expect(page).toHaveURL(atRange('2025-02', '2026-04'));
   await expectMonthFields(page, '2025/02', '2026/04');
   await expectMonths(
     page,
@@ -258,7 +260,7 @@ test("opens the month grid on today's year, focused on today's month, when its f
   await signIn(page);
   await page.setViewportSize(WIDE);
   await fixToday(page, TODAY);
-  await page.goto(rangePath('2024-03', '2024-05'));
+  await page.goto(trendRangePath('2024-03', '2024-05'));
   await expectMonthFields(page, '2024/03', '2024/05');
 
   await fromMonth(page).click();
@@ -275,7 +277,7 @@ test("opens the month grid on today's year, focused on today's month, when its f
 test('works the month grid by keyboard: arrows move across months, PageUp moves to the next year and PageDown to the previous, Enter and Space pick, Escape closes back to its button', async ({ page }) => {
   await signIn(page);
   await page.setViewportSize(WIDE);
-  await page.goto(rangePath('2026-06', '2026-11'));
+  await page.goto(trendRangePath('2026-06', '2026-11'));
   await expectMonthFields(page, '2026/06', '2026/11');
 
   await chooseMonth(page, 'To').focus();
@@ -292,7 +294,7 @@ test('works the month grid by keyboard: arrows move across months, PageUp moves 
 
   await expect(toMonth(page)).toHaveValue('2027/11');
   await expectGridClosed(page, 2027);
-  await expect(page).toHaveURL(ranged('2026-06', '2026-11'));
+  await expect(page).toHaveURL(atRange('2026-06', '2026-11'));
 
   await chooseMonth(page, 'To').focus();
   await page.keyboard.press('Enter');
@@ -321,7 +323,7 @@ test('turns a typed 2026-1, 2026/1, 2026-11 or 2026/11 into YYYY/MM on leaving t
   const run = randomUUID();
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [intoCash('2026-01-15', `January ${run}`, '1000')]);
-  await page.goto(rangePath('2026-06', '2026-07'));
+  await page.goto(trendRangePath('2026-06', '2026-07'));
   await expectMonthFields(page, '2026/06', '2026/07');
 
   for (const [typed, shown] of [
@@ -340,15 +342,15 @@ test('turns a typed 2026-1, 2026/1, 2026-11 or 2026/11 into YYYY/MM on leaving t
 
   await showButton(page).click();
 
-  await expect(page).toHaveURL(ranged('2026-09', '2026-11'));
+  await expect(page).toHaveURL(atRange('2026-09', '2026-11'));
   await expectMonthFields(page, '2026/09', '2026/11');
   await expectMonths(page, monthsFrom('2026-09', 3).map((month) => cash(month, '1,000')));
 });
 
-test('keeps anything else typed as it is, and refuses to show it, saying to enter a month as YYYY/MM', async ({ page }) => {
+test('keeps anything else typed as it is, and refuses to show it, saying to enter a month as YYYY/MM, and still refuses an empty field', async ({ page }) => {
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await postEntries(page, [intoCash('2026-06-15', `June ${randomUUID()}`, '1000')]);
-  await page.goto(rangePath('2026-06', '2026-07'));
+  await page.goto(trendRangePath('2026-06', '2026-07'));
   await expectMonths(page, [cash('2026-06', '1,000'), cash('2026-07', '1,000')]);
 
   for (const typed of ['June 2026', '2026/13', '26/06', '2026-06-15']) {
@@ -359,15 +361,22 @@ test('keeps anything else typed as it is, and refuses to show it, saying to ente
     await showButton(page).click();
 
     await expectInvalidMonth(fromMonth(page), 'en');
-    await expect(page).toHaveURL(ranged('2026-06', '2026-07'));
+    await expect(page).toHaveURL(atRange('2026-06', '2026-07'));
     await expect(fromMonth(page)).toHaveValue(typed);
   }
+
+  await fromMonth(page).fill('');
+  await page.keyboard.press('Tab');
+  await showButton(page).click();
+
+  await expect.poll(() => valueMissing(fromMonth(page))).toBe(true);
+  await expect(page).toHaveURL(atRange('2026-06', '2026-07'));
 });
 
-test('opens the month grid on a wide window in a popover just under its field, not in a dialog', async ({ page }) => {
+test('opens the month grid on a wide window in a popover just under its field and lined up with it, not in a dialog', async ({ page }) => {
   await signIn(page);
   await page.setViewportSize(WIDE);
-  await page.goto(rangePath('2026-06', '2026-11'));
+  await page.goto(trendRangePath('2026-06', '2026-11'));
   await expectMonthFields(page, '2026/06', '2026/11');
 
   await chooseMonth(page, 'From').click();
@@ -375,17 +384,18 @@ test('opens the month grid on a wide window in a popover just under its field, n
   await expectGridYear(page, 'en', 2026);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   const field = await fromMonth(page).boundingBox();
-  const january = await gridMonth(page, 'Jan 2026').boundingBox();
+  const grid = await gridAround(page, 'Jan 2026', 'Previous year').boundingBox();
   const fieldBottom = (field?.y ?? Number.NaN) + (field?.height ?? Number.NaN);
-  const gap = (january?.y ?? Number.NaN) - fieldBottom;
+  const gap = (grid?.y ?? Number.NaN) - fieldBottom;
   expect(gap).toBeGreaterThanOrEqual(0);
   expect(gap).toBeLessThanOrEqual(POPOVER_GAP);
+  expect(Math.abs((grid?.x ?? Number.NaN) - (field?.x ?? Number.NaN))).toBeLessThanOrEqual(POPOVER_ALIGNMENT);
 });
 
 test('opens the month grid at 390px in a bottom sheet within the screen, and closes it on picking a month', async ({ page }) => {
   await signIn(page);
   await page.setViewportSize(PHONE);
-  await page.goto(rangePath('2026-06', '2026-11'));
+  await page.goto(trendRangePath('2026-06', '2026-11'));
   await expectMonthFields(page, '2026/06', '2026/11');
 
   await chooseMonth(page, 'From').click();
@@ -401,7 +411,7 @@ test('opens the month grid at 390px in a bottom sheet within the screen, and clo
 
   await expect(sheet).toBeHidden();
   await expectMonthFields(page, '2026/03', '2026/11');
-  await expect(page).toHaveURL(ranged('2026-06', '2026-11'));
+  await expect(page).toHaveURL(atRange('2026-06', '2026-11'));
 });
 
 test('leaves the day fields of the other pages as native date inputs with no month grid', async ({ page }) => {
