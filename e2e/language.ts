@@ -38,6 +38,7 @@ export type CatalogueText = {
   readonly google: string;
   readonly settings: string;
   readonly signOut: string;
+  readonly connections: string;
 };
 
 export const CATALOGUE: Readonly<Record<Language, CatalogueText>> = {
@@ -61,6 +62,7 @@ export const CATALOGUE: Readonly<Record<Language, CatalogueText>> = {
     google: 'Sign in with Google',
     settings: 'Settings',
     signOut: 'Sign out',
+    connections: 'Connections',
   },
   ko: {
     accounts: {
@@ -82,6 +84,7 @@ export const CATALOGUE: Readonly<Record<Language, CatalogueText>> = {
     google: 'Google\uB85C \uB85C\uADF8\uC778',
     settings: '\uC124\uC815',
     signOut: '\uB85C\uADF8\uC544\uC6C3',
+    connections: '\uC5F0\uACB0',
   },
   ja: {
     accounts: {
@@ -103,6 +106,7 @@ export const CATALOGUE: Readonly<Record<Language, CatalogueText>> = {
     google: 'Google\u3067\u30ED\u30B0\u30A4\u30F3',
     settings: '\u8A2D\u5B9A',
     signOut: '\u30ED\u30B0\u30A2\u30A6\u30C8',
+    connections: '\u63A5\u7D9A',
   },
 };
 
