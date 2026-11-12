@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { monthAfter, monthOf, yearOf } from '@repo/core/entries';
 import { CalendarIcon, ChevronIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import {
@@ -16,13 +17,13 @@ import {
 } from 'react';
 import { flushSync } from 'react-dom';
 import { CloseButton } from './close-button';
-import { BARE_ICON_BUTTON, DATE_CONTROL, ICON_CONTROL } from './control-classes';
-import { GRID_STEPS, monthAfter, monthText, monthTyped } from './month-text';
+import { BARE_ICON_BUTTON, DATE_CONTROL, ICON_CONTROL, POPOVER_FRAME, TODAY_MARK } from './control-classes';
+import { GRID_STEPS, monthsOfYear, monthText, monthTyped, steppedMonth } from './month-text';
 import { SheetBar } from './sheet';
 import { useDismissOutside } from './use-dismiss-outside';
 import { useModalDialog } from './use-modal-dialog';
 import { useMonthLabel } from './use-month-label';
-import { useWide } from './use-wide';
+import { useWide, WIDE_QUERY } from './use-wide';
 
 export type MonthInputProps = {
   readonly id: string;
@@ -32,17 +33,14 @@ export type MonthInputProps = {
   readonly today: string | undefined;
 };
 
-const MONTH_NUMBERS = Array.from({ length: 12 }, (_, index) => index + 1);
+const MONTHS_A_YEAR = 12;
 
 const MONTH = `rounded-control px-2 py-2 ${typeClasses['body-dense']} hover:bg-ground`;
-const TODAY_MONTH = 'font-semibold text-accent-text underline decoration-accent decoration-2 underline-offset-4';
 const CHOSEN_MONTH = 'bg-surface-chosen hover:bg-surface-chosen';
-const YEAR_BUTTON = `size-8 ${BARE_ICON_BUTTON}`;
-
-const monthOfYear = (year: string, number: number): string => `${year}-${String(number).padStart(2, '0')}`;
+const YEAR_BUTTON = `size-8 ${BARE_ICON_BUTTON} disabled:opacity-50`;
 
 const monthClass = (today: boolean, chosen: boolean): string =>
-  [MONTH, today ? TODAY_MONTH : 'text-text', chosen ? CHOSEN_MONTH : ''].join(' ');
+  [MONTH, today ? TODAY_MARK : 'text-text', chosen ? CHOSEN_MONTH : ''].join(' ');
 
 type MonthGridProps = {
   readonly start: string;
@@ -57,11 +55,11 @@ function MonthGrid({ start, chosen, today, onPick }: MonthGridProps): ReactNode 
   const monthLabel = useMonthLabel();
   const [active, setActive] = useState(start);
   const buttons = useRef<Partial<Record<number, HTMLButtonElement | null>>>({});
-  const year = active.slice(0, 4);
-  const activeNumber = Number(active.slice(5, 7));
+  const previousYear = steppedMonth(active, -MONTHS_A_YEAR);
+  const nextYear = steppedMonth(active, MONTHS_A_YEAR);
 
   useEffect(() => {
-    buttons.current[Number(start.slice(5, 7))]?.focus();
+    buttons.current[monthOf(start)]?.focus();
   }, [start]);
 
   const move = (event: KeyboardEvent<HTMLDivElement>): void => {
@@ -70,11 +68,14 @@ function MonthGrid({ start, chosen, today, onPick }: MonthGridProps): ReactNode 
       return;
     }
     event.preventDefault();
-    const next = monthAfter(active, step);
+    const next = steppedMonth(active, step);
+    if (next === undefined) {
+      return;
+    }
     flushSync(() => {
       setActive(next);
     });
-    buttons.current[Number(next.slice(5, 7))]?.focus();
+    buttons.current[monthOf(next)]?.focus();
   };
 
   return (
@@ -83,8 +84,9 @@ function MonthGrid({ start, chosen, today, onPick }: MonthGridProps): ReactNode 
         <button
           type="button"
           aria-label={t('previousYear')}
+          disabled={previousYear === undefined}
           onClick={() => {
-            setActive(monthAfter(active, -12));
+            if (previousYear !== undefined) setActive(previousYear);
           }}
           className={YEAR_BUTTON}
         >
@@ -92,12 +94,15 @@ function MonthGrid({ start, chosen, today, onPick }: MonthGridProps): ReactNode 
             <ChevronIcon />
           </span>
         </button>
-        <span className={`${typeClasses.date} font-semibold text-text`}>{year}</span>
+        <span className={`${typeClasses.date} font-semibold text-text`}>
+          {String(yearOf(active)).padStart(4, '0')}
+        </span>
         <button
           type="button"
           aria-label={t('nextYear')}
+          disabled={nextYear === undefined}
           onClick={() => {
-            setActive(monthAfter(active, 12));
+            if (nextYear !== undefined) setActive(nextYear);
           }}
           className={YEAR_BUTTON}
         >
@@ -105,8 +110,8 @@ function MonthGrid({ start, chosen, today, onPick }: MonthGridProps): ReactNode 
         </button>
       </div>
       <div className="grid grid-cols-4 gap-1" onKeyDown={move}>
-        {MONTH_NUMBERS.map((number) => {
-          const month = monthOfYear(year, number);
+        {monthsOfYear(active).map((month) => {
+          const number = monthOf(month);
           const isToday = month === today;
           return (
             <button
@@ -117,7 +122,7 @@ function MonthGrid({ start, chosen, today, onPick }: MonthGridProps): ReactNode 
               type="button"
               aria-label={monthLabel(month)}
               aria-current={isToday ? 'date' : undefined}
-              tabIndex={number === activeNumber ? 0 : -1}
+              tabIndex={month === active ? 0 : -1}
               onClick={() => {
                 onPick(month);
               }}
@@ -132,6 +137,19 @@ function MonthGrid({ start, chosen, today, onPick }: MonthGridProps): ReactNode 
   );
 }
 
+function useClosedWhenNarrow(close: () => void): void {
+  useEffect(() => {
+    const wide = window.matchMedia(WIDE_QUERY);
+    const closeWhenNarrow = (): void => {
+      if (!wide.matches) close();
+    };
+    wide.addEventListener('change', closeWhenNarrow);
+    return () => {
+      wide.removeEventListener('change', closeWhenNarrow);
+    };
+  }, [close]);
+}
+
 export function MonthInput({ id, name, text, onText, today }: MonthInputProps): ReactNode {
   const t = useTranslations('monthInput');
   const wide = useWide();
@@ -139,32 +157,34 @@ export function MonthInput({ id, name, text, onText, today }: MonthInputProps): 
   const field = useRef<HTMLInputElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const root = useRef<HTMLDivElement>(null);
-  const [popover, setPopover] = useState<string>();
+  const [popoverStart, setPopoverStart] = useState<string>();
   const [sheetStart, setSheetStart] = useState<string>();
   const gridId = useId();
   const titleId = `${gridId}-title`;
   const chosen = monthTyped(text);
-  const thisMonth = today?.slice(0, 7);
+  const thisMonth = today === undefined ? undefined : monthAfter(today, 0);
   const invalid = t('invalid');
+  const popoverOpen = popoverStart !== undefined;
 
   useLayoutEffect(() => {
     field.current?.setCustomValidity(text === '' || chosen !== undefined ? '' : invalid);
   }, [text, chosen, invalid]);
 
   const closePopover = useCallback((): void => {
-    setPopover(undefined);
+    setPopoverStart(undefined);
   }, []);
 
-  useDismissOutside(popover !== undefined, root, closePopover);
+  useDismissOutside(popoverOpen, root, closePopover);
+  useClosedWhenNarrow(closePopover);
 
   const open = (opener: HTMLButtonElement): void => {
     const start = chosen ?? thisMonth;
-    if (popover !== undefined || start === undefined) {
-      setPopover(undefined);
+    if (popoverOpen || start === undefined) {
+      closePopover();
       return;
     }
     if (wide) {
-      setPopover(start);
+      setPopoverStart(start);
     } else if (sheet.show(opener)) {
       setSheetStart(start);
     }
@@ -172,25 +192,25 @@ export function MonthInput({ id, name, text, onText, today }: MonthInputProps): 
 
   const pick = (month: string): void => {
     onText(monthText(month));
-    if (popover === undefined) {
-      sheet.close();
-    } else {
-      setPopover(undefined);
+    if (popoverOpen) {
+      closePopover();
       trigger.current?.focus();
+    } else {
+      sheet.close();
     }
   };
 
   const closeOnEscape = (event: KeyboardEvent<HTMLDivElement>): void => {
-    if (event.key === 'Escape' && popover !== undefined) {
+    if (event.key === 'Escape' && popoverOpen) {
       event.preventDefault();
-      setPopover(undefined);
+      closePopover();
       trigger.current?.focus();
     }
   };
 
   const closeWhenFocusLeaves = (event: FocusEvent<HTMLDivElement>): void => {
     if (event.relatedTarget !== null && !event.currentTarget.contains(event.relatedTarget)) {
-      setPopover(undefined);
+      closePopover();
     }
   };
 
@@ -217,7 +237,7 @@ export function MonthInput({ id, name, text, onText, today }: MonthInputProps): 
         ref={trigger}
         type="button"
         aria-label={t('chooseMonth')}
-        aria-expanded={popover !== undefined || sheet.open}
+        aria-expanded={popoverOpen || sheet.open}
         aria-controls={gridId}
         disabled={today === undefined && chosen === undefined}
         onClick={(event) => {
@@ -227,21 +247,16 @@ export function MonthInput({ id, name, text, onText, today }: MonthInputProps): 
       >
         <CalendarIcon />
       </button>
-      {popover === undefined ? null : (
+      {popoverStart === undefined ? null : (
         <div className="absolute top-full left-0 z-10 pt-1.5">
-          <div
-            id={gridId}
-            role="dialog"
-            aria-label={t('chooseMonth')}
-            className="w-64 rounded-control border border-border bg-surface p-2"
-          >
-            <MonthGrid start={popover} chosen={chosen} today={thisMonth} onPick={pick} />
+          <div id={gridId} role="dialog" aria-label={t('chooseMonth')} className={`w-64 ${POPOVER_FRAME}`}>
+            <MonthGrid start={popoverStart} chosen={chosen} today={thisMonth} onPick={pick} />
           </div>
         </div>
       )}
       <dialog
         {...sheet.dialogProps}
-        id={popover === undefined ? gridId : undefined}
+        id={popoverOpen ? undefined : gridId}
         aria-labelledby={titleId}
         onClick={sheet.closeOnScrim}
         className="mx-0 mt-auto mb-0 max-h-none w-full max-w-none overflow-hidden rounded-t-panel border-0 bg-ground p-0 text-text backdrop:bg-ground-dark/60"

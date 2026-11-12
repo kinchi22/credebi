@@ -1,31 +1,35 @@
 import { calendarMonthSchema } from '@repo/contracts';
+import { monthAfter, monthOf } from '@repo/core/entries';
 
-const TYPED_MONTH = /^\d{4}[-/]\d{1,2}$/;
+const SEPARATORS: ReadonlySet<string> = new Set(['-', '/']);
 
 const MONTHS_A_YEAR = 12;
 
 const GRID_COLUMNS = 4;
 
+const isCalendarMonth = (month: string): boolean => calendarMonthSchema.safeParse(month).success;
+
 export const monthText = (month: string): string => month.replace('-', '/');
 
 export function monthTyped(text: string): string | undefined {
   const typed = text.trim();
-  if (!TYPED_MONTH.test(typed)) {
+  if (!SEPARATORS.has(typed.charAt(4))) {
     return undefined;
   }
-  const number = Number(typed.slice(5));
-  return number >= 1 && number <= MONTHS_A_YEAR
-    ? `${typed.slice(0, 4)}-${String(number).padStart(2, '0')}`
-    : undefined;
+  const month = `${typed.slice(0, 4)}-${typed.slice(5).padStart(2, '0')}`;
+  return isCalendarMonth(month) ? month : undefined;
 }
 
-export const shownMonth = (value: string): string =>
-  calendarMonthSchema.safeParse(value).success ? monthText(value) : value;
+export const shownMonth = (value: string): string => (isCalendarMonth(value) ? monthText(value) : value);
 
-export function monthAfter(month: string, count: number): string {
-  const index = Number(month.slice(0, 4)) * MONTHS_A_YEAR + Number(month.slice(5, 7)) - 1 + count;
-  const year = Math.floor(index / MONTHS_A_YEAR);
-  return `${String(year).padStart(4, '0')}-${String(index - year * MONTHS_A_YEAR + 1).padStart(2, '0')}`;
+export function steppedMonth(month: string, count: number): string | undefined {
+  const stepped = monthAfter(month, count);
+  return isCalendarMonth(stepped) ? stepped : undefined;
+}
+
+export function monthsOfYear(month: string): readonly string[] {
+  const first = monthAfter(month, 1 - monthOf(month));
+  return Array.from({ length: MONTHS_A_YEAR }, (_, offset) => monthAfter(first, offset));
 }
 
 export const GRID_STEPS: Readonly<Record<string, number>> = {

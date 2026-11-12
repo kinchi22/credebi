@@ -23,22 +23,12 @@ export type RangeFieldsProps = {
   readonly children?: ReactNode;
 };
 
-type Unit = {
-  readonly labels: 'dayRange' | 'monthRange';
-  readonly shown: (value: string) => string;
-  readonly shownRange: (range: DayRange) => DayRange;
-};
-
-const UNITS: Readonly<Record<Granularity, Unit>> = {
-  day: { labels: 'dayRange', shown: (value) => value, shownRange: (range) => range },
-  month: {
-    labels: 'monthRange',
-    shown: shownMonth,
-    shownRange: (range) => {
-      const months = monthRangeOf(range);
-      return { from: monthText(months.from), to: monthText(months.to) };
-    },
-  },
+type RangeFieldProps = {
+  readonly id: string;
+  readonly name: string;
+  readonly value: string;
+  readonly onValue: (value: string) => void;
+  readonly today: string | undefined;
 };
 
 const RANGE_FIELD = `${DATE_CONTROL} w-full min-w-0 wide:w-auto`;
@@ -51,19 +41,8 @@ function keepingAValue(set: (value: string) => void): (event: ChangeEvent<HTMLIn
   };
 }
 
-type RangeFieldProps = {
-  readonly granularity: Granularity;
-  readonly id: string;
-  readonly name: string;
-  readonly value: string;
-  readonly onValue: (value: string) => void;
-  readonly today: string | undefined;
-};
-
-function RangeField({ granularity, id, name, value, onValue, today }: RangeFieldProps): ReactNode {
-  return granularity === 'month' ? (
-    <MonthInput id={id} name={name} text={value} onText={onValue} today={today} />
-  ) : (
+function DayField({ id, name, value, onValue }: RangeFieldProps): ReactNode {
+  return (
     <input
       id={id}
       name={name}
@@ -76,6 +55,30 @@ function RangeField({ granularity, id, name, value, onValue, today }: RangeField
     />
   );
 }
+
+function MonthField({ id, name, value, onValue, today }: RangeFieldProps): ReactNode {
+  return <MonthInput id={id} name={name} text={value} onText={onValue} today={today} />;
+}
+
+type Unit = {
+  readonly labels: 'dayRange' | 'monthRange';
+  readonly Field: (props: RangeFieldProps) => ReactNode;
+  readonly shown: (value: string) => string;
+  readonly shownRange: (range: DayRange) => DayRange;
+};
+
+const UNITS: Readonly<Record<Granularity, Unit>> = {
+  day: { labels: 'dayRange', Field: DayField, shown: (value) => value, shownRange: (range) => range },
+  month: {
+    labels: 'monthRange',
+    Field: MonthField,
+    shown: shownMonth,
+    shownRange: (range) => {
+      const months = monthRangeOf(range);
+      return { from: monthText(months.from), to: monthText(months.to) };
+    },
+  },
+};
 
 export function RangeFields({
   granularity,
@@ -109,8 +112,7 @@ export function RangeFields({
       >
         <div className={FIELD}>
           <label htmlFor={`${id}-from`}>{t('from')}</label>
-          <RangeField
-            granularity={granularity}
+          <unit.Field
             id={`${id}-from`}
             name={names.from}
             value={from}
@@ -120,8 +122,7 @@ export function RangeFields({
         </div>
         <div className={FIELD}>
           <label htmlFor={`${id}-to`}>{t('to')}</label>
-          <RangeField
-            granularity={granularity}
+          <unit.Field
             id={`${id}-to`}
             name={names.to}
             value={to}
