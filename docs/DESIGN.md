@@ -661,14 +661,17 @@ numerals.
 - **Connections section.** The User's Connections in Settings, below the
   Language, under its `Connections` heading, semibold in `body-sm`. With
   Connections, a secondary `+ Add connection`, named `Add connection`, sits at
-  the heading's right, and the rows sit in one list drawn as a panel, as the
-  Accounts section's do, in `body-sm`, between `border` hairlines, most
-  recently created first. Each row holds the MCP client's name, semibold; the
-  host of the redirect the User approved, in `text-muted`; its scopes in the
-  consent page's words; and `Created` and `Last used` in `text-muted`, each
-  with its day in `date`, in the browser's time zone.
-  A secondary `Revoke` button, named `Revoke <client name>`, ends the row,
-  beside the text from `wide` up and below it otherwise. With no Connection the
+  the heading's right, and the Connections are a list of panel cards in
+  `body-sm`, 12px apart, one column below `wide` and two from `wide` up, most
+  recently created first. A card holds, 12px apart: the MCP client's name,
+  semibold and wrapping anywhere, over the host of the redirect the User
+  approved, in `text-muted` and breaking anywhere, with a Danger icon button
+  named `Revoke <client name>` at their right; its scopes as chips in the
+  consent page's words, each a `control`-radius box in `body-dense` with an
+  edge of its own colour, `Post entries` in `accent-text` and
+  `Read your books` in `text-muted` on a `border` edge; and `Created` and
+  `Last used` in `text-muted`, each with its day in `date`, in the browser's
+  time zone. With no Connection the
   section holds an empty-state panel instead, its text centred in `body-sm`: a
   semibold line, a sentence in `text-muted` saying that an AI application can
   read the books and post Entries during a conversation, with the permissions
@@ -946,6 +949,13 @@ numerals.
 - **Icon button.** A secondary button holding a stroke icon in place of text,
   with an accessible name: square and 36px, as tall as the Input beside it, as
   `Choose a period` is.
+- **Danger icon button.** A bare icon button for an action that takes
+  something away, kept off the confirmation it opens: a stroke icon in
+  `danger`, no border, and no fill but a `danger` tint at 10% under the
+  pointer, with an accessible name in place of text. It is sized as the Entry
+  row actions are, 32px square below `wide` and 28px from `wide` up. It is a
+  Connection's `Revoke <client name>`, an unlink icon, in the Connections
+  section.
 - **Entries list.** Laid out the same at every width, in Entries and in Entry
   search. Its panel shows no `Entries` heading, which is visually hidden, not
   removed, so the region is still named `Entries`. A full-width `border`
@@ -1048,7 +1058,8 @@ numerals.
   It is also `Delete account` and `Delete group`, opened by a row's `Delete`
   in the Accounts section, with the Account type in `text-muted` below the
   title and the Account's or group's name, semibold, as the thing.
-  It is also `Revoke connection`, opened by a Connection's `Revoke` in the
+  It is also `Revoke connection`, opened by a Connection's
+  `Revoke <client name>` in the
   Connections section, whose thing is the MCP client's name, semibold, over
   its redirect host in `text-muted`; its danger button is `Revoke`.
 - **Edit entry dialog.** `Edit entry`, opened by an Entry's `Edit`, holds the
