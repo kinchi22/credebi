@@ -687,7 +687,15 @@ numerals.
   Settings choices: the shown tab semibold in the chosen segment's tint and
   ring, the other in `text-muted`. It opens on `Claude` every time, the left
   and right arrow keys move between the tabs, and the panel below the strip
-  holds the shown client's guidance. The last step says in `text-muted` that
+  holds the shown client's guidance in short groups 16px apart, each ending in
+  a link to that vendor's own help, opening in a new tab. `Claude` has two:
+  add the MCP URL as a custom connector in claude.ai or the desktop app; and in
+  Claude Code, run `claude mcp add --transport http credebi <MCP URL>`, then
+  authenticate from `/mcp`, the command in a `control`-radius box on the
+  `ground` with a `border` edge, in the sans face, wrapping anywhere.
+  `ChatGPT` has one: turn on developer mode under Apps in its settings, create
+  an app with the MCP URL and choose OAuth. The guidance names as few of the vendor's menus as it can,
+  and no other client. The last step says in `text-muted` that
   the application opens a Credebi page to sign in, review and approve, after
   which the Connection appears in the list. `Close`, Escape or a click on the
   scrim closes it, and focus returns to the button that opened it. It
