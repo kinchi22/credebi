@@ -148,7 +148,28 @@ export const ko = {
   },
   connectionsSection: {
     title: '연결',
-    empty: '장부에 연결된 애플리케이션이 없습니다.',
+    emptyTitle: 'AI 애플리케이션 연결하기',
+    emptyBody:
+      'AI 애플리케이션이 대화 중에 장부를 읽고 거래를 기록할 수 있게 합니다. 권한은 연결할 때 직접 고르며, 연결은 언제든 해제할 수 있습니다.',
+    startConnecting: '연결 시작하기',
+    addConnection: '연결 추가',
+    addConnectionText: '+ 연결 추가',
+    dialogTitle: 'AI 애플리케이션 연결',
+    close: '닫기',
+    copyStep: 'MCP URL 복사',
+    mcpUrl: 'MCP URL',
+    copy: '복사',
+    copied: '복사됨',
+    copiedStatus: 'MCP URL을 복사했습니다.',
+    copyRefused: '브라우저에서 클립보드 복사를 허용하지 않았습니다. 선택된 MCP URL을 직접 복사해 주세요.',
+    clientStep: '애플리케이션에 추가',
+    clients: {
+      claude: 'Claude',
+      chatgpt: 'ChatGPT',
+    },
+    approveStep: 'Credebi에 로그인하고 허용',
+    approveBody:
+      '애플리케이션이 Credebi 페이지를 엽니다. 로그인하고 요청한 권한을 확인한 뒤 허용하세요. 그러면 연결이 이 목록에 나타납니다.',
     scopes: {
       read: '장부 읽기',
       write: '거래 기록',
@@ -156,6 +177,7 @@ export const ko = {
     created: '연결한 날',
     lastUsed: '마지막 사용',
     revoke: '연결 해제',
+    revokeNamed: '{client} 연결 해제',
     revokeTitle: '연결 해제',
     pending: '해제 중...',
     cancel: '취소',

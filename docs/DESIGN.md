@@ -659,15 +659,48 @@ numerals.
   `Show ended accounts` are at 60% opacity, every button, grip and the toggle
   is disabled, nothing can be dragged, and the section is `aria-busy`.
 - **Connections section.** The User's Connections in Settings, below the
-  Language, under its `Connections` heading, semibold in `body-sm`. Its rows
-  sit in one list drawn as a panel, as the Accounts section's do, in `body-sm`,
-  between `border` hairlines, most recently created first. Each row holds the
-  MCP client's name, semibold; the host of the redirect the User approved, in
-  `text-muted`; its scopes in the consent page's words; and `Created` and
-  `Last used` in `text-muted`, each with its day in `date`, in the browser's
-  time zone.
-  A secondary `Revoke` button ends the row, beside the text from `wide` up and
-  below it otherwise. With no Connection the section says so in `text-muted`.
+  Language, under its `Connections` heading, semibold in `body-sm`. With
+  Connections, a secondary `+ Add connection`, named `Add connection`, sits at
+  the heading's right, and the rows sit in one list drawn as a panel, as the
+  Accounts section's do, in `body-sm`, between `border` hairlines, most
+  recently created first. Each row holds the MCP client's name, semibold; the
+  host of the redirect the User approved, in `text-muted`; its scopes in the
+  consent page's words; and `Created` and `Last used` in `text-muted`, each
+  with its day in `date`, in the browser's time zone.
+  A secondary `Revoke` button, named `Revoke <client name>`, ends the row,
+  beside the text from `wide` up and below it otherwise. With no Connection the
+  section holds an empty-state panel instead, its text centred in `body-sm`: a
+  semibold line, a sentence in `text-muted` saying that an AI application can
+  read the books and post Entries during a conversation, with the permissions
+  chosen while connecting, and that it can be revoked at any time, and a
+  primary `Start connecting`.
+- **Connection dialog.** `Connect an AI application`, opened by
+  `Start connecting` or `+ Add connection`. Below `wide` it is a sheet on the
+  `surface` rising from the foot of the screen over a `ground-dark` scrim at
+  60%, its top corners rounded, as tall as its content and at most the viewport
+  less 64px; from `wide` up it is centred over the same scrim, a `surface`
+  panel with a `border` edge, 560px wide at most. A `surface` bar holds its
+  title and a close icon named `Close`, and below it three numbered steps in
+  `body-sm` scroll, each with a semibold title: `Copy the MCP URL`,
+  `Add it to your application` and `Sign in and approve`. The second step holds
+  a tab strip, `Claude` and `ChatGPT`, drawn as the segment strip of the
+  Settings choices: the shown tab semibold in the chosen segment's tint and
+  ring, the other in `text-muted`. It opens on `Claude` every time, the left
+  and right arrow keys move between the tabs, and the panel below the strip
+  holds the shown client's guidance. The last step says in `text-muted` that
+  the application opens a Credebi page to sign in, review and approve, after
+  which the Connection appears in the list. `Close`, Escape or a click on the
+  scrim closes it, and focus returns to the button that opened it. It
+  remembers nothing between openings.
+- **MCP URL field.** The first step's read-only field, drawn as a control in
+  the sans face, not `figure` or `date`, wrapping anywhere and as tall as its
+  text, so a long MCP URL shows whole at any width. A secondary `Copy` sits at
+  its right. Pressed, it puts the MCP URL on the clipboard and reads `Copied`
+  for two seconds, counted afresh on each press, and a polite status line
+  below the field, in `body-sm` and `text-muted`, says the MCP URL was copied.
+  When the browser refuses the clipboard, the field's text is selected and the
+  status line asks the User to copy it themselves, said again on each refused
+  press.
 - **Entry search form.** After From and To come Account, Title and Memo, in
   that order, then the submit. Account is as wide as a closed select of its
   choices would be, sized by the widest of `Any account` and the Account

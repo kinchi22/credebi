@@ -21,6 +21,7 @@ export const BARE_ICON_BUTTON = 'inline-flex items-center justify-center rounded
 export const ROW_ICON_BUTTON = `-my-1.5 size-8 shrink-0 wide:-my-1 wide:size-7 ${BARE_ICON_BUTTON}`;
 export const PRIMARY_BUTTON = `h-control rounded-control border border-transparent bg-accent px-3 ${typeClasses['body-sm']} font-semibold text-text disabled:opacity-50`;
 export const CONFIRMATION_DIALOG = 'm-auto w-[calc(100%-2rem)] max-w-100 rounded-panel border border-border bg-surface p-0 text-text backdrop:bg-ground-dark/60';
+export const BOTTOM_SHEET = 'mx-0 mt-auto mb-0 max-h-none w-full max-w-none rounded-t-panel border-0 p-0 text-text backdrop:bg-ground-dark/60';
 export const CONFIRMATION_PANEL = 'flex flex-col gap-4 p-4 wide:p-6';
 export const SETTINGS_ROW = 'm-0 flex flex-col gap-3 border-0 border-b border-border px-0 py-5 wide:flex-row wide:items-center wide:justify-between';
 export const SEGMENT_RADIO = 'peer absolute inset-0 m-0 appearance-none opacity-0';
