@@ -51,6 +51,8 @@ const indexOf = (month: string): number => yearOf(month) * 12 + monthOf(month) -
 const monthAt = (index: number): string =>
   calendarDay(Math.floor(index / 12), index % 12, 1).slice(0, 7);
 
+export const monthAfter = (month: string, count: number): string => monthAt(indexOf(month) + count);
+
 const countOf = (range: MonthRange): number => indexOf(range.to) - indexOf(range.from) + 1;
 
 export function daysOfRange(range: MonthRange): DayRange {
@@ -62,13 +64,11 @@ export function monthRangeOf(range: DayRange): MonthRange {
 }
 
 export function monthsOf(range: MonthRange): readonly string[] {
-  const first = indexOf(range.from);
-  return Array.from({ length: countOf(range) }, (_, offset) => monthAt(first + offset));
+  return Array.from({ length: countOf(range) }, (_, offset) => monthAfter(range.from, offset));
 }
 
 export function defaultTrendRange(today: string): MonthRange {
-  const last = indexOf(today);
-  return { from: monthAt(last - DEFAULT_TREND_MONTHS + 1), to: monthAt(last) };
+  return { from: monthAfter(today, 1 - DEFAULT_TREND_MONTHS), to: monthAfter(today, 0) };
 }
 
 const refused = (message: string): Err<DomainError> =>

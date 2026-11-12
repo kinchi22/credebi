@@ -6,6 +6,7 @@ import {
   daysOfRange,
   defaultTrendRange,
   makeMonthRange,
+  monthAfter,
   monthRangeOf,
   monthsOf,
   MOST_TREND_MONTHS,
@@ -133,6 +134,25 @@ describe('monthsOf', () => {
     expect(months).toHaveLength(600);
     expect(months.at(0)).toBe('1980-01');
     expect(months.at(-1)).toBe('2029-12');
+  });
+});
+
+describe('monthAfter', () => {
+  it('counts months forward and back across the turn of a year', () => {
+    expect(monthAfter('2026-11', 1)).toBe('2026-12');
+    expect(monthAfter('2026-12', 1)).toBe('2027-01');
+    expect(monthAfter('2026-01', -1)).toBe('2025-12');
+    expect(monthAfter('2026-06', 12)).toBe('2027-06');
+    expect(monthAfter('2026-06', -12)).toBe('2025-06');
+  });
+
+  it('gives the month itself for no step, and the month of a day', () => {
+    expect(monthAfter('2026-06', 0)).toBe('2026-06');
+    expect(monthAfter('2026-06-15', 0)).toBe('2026-06');
+  });
+
+  it('keeps four digits in a year before 1000', () => {
+    expect(monthAfter('1000-01', -1)).toBe('0999-12');
   });
 });
 

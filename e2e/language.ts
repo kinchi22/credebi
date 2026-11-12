@@ -1,6 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import { type AccountType, type BalanceDirection } from './entries';
-import { ENTRIES_URL } from './routes';
+import { ENTRIES_URL, SETTINGS_PATH } from './routes';
 import { freshIdentifier } from './session';
 
 export type Language = 'en' | 'ko' | 'ja';
@@ -155,6 +155,12 @@ export async function expectSignInPageIn(page: Page, language: Language): Promis
     page.getByRole('heading', { level: 1, name: CATALOGUE[language].signIn, exact: true }),
   ).toBeVisible();
   await expect(page.getByRole('link', { name: CATALOGUE[language].google, exact: true })).toBeVisible();
+}
+
+export async function chooseLanguageAtSettings(page: Page, language: Language): Promise<void> {
+  await page.goto(SETTINGS_PATH);
+  await languageChoice(page, 'en', language).check();
+  await expectSettingsPageIn(page, language);
 }
 
 export async function expectSwitchMarking(page: Page, language: Language): Promise<void> {

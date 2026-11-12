@@ -1,6 +1,7 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import { escaped } from './entries';
 import { reportRow, reportTables } from './report-tables';
+import { TREND_PATH } from './routes';
 
 export const TREND_LINES = ['Net worth', 'Total assets', 'Total liabilities'] as const;
 
@@ -8,7 +9,7 @@ export type TrendLine = (typeof TREND_LINES)[number];
 
 export const MOST_MONTHS = 600;
 
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
+export const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
 
 const yearAndMonth = (month: string): readonly [number, number] => [
   Number(month.slice(0, 4)),
@@ -28,6 +29,8 @@ export const monthsFrom = (first: string, count: number): readonly string[] => {
   });
 };
 
+export const trendRangePath = (from: string, to: string): string => `${TREND_PATH}?from=${from}&to=${to}`;
+
 export const rangeForm = (page: Page): Locator => page.getByRole('form', { name: 'Trend range', exact: true });
 
 export const fromMonth = (page: Page): Locator => rangeForm(page).getByLabel('From month', { exact: true });
@@ -44,10 +47,31 @@ export async function showTrend(page: Page, from: string, to: string): Promise<v
   await showButton(page).click();
 }
 
+const heldMonth = (month: string): RegExp => new RegExp(`^${month.slice(0, 4)}[-/]${month.slice(5, 7)}$`);
+
 export async function expectRange(page: Page, from: string, to: string): Promise<void> {
-  await expect(fromMonth(page)).toHaveValue(from);
-  await expect(toMonth(page)).toHaveValue(to);
+  await expect(fromMonth(page)).toHaveValue(heldMonth(from));
+  await expect(toMonth(page)).toHaveValue(heldMonth(to));
 }
+
+export const monthFields = (page: Page): Locator => page.getByRole('main').getByRole('form').getByRole('textbox');
+
+export async function expectMonthFields(page: Page, from: string, to: string): Promise<void> {
+  const fields = monthFields(page);
+  await expect(fields).toHaveCount(2);
+  await expect(fields.nth(0)).toHaveValue(from);
+  await expect(fields.nth(1)).toHaveValue(to);
+}
+
+export type MonthField = 'From' | 'To';
+
+const FIELD_ORDER: Readonly<Record<MonthField, number>> = { From: 0, To: 1 };
+
+export const chooseMonth = (page: Page, field: MonthField): Locator =>
+  rangeForm(page).getByRole('button', { name: 'Choose month', exact: true }).nth(FIELD_ORDER[field]);
+
+export const gridMonth = (page: Page, name: string): Locator =>
+  page.getByRole('button', { name, exact: true });
 
 export const trendChart = (page: Page): Locator => page.getByRole('main').getByRole('application');
 
@@ -63,6 +87,8 @@ export const trendTooltip = (page: Page): Locator => page.getByRole('main').getB
 export const nothingRecorded = (page: Page): Locator => page.getByRole('main').getByText(/nothing recorded/i);
 
 export type TrendMonth = readonly [month: string, totalAssets: string, totalLiabilities: string, netWorth: string];
+
+export const cash = (month: string, amount: string): TrendMonth => [month, amount, '0', amount];
 
 export const monthCells = (page: Page, month: string): Locator =>
   reportRow(trendTable(page), monthLabel(month)).getByRole('cell');

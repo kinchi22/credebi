@@ -336,6 +336,13 @@ export const ja = {
       around: '±{months}か月',
     },
   },
+  monthInput: {
+    chooseMonth: '月を選択',
+    previousYear: '前の年',
+    nextYear: '次の年',
+    close: '閉じる',
+    invalid: '月をYYYY/MMの形式で入力してください',
+  },
   entryForm: {
     title: '新しい仕訳',
     date: '日付',

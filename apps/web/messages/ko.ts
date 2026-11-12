@@ -334,6 +334,13 @@ export const ko = {
       around: '±{months}개월',
     },
   },
+  monthInput: {
+    chooseMonth: '월 선택',
+    previousYear: '이전 연도',
+    nextYear: '다음 연도',
+    close: '닫기',
+    invalid: '월을 YYYY/MM 형식으로 입력하세요',
+  },
   entryForm: {
     title: '새 거래',
     date: '날짜',
