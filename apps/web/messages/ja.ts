@@ -168,6 +168,14 @@ export const ja = {
       claude: 'Claude',
       chatgpt: 'ChatGPT',
     },
+    guidance: {
+      claudeApps: 'claude.aiまたはClaudeデスクトップアプリで、MCP URLを使ってカスタムコネクタを追加してください。',
+      claudeAppsHelp: 'カスタムコネクタ（Claudeヘルプ）',
+      claudeCode: 'Claude Codeでは次のコマンドを実行し、/mcpから認証してください。',
+      claudeCodeHelp: 'MCP（Claude Codeドキュメント）',
+      chatgpt: 'ChatGPTで開発者モードをオンにし、MCP URLでコネクタを作成してOAuthを選んでください。',
+      chatgptHelp: '開発者モード（OpenAIヘルプ）',
+    },
     approveStep: 'Credebiにログインして承認',
     approveBody:
       'アプリケーションがCredebiのページを開きます。ログインし、求められた権限を確認して承認してください。承認すると、接続がこの一覧に表示されます。',

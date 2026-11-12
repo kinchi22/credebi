@@ -7,7 +7,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode, ty
 import { CloseButton } from './close-button';
 import { BOTTOM_SHEET, BUTTON, CHOSEN_SEGMENT, CONTROL, SEGMENT, UNCHOSEN_SEGMENT } from './control-classes';
 import { SheetBar, SheetTabs, type TabsLook } from './sheet';
-import { MUTED_TEXT } from './text-classes';
+import { LINK, MUTED_TEXT } from './text-classes';
 import { type ModalDialog } from './use-modal-dialog';
 
 export type ConnectionDialogProps = {
@@ -36,7 +36,17 @@ const SEGMENT_TABS: TabsLook = {
   shown: `${SEGMENT_TAB} font-semibold ${CHOSEN_SEGMENT}`,
 };
 
+const HELP = {
+  claudeApps: 'https://support.claude.com/en/articles/11175166-getting-started-with-custom-connectors-using-remote-mcp',
+  claudeCode: 'https://code.claude.com/docs/en/mcp',
+  chatgpt: 'https://help.openai.com/en/articles/12584461-developer-mode-apps-and-full-mcp-connectors-in-chatgpt-beta',
+} as const;
+
+const claudeCodeCommand = (mcpUrl: string): string => `claude mcp add --transport http credebi ${mcpUrl}`;
+
 const STEP = 'flex flex-col gap-2 pl-1 marker:font-semibold';
+const GUIDANCE = 'flex flex-col gap-2';
+const COMMAND = 'block rounded-control border border-border bg-ground px-3 py-2 font-sans wrap-anywhere';
 const STEP_TITLE = 'font-semibold';
 
 const writeToClipboard = (text: string): Promise<void> =>
@@ -131,7 +141,38 @@ function CopyStep({ mcpUrl }: { readonly mcpUrl: string }): ReactNode {
   );
 }
 
-function ClientStep(): ReactNode {
+function HelpLink({ href, children }: { readonly href: string; readonly children: ReactNode }): ReactNode {
+  return (
+    <a href={href} target="_blank" rel="noreferrer" className={`${LINK} self-start`}>
+      {children}
+    </a>
+  );
+}
+
+function ClaudeGuidance({ mcpUrl }: { readonly mcpUrl: string }): ReactNode {
+  const t = useTranslations();
+  return (
+    <div className={GUIDANCE}>
+      <p>{t('connectionsSection.guidance.claudeApps')}</p>
+      <HelpLink href={HELP.claudeApps}>{t('connectionsSection.guidance.claudeAppsHelp')}</HelpLink>
+      <p className="mt-2">{t('connectionsSection.guidance.claudeCode')}</p>
+      <code className={COMMAND}>{claudeCodeCommand(mcpUrl)}</code>
+      <HelpLink href={HELP.claudeCode}>{t('connectionsSection.guidance.claudeCodeHelp')}</HelpLink>
+    </div>
+  );
+}
+
+function ChatGptGuidance(): ReactNode {
+  const t = useTranslations();
+  return (
+    <div className={GUIDANCE}>
+      <p>{t('connectionsSection.guidance.chatgpt')}</p>
+      <HelpLink href={HELP.chatgpt}>{t('connectionsSection.guidance.chatgptHelp')}</HelpLink>
+    </div>
+  );
+}
+
+function ClientStep({ mcpUrl }: { readonly mcpUrl: string }): ReactNode {
   const t = useTranslations();
   const id = useId();
   const [shown, setShown] = useState<McpClient>('claude');
@@ -157,7 +198,9 @@ function ClientStep(): ReactNode {
           role="tabpanel"
           aria-labelledby={tabId(client)}
           className={shown === client ? 'block' : 'hidden'}
-        />
+        >
+          {client === 'claude' ? <ClaudeGuidance mcpUrl={mcpUrl} /> : <ChatGptGuidance />}
+        </div>
       ))}
     </li>
   );
@@ -183,7 +226,7 @@ export function ConnectionDialog({ dialog, mcpUrl }: ConnectionDialogProps): Rea
             className={`min-h-0 grow list-decimal overflow-y-auto py-4 pr-4 pl-8 wide:py-6 wide:pr-6 wide:pl-10 ${typeClasses['body-sm']} flex flex-col gap-5`}
           >
             <CopyStep mcpUrl={mcpUrl} />
-            <ClientStep />
+            <ClientStep mcpUrl={mcpUrl} />
             <li className={STEP}>
               <p className={STEP_TITLE}>{t('connectionsSection.approveStep')}</p>
               <p className={MUTED_TEXT}>{t('connectionsSection.approveBody')}</p>

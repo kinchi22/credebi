@@ -150,6 +150,14 @@ export const en = {
       claude: 'Claude',
       chatgpt: 'ChatGPT',
     },
+    guidance: {
+      claudeApps: 'In claude.ai or the Claude desktop app, add a custom connector with the MCP URL.',
+      claudeAppsHelp: 'Custom connectors in Claude Help',
+      claudeCode: 'In Claude Code, run this command, then authenticate from /mcp:',
+      claudeCodeHelp: 'MCP in the Claude Code docs',
+      chatgpt: 'In ChatGPT, turn on developer mode, then create a connector with the MCP URL and choose OAuth.',
+      chatgptHelp: 'Developer mode in OpenAI Help',
+    },
     approveStep: 'Sign in and approve',
     approveBody:
       'Your application opens a Credebi page where you sign in, review what it asks for and approve. The connection then appears in this list.',
