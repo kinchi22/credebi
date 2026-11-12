@@ -25,6 +25,7 @@ import {
   connectionsSection,
   revokeButton,
   revokeConnection,
+  revokeDialog,
   shownOn,
 } from './settings';
 
@@ -83,7 +84,7 @@ test('revokes a Connection at `/settings`, refusing its Access token and its ref
   await page.goto(SETTINGS_PATH);
   await expect(connectionItems(page, client.name)).toHaveCount(1);
 
-  await revokeConnection(connectionItems(page, client.name));
+  await revokeConnection(connectionItems(page, client.name), client.name);
 
   await expect(connectionItems(page, client.name)).toHaveCount(0);
   await page.reload();
@@ -101,7 +102,7 @@ test('revokes one of two Connections of the same MCP client, leaving the other w
   const items = connectionItems(page, client.name);
   await expect(items).toHaveCount(2);
 
-  await revokeConnection(items.filter({ hasText: SCOPE_SHOWN.write }));
+  await revokeConnection(items.filter({ hasText: SCOPE_SHOWN.write }), client.name);
 
   await page.reload();
   await expect(connectionItems(page, client.name)).toHaveCount(1);
@@ -110,16 +111,19 @@ test('revokes one of two Connections of the same MCP client, leaving the other w
   expect(await listTools(request, kept.tokens.accessToken)).not.toEqual([]);
 });
 
-test('asks for confirmation before revoking, and keeps the Connection when the User backs out', async ({ page, request, client }) => {
+test('asks for confirmation in Revoke connection, naming the MCP client and its redirect host, and keeps the Connection when the User backs out', async ({ page, request, client }) => {
   await signIn(page);
   const { tokens } = await connect(page, request, client);
   await page.goto(SETTINGS_PATH);
   const item = connectionItems(page, client.name);
 
-  await revokeButton(item).click();
-  await expect(page.getByRole('dialog')).toBeVisible();
+  await revokeButton(item, client.name).click();
+  const dialog = revokeDialog(page);
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText(client.name);
+  await expect(dialog).toContainText(LOOPBACK_HOST);
   await page.keyboard.press('Escape');
-  await expect(page.getByRole('dialog')).toBeHidden();
+  await expect(dialog).toBeHidden();
 
   await page.reload();
   await expect(connectionItems(page, client.name)).toHaveCount(1);
@@ -136,7 +140,8 @@ test('lists the Connections in the User\'s Language', async ({ page, request, cl
   const item = connectionItems(page, client.name);
   await expect(item).toHaveCount(1);
   await expect(item.getByRole('button')).toHaveCount(1);
-  await expect(revokeButton(item)).toHaveCount(0);
+  await expect(item.getByRole('button')).toHaveAccessibleName(new RegExp(client.name));
+  await expect(revokeButton(item, client.name)).toHaveCount(0);
   await expect(item).not.toContainText(SCOPE_SHOWN.read);
   await expect(item).not.toContainText(RAW_SCOPE_NAME);
   await expect(connectionsSection(page)).toHaveCount(0);
