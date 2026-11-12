@@ -40,6 +40,11 @@ When the trigger holds, accounts become their own feature,
   ungrouped Accounts form one ordered list; within a group, its Accounts form
   another. A new node joins the end of its list. Every place that lists Accounts
   follows this order.
+- **Collapsed.** An Account group records whether its User collapsed it on the
+  report that shows it, expanded by default. It lives on the group, not in
+  browser storage, so it follows the User to any device, the report renders
+  collapsed from the server, and it goes when the group does. A group belongs to
+  one Account type, so no two reports show it and none needs a state of its own.
 - **Names.** Trimmed, 1 to 40 characters, compared without case. An Account's
   name is unique among the User's Accounts, so an Account name alone identifies
   it wherever an Entry is shown. A group's name is unique among the groups of its
