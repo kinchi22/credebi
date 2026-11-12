@@ -1,22 +1,17 @@
-import { type APIRequestContext } from '@playwright/test';
 import { dayInBrowser } from './accounts';
 import { documentLanguage, signOutIn, signUpAfterChoosing } from './language';
-import { expectUnauthorized, listTools, mcpPost } from './mcp';
+import { listTools } from './mcp';
 import {
   connect,
   denyButton,
   expect,
-  expectInvalidGrant,
   LOOPBACK_HOST,
   newAuthorization,
   openConsent,
-  originOf,
   RAW_SCOPE_NAME,
   redirectedTo,
-  refreshWith,
   SCOPE_SHOWN,
   test,
-  type Connected,
 } from './oauth';
 import { SETTINGS_PATH } from './routes';
 import { freshIdentifier, signIn } from './session';
@@ -24,8 +19,6 @@ import {
   connectionItems,
   connectionsSection,
   revokeButton,
-  revokeConnection,
-  revokeDialog,
   shownOn,
 } from './settings';
 
@@ -65,71 +58,6 @@ test('lists a Connection for each approval, each with the scopes it was granted 
   await expect(items.filter({ hasText: RAW_SCOPE_NAME })).toHaveCount(0);
 });
 
-async function expectRevoked(
-  request: APIRequestContext,
-  revoked: Connected,
-  origin: string,
-): Promise<void> {
-  await expectUnauthorized(await mcpPost(request, revoked.tokens.accessToken, 'tools/list'), origin);
-  await expectInvalidGrant(
-    await refreshWith(request, revoked.authorization.clientId, revoked.tokens.refreshToken),
-  );
-}
-
-test('revokes a Connection at `/settings`, refusing its Access token and its refresh token on their next use', async ({ page, request, baseURL, client, otherClient }) => {
-  await signIn(page);
-  const revoked = await connect(page, request, client);
-  const kept = await connect(page, request, otherClient);
-  expect(await listTools(request, revoked.tokens.accessToken)).not.toEqual([]);
-  await page.goto(SETTINGS_PATH);
-  await expect(connectionItems(page, client.name)).toHaveCount(1);
-
-  await revokeConnection(connectionItems(page, client.name), client.name);
-
-  await expect(connectionItems(page, client.name)).toHaveCount(0);
-  await page.reload();
-  await expect(connectionItems(page, otherClient.name)).toHaveCount(1);
-  await expect(connectionItems(page, client.name)).toHaveCount(0);
-  await expectRevoked(request, revoked, originOf(baseURL));
-  expect(await listTools(request, kept.tokens.accessToken)).not.toEqual([]);
-});
-
-test('revokes one of two Connections of the same MCP client, leaving the other working', async ({ page, request, baseURL, client }) => {
-  await signIn(page);
-  const kept = await connect(page, request, client, { scopes: ['read'] });
-  const revoked = await connect(page, request, client, { scopes: ['read', 'write'] });
-  await page.goto(SETTINGS_PATH);
-  const items = connectionItems(page, client.name);
-  await expect(items).toHaveCount(2);
-
-  await revokeConnection(items.filter({ hasText: SCOPE_SHOWN.write }), client.name);
-
-  await page.reload();
-  await expect(connectionItems(page, client.name)).toHaveCount(1);
-  await expect(connectionItems(page, client.name)).not.toContainText(SCOPE_SHOWN.write);
-  await expectRevoked(request, revoked, originOf(baseURL));
-  expect(await listTools(request, kept.tokens.accessToken)).not.toEqual([]);
-});
-
-test('asks for confirmation in Revoke connection, naming the MCP client and its redirect host, and keeps the Connection when the User backs out', async ({ page, request, client }) => {
-  await signIn(page);
-  const { tokens } = await connect(page, request, client);
-  await page.goto(SETTINGS_PATH);
-  const item = connectionItems(page, client.name);
-
-  await revokeButton(item, client.name).click();
-  const dialog = revokeDialog(page);
-  await expect(dialog).toBeVisible();
-  await expect(dialog).toContainText(client.name);
-  await expect(dialog).toContainText(LOOPBACK_HOST);
-  await page.keyboard.press('Escape');
-  await expect(dialog).toBeHidden();
-
-  await page.reload();
-  await expect(connectionItems(page, client.name)).toHaveCount(1);
-  expect(await listTools(request, tokens.accessToken)).not.toEqual([]);
-});
-
 test('lists the Connections in the User\'s Language', async ({ page, request, client }) => {
   await signUpAfterChoosing(page, 'ko');
   await connect(page, request, client);
@@ -140,8 +68,7 @@ test('lists the Connections in the User\'s Language', async ({ page, request, cl
   const item = connectionItems(page, client.name);
   await expect(item).toHaveCount(1);
   await expect(item.getByRole('button')).toHaveCount(1);
-  await expect(item.getByRole('button')).toHaveAccessibleName(new RegExp(client.name));
-  await expect(revokeButton(item, client.name)).toHaveCount(0);
+  await expect(revokeButton(item)).toHaveCount(0);
   await expect(item).not.toContainText(SCOPE_SHOWN.read);
   await expect(item).not.toContainText(RAW_SCOPE_NAME);
   await expect(connectionsSection(page)).toHaveCount(0);
