@@ -151,7 +151,7 @@ export const ja = {
     title: '接続',
     emptyTitle: 'AIアプリケーションを接続する',
     emptyBody:
-      'AIアプリケーションが会話の中で帳簿を読み、仕訳を記帳できるようにします。権限は接続するときに選び、いつでも解除できます。',
+      'AIアプリケーションが会話の中で帳簿を読み、仕訳を記帳できるようにします。権限は接続するときに選び、接続はいつでも解除できます。',
     startConnecting: '接続を始める',
     addConnection: '接続を追加',
     addConnectionText: '+ 接続を追加',
@@ -160,9 +160,9 @@ export const ja = {
     copyStep: 'MCP URLをコピー',
     mcpUrl: 'MCP URL',
     copy: 'コピー',
-    copiedButton: 'コピーしました',
-    copied: 'MCP URLをコピーしました。',
-    copyRefused: 'ブラウザが許可しませんでした。選択されたMCP URLを手動でコピーしてください。',
+    copied: 'コピーしました',
+    copiedStatus: 'MCP URLをコピーしました。',
+    copyRefused: 'ブラウザでクリップボードへのコピーが許可されませんでした。選択されたMCP URLを手動でコピーしてください。',
     clientStep: 'アプリケーションに追加',
     clients: {
       claude: 'Claude',
@@ -170,7 +170,7 @@ export const ja = {
     },
     approveStep: 'Credebiにログインして承認',
     approveBody:
-      'アプリケーションがCredebiのページを開きます。ログインし、求められた権限を確認して承認してください。接続はこの一覧に表示されます。',
+      'アプリケーションがCredebiのページを開きます。ログインし、求められた権限を確認して承認してください。承認すると、接続がこの一覧に表示されます。',
     scopes: {
       read: '帳簿を読む',
       write: '仕訳を記帳する',

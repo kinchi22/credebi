@@ -3,9 +3,9 @@
 import { PANEL_FRAME } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useTranslations } from 'next-intl';
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { CloseButton } from './close-button';
-import { BUTTON, CHOSEN_SEGMENT, CONTROL, SEGMENT, UNCHOSEN_SEGMENT } from './control-classes';
+import { BOTTOM_SHEET, BUTTON, CHOSEN_SEGMENT, CONTROL, SEGMENT, UNCHOSEN_SEGMENT } from './control-classes';
 import { SheetBar, SheetTabs, type TabsLook } from './sheet';
 import { MUTED_TEXT } from './text-classes';
 import { type ModalDialog } from './use-modal-dialog';
@@ -19,7 +19,12 @@ const MCP_CLIENTS = ['claude', 'chatgpt'] as const;
 
 type McpClient = (typeof MCP_CLIENTS)[number];
 
-type Copying = 'idle' | 'copied' | 'refused';
+type Copying = {
+  readonly outcome: 'idle' | 'copied' | 'refused';
+  readonly attempt: number;
+};
+
+const NOT_COPIED: Copying = { outcome: 'idle', attempt: 0 };
 
 const COPIED_FOR_MS = 2000;
 
@@ -28,7 +33,7 @@ const SEGMENT_TAB = `flex-1 text-center ${SEGMENT} focus-visible:outline-2 focus
 const SEGMENT_TABS: TabsLook = {
   strip: `grid auto-cols-fr grid-flow-col p-0.5 ${PANEL_FRAME}`,
   idle: `${SEGMENT_TAB} ${UNCHOSEN_SEGMENT}`,
-  shown: () => `${SEGMENT_TAB} font-semibold ${CHOSEN_SEGMENT}`,
+  shown: `${SEGMENT_TAB} font-semibold ${CHOSEN_SEGMENT}`,
 };
 
 const STEP = 'flex flex-col gap-2 pl-1 marker:font-semibold';
@@ -37,41 +42,71 @@ const STEP_TITLE = 'font-semibold';
 const writeToClipboard = (text: string): Promise<void> =>
   Promise.resolve().then(() => navigator.clipboard.writeText(text));
 
+function fitHeight(field: HTMLTextAreaElement): void {
+  field.style.height = 'auto';
+  field.style.height = `${String(field.scrollHeight + field.offsetHeight - field.clientHeight)}px`;
+}
+
+function useFittedHeight(field: RefObject<HTMLTextAreaElement | null>): void {
+  useLayoutEffect(() => {
+    const element = field.current;
+    const frame = element?.parentElement;
+    if (element === null || frame === null || frame === undefined) {
+      return undefined;
+    }
+    fitHeight(element);
+    const observer = new ResizeObserver(() => {
+      fitHeight(element);
+    });
+    observer.observe(frame);
+    return () => {
+      observer.disconnect();
+    };
+  }, [field]);
+}
+
 function CopyStep({ mcpUrl }: { readonly mcpUrl: string }): ReactNode {
   const t = useTranslations();
   const field = useRef<HTMLTextAreaElement>(null);
-  const [copying, setCopying] = useState<Copying>('idle');
+  const [copying, setCopying] = useState<Copying>(NOT_COPIED);
+  useFittedHeight(field);
 
   useEffect(() => {
-    if (copying !== 'copied') {
+    if (copying.outcome !== 'copied') {
       return undefined;
     }
     const timer = setTimeout(() => {
-      setCopying('idle');
+      setCopying((current) => ({ ...current, outcome: 'idle' }));
     }, COPIED_FOR_MS);
     return () => {
       clearTimeout(timer);
     };
   }, [copying]);
 
+  const settle = (attempt: number, outcome: Copying['outcome']): void => {
+    setCopying((current) => (current.attempt === attempt ? { attempt, outcome } : current));
+  };
+
   const copy = (): void => {
+    const attempt = copying.attempt + 1;
+    setCopying({ outcome: 'idle', attempt });
     writeToClipboard(mcpUrl).then(
       () => {
-        setCopying('copied');
+        settle(attempt, 'copied');
       },
       () => {
         field.current?.focus();
         field.current?.select();
-        setCopying('refused');
+        settle(attempt, 'refused');
       },
     );
   };
 
   const announcement = {
     idle: '',
-    copied: t('connectionsSection.copied'),
+    copied: t('connectionsSection.copiedStatus'),
     refused: t('connectionsSection.copyRefused'),
-  }[copying];
+  }[copying.outcome];
 
   return (
     <li className={STEP}>
@@ -86,10 +121,10 @@ function CopyStep({ mcpUrl }: { readonly mcpUrl: string }): ReactNode {
           className={`${CONTROL} field-sizing-content min-w-0 flex-1 resize-none py-2 break-all`}
         />
         <button type="button" onClick={copy} className={`${BUTTON} shrink-0`}>
-          {copying === 'copied' ? t('connectionsSection.copiedButton') : t('connectionsSection.copy')}
+          {copying.outcome === 'copied' ? t('connectionsSection.copied') : t('connectionsSection.copy')}
         </button>
       </div>
-      <p role="status" className={`${typeClasses['body-dense']} text-text-muted`}>
+      <p role="status" className={MUTED_TEXT}>
         {announcement}
       </p>
     </li>
@@ -137,7 +172,7 @@ export function ConnectionDialog({ dialog, mcpUrl }: ConnectionDialogProps): Rea
       {...dialog.dialogProps}
       aria-labelledby={titleId}
       onClick={dialog.closeOnScrim}
-      className="mx-0 mt-auto mb-0 max-h-none w-full max-w-none rounded-t-panel border-0 bg-surface p-0 text-text backdrop:bg-ground-dark/60 wide:m-auto wide:w-[calc(100%-2rem)] wide:max-w-140 wide:rounded-panel wide:border wide:border-border"
+      className={`${BOTTOM_SHEET} bg-surface wide:m-auto wide:w-[calc(100%-2rem)] wide:max-w-140 wide:rounded-panel wide:border wide:border-border`}
     >
       {dialog.open ? (
         <div className="flex max-h-[calc(100dvh-4rem)] flex-col">

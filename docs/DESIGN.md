@@ -676,24 +676,31 @@ numerals.
   primary `Start connecting`.
 - **Connection dialog.** `Connect an AI application`, opened by
   `Start connecting` or `+ Add connection`. Below `wide` it is a sheet on the
-  `surface` rising from the foot of the screen, as the Account sheet does, as
-  tall as its content and at most the viewport less 64px; from `wide` up it is
-  centred over a `ground-dark` scrim at 60%, a `surface` panel with a `border`
-  edge, 560px wide at most. A `surface` bar holds its title and a close icon
-  named `Close`, and below it three numbered steps in `body-sm` scroll, each
-  with a semibold title: `Copy the MCP URL`, `Add it to your application` and
-  `Sign in and approve`, the last saying in `text-muted` that the application
-  opens a Credebi page to sign in, review and approve, after which the
-  Connection appears in the list. `Close`, Escape or a click on the scrim
-  closes it, and focus returns to the button that opened it. It remembers
-  nothing between openings.
+  `surface` rising from the foot of the screen over a `ground-dark` scrim at
+  60%, its top corners rounded, as tall as its content and at most the viewport
+  less 64px; from `wide` up it is centred over the same scrim, a `surface`
+  panel with a `border` edge, 560px wide at most. A `surface` bar holds its
+  title and a close icon named `Close`, and below it three numbered steps in
+  `body-sm` scroll, each with a semibold title: `Copy the MCP URL`,
+  `Add it to your application` and `Sign in and approve`. The second step holds
+  a tab strip, `Claude` and `ChatGPT`, drawn as the segment strip of the
+  Settings choices: the shown tab semibold in the chosen segment's tint and
+  ring, the other in `text-muted`. It opens on `Claude` every time, the left
+  and right arrow keys move between the tabs, and the panel below the strip
+  holds the shown client's guidance. The last step says in `text-muted` that
+  the application opens a Credebi page to sign in, review and approve, after
+  which the Connection appears in the list. `Close`, Escape or a click on the
+  scrim closes it, and focus returns to the button that opened it. It
+  remembers nothing between openings.
 - **MCP URL field.** The first step's read-only field, drawn as a control in
-  the sans face, not `figure` or `date`, and wrapping anywhere so a long MCP URL
-  shows whole at any width. A secondary `Copy` sits at its right. Pressed, it
-  puts the MCP URL on the clipboard, reads `Copied` for two seconds, and a
-  polite status line below the field, in `body-dense` and `text-muted`, says
-  the MCP URL was copied. When the browser refuses the clipboard, the field's
-  text is selected and the status line asks the User to copy it themselves.
+  the sans face, not `figure` or `date`, wrapping anywhere and as tall as its
+  text, so a long MCP URL shows whole at any width. A secondary `Copy` sits at
+  its right. Pressed, it puts the MCP URL on the clipboard and reads `Copied`
+  for two seconds, counted afresh on each press, and a polite status line
+  below the field, in `body-sm` and `text-muted`, says the MCP URL was copied.
+  When the browser refuses the clipboard, the field's text is selected and the
+  status line asks the User to copy it themselves, said again on each refused
+  press.
 - **Entry search form.** After From and To come Account, Title and Memo, in
   that order, then the submit. Account is as wide as a closed select of its
   choices would be, sized by the widest of `Any account` and the Account

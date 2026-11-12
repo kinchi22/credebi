@@ -11,22 +11,23 @@ export type SheetTabsProps<Tab extends string> = {
   readonly tabId: (tab: Tab) => string;
   readonly panelId: (tab: Tab) => string;
   readonly label: (tab: Tab) => string;
-  readonly shownTone?: (tab: Tab) => string;
-  readonly look?: TabsLook;
-};
+} & TabsLookProps<Tab>;
 
 export type TabsLook = {
   readonly strip: string;
   readonly idle: string;
-  readonly shown: (tone: string) => string;
+  readonly shown: string;
 };
+
+type TabsLookProps<Tab extends string> =
+  | { readonly shownTone?: (tab: Tab) => string; readonly look?: undefined }
+  | { readonly look: TabsLook; readonly shownTone?: undefined };
 
 const TAB = `flex-1 border-b-2 py-3 ${typeClasses['body-sm']}`;
 const IDLE_TAB = `${TAB} border-border text-text-muted`;
 const ACCENT_TONE = 'border-accent text-accent-text';
 const shownTab = (tone: string): string => `${TAB} ${tone} font-semibold`;
-
-const SHEET_TABS: TabsLook = { strip: 'flex shrink-0 bg-surface', idle: IDLE_TAB, shown: shownTab };
+const SHEET_STRIP = 'flex shrink-0 bg-surface';
 
 export type SheetBarProps = {
   readonly titleId: string;
@@ -53,7 +54,7 @@ export function SheetTabs<Tab extends string>({
   panelId,
   label,
   shownTone,
-  look = SHEET_TABS,
+  look,
 }: SheetTabsProps<Tab>): ReactNode {
   const buttons = useRef<Partial<Record<Tab, HTMLButtonElement | null>>>({});
 
@@ -69,7 +70,7 @@ export function SheetTabs<Tab extends string>({
   };
 
   return (
-    <div role="tablist" className={look.strip}>
+    <div role="tablist" className={look?.strip ?? SHEET_STRIP}>
       {tabs.map((tab, index) => (
         <button
           key={tab}
@@ -88,7 +89,11 @@ export function SheetTabs<Tab extends string>({
           onKeyDown={(event) => {
             move(event, index);
           }}
-          className={shown === tab ? look.shown(shownTone?.(tab) ?? ACCENT_TONE) : look.idle}
+          className={
+            shown === tab
+              ? (look?.shown ?? shownTab(shownTone?.(tab) ?? ACCENT_TONE))
+              : (look?.idle ?? IDLE_TAB)
+          }
         >
           {label(tab)}
         </button>

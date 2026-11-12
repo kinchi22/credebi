@@ -15,7 +15,7 @@ import { typeClasses } from '@repo/ui/type-classes';
 import Link from 'next/link';
 import { Fragment, useId, useState, type ReactNode } from 'react';
 import { SETTINGS_PATH } from '../server/return-path';
-import { CONTROL, PRIMARY_BUTTON, SEARCH_ON_STRIP } from './control-classes';
+import { BOTTOM_SHEET, CONTROL, PRIMARY_BUTTON, SEARCH_ON_STRIP } from './control-classes';
 import { useHydrated } from './use-hydrated';
 import { useModalDialog, type ModalDialog } from './use-modal-dialog';
 import {
@@ -639,7 +639,7 @@ function AccountSheetDialog({
       id={sheet.id}
       aria-labelledby={titleId}
       onClick={sheet.closeOnScrim}
-      className="mx-0 mt-auto mb-0 h-[calc(100%-4rem)] max-h-none w-full max-w-none rounded-t-panel border-0 bg-ground p-0 text-text backdrop:bg-ground-dark/60"
+      className={`${BOTTOM_SHEET} h-[calc(100%-4rem)] bg-ground`}
     >
       <div className="flex h-full flex-col">
         <SheetBar titleId={titleId} title={t('accountSheet.title')}>

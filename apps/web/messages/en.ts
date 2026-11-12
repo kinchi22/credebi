@@ -133,7 +133,7 @@ export const en = {
     title: 'Connections',
     emptyTitle: 'Connect an AI application',
     emptyBody:
-      'An AI application can read your books and post entries during a conversation, with the permissions you choose while connecting. You can revoke it at any time.',
+      'An AI application can read your books and post entries during a conversation, with the permissions you choose while connecting. You can revoke the connection at any time.',
     startConnecting: 'Start connecting',
     addConnection: 'Add connection',
     addConnectionText: '+ Add connection',
@@ -142,9 +142,9 @@ export const en = {
     copyStep: 'Copy the MCP URL',
     mcpUrl: 'MCP URL',
     copy: 'Copy',
-    copiedButton: 'Copied',
-    copied: 'MCP URL copied.',
-    copyRefused: 'Your browser did not allow it. The MCP URL is selected: copy it yourself.',
+    copied: 'Copied',
+    copiedStatus: 'MCP URL copied.',
+    copyRefused: 'Your browser did not allow copying to the clipboard. The MCP URL is selected: copy it yourself.',
     clientStep: 'Add it to your application',
     clients: {
       claude: 'Claude',

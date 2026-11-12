@@ -150,7 +150,7 @@ export const ko = {
     title: '연결',
     emptyTitle: 'AI 애플리케이션 연결하기',
     emptyBody:
-      'AI 애플리케이션이 대화 중에 장부를 읽고 거래를 기록할 수 있게 합니다. 권한은 연결할 때 직접 고르며, 언제든 해제할 수 있습니다.',
+      'AI 애플리케이션이 대화 중에 장부를 읽고 거래를 기록할 수 있게 합니다. 권한은 연결할 때 직접 고르며, 연결은 언제든 해제할 수 있습니다.',
     startConnecting: '연결 시작하기',
     addConnection: '연결 추가',
     addConnectionText: '+ 연결 추가',
@@ -159,9 +159,9 @@ export const ko = {
     copyStep: 'MCP URL 복사',
     mcpUrl: 'MCP URL',
     copy: '복사',
-    copiedButton: '복사됨',
-    copied: 'MCP URL을 복사했습니다.',
-    copyRefused: '브라우저가 허용하지 않았습니다. 선택된 MCP URL을 직접 복사해 주세요.',
+    copied: '복사됨',
+    copiedStatus: 'MCP URL을 복사했습니다.',
+    copyRefused: '브라우저에서 클립보드 복사를 허용하지 않았습니다. 선택된 MCP URL을 직접 복사해 주세요.',
     clientStep: '애플리케이션에 추가',
     clients: {
       claude: 'Claude',
