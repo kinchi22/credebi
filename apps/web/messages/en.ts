@@ -155,7 +155,7 @@ export const en = {
       claudeAppsHelp: 'Custom connectors in Claude Help',
       claudeCode: 'In Claude Code, run this command, then authenticate from /mcp:',
       claudeCodeHelp: 'MCP in the Claude Code docs',
-      chatgpt: 'In ChatGPT, turn on developer mode, then create a connector with the MCP URL and choose OAuth.',
+      chatgpt: 'In ChatGPT settings, turn on developer mode under Apps, then create an app with the MCP URL and choose OAuth.',
       chatgptHelp: 'Developer mode in OpenAI Help',
     },
     approveStep: 'Sign in and approve',

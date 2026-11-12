@@ -39,7 +39,7 @@ const SEGMENT_TABS: TabsLook = {
 const HELP = {
   claudeApps: 'https://support.claude.com/en/articles/11175166-getting-started-with-custom-connectors-using-remote-mcp',
   claudeCode: 'https://code.claude.com/docs/en/mcp',
-  chatgpt: 'https://help.openai.com/en/articles/12584461-developer-mode-apps-and-full-mcp-connectors-in-chatgpt-beta',
+  chatgpt: 'https://help.openai.com/en/articles/12584461',
 } as const;
 
 const claudeCodeCommand = (mcpUrl: string): string => `claude mcp add --transport http credebi ${mcpUrl}`;
@@ -152,12 +152,16 @@ function HelpLink({ href, children }: { readonly href: string; readonly children
 function ClaudeGuidance({ mcpUrl }: { readonly mcpUrl: string }): ReactNode {
   const t = useTranslations();
   return (
-    <div className={GUIDANCE}>
-      <p>{t('connectionsSection.guidance.claudeApps')}</p>
-      <HelpLink href={HELP.claudeApps}>{t('connectionsSection.guidance.claudeAppsHelp')}</HelpLink>
-      <p className="mt-2">{t('connectionsSection.guidance.claudeCode')}</p>
-      <code className={COMMAND}>{claudeCodeCommand(mcpUrl)}</code>
-      <HelpLink href={HELP.claudeCode}>{t('connectionsSection.guidance.claudeCodeHelp')}</HelpLink>
+    <div className="flex flex-col gap-4">
+      <div className={GUIDANCE}>
+        <p>{t('connectionsSection.guidance.claudeApps')}</p>
+        <HelpLink href={HELP.claudeApps}>{t('connectionsSection.guidance.claudeAppsHelp')}</HelpLink>
+      </div>
+      <div className={GUIDANCE}>
+        <p>{t('connectionsSection.guidance.claudeCode')}</p>
+        <code className={COMMAND}>{claudeCodeCommand(mcpUrl)}</code>
+        <HelpLink href={HELP.claudeCode}>{t('connectionsSection.guidance.claudeCodeHelp')}</HelpLink>
+      </div>
     </div>
   );
 }
