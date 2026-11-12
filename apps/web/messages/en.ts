@@ -318,6 +318,13 @@ export const en = {
       around: '\u00B1{months, plural, one {# month} other {# months}}',
     },
   },
+  monthInput: {
+    chooseMonth: 'Choose month',
+    previousYear: 'Previous year',
+    nextYear: 'Next year',
+    close: 'Close',
+    invalid: 'Enter a month as YYYY/MM',
+  },
   entryForm: {
     title: 'New entry',
     date: 'Date',
