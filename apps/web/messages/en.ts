@@ -131,7 +131,28 @@ export const en = {
   },
   connectionsSection: {
     title: 'Connections',
-    empty: 'No application is connected to your books.',
+    emptyTitle: 'Connect an AI application',
+    emptyBody:
+      'An AI application can read your books and post entries during a conversation, with the permissions you choose while connecting. You can revoke it at any time.',
+    startConnecting: 'Start connecting',
+    addConnection: 'Add connection',
+    addConnectionText: '+ Add connection',
+    dialogTitle: 'Connect an AI application',
+    close: 'Close',
+    copyStep: 'Copy the MCP URL',
+    mcpUrl: 'MCP URL',
+    copy: 'Copy',
+    copiedButton: 'Copied',
+    copied: 'MCP URL copied.',
+    copyRefused: 'Your browser did not allow it. The MCP URL is selected: copy it yourself.',
+    clientStep: 'Add it to your application',
+    clients: {
+      claude: 'Claude',
+      chatgpt: 'ChatGPT',
+    },
+    approveStep: 'Sign in and approve',
+    approveBody:
+      'Your application opens a Credebi page where you sign in, review what it asks for and approve. The connection then appears in this list.',
     scopes: {
       read: 'Read your books',
       write: 'Post entries',
@@ -139,6 +160,7 @@ export const en = {
     created: 'Created',
     lastUsed: 'Last used',
     revoke: 'Revoke',
+    revokeNamed: 'Revoke {client}',
     revokeTitle: 'Revoke connection',
     pending: 'Revoking...',
     cancel: 'Cancel',

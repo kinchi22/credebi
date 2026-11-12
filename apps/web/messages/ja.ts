@@ -149,7 +149,28 @@ export const ja = {
   },
   connectionsSection: {
     title: '接続',
-    empty: '帳簿に接続しているアプリケーションはありません。',
+    emptyTitle: 'AIアプリケーションを接続する',
+    emptyBody:
+      'AIアプリケーションが会話の中で帳簿を読み、仕訳を記帳できるようにします。権限は接続するときに選び、いつでも解除できます。',
+    startConnecting: '接続を始める',
+    addConnection: '接続を追加',
+    addConnectionText: '+ 接続を追加',
+    dialogTitle: 'AIアプリケーションを接続',
+    close: '閉じる',
+    copyStep: 'MCP URLをコピー',
+    mcpUrl: 'MCP URL',
+    copy: 'コピー',
+    copiedButton: 'コピーしました',
+    copied: 'MCP URLをコピーしました。',
+    copyRefused: 'ブラウザが許可しませんでした。選択されたMCP URLを手動でコピーしてください。',
+    clientStep: 'アプリケーションに追加',
+    clients: {
+      claude: 'Claude',
+      chatgpt: 'ChatGPT',
+    },
+    approveStep: 'Credebiにログインして承認',
+    approveBody:
+      'アプリケーションがCredebiのページを開きます。ログインし、求められた権限を確認して承認してください。接続はこの一覧に表示されます。',
     scopes: {
       read: '帳簿を読む',
       write: '仕訳を記帳する',
@@ -157,6 +178,7 @@ export const ja = {
     created: '接続日',
     lastUsed: '最終利用',
     revoke: '接続を解除',
+    revokeNamed: '{client}の接続を解除',
     revokeTitle: '接続を解除',
     pending: '解除中...',
     cancel: 'キャンセル',

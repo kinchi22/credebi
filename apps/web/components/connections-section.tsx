@@ -6,7 +6,8 @@ import { PANEL } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useId, useState, useTransition, type ReactNode } from 'react';
 import { ConfirmationPanel } from './confirmation-panel';
-import { BUTTON, LEGEND } from './control-classes';
+import { ConnectionDialog } from './connection-dialog';
+import { BUTTON, LEGEND, PRIMARY_BUTTON } from './control-classes';
 import { localDayOf } from './local-day';
 import { PendingDialog } from './pending-dialog';
 import { MUTED_TEXT } from './text-classes';
@@ -21,6 +22,7 @@ export type RevokeConnectionAction = (id: string) => Promise<ConnectionRevocatio
 
 export type ConnectionsSectionProps = {
   readonly connections: readonly ConnectionOutput[];
+  readonly mcpUrl: string;
   readonly action: RevokeConnectionAction;
 };
 
@@ -61,6 +63,7 @@ function ConnectionRow({
       </div>
       <button
         type="button"
+        aria-label={t('connectionsSection.revokeNamed', { client: connection.clientName })}
         onClick={(event) => {
           onRevoke(event.currentTarget);
         }}
@@ -72,22 +75,56 @@ function ConnectionRow({
   );
 }
 
-export function ConnectionsSection({ connections, action }: ConnectionsSectionProps): ReactNode {
+function EmptyConnections({ onStart }: { readonly onStart: (opener: HTMLElement) => void }): ReactNode {
+  const t = useTranslations();
+  return (
+    <div className={`${PANEL} flex flex-col items-center gap-3 py-8 text-center wide:py-8 ${typeClasses['body-sm']}`}>
+      <p className="font-semibold">{t('connectionsSection.emptyTitle')}</p>
+      <p className="max-w-96 text-text-muted">{t('connectionsSection.emptyBody')}</p>
+      <button
+        type="button"
+        onClick={(event) => {
+          onStart(event.currentTarget);
+        }}
+        className={PRIMARY_BUTTON}
+      >
+        {t('connectionsSection.startConnecting')}
+      </button>
+    </div>
+  );
+}
+
+export function ConnectionsSection({ connections, mcpUrl, action }: ConnectionsSectionProps): ReactNode {
   const t = useTranslations();
   const sectionTitleId = useId();
   const dialogTitleId = useId();
   const dialog = useModalDialog({ closesWhenWide: false });
+  const connecting = useModalDialog({ closesWhenWide: false });
   const [target, setTarget] = useState<ConnectionOutput>();
   const [pending, startTransition] = useTransition();
   const notRevoked = t('connectionsSection.notRevoked');
 
   return (
-    <section aria-labelledby={sectionTitleId} className="flex flex-col gap-2 border-b border-border py-5">
-      <h3 id={sectionTitleId} className={LEGEND}>
-        {t('connectionsSection.title')}
-      </h3>
+    <section aria-labelledby={sectionTitleId} className="flex flex-col gap-3 border-b border-border py-5">
+      <div className="flex min-h-control items-center justify-between gap-2">
+        <h3 id={sectionTitleId} className={LEGEND}>
+          {t('connectionsSection.title')}
+        </h3>
+        {connections.length === 0 ? null : (
+          <button
+            type="button"
+            aria-label={t('connectionsSection.addConnection')}
+            onClick={(event) => {
+              connecting.show(event.currentTarget);
+            }}
+            className={BUTTON}
+          >
+            {t('connectionsSection.addConnectionText')}
+          </button>
+        )}
+      </div>
       {connections.length === 0 ? (
-        <p className={MUTED_TEXT}>{t('connectionsSection.empty')}</p>
+        <EmptyConnections onStart={connecting.show} />
       ) : (
         <ul className={`${PANEL} flex flex-col ${typeClasses['body-sm']}`}>
           {connections.map((connection) => (
@@ -102,6 +139,7 @@ export function ConnectionsSection({ connections, action }: ConnectionsSectionPr
           ))}
         </ul>
       )}
+      <ConnectionDialog dialog={connecting} mcpUrl={mcpUrl} />
       <PendingDialog dialog={dialog} titleId={dialogTitleId} pending={pending}>
         {target === undefined ? null : (
           <ConfirmationPanel
