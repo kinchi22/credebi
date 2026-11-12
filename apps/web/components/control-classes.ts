@@ -18,6 +18,7 @@ export const LEGEND = `${typeClasses['body-sm']} font-semibold`;
 export const BUTTON = `h-control rounded-control border border-border-control bg-surface px-3 ${typeClasses['body-sm']} text-text disabled:opacity-50`;
 export const DANGER_BUTTON = `h-control rounded-control border border-transparent bg-danger px-3 ${typeClasses['body-sm']} font-semibold text-surface disabled:opacity-50`;
 export const BARE_ICON_BUTTON = 'inline-flex items-center justify-center rounded-control text-text-muted hover:text-text';
+export const DANGER_ICON_BUTTON = 'inline-flex size-8 shrink-0 items-center justify-center rounded-control text-danger hover:bg-danger/10 wide:size-7';
 export const ROW_ICON_BUTTON = `-my-1.5 size-8 shrink-0 wide:-my-1 wide:size-7 ${BARE_ICON_BUTTON}`;
 export const PRIMARY_BUTTON = `h-control rounded-control border border-transparent bg-accent px-3 ${typeClasses['body-sm']} font-semibold text-text disabled:opacity-50`;
 export const CONFIRMATION_DIALOG = 'm-auto w-[calc(100%-2rem)] max-w-100 rounded-panel border border-border bg-surface p-0 text-text backdrop:bg-ground-dark/60';

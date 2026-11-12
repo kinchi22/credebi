@@ -69,6 +69,17 @@ export function TrashIcon(): ReactNode {
   );
 }
 
+export function UnlinkIcon(): ReactNode {
+  return (
+    <StrokeIcon size={16}>
+      <path d="M9 17H7A5 5 0 0 1 7 7h2" />
+      <path d="M15 7h2a5 5 0 0 1 4 8" />
+      <path d="M8 12h4" />
+      <path d="M2 2l20 20" />
+    </StrokeIcon>
+  );
+}
+
 export function FolderIcon({ size }: { readonly size: 14 | 16 }): ReactNode {
   return (
     <StrokeIcon size={size}>

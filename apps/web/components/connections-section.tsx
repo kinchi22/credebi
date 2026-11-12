@@ -2,12 +2,12 @@
 
 import { useTranslations } from 'next-intl';
 import { type ConnectionOutput } from '@repo/contracts';
-import { PANEL } from '@repo/ui';
+import { PANEL, UnlinkIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useId, useState, useTransition, type ReactNode } from 'react';
 import { ConfirmationPanel } from './confirmation-panel';
 import { ConnectionDialog } from './connection-dialog';
-import { BUTTON, LEGEND, PRIMARY_BUTTON } from './control-classes';
+import { BUTTON, DANGER_ICON_BUTTON, LEGEND, PRIMARY_BUTTON } from './control-classes';
 import { localDayOf } from './local-day';
 import { PendingDialog } from './pending-dialog';
 import { MUTED_TEXT } from './text-classes';
@@ -38,7 +38,23 @@ function ShownDay({ label, instant }: { readonly label: string; readonly instant
   );
 }
 
-function ConnectionRow({
+function ScopeChips({ scopes }: { readonly scopes: ConnectionOutput['scopes'] }): ReactNode {
+  const t = useTranslations();
+  return (
+    <p className="flex flex-wrap gap-1">
+      {scopes.map((scope) => (
+        <span
+          key={scope}
+          className={`rounded-control border px-1.5 ${typeClasses['body-dense']} ${scope === 'write' ? 'border-accent-text text-accent-text' : 'border-border text-text-muted'}`}
+        >
+          {t(`connectionsSection.scopes.${scope}`)}
+        </span>
+      ))}
+    </p>
+  );
+}
+
+function ConnectionCard({
   connection,
   onRevoke,
 }: {
@@ -47,30 +63,28 @@ function ConnectionRow({
 }): ReactNode {
   const t = useTranslations();
   return (
-    <li className="flex flex-col gap-2 border-b border-border py-3 first:pt-0 last:border-b-0 last:pb-0 wide:flex-row wide:items-start wide:justify-between">
-      <div className="flex min-w-0 flex-col gap-1">
-        <p className="font-semibold wrap-anywhere">{connection.clientName}</p>
-        <p className="break-all text-text-muted">{connection.redirectHost}</p>
-        <p className="flex flex-wrap gap-x-3">
-          {connection.scopes.map((scope) => (
-            <span key={scope}>{t(`connectionsSection.scopes.${scope}`)}</span>
-          ))}
-        </p>
-        <p className={`flex flex-wrap gap-x-4 ${MUTED_TEXT}`}>
-          <ShownDay label={t('connectionsSection.created')} instant={connection.createdAt} />
-          <ShownDay label={t('connectionsSection.lastUsed')} instant={connection.lastUsedAt} />
-        </p>
+    <li className={`${PANEL} flex min-w-0 flex-col gap-3`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 flex-col">
+          <p className="font-semibold wrap-anywhere">{connection.clientName}</p>
+          <p className="break-all text-text-muted">{connection.redirectHost}</p>
+        </div>
+        <button
+          type="button"
+          aria-label={t('connectionsSection.revokeNamed', { client: connection.clientName })}
+          onClick={(event) => {
+            onRevoke(event.currentTarget);
+          }}
+          className={DANGER_ICON_BUTTON}
+        >
+          <UnlinkIcon />
+        </button>
       </div>
-      <button
-        type="button"
-        aria-label={t('connectionsSection.revokeNamed', { client: connection.clientName })}
-        onClick={(event) => {
-          onRevoke(event.currentTarget);
-        }}
-        className={`self-start ${BUTTON}`}
-      >
-        {t('connectionsSection.revoke')}
-      </button>
+      <ScopeChips scopes={connection.scopes} />
+      <p className={`flex flex-wrap gap-x-4 ${MUTED_TEXT}`}>
+        <ShownDay label={t('connectionsSection.created')} instant={connection.createdAt} />
+        <ShownDay label={t('connectionsSection.lastUsed')} instant={connection.lastUsedAt} />
+      </p>
     </li>
   );
 }
@@ -126,9 +140,9 @@ export function ConnectionsSection({ connections, mcpUrl, action }: ConnectionsS
       {connections.length === 0 ? (
         <EmptyConnections onStart={connecting.show} />
       ) : (
-        <ul className={`${PANEL} flex flex-col ${typeClasses['body-sm']}`}>
+        <ul className={`grid gap-3 wide:grid-cols-2 ${typeClasses['body-sm']}`}>
           {connections.map((connection) => (
-            <ConnectionRow
+            <ConnectionCard
               key={connection.id}
               connection={connection}
               onRevoke={(opener) => {
