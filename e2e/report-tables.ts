@@ -78,3 +78,10 @@ export async function expectGroupControls(table: Locator, expanded: Readonly<Rec
 export async function expectLabels(table: Locator, labels: readonly string[]): Promise<void> {
   await expect(table.getByRole('rowheader')).toHaveText(labels);
 }
+
+export async function reloadUntilExpanded(page: Page, control: Locator, expanded: boolean): Promise<void> {
+  await expect(async () => {
+    await page.reload();
+    await expect(control).toHaveAttribute('aria-expanded', String(expanded), { timeout: 2000 });
+  }).toPass({ timeout: 20_000 });
+}

@@ -33,16 +33,12 @@ import {
   postEntries,
   saveEdit,
 } from './entries';
-import { statementTable } from './income-statement';
 import { INITIAL_CHART, namesOf } from './initial-chart';
-import { documentLanguage, pageTitle, signUpAfterChoosing, tabTo } from './language';
+import { documentLanguage, pageTitle, signUpAfterChoosing } from './language';
 import {
-  expectGroupControls,
-  expectLabels,
   expectOneColumn,
   expectTotalsDirectlyBelowShorter,
   expectTwoColumnsWithTotalsUnder,
-  groupControl,
   reportTables,
   type ReportRow,
   atZero,
@@ -51,7 +47,6 @@ import {
 import {
   abortServerActions,
   ASSETS_AND_LIABILITIES_PATH as REPORT,
-  failedServerAction,
   ASSETS_AND_LIABILITIES_WITHOUT_QUERY,
   INCOME_STATEMENT_PATH,
   SETTINGS_PATH,
@@ -743,158 +738,4 @@ test('renders the Assets and liabilities page and its form', { tag: '@smoke' }, 
 
   await expect(reportDateForm(page)).toBeVisible();
   await expect(reportTable(page, 'Totals')).toBeVisible();
-});
-
-const LOANS_REPORT: Report = {
-  assets: cashAndDeposits('4,000'),
-  totalAssets: '4,000',
-  liabilities: [['Credit card payable', '0'], ['Loans', '1,000'], ['Mortgage', '1,000']],
-  totalLiabilities: '1,000',
-  netWorth: '3,000',
-};
-
-const CASH_AND_DEPOSITS_COLLAPSED: Report = { ...LOANS_REPORT, assets: [['Cash and deposits', '4,000']] };
-
-const BOTH_COLLAPSED: Report = {
-  ...CASH_AND_DEPOSITS_COLLAPSED,
-  liabilities: [['Credit card payable', '0'], ['Loans', '1,000']],
-};
-
-const LOANS_COLLAPSED: Report = { ...BOTH_COLLAPSED, assets: LOANS_REPORT.assets };
-
-async function signInWithLoans(page: Page, identifier: string = freshIdentifier()): Promise<void> {
-  const run = randomUUID();
-  await signIn(page, { identifier, accountsStartOn: BOOKS_OPEN });
-  await page.goto(SETTINGS_PATH);
-  await addGroup(page, 'Liabilities', { name: 'Loans' });
-  await addAccount(page, 'Liabilities', { name: 'Mortgage', group: 'Loans', activeFrom: BOOKS_OPEN });
-  await postEntries(page, [
-    intoCash(IN_JUNE, `Paid in ${run}`, '3000'),
-    entryOn(IN_JUNE, `Mortgaged ${run}`, 'Cash', added('Mortgage'), '1000'),
-  ]);
-}
-
-async function expectGroups(page: Page, assets: boolean, loans: boolean): Promise<void> {
-  await expectGroupControls(reportTable(page, 'Assets'), { 'Cash and deposits': assets });
-  await expectGroupControls(reportTable(page, 'Liabilities'), { Loans: loans });
-}
-
-const cashAndDepositsControl = (page: Page): Locator => groupControl(reportTable(page, 'Assets'), 'Cash and deposits');
-
-const loansControl = (page: Page): Locator => groupControl(reportTable(page, 'Liabilities'), 'Loans');
-
-test("shows a new User every Account group expanded with a control on its heading and none on an Account outside any group, and collapses and expands each group independently, keeping its name and subtotal and every total", async ({ page }) => {
-  test.slow();
-  await signInWithLoans(page);
-  await page.goto(dated(JUNE_LAST));
-  await expectReport(page, LOANS_REPORT);
-  await expectGroups(page, true, true);
-
-  await cashAndDepositsControl(page).click();
-  await expectGroups(page, false, true);
-  await expectReport(page, CASH_AND_DEPOSITS_COLLAPSED);
-
-  await loansControl(page).click();
-  await expectGroups(page, false, false);
-  await expectReport(page, BOTH_COLLAPSED);
-
-  await cashAndDepositsControl(page).click();
-  await expectGroups(page, true, false);
-  await expectReport(page, LOANS_COLLAPSED);
-
-  await loansControl(page).click();
-  await expectGroups(page, true, true);
-  await expectReport(page, LOANS_REPORT);
-  await expect(page).toHaveURL(withQuery(REPORT, { date: JUNE_LAST }));
-});
-
-test("keeps a User's Collapsed groups through a reload, leaving and returning and a fresh browser signed in as the same User, leaves the Income statement's groups expanded, and leaves another User's groups expanded", async ({ browser }) => {
-  test.slow();
-  const identifier = freshIdentifier();
-  const first = await browser.newContext();
-  const page = await first.newPage();
-  await signInWithLoans(page, identifier);
-  await page.goto(dated(JUNE_LAST));
-  await expectReport(page, LOANS_REPORT);
-
-  await cashAndDepositsControl(page).click();
-  await expectGroups(page, false, true);
-
-  await expect(async () => {
-    await page.reload();
-    await expect(cashAndDepositsControl(page)).toHaveAttribute('aria-expanded', 'false', { timeout: 2000 });
-  }).toPass({ timeout: 20_000 });
-  await expectGroups(page, false, true);
-  await expectReport(page, CASH_AND_DEPOSITS_COLLAPSED);
-
-  await linkTo(sidebar(page), INCOME_STATEMENT_PATH).click();
-  await expectGroupControls(statementTable(page, 'Expenses'), { 'Living expenses': true });
-  await expectLabels(statementTable(page, 'Expenses'), [
-    'Living expenses',
-    'Food',
-    'Transportation',
-    'Other living expenses',
-    'Total expense',
-  ]);
-
-  await linkTo(sidebar(page), REPORT).click();
-  await expectGroups(page, false, true);
-  await expectLabels(reportTable(page, 'Assets'), ['Cash and deposits', 'Total assets']);
-
-  const second = await browser.newContext();
-  const again = await second.newPage();
-  await signIn(again, { identifier });
-  await again.goto(dated(JUNE_LAST));
-  await expectGroups(again, false, true);
-  await expectReport(again, CASH_AND_DEPOSITS_COLLAPSED);
-
-  const third = await browser.newContext();
-  const other = await third.newPage();
-  await signIn(other, { accountsStartOn: BOOKS_OPEN });
-  await other.goto(dated(JUNE_LAST));
-  await expectGroupControls(reportTable(other, 'Assets'), { 'Cash and deposits': true });
-  await expectReport(other, nothingCounted);
-
-  await first.close();
-  await second.close();
-  await third.close();
-});
-
-test('reaches an Account group control by Tab and toggles it with Enter and Space, its aria-expanded matching whether the group is collapsed', async ({ page }) => {
-  await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await page.goto(dated(JUNE_LAST));
-  await expectReport(page, nothingCounted);
-  const control = cashAndDepositsControl(page);
-
-  await tabTo(page, control);
-  await page.keyboard.press('Enter');
-  await expect(control).toHaveAttribute('aria-expanded', 'false');
-  await expect(control).toBeFocused();
-  await expectReport(page, { ...nothingCounted, assets: [['Cash and deposits', '0']] });
-
-  await page.keyboard.press('Space');
-  await expect(control).toHaveAttribute('aria-expanded', 'true');
-  await expect(control).toBeFocused();
-  await expectReport(page, nothingCounted);
-});
-
-test('keeps an Account group collapsed when keeping the choice fails, showing no error, and shows it expanded again after a reload', async ({ page }) => {
-  await signIn(page, { accountsStartOn: BOOKS_OPEN });
-  await page.goto(dated(JUNE_LAST));
-  await expectReport(page, nothingCounted);
-  await abortServerActions(page, REPORT);
-  const failedSave = failedServerAction(page);
-
-  await cashAndDepositsControl(page).click();
-  await failedSave;
-
-  await expect(cashAndDepositsControl(page)).toHaveAttribute('aria-expanded', 'false');
-  await expectReport(page, { ...nothingCounted, assets: [['Cash and deposits', '0']] });
-  await expect(page.getByRole('main').getByRole('alert')).toHaveCount(0);
-
-  await page.unrouteAll({ behavior: 'wait' });
-  await page.reload();
-
-  await expect(cashAndDepositsControl(page)).toHaveAttribute('aria-expanded', 'true');
-  await expectReport(page, nothingCounted);
 });
