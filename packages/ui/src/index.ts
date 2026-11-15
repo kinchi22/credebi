@@ -33,5 +33,6 @@ export {
   SparkleIcon,
   StatementIcon,
   TrashIcon,
+  UnlinkIcon,
   WalletIcon,
 } from './icons';

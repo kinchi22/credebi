@@ -1,4 +1,5 @@
 import { type Metadata } from 'next';
+import { headers } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 import { type ReactNode } from 'react';
 import { AccountsSection } from '../../../../components/accounts-section';
@@ -7,6 +8,7 @@ import { EntryFormModeChoice } from '../../../../components/entry-form-mode-choi
 import { LanguageChoice } from '../../../../components/language-choice';
 import { PAGE_HEADING } from '../../../../components/text-classes';
 import { createContext } from '../../../../server/context';
+import { authorizationServerAt, requestOrigin } from '../../../../server/oauth';
 import { SETTINGS_PATH } from '../../../../server/return-path';
 import { createCaller } from '../../../../server/root-router';
 import { orSignIn } from '../../../../server/sign-in-redirect';
@@ -38,6 +40,7 @@ export default async function SettingsPage(): Promise<ReactNode> {
     orSignIn(caller.accounts.chart(), SETTINGS_PATH),
     orSignIn(caller.auth.connections(), SETTINGS_PATH),
   ]);
+  const { mcpUrl } = authorizationServerAt(requestOrigin(await headers()));
 
   return (
     <>
@@ -56,7 +59,7 @@ export default async function SettingsPage(): Promise<ReactNode> {
         }}
       />
       <LanguageChoice chosen={settings.language} action={changeLanguage} />
-      <ConnectionsSection connections={connections} action={revokeConnection} />
+      <ConnectionsSection connections={connections} mcpUrl={mcpUrl} action={revokeConnection} />
     </>
   );
 }

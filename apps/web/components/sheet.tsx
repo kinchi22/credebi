@@ -11,13 +11,23 @@ export type SheetTabsProps<Tab extends string> = {
   readonly tabId: (tab: Tab) => string;
   readonly panelId: (tab: Tab) => string;
   readonly label: (tab: Tab) => string;
-  readonly shownTone?: (tab: Tab) => string;
+} & TabsLookProps<Tab>;
+
+export type TabsLook = {
+  readonly strip: string;
+  readonly idle: string;
+  readonly shown: string;
 };
+
+type TabsLookProps<Tab extends string> =
+  | { readonly shownTone?: (tab: Tab) => string; readonly look?: undefined }
+  | { readonly look: TabsLook; readonly shownTone?: undefined };
 
 const TAB = `flex-1 border-b-2 py-3 ${typeClasses['body-sm']}`;
 const IDLE_TAB = `${TAB} border-border text-text-muted`;
 const ACCENT_TONE = 'border-accent text-accent-text';
 const shownTab = (tone: string): string => `${TAB} ${tone} font-semibold`;
+const SHEET_STRIP = 'flex shrink-0 bg-surface';
 
 export type SheetBarProps = {
   readonly titleId: string;
@@ -44,6 +54,7 @@ export function SheetTabs<Tab extends string>({
   panelId,
   label,
   shownTone,
+  look,
 }: SheetTabsProps<Tab>): ReactNode {
   const buttons = useRef<Partial<Record<Tab, HTMLButtonElement | null>>>({});
 
@@ -59,7 +70,7 @@ export function SheetTabs<Tab extends string>({
   };
 
   return (
-    <div role="tablist" className="flex shrink-0 bg-surface">
+    <div role="tablist" className={look?.strip ?? SHEET_STRIP}>
       {tabs.map((tab, index) => (
         <button
           key={tab}
@@ -78,7 +89,11 @@ export function SheetTabs<Tab extends string>({
           onKeyDown={(event) => {
             move(event, index);
           }}
-          className={shown === tab ? shownTab(shownTone?.(tab) ?? ACCENT_TONE) : IDLE_TAB}
+          className={
+            shown === tab
+              ? (look?.shown ?? shownTab(shownTone?.(tab) ?? ACCENT_TONE))
+              : (look?.idle ?? IDLE_TAB)
+          }
         >
           {label(tab)}
         </button>

@@ -659,15 +659,58 @@ numerals.
   `Show ended accounts` are at 60% opacity, every button, grip and the toggle
   is disabled, nothing can be dragged, and the section is `aria-busy`.
 - **Connections section.** The User's Connections in Settings, below the
-  Language, under its `Connections` heading, semibold in `body-sm`. Its rows
-  sit in one list drawn as a panel, as the Accounts section's do, in `body-sm`,
-  between `border` hairlines, most recently created first. Each row holds the
-  MCP client's name, semibold; the host of the redirect the User approved, in
-  `text-muted`; its scopes in the consent page's words; and `Created` and
+  Language, under its `Connections` heading, semibold in `body-sm`. With
+  Connections, a secondary `+ Add connection`, named `Add connection`, sits at
+  the heading's right, and the Connections are a list of panel cards in
+  `body-sm`, 12px apart, one column below `wide` and two from `wide` up, most
+  recently created first. A card holds, 12px apart: the MCP client's name,
+  semibold and wrapping anywhere, over the host of the redirect the User
+  approved, in `text-muted` and breaking anywhere, with a Danger icon button
+  named `Revoke <client name>` at their right; its scopes as chips in the
+  consent page's words, each a `control`-radius box in `body-dense` with an
+  edge of its own colour, `Post entries` in `accent-text` and
+  `Read your books` in `text-muted` on a `border` edge; and `Created` and
   `Last used` in `text-muted`, each with its day in `date`, in the browser's
-  time zone.
-  A secondary `Revoke` button ends the row, beside the text from `wide` up and
-  below it otherwise. With no Connection the section says so in `text-muted`.
+  time zone. With no Connection the
+  section holds an empty-state panel instead, its text centred in `body-sm`: a
+  semibold line, one short sentence in `text-muted` saying that an AI
+  application reads the books and posts Entries, and a primary
+  `Start connecting`.
+- **Connection dialog.** `Connect an AI application`, opened by
+  `Start connecting` or `+ Add connection`. Below `wide` it is a sheet on the
+  `surface` rising from the foot of the screen over a `ground-dark` scrim at
+  60%, its top corners rounded, as tall as its content and at most the viewport
+  less 64px; from `wide` up it is centred over the same scrim, a `surface`
+  panel with a `border` edge, 560px wide at most. A `surface` bar holds its
+  title and a close icon named `Close`, and below it three numbered steps in
+  `body-sm` scroll, each with a semibold title: `Copy the MCP URL`,
+  `Add it to your application` and `Sign in and approve`. The second step holds
+  a tab strip, `Claude` and `ChatGPT`, drawn as the segment strip of the
+  Settings choices: the shown tab semibold in the chosen segment's tint and
+  ring, the other in `text-muted`. It opens on `Claude` every time, the left
+  and right arrow keys move between the tabs, and the panel below the strip
+  holds the shown client's guidance in short groups 16px apart, each ending in
+  a link to that vendor's own help, opening in a new tab. `Claude` has two:
+  add the MCP URL as a custom connector in claude.ai or the desktop app; and in
+  Claude Code, run `claude mcp add --transport http credebi <MCP URL>`, then
+  authenticate from `/mcp`, the command in a `control`-radius box on the
+  `ground` with a `border` edge, in the sans face, wrapping anywhere.
+  `ChatGPT` has one: turn on developer mode under Apps in its settings, create
+  an app with the MCP URL and choose OAuth. The guidance names as few of the vendor's menus as it can,
+  and no other client. The last step says in `text-muted` that
+  the application opens a Credebi page to sign in, review and approve, after
+  which the Connection appears in the list. `Close`, Escape or a click on the
+  scrim closes it, and focus returns to the button that opened it. It
+  remembers nothing between openings.
+- **MCP URL field.** The first step's read-only field, drawn as a control in
+  the sans face, not `figure` or `date`, wrapping anywhere and as tall as its
+  text, so a long MCP URL shows whole at any width. A secondary `Copy` sits at
+  its right. Pressed, it puts the MCP URL on the clipboard and reads `Copied`
+  for two seconds, counted afresh on each press, and a polite status line
+  below the field, in `body-sm` and `text-muted`, says the MCP URL was copied.
+  When the browser refuses the clipboard, the field's text is selected and the
+  status line asks the User to copy it themselves, said again on each refused
+  press.
 - **Entry search form.** After From and To come Account, Title and Memo, in
   that order, then the submit. Account is as wide as a closed select of its
   choices would be, sized by the widest of `Any account` and the Account
@@ -905,6 +948,13 @@ numerals.
 - **Icon button.** A secondary button holding a stroke icon in place of text,
   with an accessible name: square and 36px, as tall as the Input beside it, as
   `Choose a period` is.
+- **Danger icon button.** A bare icon button for an action that takes
+  something away, kept off the confirmation it opens: a stroke icon in
+  `danger`, no border, and no fill but a `danger` tint at 10% under the
+  pointer, with an accessible name in place of text. It is sized as the Entry
+  row actions are, 32px square below `wide` and 28px from `wide` up. It is a
+  Connection's `Revoke <client name>`, an unlink icon, in the Connections
+  section.
 - **Entries list.** Laid out the same at every width, in Entries and in Entry
   search. Its panel shows no `Entries` heading, which is visually hidden, not
   removed, so the region is still named `Entries`. A full-width `border`
@@ -1007,7 +1057,8 @@ numerals.
   It is also `Delete account` and `Delete group`, opened by a row's `Delete`
   in the Accounts section, with the Account type in `text-muted` below the
   title and the Account's or group's name, semibold, as the thing.
-  It is also `Revoke connection`, opened by a Connection's `Revoke` in the
+  It is also `Revoke connection`, opened by a Connection's
+  `Revoke <client name>` in the
   Connections section, whose thing is the MCP client's name, semibold, over
   its redirect host in `text-muted`; its danger button is `Revoke`.
 - **Edit entry dialog.** `Edit entry`, opened by an Entry's `Edit`, holds the
