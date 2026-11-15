@@ -449,8 +449,8 @@ of them and not in the second. ADR-0006.
 
 Every required check, in both rulesets, is accepted from GitHub Actions only.
 With "any source", GitHub's documentation says anyone with write access to the
-repository -- the machine account included -- can set a check's state without
-the job running. What the source does not stop is a pull request adding a workflow of
+repository, or a GitHub App allowed to write checks or commit statuses, can set
+a check's state without the job running. What the source does not stop is a pull request adding a workflow of
 its own with a job of the same name; that is a change under `.github/`, so it
 needs the owner. Rulesets are repository settings rather than files, so no gate
 here checks them.

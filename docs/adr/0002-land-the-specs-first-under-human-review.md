@@ -5,6 +5,7 @@
 **Amended:** 2026-09-24, PR #115
 **Amended:** 2026-09-25, PR #121
 **Amended:** 2026-09-29, PR #139
+**Amended:** 2026-11-15, PR #716
 
 ## Problem
 
@@ -251,9 +252,8 @@ shown the rewritten requirement next to the reason it was rewritten.
 owner a bottleneck for every commit and buy nothing: the criterion was already
 agreed, and the one thing a feature branch must not do is checked.
 
-**A label that skips the isolation check.** A bypass the machine account can
-apply is not a boundary. The account that opens the pull request can set its
-labels.
+**A label that skips the isolation check.** A bypass the agents' GitHub App can
+apply is not a boundary. Whoever opens the pull request can set its labels.
 
 **A `git diff` against the base branch in the job.** It needs the merge base, so
 it needs `fetch-depth: 0` and the right base ref, and both fail quietly by

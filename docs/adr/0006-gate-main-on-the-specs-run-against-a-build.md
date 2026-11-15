@@ -5,6 +5,7 @@
 **Amended:** 2026-09-22, PR #77
 **Amended:** 2026-10-01, PR #165
 **Amended:** 2026-10-25, PR #575
+**Amended:** 2026-11-15, PR #716
 
 ## Problem
 
@@ -143,8 +144,8 @@ until the owner added it to the `main` ruleset's required checks, which was done
 by hand after this change merged, on 2026-09-14. At the same time every required
 check in that ruleset was restricted to GitHub Actions as its source, as the
 `milestone` ruleset's already were: with "any source", GitHub's documentation
-says anyone with write access, the machine account included, can set a check's
-state without the job running.
+says anyone with write access, or a GitHub App allowed to write checks or commit
+statuses, can set a check's state without the job running.
 No gate reads a ruleset, so either setting can be undone without a diff.
 
 ADR-0002's "red specs as a progress bar" is read from the push run on the
