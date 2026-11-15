@@ -673,10 +673,9 @@ numerals.
   `Last used` in `text-muted`, each with its day in `date`, in the browser's
   time zone. With no Connection the
   section holds an empty-state panel instead, its text centred in `body-sm`: a
-  semibold line, a sentence in `text-muted` saying that an AI application can
-  read the books and post Entries during a conversation, with the permissions
-  chosen while connecting, and that it can be revoked at any time, and a
-  primary `Start connecting`.
+  semibold line, one short sentence in `text-muted` saying that an AI
+  application reads the books and posts Entries, and a primary
+  `Start connecting`.
 - **Connection dialog.** `Connect an AI application`, opened by
   `Start connecting` or `+ Add connection`. Below `wide` it is a sheet on the
   `surface` rising from the foot of the screen over a `ground-dark` scrim at
