@@ -5,6 +5,7 @@
 **Amended:** 2026-09-22, PR #77
 **Amended:** 2026-10-01, PR #165
 **Amended:** 2026-10-25, PR #575
+**Amended:** 2026-11-15, PR #716
 
 ## Problem
 
