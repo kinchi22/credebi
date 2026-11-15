@@ -964,7 +964,7 @@ numerals.
   row actions are, 32px square below `wide` and 28px from `wide` up. It is a
   Connection's `Revoke <client name>`, an unlink icon, in the Connections
   section.
-- **Entries list.** Laid out the same at every width, in Entries and in Entry
+- **Entries list.** The same in Entries and in Entry
   search. Its panel shows no `Entries` heading, which is visually hidden, not
   removed, so the region is still named `Entries`. A full-width `border`
   hairline parts each Entry from the one above; the first has none and starts
@@ -975,11 +975,14 @@ numerals.
   Regular in `text-muted`, with or without a Title, the two filling the space
   and wrapping together, and the Entry's total on the right in `figure`,
   medium; the date, the total and the row actions keep their place on the first
-  line while the text grows downward between them. Below it two equal columns,
+  line while the text grows downward between them. Below it, from `wide` up, two equal columns,
   Debit and Credit, Credit's behind a `border` hairline, each headed by the Side
-  in `label` and the Side's colour over a 1.5px rule in that colour. In
+  in `label` and the Side's colour over a 1.5px rule in that colour. Below
+  `wide` the two stack, full width, Credit 8px below Debit with no hairline, so
+  an Account name never shares a narrow column with an amount. In
   `body-dense`, each line is one row, the Account name on the left and its
-  amount on the right in `figure` and the Side's colour. The name is led by its
+  amount on the right in `figure` and the Side's colour, never wrapped or
+  shrunk. The name is led by its
   Account type's Tile and followed by the line's Balance direction, the 14px
   arrow, up for `Increase` and down for `Decrease`, in `text-muted`, 6px apart,
   with no word, no Side colour and no red or green; tile and arrow sit level
