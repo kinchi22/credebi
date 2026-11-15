@@ -150,8 +150,7 @@ export const ja = {
   connectionsSection: {
     title: '接続',
     emptyTitle: 'AIアプリケーションを接続する',
-    emptyBody:
-      'AIアプリケーションが会話の中で帳簿を読み、仕訳を記帳できるようにします。権限は接続するときに選び、接続はいつでも解除できます。',
+    emptyBody: 'AIアプリケーションが帳簿を読み、仕訳を記帳します。',
     startConnecting: '接続を始める',
     addConnection: '接続を追加',
     addConnectionText: '+ 接続を追加',

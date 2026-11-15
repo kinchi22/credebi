@@ -149,8 +149,7 @@ export const ko = {
   connectionsSection: {
     title: '연결',
     emptyTitle: 'AI 애플리케이션 연결하기',
-    emptyBody:
-      'AI 애플리케이션이 대화 중에 장부를 읽고 거래를 기록할 수 있게 합니다. 권한은 연결할 때 직접 고르며, 연결은 언제든 해제할 수 있습니다.',
+    emptyBody: 'AI 애플리케이션이 장부를 읽고 거래를 기록합니다.',
     startConnecting: '연결 시작하기',
     addConnection: '연결 추가',
     addConnectionText: '+ 연결 추가',

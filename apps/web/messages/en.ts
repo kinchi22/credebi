@@ -132,8 +132,7 @@ export const en = {
   connectionsSection: {
     title: 'Connections',
     emptyTitle: 'Connect an AI application',
-    emptyBody:
-      'An AI application can read your books and post entries during a conversation, with the permissions you choose while connecting. You can revoke the connection at any time.',
+    emptyBody: 'An AI application reads your books and posts entries.',
     startConnecting: 'Start connecting',
     addConnection: 'Add connection',
     addConnectionText: '+ Add connection',
