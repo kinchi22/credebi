@@ -143,8 +143,8 @@ until the owner added it to the `main` ruleset's required checks, which was done
 by hand after this change merged, on 2026-09-14. At the same time every required
 check in that ruleset was restricted to GitHub Actions as its source, as the
 `milestone` ruleset's already were: with "any source", GitHub's documentation
-says anyone with write access, the machine account included, can set a check's
-state without the job running.
+says anyone with write access, or a GitHub App allowed to write checks or commit
+statuses, can set a check's state without the job running.
 No gate reads a ruleset, so either setting can be undone without a diff.
 
 ADR-0002's "red specs as a progress bar" is read from the push run on the
