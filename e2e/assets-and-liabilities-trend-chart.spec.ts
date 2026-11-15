@@ -15,7 +15,7 @@ import {
 } from './assets-and-liabilities-trend';
 import { entryOn, intoCash, postEntries } from './entries';
 import { tabTo } from './language';
-import { abortServerActions, TREND_PATH as TREND } from './routes';
+import { abortServerActions, failedServerAction, TREND_PATH as TREND } from './routes';
 import { freshIdentifier, signIn } from './session';
 
 const IN_JUNE = '2026-06-15';
@@ -190,10 +190,7 @@ test('keeps a line as pressed when saving the choice fails, showing no error, an
   await postEntries(page, [intoCash(IN_JUNE, `Paid in ${randomUUID()}`, '1000')]);
   await openJuneAndJuly(page);
   await abortServerActions(page, TREND);
-  const failedSave = page.waitForEvent(
-    'requestfailed',
-    (request) => request.method() === 'POST' && request.headers()['next-action'] !== undefined,
-  );
+  const failedSave = failedServerAction(page);
 
   await legendItem(page, 'Net worth').click();
   await failedSave;

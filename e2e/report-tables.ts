@@ -64,3 +64,17 @@ export async function expectOneColumn(top: Locator, ...below: readonly Locator[]
     above = box;
   }
 }
+
+export const groupControl = (table: Locator, group: string): Locator =>
+  reportRow(table, group).getByRole('button', { name: group, exact: true });
+
+export async function expectGroupControls(table: Locator, expanded: Readonly<Record<string, boolean>>): Promise<void> {
+  await expect(table.getByRole('button')).toHaveText(Object.keys(expanded));
+  for (const [group, open] of Object.entries(expanded)) {
+    await expect(groupControl(table, group)).toHaveAttribute('aria-expanded', String(open));
+  }
+}
+
+export async function expectLabels(table: Locator, labels: readonly string[]): Promise<void> {
+  await expect(table.getByRole('rowheader')).toHaveText(labels);
+}
