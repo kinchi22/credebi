@@ -39,34 +39,36 @@ type Layout = {
   readonly lineAmount: string;
 };
 
-const CREDIT_DIVIDER = 'border-l border-l-border';
+const CREDIT_DIVIDER = 'wide:border-l wide:border-l-border';
 
 const SIDE_RULE = 'border-t-[1.5px]';
 
+const CREDIT_BELOW = 'mt-2 wide:mt-0';
+
 const COMPACT: Layout = {
-  grid: 'grid-cols-[5rem_minmax(0,1fr)_5rem_minmax(0,1fr)]',
+  grid: 'grid-cols-[5rem_minmax(0,1fr)] wide:grid-cols-[5rem_minmax(0,1fr)_5rem_minmax(0,1fr)]',
   heading: {
     debit: `col-start-1 row-start-2 ${SIDE_RULE} py-2 pl-4`,
-    credit: `col-start-3 row-start-2 ${SIDE_RULE} py-2 pl-4 ${CREDIT_DIVIDER}`,
+    credit: `col-start-1 row-start-3 ${CREDIT_BELOW} wide:col-start-3 wide:row-start-2 ${SIDE_RULE} py-2 pl-4 ${CREDIT_DIVIDER}`,
   },
   lines: {
     debit: `col-start-2 row-start-2 ${SIDE_RULE} py-2 pr-4`,
-    credit: `col-start-4 row-start-2 ${SIDE_RULE} py-2 pr-4`,
+    credit: `col-start-2 row-start-3 ${CREDIT_BELOW} wide:col-start-4 wide:row-start-2 ${SIDE_RULE} py-2 pr-4`,
   },
   lineAmount: 'sr-only',
 };
 
 const STACKED: Layout = {
-  grid: 'grid-cols-2',
+  grid: 'grid-cols-1 wide:grid-cols-2',
   heading: {
     debit: `col-start-1 row-start-2 ${SIDE_RULE} px-4 pt-2`,
-    credit: `col-start-2 row-start-2 ${SIDE_RULE} px-4 pt-2 ${CREDIT_DIVIDER}`,
+    credit: `col-start-1 row-start-4 ${CREDIT_BELOW} wide:col-start-2 wide:row-start-2 ${SIDE_RULE} px-4 pt-2 ${CREDIT_DIVIDER}`,
   },
   lines: {
     debit: 'col-start-1 row-start-3 px-4 pb-1',
-    credit: `col-start-2 row-start-3 px-4 pb-1 ${CREDIT_DIVIDER}`,
+    credit: `col-start-1 row-start-5 wide:col-start-2 wide:row-start-3 px-4 pb-1 ${CREDIT_DIVIDER}`,
   },
-  lineAmount: `ml-auto text-right ${typeClasses.figure}`,
+  lineAmount: `ml-auto shrink-0 whitespace-nowrap text-right ${typeClasses.figure}`,
 };
 
 const SIDE_HEADING = `${typeClasses.label} leading-5`;
