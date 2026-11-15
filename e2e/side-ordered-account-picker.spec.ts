@@ -31,8 +31,8 @@ import { type EntryFormMode } from './settings';
 import { PHONE } from './viewport';
 
 const SIDE_ORDER: Readonly<Record<Side, readonly AccountType[]>> = {
-  Debit: ['Expenses', 'Assets', 'Liabilities', 'Equity', 'Revenue'],
-  Credit: ['Assets', 'Liabilities', 'Revenue', 'Equity', 'Expenses'],
+  Debit: ['Assets', 'Liabilities', 'Equity', 'Expenses', 'Revenue'],
+  Credit: ['Assets', 'Liabilities', 'Equity', 'Revenue', 'Expenses'],
 };
 
 const CHART: Readonly<Record<AccountType, readonly string[]>> = {
