@@ -435,6 +435,15 @@ is Japanese the stylesheet puts Japanese's first, so a character both scripts
 share, such as a kanji, takes the Japanese form. `fontDeclarations` in the
 tokens module holds both orders.
 
+On a page whose Language is Korean, copy wraps only between words, at a space,
+as Korean typography expects: the stylesheet sets `word-break: keep-all` on the
+root, so a line never breaks between two syllables of a word. A word too long
+for a line of its own still breaks, as `overflow-wrap: break-word` lets it, so
+nothing overflows, and an element that already breaks anywhere, such as a URL,
+a host or a client name set `break-all` or `wrap-anywhere`, keeps doing so.
+English and Japanese keep the browser's own line breaking, Japanese breaking
+between characters by convention.
+
 Text a User typed, such as a Title, a memo, an Account name, an Account group
 name or a description, wraps: it breaks inside a word only when the word cannot
 fit on a line of its own, as `wrap-anywhere` does, and it never overflows its

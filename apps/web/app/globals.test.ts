@@ -74,6 +74,18 @@ describe('the global stylesheet', () => {
     expect(declarations).toEqual(fontDeclarations('ja'));
   });
 
+  it('breaks Korean copy only between words on a page in Korean, still breaking a run too long for its line', () => {
+    const block = /:root:lang\(ko\)\s*\{([^}]*)\}/u.exec(stylesheet)?.[1] ?? '';
+    const declarations = Object.fromEntries(
+      block
+        .split('\n')
+        .map((line) => /^\s*([\w-]+)\s*:\s*([^;]+?)\s*;\s*$/u.exec(line))
+        .filter((match) => match !== null)
+        .map((match): [string, string] => [match[1] ?? '', match[2] ?? '']),
+    );
+    expect(declarations).toEqual({ 'word-break': 'keep-all', 'overflow-wrap': 'break-word' });
+  });
+
   it('imports Tailwind', () => {
     expect(stylesheet).toMatch(/^@import "tailwindcss";$/mu);
   });
