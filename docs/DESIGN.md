@@ -766,10 +766,11 @@ numerals.
   shown, so the browser's message is visible. From `split`
   up there are no tabs and the two Sides sit side by side, Credit's column
   behind a `border` hairline. Each Side is headed by its name in `label` and the
-  Side's colour over a 2px rule in that colour. Each Side lists the Account
-  types in an order of its own, the types usually posted on that Side first:
-  Debit lists Expenses, Assets, Liabilities, Equity, Revenue, and Credit lists
-  Assets, Liabilities, Revenue, Equity, Expenses. Only the types move: within
+  Side's colour over a 2px rule in that colour. Each Side lists Assets,
+  Liabilities and Equity first, in that order, then Revenue and Expenses, the
+  one usually posted on that Side first: Debit lists Assets, Liabilities,
+  Equity, Expenses, Revenue, and Credit lists Assets, Liabilities, Equity,
+  Revenue, Expenses. Only the types move: within
   each, the Accounts and Account groups keep the User's order, a search narrows
   them without reordering, and a type with no Account on the Entry's day stays
   hidden wherever it falls. Everywhere else, the Chart of accounts in Settings
