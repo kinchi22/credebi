@@ -28,7 +28,7 @@ export type PostgresAccountRepository = AccountRepository & {
 
 type AccountRow = Omit<typeof schema.accounts.$inferSelect, 'userId' | 'removedAt'>;
 
-type GroupRow = Omit<typeof schema.accountGroups.$inferSelect, 'userId'>;
+type GroupRow = Omit<typeof schema.accountGroups.$inferSelect, 'userId' | 'collapsed'>;
 
 const FOREIGN_KEY_VIOLATION = '23503';
 
