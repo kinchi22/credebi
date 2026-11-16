@@ -911,7 +911,7 @@ describe('toAssetsAndLiabilities', () => {
     const report = toAssetsAndLiabilities({
       assets: {
         total: 7000 as Money,
-        rows: [cash, { kind: 'group', group: banks, name: 'Banks', total: -2000 as Money, accounts: [checking] }],
+        rows: [cash, { kind: 'group', group: banks, name: 'Banks', total: -2000 as Money, collapsed: true, accounts: [checking] }],
       },
       liabilities: { total: 400 as Money, rows: [payable] },
       netWorth: 6600 as Money,
@@ -927,6 +927,7 @@ describe('toAssetsAndLiabilities', () => {
             group: banks,
             name: 'Banks',
             total: -2000,
+            collapsed: true,
             accounts: [{ kind: 'account', account: SALES, name: 'Checking', total: -2000 }],
           },
         ],
@@ -967,7 +968,7 @@ describe('toIncomeStatement', () => {
       netIncome: 11500,
     });
   });
-  it('carries an Account group with its subtotal and its Accounts in order', () => {
+  it('carries an Account group with its subtotal, whether it is collapsed and its Accounts in order', () => {
     const food = '01920000-0000-7000-8000-00000000f001' as AccountGroupId;
     const groceries = { kind: 'account', account: CASH, name: 'Groceries', total: 2000 as Money } as const;
     const dining = { ...groceries, account: SALES, name: 'Dining', total: 3000 as Money };
@@ -978,7 +979,7 @@ describe('toIncomeStatement', () => {
         expense: {
           total: 5000 as Money,
           rows: [
-            { kind: 'group', group: food, name: 'Food', total: 5000 as Money, accounts: [groceries, dining] },
+            { kind: 'group', group: food, name: 'Food', total: 5000 as Money, collapsed: false, accounts: [groceries, dining] },
           ],
         },
         netIncome: -5000 as Money,
@@ -991,6 +992,7 @@ describe('toIncomeStatement', () => {
           group: food,
           name: 'Food',
           total: 5000,
+          collapsed: false,
           accounts: [
             { kind: 'account', account: CASH, name: 'Groceries', total: 2000 },
             { kind: 'account', account: SALES, name: 'Dining', total: 3000 },
@@ -1008,27 +1010,39 @@ describe('incomeStatementSchema', () => {
     netIncome: 0,
   });
 
-  it('accepts a group row holding Accounts', () => {
+  it('accepts a group row holding Accounts, collapsed or not', () => {
     const group = {
       kind: 'group',
       group: '01920000-0000-7000-8000-00000000f001',
       name: 'Food',
       total: 2000,
+      collapsed: true,
       accounts: [{ kind: 'account', account: CASH, name: 'Groceries', total: 2000 }],
     };
 
     expect(incomeStatementSchema.parse(statement(group)).expense.rows).toEqual([group]);
+    expect(incomeStatementSchema.parse(statement({ ...group, collapsed: false })).expense.rows).toEqual([
+      { ...group, collapsed: false },
+    ]);
   });
 
   it.each([
-    ['a group whose id is not a uuid', { kind: 'group', group: 'food', name: 'Food', total: 0, accounts: [] }],
+    ['a group whose id is not a uuid', { kind: 'group', group: 'food', name: 'Food', total: 0, collapsed: false, accounts: [] }],
+    ['a group not saying whether it is collapsed', {
+      kind: 'group',
+      group: '01920000-0000-7000-8000-00000000f001',
+      name: 'Food',
+      total: 0,
+      accounts: [],
+    }],
     ['a group holding a group', {
       kind: 'group',
       group: '01920000-0000-7000-8000-00000000f001',
       name: 'Food',
       total: 0,
+      collapsed: false,
       accounts: [
-        { kind: 'group', group: '01920000-0000-7000-8000-00000000f002', name: 'Inner', total: 0, accounts: [] },
+        { kind: 'group', group: '01920000-0000-7000-8000-00000000f002', name: 'Inner', total: 0, collapsed: false, accounts: [] },
       ],
     }],
     ['a row of another kind', { kind: 'title', account: CASH, name: 'Rent', total: 0 }],

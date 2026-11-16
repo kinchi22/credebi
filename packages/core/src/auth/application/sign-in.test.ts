@@ -325,6 +325,7 @@ describe('createTestSignIn', () => {
               name: 'cashAndDeposits in en',
               description: 'About cashAndDeposits in en',
               position: 0,
+              collapsed: false,
             },
             {
               id: groupId(2),
@@ -332,6 +333,7 @@ describe('createTestSignIn', () => {
               name: 'livingExpenses in en',
               description: 'About livingExpenses in en',
               position: 0,
+              collapsed: false,
             },
           ],
           accounts: [

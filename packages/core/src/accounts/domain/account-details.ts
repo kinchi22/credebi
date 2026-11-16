@@ -177,7 +177,7 @@ export function addedGroup(
 ): Result<AccountGroup, DomainError> {
   const details = checkGroupDetails(draft, accountType, chart.groups);
   return details.ok
-    ? ok({ id, accountType, position: endOfType(chart, accountType), ...details.value })
+    ? ok({ id, accountType, position: endOfType(chart, accountType), collapsed: false, ...details.value })
     : details;
 }
 

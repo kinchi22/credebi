@@ -288,6 +288,7 @@ export const statementGroupSchema = z.object({
   group: accountGroupIdSchema,
   name: z.string(),
   total: moneySchema,
+  collapsed: z.boolean(),
   accounts: z.array(statementAccountSchema),
 });
 
@@ -337,6 +338,7 @@ type BuiltStatementRow =
       readonly group: AccountGroupId;
       readonly name: string;
       readonly total: Money;
+      readonly collapsed: boolean;
       readonly accounts: readonly BuiltStatementAccount[];
     };
 
@@ -360,6 +362,7 @@ const toStatementRow = (row: BuiltStatementRow): StatementRowOutput =>
         group: row.group,
         name: row.name,
         total: row.total,
+        collapsed: row.collapsed,
         accounts: row.accounts.map(toStatementAccount),
       };
 

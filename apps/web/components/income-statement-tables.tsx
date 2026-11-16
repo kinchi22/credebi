@@ -3,15 +3,17 @@ import { type AccountId, type IncomeStatementOutput, type IncomeStatementQuery }
 import { type ReactNode } from 'react';
 import { type IncomeStatementAnswer } from '../server/income-statement';
 import { accountSearchPath } from '../server/return-path';
+import { type KeepCollapsed } from './statement-group';
 import { StatementTables } from './statement-tables';
 import { DANGER_TEXT, MUTED_TEXT } from './text-classes';
 
 export type IncomeStatementTablesProps = {
   readonly statement: IncomeStatementOutput;
   readonly period: IncomeStatementQuery;
+  readonly keep: KeepCollapsed;
 };
 
-export function IncomeStatementTables({ statement, period }: IncomeStatementTablesProps): ReactNode {
+export function IncomeStatementTables({ statement, period, keep }: IncomeStatementTablesProps): ReactNode {
   const t = useTranslations('incomeStatement');
   const hrefOf = (account: AccountId): string => accountSearchPath(account, period);
 
@@ -28,18 +30,20 @@ export function IncomeStatementTables({ statement, period }: IncomeStatementTabl
         ],
         result: { label: t('netIncome'), amount: statement.netIncome },
       }}
+      keep={keep}
     />
   );
 }
 
 export type IncomeStatementOutcomeProps = {
   readonly answer: IncomeStatementAnswer;
+  readonly keep: KeepCollapsed;
 };
 
-export function IncomeStatementOutcome({ answer }: IncomeStatementOutcomeProps): ReactNode {
+export function IncomeStatementOutcome({ answer, keep }: IncomeStatementOutcomeProps): ReactNode {
   const t = useTranslations('incomeStatement');
   if (answer.outcome === 'answered') {
-    return <IncomeStatementTables statement={answer.statement} period={answer.period} />;
+    return <IncomeStatementTables statement={answer.statement} period={answer.period} keep={keep} />;
   }
   return (
     <p role="alert" className={DANGER_TEXT}>

@@ -43,6 +43,7 @@ const group = (n: number, name: string, position: number): AccountGroup => ({
   name,
   description: null,
   position,
+  collapsed: false,
 });
 
 const BANK = group(50, 'Bank', 1);

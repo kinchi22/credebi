@@ -16,7 +16,7 @@ import {
 } from '../../../../server/return-path';
 import { createCaller } from '../../../../server/root-router';
 import { orSignIn } from '../../../../server/sign-in-redirect';
-import { showDefaultDay } from './actions';
+import { keepCollapsed, showDefaultDay } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,7 +45,7 @@ export default async function AssetsAndLiabilitiesPage({
     return (
       <>
         {heading}
-        <AssetsAndLiabilitiesColdVisit show={showDefaultDay} />
+        <AssetsAndLiabilitiesColdVisit show={showDefaultDay} keep={keepCollapsed} />
       </>
     );
   }
@@ -59,7 +59,7 @@ export default async function AssetsAndLiabilitiesPage({
     <>
       {heading}
       <AssetsAndLiabilitiesForm key={answer.day.date ?? ''} day={answer.day} />
-      <AssetsAndLiabilitiesOutcome answer={answer} />
+      <AssetsAndLiabilitiesOutcome answer={answer} keep={keepCollapsed} />
     </>
   );
 }

@@ -29,6 +29,7 @@ export type StatementGroup = {
   readonly group: AccountGroupId;
   readonly name: string;
   readonly total: Money;
+  readonly collapsed: boolean;
   readonly accounts: readonly StatementAccount[];
 };
 
@@ -90,6 +91,7 @@ function rowsOf(node: ChartNode, scope: SectionScope): Result<StatementRow[], Do
           group: node.group.id,
           name: node.group.name,
           total: subtotal.value,
+          collapsed: node.group.collapsed,
           accounts: accounts.value,
         },
       ])

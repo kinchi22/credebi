@@ -50,6 +50,7 @@ const BANK: AccountGroup = {
   name: 'Bank',
   description: null,
   position: 1,
+  collapsed: false,
 };
 
 const GRACES_BANK: AccountGroup = {

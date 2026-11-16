@@ -14,6 +14,7 @@ const BANK: AccountGroup = {
   name: 'Bank',
   description: null,
   position: 1,
+  collapsed: false,
 };
 
 const LOANS: AccountGroup = {
@@ -22,6 +23,7 @@ const LOANS: AccountGroup = {
   name: 'Loans',
   description: null,
   position: 0,
+  collapsed: false,
 };
 
 const CASH: Account = {

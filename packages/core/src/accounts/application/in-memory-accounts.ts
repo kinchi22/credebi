@@ -58,6 +58,11 @@ export function inMemoryAccounts(): InMemoryAccounts {
         change(userId, (chart) => ({ ...chart, groups: [...chart.groups, group] })),
       updateGroup: (userId, group) =>
         change(userId, (chart) => ({ ...chart, groups: replaced(chart.groups, group) })),
+      collapseGroup: (userId, id, collapsed) =>
+        change(userId, (chart) => ({
+          ...chart,
+          groups: chart.groups.map((group) => (group.id === id ? { ...group, collapsed } : group)),
+        })),
       placeNodes: (userId, placed) =>
         change(userId, (chart) => ({
           accounts: placed.accounts.reduce(replaced, chart.accounts),

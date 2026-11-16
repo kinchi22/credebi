@@ -71,6 +71,7 @@ const CARDS: ChartNode = {
     name: 'Cards',
     description: null,
     position: 1,
+    collapsed: false,
   },
   accounts: [
     {
@@ -121,6 +122,7 @@ const sectionOf = (total: number) => ({
       group: GROUP_ID,
       name: 'Cash and deposits',
       total: won(total),
+      collapsed: false,
       accounts: [{ kind: 'account' as const, account: CASH_ID, name: 'Cash', total: won(total) }],
     },
   ],

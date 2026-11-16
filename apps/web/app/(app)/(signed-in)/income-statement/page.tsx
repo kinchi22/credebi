@@ -12,7 +12,7 @@ import { answerIncomeStatement } from '../../../../server/income-statement';
 import { INCOME_STATEMENT_PATH, pathWithQuery, signInPath } from '../../../../server/return-path';
 import { createCaller } from '../../../../server/root-router';
 import { orSignIn } from '../../../../server/sign-in-redirect';
-import { showDefaultRange } from './actions';
+import { keepCollapsed, showDefaultRange } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,7 +44,7 @@ export default async function IncomeStatementPage({
     return (
       <>
         {heading}
-        <IncomeStatementColdVisit show={showDefaultRange} />
+        <IncomeStatementColdVisit show={showDefaultRange} keep={keepCollapsed} />
       </>
     );
   }
@@ -58,7 +58,7 @@ export default async function IncomeStatementPage({
     <>
       {heading}
       <IncomeStatementForm period={answer.period} />
-      <IncomeStatementOutcome answer={answer} />
+      <IncomeStatementOutcome answer={answer} keep={keepCollapsed} />
     </>
   );
 }

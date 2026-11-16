@@ -29,6 +29,7 @@ export type AccountGroup = {
   readonly name: string;
   readonly description: string | null;
   readonly position: number;
+  readonly collapsed: boolean;
 };
 
 export type Chart = {
@@ -132,6 +133,7 @@ export function startingChart(
         name: copy[placement.node].name,
         description: copy[placement.node].description,
         position,
+        collapsed: false,
       };
       return {
         groups: [group],

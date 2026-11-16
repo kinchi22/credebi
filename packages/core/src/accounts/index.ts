@@ -26,6 +26,12 @@ export type {
   EditAccountGroupDependencies,
 } from './application/edit-account-group';
 
+export { createCollapseAccountGroup } from './application/collapse-account-group';
+export type {
+  CollapseAccountGroup,
+  CollapseAccountGroupDependencies,
+} from './application/collapse-account-group';
+
 export { createDeleteAccount } from './application/delete-account';
 export type { DeleteAccount, DeleteAccountDependencies } from './application/delete-account';
 
