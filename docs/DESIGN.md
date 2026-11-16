@@ -1017,7 +1017,12 @@ numerals.
   and its colour.
   An Account group's row holds its name in medium and its subtotal, and its
   Accounts follow it, their names indented 16px; their hairlines and amounts
-  are an Account row's.
+  are an Account row's. The group's name is one button as wide as its cell,
+  named by the name alone, followed by a 16px chevron in `text-muted`, hidden
+  from assistive technology, pointing down while the group is expanded and
+  right while it is collapsed, with no motion. Pressing it hides or shows the
+  group's Accounts; the group's row and subtotal stay. An Account outside any
+  group has no button.
 - **Assets and liabilities tables.** Use the Income statement tables' styling
   and placement rule for `Totals`; `Assets` and `Liabilities` open with their
   types' Bands as `Revenue` and `Expenses` do. Below `split`, stack `Assets`, `Liabilities`
