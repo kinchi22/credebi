@@ -1,6 +1,7 @@
 import {
   type AnyPgColumn,
   bigint,
+  boolean,
   date,
   foreignKey,
   index,
@@ -79,6 +80,7 @@ export const accountGroups = pgTable(
     name: text('name').notNull(),
     description: text('description'),
     position: integer('position').notNull(),
+    collapsed: boolean('collapsed').notNull().default(false),
   },
   (table) => [
     unique('account_groups_id_user_id_account_type_unique').on(

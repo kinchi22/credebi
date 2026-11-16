@@ -1,0 +1,1 @@
+ALTER TABLE "account_groups" ADD COLUMN "collapsed" boolean DEFAULT false NOT NULL;
