@@ -123,7 +123,7 @@ export function serveMcp(
   dependencies: () => McpDependencies,
 ): (request: Request) => Promise<Response> {
   const handler = createMcpHandler(({ authInfo }) => {
-    const server = new McpServer(SERVER_INFO, { capabilities: { tools: {} } });
+    const server = new McpServer(SERVER_INFO, { capabilities: { tools: { listChanged: false } } });
     registerTools(server, authContextOf(authInfo), dependencies());
     return server;
   });

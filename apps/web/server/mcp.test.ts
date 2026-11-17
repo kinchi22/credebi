@@ -21,7 +21,7 @@ import {
   type EntryDraft,
   type IncomeStatement,
 } from '@repo/core';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   accessTokenVerifier,
   authContextOf,
@@ -239,9 +239,11 @@ function mcpCall(
   token: string | undefined,
   method: string,
   params: Readonly<Record<string, unknown>> = {},
+  signal?: AbortSignal,
 ): Request {
   return new Request(`${ORIGIN}${MCP_PATH}`, {
     method: 'POST',
+    ...(signal === undefined ? {} : { signal }),
     headers: {
       ...(token === undefined ? {} : { authorization: `Bearer ${token}` }),
       accept: 'application/json, text/event-stream',
@@ -828,6 +830,150 @@ describe('serveMcp', () => {
 
     expect(response.status).toBe(400);
     expect(response.headers.get('www-authenticate')).toBeNull();
+  });
+});
+
+const PROMPTLY_MS = 1_000;
+
+const PLATFORM_LIMIT_MS = 300_000;
+
+async function bodyWithin(response: Response, ms: number): Promise<{ readonly closed: boolean; readonly text: string }> {
+  const reader = response.body?.getReader();
+  if (reader === undefined) {
+    return { closed: true, text: '' };
+  }
+  const decoder = new TextDecoder();
+  let text = '';
+  const state = { closed: false };
+  const drained = (async () => {
+    for (;;) {
+      const chunk = await reader.read().catch(() => ({ done: true, value: undefined }));
+      if (chunk.done) {
+        return;
+      }
+      text += decoder.decode(chunk.value, { stream: true });
+    }
+  })().then(() => {
+    state.closed = true;
+  });
+  await vi.advanceTimersByTimeAsync(ms);
+  const closedInTime = state.closed;
+  if (!closedInTime) {
+    await reader.cancel();
+  }
+  await drained;
+  return { closed: closedInTime, text };
+}
+
+async function settledWithin<T>(pending: Promise<T>, ms: number): Promise<T | undefined> {
+  let settled: T | undefined;
+  void pending.then((value) => {
+    settled = value;
+  });
+  await vi.advanceTimersByTimeAsync(ms);
+  return settled;
+}
+
+const listen = (token: string, signal?: AbortSignal) =>
+  mcpCall(token, 'subscriptions/listen', { notifications: { toolsListChanged: true } }, signal);
+
+const hanging = (): McpDependencies => ({ ...fakes(), getChart: () => new Promise(() => undefined) });
+
+describe('serveMcp request lifetime', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('advertises that its tool list never changes', async () => {
+    const result = await resultOf(await serving()(mcpCall('reader', 'server/discover')));
+
+    expect(result['capabilities']).toMatchObject({ tools: { listChanged: false } });
+  });
+
+  it('acknowledges a listen for tool list changes with nothing honoured and closes it promptly', async () => {
+    const response = await serving()(listen('reader'));
+
+    const { closed, text } = await bodyWithin(response, PROMPTLY_MS);
+
+    expect(closed).toBe(true);
+    expect(text).toContain('"notifications":{}');
+    expect(text).not.toContain('"toolsListChanged":true');
+  });
+
+  it('closes every listen of a client that keeps listening again, holding none open to the platform limit', async () => {
+    const serve = serving();
+    const outcomes = [];
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      outcomes.push((await bodyWithin(await serve(listen('both')), PROMPTLY_MS)).closed);
+    }
+
+    expect(outcomes).toEqual([true, true, true, true, true]);
+  });
+
+  it('closes a listen whose client disconnects before reading it', async () => {
+    const disconnect = new AbortController();
+    const response = await serving()(listen('reader', disconnect.signal));
+    disconnect.abort();
+
+    expect((await bodyWithin(response, PROMPTLY_MS)).closed).toBe(true);
+  });
+
+  it('answers an idle authenticated GET at once with 405 and an empty stream, opening nothing', async () => {
+    const request = new Request(`${ORIGIN}${MCP_PATH}`, {
+      headers: {
+        authorization: 'Bearer reader',
+        accept: 'text/event-stream',
+        'mcp-protocol-version': PROTOCOL_VERSION,
+      },
+    });
+
+    const response = await serving()(request);
+
+    expect(response.status).toBe(405);
+    expect(response.headers.get('content-type')).not.toContain('text/event-stream');
+    expect((await bodyWithin(response, PROMPTLY_MS)).closed).toBe(true);
+  });
+
+  it('finishes a cancelled tool call at its cancellation, though the work it waits on never settles', async () => {
+    const cancel = new AbortController();
+    const pending = serving(hanging())(
+      mcpCall('reader', 'tools/call', { name: 'list_accounts', arguments: {} }, cancel.signal),
+    );
+    cancel.abort();
+
+    const response = await settledWithin(pending, PROMPTLY_MS);
+
+    expect(response).toBeDefined();
+    expect(response === undefined ? false : (await bodyWithin(response, PROMPTLY_MS)).closed).toBe(true);
+  });
+
+  it('keeps a tool call that is never cancelled waiting on its work rather than answering for it', async () => {
+    expect(
+      await settledWithin(
+        serving(hanging())(mcpCall('reader', 'tools/call', { name: 'list_accounts', arguments: {} })),
+        PROMPTLY_MS,
+      ),
+    ).toBeUndefined();
+  });
+
+  it('answers an ordinary authenticated tool call and closes it promptly', async () => {
+    const response = await callTool('reader', 'list_accounts');
+
+    const { closed, text } = await bodyWithin(response, PROMPTLY_MS);
+
+    expect(response.status).toBe(200);
+    expect(closed).toBe(true);
+    expect(text).toContain('Cash');
+  });
+
+  it('holds no listen open to the platform limit', async () => {
+    const response = await serving()(listen('reader'));
+
+    expect((await bodyWithin(response, PLATFORM_LIMIT_MS)).closed).toBe(true);
   });
 });
 
