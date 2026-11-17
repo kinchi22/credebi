@@ -12,7 +12,8 @@ import { answerIncomeStatement } from '../../../../server/income-statement';
 import { INCOME_STATEMENT_PATH, pathWithQuery, signInPath } from '../../../../server/return-path';
 import { createCaller } from '../../../../server/root-router';
 import { orSignIn } from '../../../../server/sign-in-redirect';
-import { keepCollapsed, showDefaultRange } from './actions';
+import { keepCollapsed } from '../actions';
+import { showDefaultRange } from './actions';
 
 export const dynamic = 'force-dynamic';
 

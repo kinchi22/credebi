@@ -1,6 +1,5 @@
 'use server';
 
-import { keepCollapsedGroup } from '../../../../server/collapsed-group';
 import { createContext } from '../../../../server/context';
 import {
   answerDefaultRangeStatement,
@@ -15,16 +14,5 @@ export async function showDefaultRange(range: unknown): Promise<IncomeStatementA
   return answerDefaultRangeStatement(
     (period) => orSignIn(caller.entries.incomeStatement(period), INCOME_STATEMENT_PATH),
     range,
-  );
-}
-
-export async function keepCollapsed(id: unknown, collapsed: unknown): Promise<void> {
-  const context = await createContext();
-  const caller = createCaller(context);
-  await keepCollapsedGroup(
-    (input) => caller.accounts.collapseGroup(input),
-    context.container.logger,
-    id,
-    collapsed,
   );
 }

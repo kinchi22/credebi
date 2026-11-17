@@ -1,19 +1,8 @@
-import {
-  collapseAccountGroupInputSchema,
-  type CollapseAccountGroupInput,
-  type DomainErrorCode,
-} from '@repo/contracts';
+import { collapseAccountGroupInputSchema, type CollapseAccountGroupInput } from '@repo/contracts';
 import { type Logger } from '@repo/core';
-import { fromTrpcError } from './domain-error';
+import { keepChoice } from './choice';
 
 export type CollapseGroup = (input: CollapseAccountGroupInput) => Promise<void>;
-
-function reportRefusal(logger: Logger, code: DomainErrorCode): void {
-  logger.error(
-    { event: 'accounts.collapse_refused', code },
-    'Whether an Account group is collapsed was refused, so it was not kept.',
-  );
-}
 
 export async function keepCollapsedGroup(
   collapse: CollapseGroup,
@@ -21,15 +10,16 @@ export async function keepCollapsedGroup(
   id: unknown,
   collapsed: unknown,
 ): Promise<void> {
-  const input = collapseAccountGroupInputSchema.safeParse({ id, collapsed });
-  if (!input.success) {
-    reportRefusal(logger, 'INVALID_INPUT');
-    return;
-  }
-
-  try {
-    await collapse(input.data);
-  } catch (thrown) {
-    reportRefusal(logger, fromTrpcError(thrown).code);
-  }
+  await keepChoice(
+    {
+      schema: collapseAccountGroupInputSchema,
+      keep: collapse,
+      logger,
+      refusal: {
+        fields: { event: 'accounts.collapse_refused' },
+        message: 'Whether an Account group is collapsed was refused, so it was not kept.',
+      },
+    },
+    { id, collapsed },
+  );
 }

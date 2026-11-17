@@ -16,7 +16,8 @@ import {
 } from '../../../../server/return-path';
 import { createCaller } from '../../../../server/root-router';
 import { orSignIn } from '../../../../server/sign-in-redirect';
-import { keepCollapsed, showDefaultDay } from './actions';
+import { keepCollapsed } from '../actions';
+import { showDefaultDay } from './actions';
 
 export const dynamic = 'force-dynamic';
 
