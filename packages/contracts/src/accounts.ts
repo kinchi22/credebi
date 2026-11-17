@@ -155,6 +155,13 @@ export const editAccountGroupInputSchema = groupDetailsSchema.extend({
 
 export type EditAccountGroupInput = z.infer<typeof editAccountGroupInputSchema>;
 
+export const collapseAccountGroupInputSchema = z.object({
+  id: accountGroupIdSchema,
+  collapsed: z.boolean(),
+});
+
+export type CollapseAccountGroupInput = z.infer<typeof collapseAccountGroupInputSchema>;
+
 const accountDetailsSchema = z.object({
   name: z.string(),
   description: z.string(),

@@ -28,7 +28,7 @@ export type PostgresAccountRepository = AccountRepository & {
 
 type AccountRow = Omit<typeof schema.accounts.$inferSelect, 'userId' | 'removedAt'>;
 
-type GroupRow = Omit<typeof schema.accountGroups.$inferSelect, 'userId' | 'collapsed'>;
+type GroupRow = Omit<typeof schema.accountGroups.$inferSelect, 'userId'>;
 
 const FOREIGN_KEY_VIOLATION = '23503';
 
@@ -64,6 +64,7 @@ export function createPostgresAccountRepository(
               name: schema.accountGroups.name,
               description: schema.accountGroups.description,
               position: schema.accountGroups.position,
+              collapsed: schema.accountGroups.collapsed,
             })
             .from(schema.accountGroups)
             .where(eq(schema.accountGroups.userId, userId))
@@ -176,6 +177,31 @@ export function createPostgresAccountRepository(
         ? err(
             domainError('NOT_FOUND', `Account group ${group.id} is not in the User's chart of accounts.`),
           )
+        : ok(undefined);
+    },
+
+    collapseGroup: async (
+      userId: UserId,
+      id: AccountGroupId,
+      collapsed: boolean,
+    ): Promise<Result<void, DomainError>> => {
+      let updated: { readonly id: string }[];
+      try {
+        updated = await database
+          .update(schema.accountGroups)
+          .set({ collapsed })
+          .where(and(eq(schema.accountGroups.id, id), eq(schema.accountGroups.userId, userId)))
+          .returning({ id: schema.accountGroups.id });
+      } catch (error) {
+        return databaseFailure(
+          logger,
+          'accounts.collapse_group_failed',
+          error,
+          'Whether the Account group is collapsed could not be kept.',
+        );
+      }
+      return updated.length === 0
+        ? err(domainError('NOT_FOUND', `Account group ${id} is not in the User's chart of accounts.`))
         : ok(undefined);
     },
 

@@ -38,6 +38,7 @@ const LOANS: AccountGroup = {
   name: 'Loans',
   description: null,
   position: 0,
+  collapsed: false,
 };
 
 const BANK: AddAccountGroupInput = {
@@ -52,6 +53,7 @@ const ADDED: AccountGroup = {
   name: 'Bank',
   description: 'Accounts at a bank',
   position: 1,
+  collapsed: false,
 };
 
 function useCases() {

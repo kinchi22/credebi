@@ -16,6 +16,7 @@ const group = (tail: number, accounts: readonly number[]) => ({
   group: id(tail),
   name: `Group ${String(tail)}`,
   total: 0,
+  collapsed: false,
   accounts: accounts.map(account),
 });
 

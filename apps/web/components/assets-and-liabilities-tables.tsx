@@ -2,14 +2,16 @@ import { useTranslations } from 'next-intl';
 import { type AssetsAndLiabilitiesOutput } from '@repo/contracts';
 import { type ReactNode } from 'react';
 import { type AssetsAndLiabilitiesAnswer } from '../server/assets-and-liabilities';
+import { type KeepCollapsed } from './statement-group';
 import { StatementTables } from './statement-tables';
 import { DANGER_TEXT, MUTED_TEXT } from './text-classes';
 
 type AssetsAndLiabilitiesTablesProps = {
   readonly report: AssetsAndLiabilitiesOutput;
+  readonly keep: KeepCollapsed;
 };
 
-function AssetsAndLiabilitiesTables({ report }: AssetsAndLiabilitiesTablesProps): ReactNode {
+function AssetsAndLiabilitiesTables({ report, keep }: AssetsAndLiabilitiesTablesProps): ReactNode {
   const t = useTranslations('assetsAndLiabilities');
 
   return (
@@ -24,18 +26,20 @@ function AssetsAndLiabilitiesTables({ report }: AssetsAndLiabilitiesTablesProps)
         ],
         result: { label: t('netWorth'), amount: report.netWorth },
       }}
+      keep={keep}
     />
   );
 }
 
 export type AssetsAndLiabilitiesOutcomeProps = {
   readonly answer: AssetsAndLiabilitiesAnswer;
+  readonly keep: KeepCollapsed;
 };
 
-export function AssetsAndLiabilitiesOutcome({ answer }: AssetsAndLiabilitiesOutcomeProps): ReactNode {
+export function AssetsAndLiabilitiesOutcome({ answer, keep }: AssetsAndLiabilitiesOutcomeProps): ReactNode {
   const t = useTranslations('assetsAndLiabilities');
   if (answer.outcome === 'answered') {
-    return <AssetsAndLiabilitiesTables report={answer.report} />;
+    return <AssetsAndLiabilitiesTables report={answer.report} keep={keep} />;
   }
   return (
     <p role="alert" className={DANGER_TEXT}>

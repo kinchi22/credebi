@@ -9,7 +9,7 @@ import { typeClasses } from '@repo/ui/type-classes';
 import { type ReactNode, useId } from 'react';
 import { AmountRow } from './amount-row';
 import { type StatementColumn, totalsUnder } from './statement-columns';
-import { StatementGroup } from './statement-group';
+import { type KeepCollapsed, StatementGroup } from './statement-group';
 import { Band } from './type-band';
 
 const TABLE = `w-full border-collapse ${typeClasses['body-sm']}`;
@@ -38,9 +38,9 @@ export type StatementSectionTable = {
   readonly hrefOf?: (account: AccountId) => string;
 };
 
-type SectionTableProps = StatementSectionTable & { readonly placement: string };
+type SectionTableProps = StatementSectionTable & { readonly placement: string; readonly keep: KeepCollapsed };
 
-function SectionTable({ accountType, totalLabel, section, hrefOf, placement }: SectionTableProps): ReactNode {
+function SectionTable({ accountType, totalLabel, section, hrefOf, placement, keep }: SectionTableProps): ReactNode {
   const id = useId();
   return (
     <div className={`${PANEL} ${placement}`}>
@@ -55,8 +55,11 @@ function SectionTable({ accountType, totalLabel, section, hrefOf, placement }: S
             ) : (
               <StatementGroup
                 key={row.group}
+                group={row.group}
                 name={row.name}
                 total={row.total}
+                collapsed={row.collapsed}
+                keep={keep}
                 accounts={row.accounts.map(({ account, name, total }) => ({
                   account,
                   name,
@@ -86,13 +89,14 @@ export type StatementTablesProps = {
   readonly right: StatementSectionTable;
   readonly stackRightFirst?: boolean;
   readonly totals: StatementTotalsTable;
+  readonly keep: KeepCollapsed;
 };
 
-export function StatementTables({ left, right, stackRightFirst = false, totals }: StatementTablesProps): ReactNode {
+export function StatementTables({ left, right, stackRightFirst = false, totals, keep }: StatementTablesProps): ReactNode {
   const placement = PLACEMENT[totalsUnder(left.section, right.section)];
   const tables = [
-    <SectionTable key="left" {...left} placement={placement.left} />,
-    <SectionTable key="right" {...right} placement={placement.right} />,
+    <SectionTable key="left" {...left} placement={placement.left} keep={keep} />,
+    <SectionTable key="right" {...right} placement={placement.right} keep={keep} />,
   ];
 
   return (

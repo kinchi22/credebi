@@ -24,6 +24,7 @@ const group = (n: number, name: string, position: number): AccountGroup => ({
   name,
   description: null,
   position,
+  collapsed: false,
 });
 
 const LOANS = group(1, 'Loans', 1);

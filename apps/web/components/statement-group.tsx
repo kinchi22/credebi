@@ -1,6 +1,6 @@
 'use client';
 
-import { type AccountId, type Money } from '@repo/contracts';
+import { type AccountGroupId, type AccountId, type Money } from '@repo/contracts';
 import { ChevronIcon } from '@repo/ui';
 import { type ReactNode, useId, useState } from 'react';
 import { AmountRow } from './amount-row';
@@ -15,15 +15,20 @@ export type StatementGroupAccount = {
   readonly href: string | undefined;
 };
 
+export type KeepCollapsed = (group: AccountGroupId, collapsed: boolean) => Promise<void>;
+
 export type StatementGroupProps = {
+  readonly group: AccountGroupId;
   readonly name: string;
   readonly total: Money;
   readonly accounts: readonly StatementGroupAccount[];
+  readonly collapsed: boolean;
+  readonly keep: KeepCollapsed;
 };
 
-export function StatementGroup({ name, total, accounts }: StatementGroupProps): ReactNode {
+export function StatementGroup({ group, name, total, accounts, collapsed, keep }: StatementGroupProps): ReactNode {
   const id = useId();
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(!collapsed);
   const rows = accounts.map((account) => ({ ...account, id: `${id}${account.account}` }));
 
   return (
@@ -35,7 +40,9 @@ export function StatementGroup({ name, total, accounts }: StatementGroupProps): 
             aria-expanded={expanded}
             aria-controls={rows.map((row) => row.id).join(' ')}
             onClick={() => {
-              setExpanded(!expanded);
+              const next = !expanded;
+              setExpanded(next);
+              keep(group, !next).catch(() => undefined);
             }}
             className={CONTROL}
           >

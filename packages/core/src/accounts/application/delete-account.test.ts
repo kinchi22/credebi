@@ -36,6 +36,7 @@ const BANK: AccountGroup = {
   name: 'Bank',
   description: null,
   position: 2,
+  collapsed: false,
 };
 
 const CASH = account(1, 'Cash', 0);

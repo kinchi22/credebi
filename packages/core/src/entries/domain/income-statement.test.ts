@@ -47,6 +47,7 @@ const group = (
   name,
   description: null,
   position,
+  collapsed: false,
 });
 
 const FOOD = group(1, 'expense', 'Food', 9);
@@ -213,11 +214,35 @@ describe('incomeStatement', () => {
           group: FOOD.id,
           name: 'Food',
           total: 5000,
+          collapsed: false,
           accounts: [row(dining, 3000), row(groceries, 2000)],
         },
       ],
     });
     expect(built?.netIncome).toBe(-6000);
+  });
+
+  it('carries whether each group is collapsed on its row, leaving every row, subtotal and total as they are when expanded', () => {
+    const groceries = account(6, 'expense', 'Groceries', { groupId: FOOD.id, position: 1 });
+    const dining = account(7, 'expense', 'Dining', { groupId: FOOD.id, position: 0 });
+    const named = [sums(SALES, 0, 9000), sums(groceries, 2500, 500), sums(dining, 3000, 0)];
+    const chart = (collapsed: boolean): Chart => ({
+      accounts: [...STARTING.accounts, groceries, dining],
+      groups: [{ ...FOOD, collapsed }],
+    });
+
+    const expanded = statementOf(chart(false), named);
+    const collapsed = statementOf(chart(true), named);
+
+    expect(expanded?.expense.rows[1]).toMatchObject({ kind: 'group', collapsed: false });
+    expect(collapsed?.expense.rows[1]).toMatchObject({ kind: 'group', collapsed: true });
+    expect(collapsed).toEqual({
+      ...expanded,
+      expense: {
+        ...expanded?.expense,
+        rows: expanded?.expense.rows.map((listed) => (listed.kind === 'group' ? { ...listed, collapsed: true } : listed)),
+      },
+    });
   });
 
   it('subtotals a group whose Accounts come out at zero or below zero', () => {
@@ -284,6 +309,7 @@ describe('incomeStatement', () => {
       group: retired.id,
       name: 'Retired',
       total: 400,
+      collapsed: false,
       accounts: [row(oldClub, 400)],
     });
   });

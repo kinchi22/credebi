@@ -54,6 +54,7 @@ const group = (n: number, accountType: AccountGroup['accountType'], name: string
   name,
   description: null,
   position: 1,
+  collapsed: false,
 });
 
 const BANK = group(11, 'asset', 'Bank');

@@ -71,6 +71,7 @@ const CARDS: ChartNode = {
     name: 'Cards',
     description: null,
     position: 1,
+    collapsed: false,
   },
   accounts: [
     {
@@ -113,7 +114,7 @@ function entryOn(day: number): Entry {
 const entriesNewestFirst = (count: number): readonly Entry[] =>
   Array.from({ length: count }, (_, index) => entryOn(count - index));
 
-const sectionOf = (total: number) => ({
+const sectionOf = (total: number, collapsed = true) => ({
   total: won(total),
   rows: [
     {
@@ -121,7 +122,21 @@ const sectionOf = (total: number) => ({
       group: GROUP_ID,
       name: 'Cash and deposits',
       total: won(total),
+      collapsed,
       accounts: [{ kind: 'account' as const, account: CASH_ID, name: 'Cash', total: won(total) }],
+    },
+  ],
+});
+
+const toolSectionOf = (total: number) => ({
+  total,
+  rows: [
+    {
+      kind: 'group',
+      group: GROUP_ID,
+      name: 'Cash and deposits',
+      total,
+      accounts: [{ kind: 'account', account: CASH_ID, name: 'Cash', total }],
     },
   ],
 });
@@ -133,7 +148,7 @@ const ASSETS_AND_LIABILITIES: Result<AssetsAndLiabilities, DomainError> = ok({
 });
 
 const INCOME_STATEMENT: Result<IncomeStatement, DomainError> = ok({
-  revenue: { total: won(0), rows: [] },
+  revenue: sectionOf(0, false),
   expense: {
     total: won(12500),
     rows: [{ kind: 'account', account: FOOD_ID, name: 'Food', total: won(12500) }],
@@ -565,7 +580,7 @@ describe('serveMcp', () => {
     expect(dependencies.asked.map(({ query }) => query)).toEqual([{ to: '2026-09-30' }]);
   });
 
-  it('reads the Access token\'s User\'s Assets and liabilities on the day it was given', async () => {
+  it('reads the Access token\'s User\'s Assets and liabilities on the day it was given, its groups carrying no collapsed flag', async () => {
     const dependencies = fakes();
 
     const result = await resultOf(
@@ -573,21 +588,21 @@ describe('serveMcp', () => {
     );
 
     expect(result['structuredContent']).toEqual({
-      assets: sectionOf(87500),
+      assets: toolSectionOf(87500),
       liabilities: { total: 0, rows: [] },
       netWorth: 87500,
     });
     expect(dependencies.asked).toEqual([{ auth: { userId: USER_ID, scopes: ['read'] }, query: '2026-09-16' }]);
   });
 
-  it('reads the Access token\'s User\'s Income statement for the inclusive range it was given', async () => {
+  it('reads the Access token\'s User\'s Income statement for the inclusive range it was given, its groups carrying no collapsed flag', async () => {
     const dependencies = fakes();
     const range = { from: '2026-09-01', to: '2026-09-30' };
 
     const result = await resultOf(await callTool('reader', 'get_income_statement', dependencies, range));
 
     expect(result['structuredContent']).toEqual({
-      revenue: { total: 0, rows: [] },
+      revenue: toolSectionOf(0),
       expense: {
         total: 12500,
         rows: [{ kind: 'account', account: FOOD_ID, name: 'Food', total: 12500 }],

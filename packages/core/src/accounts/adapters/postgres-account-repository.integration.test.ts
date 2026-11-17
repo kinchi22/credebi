@@ -63,6 +63,7 @@ const group = (
   name,
   description: null,
   position,
+  collapsed: false,
 });
 
 async function store(userId: UserId, stored: Account): Promise<void> {
@@ -302,6 +303,50 @@ describe('createPostgresAccountRepository', () => {
 
     expect(isErr(updated) && updated.error.code).toBe('NOT_FOUND');
     expect(await repository.readChart(GRACE)).toEqual(ok({ accounts: [], groups: [bank] }));
+  });
+
+  it('reads an Account group never collapsed as expanded, and keeps it collapsed and expanded again', async () => {
+    const bank = group(10, 'asset', 0, 'Bank');
+    await storeGroup(ADA, bank);
+
+    expect(await repository.readChart(ADA)).toEqual(ok({ accounts: [], groups: [{ ...bank, collapsed: false }] }));
+
+    expect(await repository.collapseGroup(ADA, bank.id, true)).toEqual(ok(undefined));
+    expect(await repository.readChart(ADA)).toEqual(ok({ accounts: [], groups: [{ ...bank, collapsed: true }] }));
+
+    expect(await repository.collapseGroup(ADA, bank.id, false)).toEqual(ok(undefined));
+    expect(await repository.readChart(ADA)).toEqual(ok({ accounts: [], groups: [{ ...bank, collapsed: false }] }));
+  });
+
+  it('keeps an Account group collapsed through a change to its name, description or place', async () => {
+    const bank = group(10, 'asset', 0, 'Bank');
+    await storeGroup(ADA, bank);
+    await repository.collapseGroup(ADA, bank.id, true);
+    const banks = { ...bank, name: 'Banks', description: 'Current accounts' };
+
+    await repository.updateGroup(ADA, banks);
+    await repository.placeNodes(ADA, { accounts: [], groups: [{ ...banks, position: 4 }] });
+
+    expect(await repository.readChart(ADA)).toEqual(
+      ok({ accounts: [], groups: [{ ...banks, position: 4, collapsed: true }] }),
+    );
+  });
+
+  it("refuses to collapse another User's Account group as not found, and leaves it expanded", async () => {
+    const bank = group(10, 'asset', 0, 'Bank');
+    await storeGroup(GRACE, bank);
+
+    const collapsed = await repository.collapseGroup(ADA, bank.id, true);
+
+    expect(isErr(collapsed) && collapsed.error.code).toBe('NOT_FOUND');
+    expect(await repository.readChart(GRACE)).toEqual(ok({ accounts: [], groups: [bank] }));
+  });
+
+  it('reports an unreachable database on collapsing an Account group as a result, never by throwing', async () => {
+    const collapsed = await dead.collapseGroup(ADA, group(10, 'asset', 0, 'Bank').id, true);
+
+    expect(isErr(collapsed) && collapsed.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+    expect(logged.map((fields) => fields['event'])).toEqual(['accounts.collapse_group_failed']);
   });
 
   it('enforces one name per Account type among a User\'s Account groups, ignoring case', async () => {

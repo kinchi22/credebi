@@ -23,6 +23,7 @@ const BANK: AccountGroup = {
   name: 'Bank',
   description: null,
   position: 1,
+  collapsed: false,
 };
 
 describe('inMemoryAccounts', () => {

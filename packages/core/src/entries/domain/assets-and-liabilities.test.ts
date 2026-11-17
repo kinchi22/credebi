@@ -47,6 +47,7 @@ const group = (
   name,
   description: null,
   position,
+  collapsed: false,
 });
 
 const STARTING: Chart = { accounts: [CASH, PAYABLE, CAPITAL, SALES, EXPENSES], groups: [] };
@@ -187,11 +188,33 @@ describe('assetsAndLiabilities', () => {
         total: 1000,
         rows: [
           row(CASH, 0),
-          { kind: 'group', group: savings.id, name: 'Savings', total: 1000, accounts: [row(fund, 1000)] },
+          { kind: 'group', group: savings.id, name: 'Savings', total: 1000, collapsed: false, accounts: [row(fund, 1000)] },
         ],
       },
       liabilities: { total: 0, rows: [row(PAYABLE, 0)] },
       netWorth: 1000,
+    });
+  });
+
+  it('carries whether each group is collapsed on its own row, leaving every row, subtotal, total and Net worth as they are when expanded', () => {
+    const banks = group(1, 'asset', 'Banks', 1);
+    const loans = group(2, 'liability', 'Loans', 1);
+    const checking = account(6, 'asset', 'Checking', { groupId: banks.id });
+    const mortgage = account(7, 'liability', 'Mortgage', { groupId: loans.id });
+    const named = [sums(CASH, 9000, 0), sums(checking, 2000, 0), sums(mortgage, 0, 10000)];
+    const chart = (groups: readonly AccountGroup[]): Chart => ({ ...withAccounts(checking, mortgage), groups });
+
+    const expanded = reportOf(chart([banks, loans]), named);
+    const banksCollapsed = reportOf(chart([{ ...banks, collapsed: true }, loans]), named);
+
+    expect(banksCollapsed?.assets.rows.find((listed) => listed.kind === 'group')).toMatchObject({ kind: 'group', group: banks.id, collapsed: true });
+    expect(banksCollapsed?.liabilities.rows.find((listed) => listed.kind === 'group')).toMatchObject({ kind: 'group', group: loans.id, collapsed: false });
+    expect(banksCollapsed).toEqual({
+      ...expanded,
+      assets: {
+        ...expanded?.assets,
+        rows: expanded?.assets.rows.map((listed) => (listed.kind === 'group' ? { ...listed, collapsed: true } : listed)),
+      },
     });
   });
 
@@ -219,6 +242,7 @@ describe('assetsAndLiabilities', () => {
           group: banks.id,
           name: 'Banks',
           total: 5000,
+          collapsed: false,
           accounts: [row(saving, 3000), row(checking, 2000)],
         },
         row(wallet, 0),

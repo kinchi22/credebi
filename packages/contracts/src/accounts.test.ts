@@ -8,6 +8,7 @@ import {
   addAccountGroupInputSchema,
   addAccountInputSchema,
   chartSchema,
+  collapseAccountGroupInputSchema,
   deleteAccountGroupInputSchema,
   deleteAccountInputSchema,
   editAccountGroupInputSchema,
@@ -505,6 +506,19 @@ describe('addAccountGroupInputSchema and editAccountGroupInputSchema', () => {
   it('refuses an unknown Account type, or an id that is not an Account group id', () => {
     expect(addAccountGroupInputSchema.safeParse({ ...details, accountType: 'bank' }).success).toBe(false);
     expect(editAccountGroupInputSchema.safeParse({ ...details, id: 'bank' }).success).toBe(false);
+  });
+});
+
+describe('collapseAccountGroupInputSchema', () => {
+  it('takes an Account group id and whether it is collapsed', () => {
+    expect(collapseAccountGroupInputSchema.parse({ id: BANK, collapsed: true })).toEqual({ id: BANK, collapsed: true });
+    expect(collapseAccountGroupInputSchema.parse({ id: BANK, collapsed: false })).toEqual({ id: BANK, collapsed: false });
+  });
+
+  it('refuses an id that is not an Account group id, or a collapsed that is not a boolean', () => {
+    expect(collapseAccountGroupInputSchema.safeParse({ id: 'bank', collapsed: true }).success).toBe(false);
+    expect(collapseAccountGroupInputSchema.safeParse({ id: BANK, collapsed: 'true' }).success).toBe(false);
+    expect(collapseAccountGroupInputSchema.safeParse({ id: BANK }).success).toBe(false);
   });
 });
 

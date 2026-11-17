@@ -60,6 +60,7 @@ describe('createGetChart', () => {
       name: 'Travel',
       description: 'Trips',
       position: 1,
+      collapsed: false,
     };
     const hotels = { ...account(5, 'expense', 0, 'Hotels'), groupId: travel.id };
     const rent = { ...RENT, position: 2 };

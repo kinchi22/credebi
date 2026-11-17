@@ -2,6 +2,7 @@ import {
   addAccountGroupInputSchema,
   addAccountInputSchema,
   chartSchema,
+  collapseAccountGroupInputSchema,
   deleteAccountGroupInputSchema,
   deleteAccountInputSchema,
   editAccountGroupInputSchema,
@@ -52,6 +53,15 @@ export const accountsRouter = router({
     .input(editAccountGroupInputSchema)
     .mutation(async ({ ctx, input }) => {
       const result = await ctx.container.editAccountGroup(ctx.auth, input);
+      if (!result.ok) {
+        throw toTrpcError(result.error);
+      }
+    }),
+
+  collapseGroup: sessionProcedure
+    .input(collapseAccountGroupInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const result = await ctx.container.collapseAccountGroup(ctx.auth, input);
       if (!result.ok) {
         throw toTrpcError(result.error);
       }
