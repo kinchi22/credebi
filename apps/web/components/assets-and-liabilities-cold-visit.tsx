@@ -8,17 +8,19 @@ import {
   AssetsAndLiabilitiesOutcome,
   AssetsAndLiabilitiesPending,
 } from './assets-and-liabilities-tables';
+import { type KeepCollapsed } from './statement-group';
 import { UNAVAILABLE, useDefaultAnswer } from './use-default-answer';
 
 export type ShowDefaultDay = (day: AssetsAndLiabilitiesQuery) => Promise<AssetsAndLiabilitiesAnswer>;
 
 export type AssetsAndLiabilitiesColdVisitProps = {
   readonly show: ShowDefaultDay;
+  readonly keep: KeepCollapsed;
 };
 
 const onDay = (date: string): AssetsAndLiabilitiesQuery => ({ date });
 
-export function AssetsAndLiabilitiesColdVisit({ show }: AssetsAndLiabilitiesColdVisitProps): ReactNode {
+export function AssetsAndLiabilitiesColdVisit({ show, keep }: AssetsAndLiabilitiesColdVisitProps): ReactNode {
   const { asked: day = {}, todayKey, answer } = useDefaultAnswer(onDay, show);
 
   return (
@@ -29,6 +31,7 @@ export function AssetsAndLiabilitiesColdVisit({ show }: AssetsAndLiabilitiesCold
       ) : (
         <AssetsAndLiabilitiesOutcome
           answer={answer === UNAVAILABLE ? { outcome: UNAVAILABLE, day } : answer}
+          keep={keep}
         />
       )}
     </>

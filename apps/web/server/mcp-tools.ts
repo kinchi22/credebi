@@ -20,6 +20,7 @@ import {
   type DomainError,
   type Result,
   type Scope,
+  type StatementSectionOutput,
 } from '@repo/contracts';
 import {
   type AuthContext,
@@ -73,6 +74,15 @@ function parsedBy<Contract extends z.ZodType>(
         );
   };
 }
+
+const sectionForTool = ({ total, rows }: StatementSectionOutput) => ({
+  total,
+  rows: rows.map((row) =>
+    row.kind === 'account'
+      ? row
+      : { kind: row.kind, group: row.group, name: row.name, total: row.total, accounts: row.accounts },
+  ),
+});
 
 function toolResult<T>(
   result: Result<T, DomainError>,
@@ -153,7 +163,10 @@ const MCP_TOOLS: readonly McpTool[] = [
     inputSchema: assetsAndLiabilitiesQuerySchema,
     annotations: { readOnlyHint: true },
     handle: async (auth, { getAssetsAndLiabilities }, { date }) =>
-      toolResult(await getAssetsAndLiabilities(auth, date), toAssetsAndLiabilities),
+      toolResult(await getAssetsAndLiabilities(auth, date), (report) => {
+        const { assets, liabilities, netWorth } = toAssetsAndLiabilities(report);
+        return { assets: sectionForTool(assets), liabilities: sectionForTool(liabilities), netWorth };
+      }),
   }),
   tool({
     name: 'get_income_statement',
@@ -163,7 +176,10 @@ const MCP_TOOLS: readonly McpTool[] = [
     inputSchema: incomeStatementQuerySchema,
     annotations: { readOnlyHint: true },
     handle: async (auth, { getIncomeStatement }, range) =>
-      toolResult(await getIncomeStatement(auth, range), toIncomeStatement),
+      toolResult(await getIncomeStatement(auth, range), (statement) => {
+        const { revenue, expense, netIncome } = toIncomeStatement(statement);
+        return { revenue: sectionForTool(revenue), expense: sectionForTool(expense), netIncome };
+      }),
   }),
   tool({
     name: 'create_entry',

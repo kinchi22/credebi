@@ -5,15 +5,17 @@ import { type ReactNode } from 'react';
 import { type IncomeStatementAnswer } from '../server/income-statement';
 import { IncomeStatementForm } from './income-statement-form';
 import { IncomeStatementOutcome, IncomeStatementPending } from './income-statement-tables';
+import { type KeepCollapsed } from './statement-group';
 import { UNAVAILABLE, useDefaultAnswer } from './use-default-answer';
 
 export type ShowDefaultRange = (range: DayRange) => Promise<IncomeStatementAnswer>;
 
 export type IncomeStatementColdVisitProps = {
   readonly show: ShowDefaultRange;
+  readonly keep: KeepCollapsed;
 };
 
-export function IncomeStatementColdVisit({ show }: IncomeStatementColdVisitProps): ReactNode {
+export function IncomeStatementColdVisit({ show, keep }: IncomeStatementColdVisitProps): ReactNode {
   const { asked: range, todayKey, answer } = useDefaultAnswer(calendarMonth, show);
   const period = range ?? {};
 
@@ -25,6 +27,7 @@ export function IncomeStatementColdVisit({ show }: IncomeStatementColdVisitProps
       ) : (
         <IncomeStatementOutcome
           answer={answer === UNAVAILABLE ? { outcome: UNAVAILABLE, period } : answer}
+          keep={keep}
         />
       )}
     </>

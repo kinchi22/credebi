@@ -33,7 +33,7 @@ const group = (
   accountType: AccountGroup['accountType'],
   position: number,
   name: string,
-): AccountGroup => ({ id: idOf(n) as AccountGroupId, accountType, name, description: null, position });
+): AccountGroup => ({ id: idOf(n) as AccountGroupId, accountType, name, description: null, position, collapsed: false });
 
 const BANK = group(50, 'asset', 4, 'Bank');
 const SAVINGS = group(51, 'asset', 9, 'Savings');

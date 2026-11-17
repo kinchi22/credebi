@@ -1,4 +1,4 @@
-import { type Page } from '@playwright/test';
+import { type Page, type Request } from '@playwright/test';
 
 export const SIGN_IN_URL = /\/sign-in(\?.*)?$/;
 
@@ -52,3 +52,9 @@ export async function abortServerActions(page: Page, path: string): Promise<void
     },
   );
 }
+
+export const failedServerAction = (page: Page): Promise<Request> =>
+  page.waitForEvent(
+    'requestfailed',
+    (request) => request.method() === 'POST' && request.headers()['next-action'] !== undefined,
+  );

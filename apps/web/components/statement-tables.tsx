@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import {
   type AccountId,
   type AccountType,
@@ -8,17 +7,13 @@ import {
 import { PANEL, PANEL_TITLE } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { type ReactNode, useId } from 'react';
-import { formatAmount } from './amount';
+import { AmountRow } from './amount-row';
 import { type StatementColumn, totalsUnder } from './statement-columns';
-import { LINK } from './text-classes';
+import { type KeepCollapsed, StatementGroup } from './statement-group';
 import { Band } from './type-band';
 
 const TABLE = `w-full border-collapse ${typeClasses['body-sm']}`;
 const CAPTION = `mb-2 text-left ${PANEL_TITLE}`;
-const ROW = 'border-b border-border last:border-b-0';
-const LABEL = 'py-2 pr-3 text-left wrap-anywhere';
-const AMOUNT = `py-2 text-right whitespace-nowrap ${typeClasses.figure}`;
-const TOTAL_ROW = 'border-t-2 border-border font-semibold';
 const COLUMNS = 'flex flex-col gap-4 split:grid split:grid-cols-2 split:grid-rows-[auto_1fr] split:items-start';
 
 type Placement = { readonly left: string; readonly right: string; readonly totals: string };
@@ -36,40 +31,6 @@ const PLACEMENT: Readonly<Record<StatementColumn, Placement>> = {
   },
 };
 
-type AmountRowVariant = 'account' | 'group' | 'grouped' | 'total';
-
-const ROW_CLASSES: Readonly<Record<AmountRowVariant, { readonly row: string; readonly label: string }>> = {
-  account: { row: ROW, label: `${LABEL} font-normal` },
-  group: { row: ROW, label: `${LABEL} font-medium` },
-  grouped: { row: ROW, label: `${LABEL} pl-4 font-normal` },
-  total: { row: TOTAL_ROW, label: `${LABEL} font-semibold` },
-};
-
-type AmountRowProps = {
-  readonly label: string;
-  readonly amount: Money;
-  readonly variant?: AmountRowVariant;
-  readonly href?: string | undefined;
-};
-
-function AmountRow({ label, amount, variant = 'account', href }: AmountRowProps): ReactNode {
-  const classes = ROW_CLASSES[variant];
-  return (
-    <tr className={classes.row}>
-      <th scope="row" className={classes.label}>
-        {href === undefined ? (
-          label
-        ) : (
-          <Link href={href} className={LINK}>
-            {label}
-          </Link>
-        )}
-      </th>
-      <td className={AMOUNT}>{formatAmount(amount)}</td>
-    </tr>
-  );
-}
-
 export type StatementSectionTable = {
   readonly accountType: AccountType;
   readonly totalLabel: string;
@@ -77,9 +38,9 @@ export type StatementSectionTable = {
   readonly hrefOf?: (account: AccountId) => string;
 };
 
-type SectionTableProps = StatementSectionTable & { readonly placement: string };
+type SectionTableProps = StatementSectionTable & { readonly placement: string; readonly keep: KeepCollapsed };
 
-function SectionTable({ accountType, totalLabel, section, hrefOf, placement }: SectionTableProps): ReactNode {
+function SectionTable({ accountType, totalLabel, section, hrefOf, placement, keep }: SectionTableProps): ReactNode {
   const id = useId();
   return (
     <div className={`${PANEL} ${placement}`}>
@@ -88,28 +49,25 @@ function SectionTable({ accountType, totalLabel, section, hrefOf, placement }: S
           <Band accountType={accountType} id={id} className="px-3 py-2" />
         </caption>
         <tbody>
-          {section.rows.flatMap((row) =>
-            row.kind === 'account'
-              ? [
-                  <AmountRow
-                    key={row.account}
-                    label={row.name}
-                    amount={row.total}
-                    href={hrefOf?.(row.account)}
-                  />,
-                ]
-              : [
-                  <AmountRow key={row.group} label={row.name} amount={row.total} variant="group" />,
-                  ...row.accounts.map((account) => (
-                    <AmountRow
-                      key={account.account}
-                      label={account.name}
-                      amount={account.total}
-                      variant="grouped"
-                      href={hrefOf?.(account.account)}
-                    />
-                  )),
-                ],
+          {section.rows.map((row) =>
+            row.kind === 'account' ? (
+              <AmountRow key={row.account} label={row.name} amount={row.total} href={hrefOf?.(row.account)} />
+            ) : (
+              <StatementGroup
+                key={row.group}
+                group={row.group}
+                name={row.name}
+                total={row.total}
+                collapsed={row.collapsed}
+                keep={keep}
+                accounts={row.accounts.map(({ account, name, total }) => ({
+                  account,
+                  name,
+                  total,
+                  href: hrefOf?.(account),
+                }))}
+              />
+            ),
           )}
         </tbody>
         <tfoot>
@@ -131,13 +89,14 @@ export type StatementTablesProps = {
   readonly right: StatementSectionTable;
   readonly stackRightFirst?: boolean;
   readonly totals: StatementTotalsTable;
+  readonly keep: KeepCollapsed;
 };
 
-export function StatementTables({ left, right, stackRightFirst = false, totals }: StatementTablesProps): ReactNode {
+export function StatementTables({ left, right, stackRightFirst = false, totals, keep }: StatementTablesProps): ReactNode {
   const placement = PLACEMENT[totalsUnder(left.section, right.section)];
   const tables = [
-    <SectionTable key="left" {...left} placement={placement.left} />,
-    <SectionTable key="right" {...right} placement={placement.right} />,
+    <SectionTable key="left" {...left} placement={placement.left} keep={keep} />,
+    <SectionTable key="right" {...right} placement={placement.right} keep={keep} />,
   ];
 
   return (

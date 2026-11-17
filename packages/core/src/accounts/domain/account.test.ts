@@ -92,7 +92,7 @@ describe('startingChart', () => {
     },
   };
 
-  it('starts a User with two Account groups and eight Accounts for personal living expenses, described as given, from the given day', () => {
+  it('starts a User with two expanded Account groups and eight Accounts for personal living expenses, described as given, from the given day', () => {
     issued = 0;
 
     const chart = startingChart('2026-09-18', STARTING_COPY, ids);
@@ -115,8 +115,8 @@ describe('startingChart', () => {
     });
     expect(chart).toEqual({
       groups: [
-        { id: groupIdOf(1), accountType: 'asset', position: 0, ...STARTING_COPY.cashAndDeposits },
-        { id: groupIdOf(7), accountType: 'expense', position: 0, ...STARTING_COPY.livingExpenses },
+        { id: groupIdOf(1), accountType: 'asset', position: 0, collapsed: false, ...STARTING_COPY.cashAndDeposits },
+        { id: groupIdOf(7), accountType: 'expense', position: 0, collapsed: false, ...STARTING_COPY.livingExpenses },
       ],
       accounts: [
         starting(2, 'asset', 1, 0, STARTING_COPY.cash),
@@ -161,6 +161,7 @@ const group = (n: number, accountType: AccountGroup['accountType'], position: nu
   name: `Group ${String(n)}`,
   description: null,
   position,
+  collapsed: false,
 });
 
 const inGroup = (grouped: Account, n: number): Account => ({ ...grouped, groupId: groupIdOf(n) });

@@ -25,6 +25,7 @@ import {
   createChangeLanguage,
   createDeleteEntry,
   createEditAccount,
+  createCollapseAccountGroup,
   createEditAccountGroup,
   createMoveChartNode,
   createEditEntry,
@@ -60,6 +61,7 @@ import {
   type ChangeLanguage,
   type DeleteEntry,
   type EditAccount,
+  type CollapseAccountGroup,
   type EditAccountGroup,
   type MoveChartNode,
   type EditEntry,
@@ -127,6 +129,7 @@ export type Container = {
   readonly editAccount: EditAccount;
   readonly addAccountGroup: AddAccountGroup;
   readonly editAccountGroup: EditAccountGroup;
+  readonly collapseAccountGroup: CollapseAccountGroup;
   readonly deleteAccount: DeleteAccount;
   readonly deleteAccountGroup: DeleteAccountGroup;
   readonly moveChartNode: MoveChartNode;
@@ -221,6 +224,7 @@ export function createContainer({ databaseUrl, google, testSignIn, deployment }:
       newAccountGroupId,
     }),
     editAccountGroup: createEditAccountGroup({ accounts }),
+    collapseAccountGroup: createCollapseAccountGroup({ accounts }),
     deleteAccount: createDeleteAccount({ accounts, now: () => new Date() }),
     deleteAccountGroup: createDeleteAccountGroup({ accounts }),
     moveChartNode: createMoveChartNode({ accounts }),

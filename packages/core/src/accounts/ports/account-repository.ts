@@ -15,6 +15,11 @@ export type AccountRepository = {
   readonly updateAccount: (userId: UserId, account: Account) => Promise<Result<void, DomainError>>;
   readonly addGroup: (userId: UserId, group: AccountGroup) => Promise<Result<void, DomainError>>;
   readonly updateGroup: (userId: UserId, group: AccountGroup) => Promise<Result<void, DomainError>>;
+  readonly collapseGroup: (
+    userId: UserId,
+    id: AccountGroupId,
+    collapsed: boolean,
+  ) => Promise<Result<void, DomainError>>;
   readonly placeNodes: (userId: UserId, placed: Chart) => Promise<Result<void, DomainError>>;
   readonly readShownSpan: (
     userId: UserId,

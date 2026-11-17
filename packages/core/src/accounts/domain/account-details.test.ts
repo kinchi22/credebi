@@ -47,7 +47,7 @@ const group = (
   accountType: AccountGroup['accountType'],
   position: number,
   name: string,
-): AccountGroup => ({ id: groupIdOf(n), accountType, name, description: null, position });
+): AccountGroup => ({ id: groupIdOf(n), accountType, name, description: null, position, collapsed: false });
 
 const BANK = group(50, 'asset', 7, 'Bank');
 const TRAVEL = group(51, 'expense', 2, 'Travel');
@@ -287,7 +287,7 @@ const groupDraft = (fields: Partial<AccountGroupDetailsInput> = {}): AccountGrou
 const NEW_GROUP_ID = groupIdOf(100);
 
 describe('addedGroup', () => {
-  it('makes an Account group of the Account type, with the id it is given and the details it was given, last in its Account type', () => {
+  it('makes an expanded Account group of the Account type, with the id it is given and the details it was given, last in its Account type', () => {
     expect(addedGroup(CHART, 'asset', groupDraft({ name: ' Savings ', description: ' Put aside ' }), NEW_GROUP_ID)).toEqual({
       ok: true,
       value: {
@@ -296,6 +296,7 @@ describe('addedGroup', () => {
         name: 'Savings',
         description: 'Put aside',
         position: 8,
+        collapsed: false,
       },
     });
   });
