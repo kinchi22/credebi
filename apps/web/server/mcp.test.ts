@@ -21,7 +21,7 @@ import {
   type EntryDraft,
   type IncomeStatement,
 } from '@repo/core';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   accessTokenVerifier,
   authContextOf,
@@ -239,9 +239,11 @@ function mcpCall(
   token: string | undefined,
   method: string,
   params: Readonly<Record<string, unknown>> = {},
+  signal?: AbortSignal,
 ): Request {
   return new Request(`${ORIGIN}${MCP_PATH}`, {
     method: 'POST',
+    ...(signal === undefined ? {} : { signal }),
     headers: {
       ...(token === undefined ? {} : { authorization: `Bearer ${token}` }),
       accept: 'application/json, text/event-stream',
@@ -342,7 +344,8 @@ const callTool = (
   name: string,
   dependencies?: McpDependencies,
   args: Readonly<Record<string, unknown>> = {},
-) => serving(dependencies)(mcpCall(token, 'tools/call', { name, arguments: args }));
+  signal?: AbortSignal,
+) => serving(dependencies)(mcpCall(token, 'tools/call', { name, arguments: args }, signal));
 
 const READ_TOOLS = ['list_accounts', 'search_entries', 'get_assets_and_liabilities', 'get_income_statement'];
 
@@ -828,6 +831,139 @@ describe('serveMcp', () => {
 
     expect(response.status).toBe(400);
     expect(response.headers.get('www-authenticate')).toBeNull();
+  });
+});
+
+const PROMPTLY_MS = 1_000;
+
+async function bodyWithin(response: Response, ms: number): Promise<{ readonly closed: boolean; readonly text: string }> {
+  const reader = response.body?.getReader();
+  if (reader === undefined) {
+    return { closed: true, text: '' };
+  }
+  const decoder = new TextDecoder();
+  const drained = (async () => {
+    let text = '';
+    for (;;) {
+      const chunk = await reader.read().catch(() => ({ done: true, value: undefined }));
+      if (chunk.done) {
+        return text;
+      }
+      text += decoder.decode(chunk.value, { stream: true });
+    }
+  })();
+  const elapsed = vi.advanceTimersByTimeAsync(ms).then(() => false);
+  const closed = await Promise.race([drained.then(() => true), elapsed]);
+  await elapsed;
+  if (!closed) {
+    await reader.cancel();
+  }
+  return { closed, text: await drained };
+}
+
+const messagesIn = (stream: string): unknown[] =>
+  stream
+    .split('\n')
+    .filter((line) => line.startsWith('data: '))
+    .map((line) => JSON.parse(line.slice('data: '.length)) as unknown);
+
+async function settlesWithin<T>(pending: Promise<T>, ms: number): Promise<T> {
+  const elapsed = vi.advanceTimersByTimeAsync(ms).then(() => undefined);
+  const settled = await Promise.race([pending, elapsed]);
+  await elapsed;
+  if (settled === undefined) {
+    throw new Error(`Still pending after ${String(ms)} ms.`);
+  }
+  return settled;
+}
+
+const listen = (token: string, signal?: AbortSignal) =>
+  mcpCall(token, 'subscriptions/listen', { notifications: { toolsListChanged: true } }, signal);
+
+const chartNeverSettles = (): McpDependencies => ({ ...fakes(), getChart: () => new Promise(() => undefined) });
+
+describe('serveMcp request lifetime', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('advertises that its tool list never changes', async () => {
+    const result = await resultOf(await serving()(mcpCall('reader', 'server/discover')));
+
+    expect(result['capabilities']).toMatchObject({ tools: { listChanged: false } });
+  });
+
+  it('acknowledges a listen for tool list changes with nothing honoured, completes it and closes it promptly', async () => {
+    const response = await serving()(listen('reader'));
+
+    const { closed, text } = await bodyWithin(response, PROMPTLY_MS);
+
+    expect(closed).toBe(true);
+    expect(messagesIn(text)).toEqual([
+      expect.objectContaining({
+        method: 'notifications/subscriptions/acknowledged',
+        params: expect.objectContaining({ notifications: {} }) as unknown,
+      }),
+      expect.objectContaining({ id: 1, result: expect.objectContaining({ resultType: 'complete' }) as unknown }),
+    ]);
+  });
+
+  it('closes every listen of a client that keeps listening again promptly', async () => {
+    const serve = serving();
+    const outcomes = [];
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      outcomes.push((await bodyWithin(await serve(listen('both')), PROMPTLY_MS)).closed);
+    }
+
+    expect(outcomes).toEqual([true, true, true, true, true]);
+  });
+
+  it('closes a listen whose client disconnects before reading it', async () => {
+    const disconnect = new AbortController();
+    const response = await serving()(listen('reader', disconnect.signal));
+    disconnect.abort();
+
+    expect((await bodyWithin(response, PROMPTLY_MS)).closed).toBe(true);
+  });
+
+  it('answers an idle authenticated GET at once with 405 and an empty stream, opening nothing', async () => {
+    const request = new Request(`${ORIGIN}${MCP_PATH}`, {
+      headers: {
+        authorization: 'Bearer reader',
+        accept: 'text/event-stream',
+        'mcp-protocol-version': PROTOCOL_VERSION,
+      },
+    });
+
+    const response = await serving()(request);
+
+    expect(response.status).toBe(405);
+    expect(response.headers.get('content-type')).not.toContain('text/event-stream');
+    expect((await bodyWithin(response, PROMPTLY_MS)).closed).toBe(true);
+  });
+
+  it('finishes a cancelled tool call at its cancellation, though the work it waits on never settles', async () => {
+    const cancel = new AbortController();
+    const pending = callTool('reader', 'list_accounts', chartNeverSettles(), {}, cancel.signal);
+    cancel.abort();
+
+    const response = await settlesWithin(pending, PROMPTLY_MS);
+
+    expect((await bodyWithin(response, PROMPTLY_MS)).closed).toBe(true);
+  });
+
+  it('answers an ordinary authenticated tool call and closes it promptly', async () => {
+    const response = await callTool('reader', 'list_accounts');
+
+    const { closed, text } = await bodyWithin(response, PROMPTLY_MS);
+
+    expect(response.status).toBe(200);
+    expect(closed).toBe(true);
+    expect(text).toContain('Cash');
   });
 });
 
