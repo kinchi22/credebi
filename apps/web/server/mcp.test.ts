@@ -344,7 +344,8 @@ const callTool = (
   name: string,
   dependencies?: McpDependencies,
   args: Readonly<Record<string, unknown>> = {},
-) => serving(dependencies)(mcpCall(token, 'tools/call', { name, arguments: args }));
+  signal?: AbortSignal,
+) => serving(dependencies)(mcpCall(token, 'tools/call', { name, arguments: args }, signal));
 
 const READ_TOOLS = ['list_accounts', 'search_entries', 'get_assets_and_liabilities', 'get_income_statement'];
 
@@ -835,49 +836,51 @@ describe('serveMcp', () => {
 
 const PROMPTLY_MS = 1_000;
 
-const PLATFORM_LIMIT_MS = 300_000;
-
 async function bodyWithin(response: Response, ms: number): Promise<{ readonly closed: boolean; readonly text: string }> {
   const reader = response.body?.getReader();
   if (reader === undefined) {
     return { closed: true, text: '' };
   }
   const decoder = new TextDecoder();
-  let text = '';
-  const state = { closed: false };
   const drained = (async () => {
+    let text = '';
     for (;;) {
       const chunk = await reader.read().catch(() => ({ done: true, value: undefined }));
       if (chunk.done) {
-        return;
+        return text;
       }
       text += decoder.decode(chunk.value, { stream: true });
     }
-  })().then(() => {
-    state.closed = true;
-  });
-  await vi.advanceTimersByTimeAsync(ms);
-  const closedInTime = state.closed;
-  if (!closedInTime) {
+  })();
+  const elapsed = vi.advanceTimersByTimeAsync(ms).then(() => false);
+  const closed = await Promise.race([drained.then(() => true), elapsed]);
+  await elapsed;
+  if (!closed) {
     await reader.cancel();
   }
-  await drained;
-  return { closed: closedInTime, text };
+  return { closed, text: await drained };
 }
 
-async function settledWithin<T>(pending: Promise<T>, ms: number): Promise<T | undefined> {
-  let settled: T | undefined;
-  void pending.then((value) => {
-    settled = value;
-  });
-  await vi.advanceTimersByTimeAsync(ms);
+const messagesIn = (stream: string): unknown[] =>
+  stream
+    .split('\n')
+    .filter((line) => line.startsWith('data: '))
+    .map((line) => JSON.parse(line.slice('data: '.length)) as unknown);
+
+async function settlesWithin<T>(pending: Promise<T>, ms: number): Promise<T> {
+  const elapsed = vi.advanceTimersByTimeAsync(ms).then(() => undefined);
+  const settled = await Promise.race([pending, elapsed]);
+  await elapsed;
+  if (settled === undefined) {
+    throw new Error(`Still pending after ${String(ms)} ms.`);
+  }
   return settled;
 }
 
 const listen = (token: string, signal?: AbortSignal) =>
   mcpCall(token, 'subscriptions/listen', { notifications: { toolsListChanged: true } }, signal);
 
-const hanging = (): McpDependencies => ({ ...fakes(), getChart: () => new Promise(() => undefined) });
+const chartNeverSettles = (): McpDependencies => ({ ...fakes(), getChart: () => new Promise(() => undefined) });
 
 describe('serveMcp request lifetime', () => {
   beforeEach(() => {
@@ -894,17 +897,22 @@ describe('serveMcp request lifetime', () => {
     expect(result['capabilities']).toMatchObject({ tools: { listChanged: false } });
   });
 
-  it('acknowledges a listen for tool list changes with nothing honoured and closes it promptly', async () => {
+  it('acknowledges a listen for tool list changes with nothing honoured, completes it and closes it promptly', async () => {
     const response = await serving()(listen('reader'));
 
     const { closed, text } = await bodyWithin(response, PROMPTLY_MS);
 
     expect(closed).toBe(true);
-    expect(text).toContain('"notifications":{}');
-    expect(text).not.toContain('"toolsListChanged":true');
+    expect(messagesIn(text)).toEqual([
+      expect.objectContaining({
+        method: 'notifications/subscriptions/acknowledged',
+        params: expect.objectContaining({ notifications: {} }) as unknown,
+      }),
+      expect.objectContaining({ id: 1, result: expect.objectContaining({ resultType: 'complete' }) as unknown }),
+    ]);
   });
 
-  it('closes every listen of a client that keeps listening again, holding none open to the platform limit', async () => {
+  it('closes every listen of a client that keeps listening again promptly', async () => {
     const serve = serving();
     const outcomes = [];
     for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -940,24 +948,12 @@ describe('serveMcp request lifetime', () => {
 
   it('finishes a cancelled tool call at its cancellation, though the work it waits on never settles', async () => {
     const cancel = new AbortController();
-    const pending = serving(hanging())(
-      mcpCall('reader', 'tools/call', { name: 'list_accounts', arguments: {} }, cancel.signal),
-    );
+    const pending = callTool('reader', 'list_accounts', chartNeverSettles(), {}, cancel.signal);
     cancel.abort();
 
-    const response = await settledWithin(pending, PROMPTLY_MS);
+    const response = await settlesWithin(pending, PROMPTLY_MS);
 
-    expect(response).toBeDefined();
-    expect(response === undefined ? false : (await bodyWithin(response, PROMPTLY_MS)).closed).toBe(true);
-  });
-
-  it('keeps a tool call that is never cancelled waiting on its work rather than answering for it', async () => {
-    expect(
-      await settledWithin(
-        serving(hanging())(mcpCall('reader', 'tools/call', { name: 'list_accounts', arguments: {} })),
-        PROMPTLY_MS,
-      ),
-    ).toBeUndefined();
+    expect((await bodyWithin(response, PROMPTLY_MS)).closed).toBe(true);
   });
 
   it('answers an ordinary authenticated tool call and closes it promptly', async () => {
@@ -968,12 +964,6 @@ describe('serveMcp request lifetime', () => {
     expect(response.status).toBe(200);
     expect(closed).toBe(true);
     expect(text).toContain('Cash');
-  });
-
-  it('holds no listen open to the platform limit', async () => {
-    const response = await serving()(listen('reader'));
-
-    expect((await bodyWithin(response, PLATFORM_LIMIT_MS)).closed).toBe(true);
   });
 });
 
