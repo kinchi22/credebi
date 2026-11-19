@@ -11,8 +11,17 @@ import {
   postEntries,
   submitMultiLineEntry,
   type Line,
-  type Side,
 } from './entries';
+import {
+  chevron,
+  expectCompact,
+  expectDetailed,
+  expectExpanded,
+  expectOnOneLine,
+  lineOf,
+  nameIn,
+  type ShownLine,
+} from './entry-density';
 import { resultFor, search } from './entry-search';
 import { ENTRY_SEARCH_PATH, SETTINGS_PATH } from './routes';
 import { signIn } from './session';
@@ -25,8 +34,6 @@ const NOMURA_SECURITIES = '\uB178\uBB34\uB77C\uC99D\uAD8C';
 const PAYPAY_POINTS = '\uD398\uC774\uD398\uC774\uD3EC\uC778\uD2B8';
 
 const GROCERIES = '\uC2DD\uB8CC\uD488';
-
-type ShownLine = { readonly side: Side; readonly name: string; readonly amount: string };
 
 const SEVERAL_PER_SIDE: readonly ShownLine[] = [
   { side: 'Debit', name: RAKUTEN_BANK, amount: '12,345,678' },
@@ -64,87 +71,61 @@ async function postLongKoreanNames(page: Page): Promise<Posted> {
   return posted;
 }
 
-const lineOf = (entry: Locator, line: ShownLine): Locator =>
-  entry.getByTestId('entry-line').filter({ has: entry.page().getByText(line.name, { exact: true }) });
-
-const nameIn = (entry: Locator, line: ShownLine): Locator =>
-  lineOf(entry, line).getByText(line.name, { exact: true });
-
-type Styled = {
-  readonly ownerDocument: {
-    readonly defaultView: { getComputedStyle: (element: Styled) => { readonly lineHeight: string } } | null;
-  };
-};
-
-async function expectOnOneLine(name: Locator, what: string): Promise<void> {
-  const box = await boxOf(name, what);
-  const lineHeight = Number.parseFloat(
-    await name.evaluate((element: Styled) => element.ownerDocument.defaultView?.getComputedStyle(element).lineHeight ?? ''),
-  );
-  expect(box.height, `${what} fits on one line`).toBeLessThan(lineHeight * 1.5);
-}
-
-async function expectBelow(above: Locator, below: Locator, what: string): Promise<void> {
-  const upper = await boxOf(above, `${what}: the upper one`);
-  const lower = await boxOf(below, `${what}: the lower one`);
-  expect(lower.y, `${what}: one below the other`).toBeGreaterThanOrEqual(upper.y + upper.height);
-}
-
 async function expectRightOf(left: Locator, right: Locator, what: string): Promise<void> {
   const first = await boxOf(left, `${what}: the left one`);
   const second = await boxOf(right, `${what}: the right one`);
   expect(second.x, `${what}: side by side`).toBeGreaterThanOrEqual(first.x + first.width);
 }
 
-async function expectSeveralPerSideOnPhone(page: Page, entry: Locator): Promise<void> {
+async function expectNamesReadable(page: Page, entry: Locator, lines: readonly ShownLine[]): Promise<void> {
   await expect(entry).toHaveCount(1);
   await expectWithinPhone(page, entry);
+  for (const line of lines) {
+    await expectOnOneLine(nameIn(entry, line), `${line.name} on ${line.side}`);
+  }
+}
+
+async function expectLongNamesOnPhone(page: Page, list: (memo: string) => Locator, posted: Posted): Promise<void> {
+  const severalPerSide = list(posted.severalPerSide);
+  const onePerSide = list(posted.onePerSide);
+  const heading = { day: DAY, memo: posted.severalPerSide };
+
+  for (const [entry, lines] of [
+    [severalPerSide, SEVERAL_PER_SIDE],
+    [onePerSide, ONE_PER_SIDE],
+  ] as const) {
+    await expectCompact(entry, lines);
+    await expectNamesReadable(page, entry, lines);
+  }
+
+  await chevron(severalPerSide, heading).click();
+  await expectExpanded(severalPerSide, heading, true);
+  await expectDetailed(severalPerSide, SEVERAL_PER_SIDE, 'stacked');
+  await expectNamesReadable(page, severalPerSide, SEVERAL_PER_SIDE);
   for (const line of SEVERAL_PER_SIDE) {
-    const shown = lineOf(entry, line);
-    const name = nameIn(entry, line);
-    const amount = shown.getByText(line.amount, { exact: true });
-    await expectOnOneLine(name, `${line.name} on ${line.side}`);
-    await expectOnOneRow(name, amount, `${line.name}'s name and amount`);
-    const lineBox = await boxOf(shown, `${line.name}'s line`);
-    const amountBox = await boxOf(amount, `${line.name}'s amount`);
+    const lineBox = await boxOf(lineOf(severalPerSide, line), `${line.name}'s line`);
+    const amountBox = await boxOf(
+      lineOf(severalPerSide, line).getByText(line.amount, { exact: true }),
+      `${line.name}'s amount`,
+    );
     expect(
       amountBox.x + amountBox.width,
       `${line.name}'s amount ends at the line's right edge`,
     ).toBeGreaterThanOrEqual(lineBox.x + lineBox.width - 1);
   }
-  const debits = SEVERAL_PER_SIDE.filter((line) => line.side === 'Debit');
-  const credits = SEVERAL_PER_SIDE.filter((line) => line.side === 'Credit');
-  for (const debit of debits) {
-    for (const credit of credits) {
-      await expectBelow(lineOf(entry, debit), lineOf(entry, credit), `${debit.name} on Debit and ${credit.name} on Credit`);
-    }
-  }
 }
 
-async function expectOnePerSideOnPhone(page: Page, entry: Locator): Promise<void> {
-  await expect(entry).toHaveCount(1);
-  await expectWithinPhone(page, entry);
-  const [debit, credit] = ONE_PER_SIDE;
-  if (debit === undefined || credit === undefined) throw new Error('an Entry of one Account per Side has two lines');
-  for (const line of ONE_PER_SIDE) {
-    await expectOnOneLine(nameIn(entry, line), `${line.name} on ${line.side}`);
-    await expectOnOneRow(entry.getByText(line.side, { exact: true }), nameIn(entry, line), `${line.side} and ${line.name}`);
-  }
-  await expectBelow(lineOf(entry, debit), lineOf(entry, credit), `${debit.name} on Debit and ${credit.name} on Credit`);
-}
-
-test('keeps each long Korean Account name on one line at 390px in the Entries list, Credit below Debit, with each line amount on its name row at the right', async ({ page }) => {
+test('keeps each long Korean Account name readable at 390px in the Entries list, compact and expanded, with no horizontal overflow', async ({ page }) => {
   test.slow();
   const posted = await postLongKoreanNames(page);
 
   await page.setViewportSize(PHONE);
   await page.goto('/entries');
 
-  await expectSeveralPerSideOnPhone(page, listedEntry(page, posted.severalPerSide));
-  await expectOnePerSideOnPhone(page, listedEntry(page, posted.onePerSide));
+  await expectLongNamesOnPhone(page, (memo) => listedEntry(page, memo), posted);
 });
 
-test('keeps each long Korean Account name on one line at 390px in Entry search, Credit below Debit, with each line amount on its name row at the right', async ({ page }) => {
+test('keeps each long Korean Account name readable at 390px in Entry search, compact and expanded, with no horizontal overflow', async ({ page }) => {
   test.slow();
   const posted = await postLongKoreanNames(page);
 
@@ -152,8 +133,7 @@ test('keeps each long Korean Account name on one line at 390px in Entry search, 
   await page.goto(ENTRY_SEARCH_PATH);
   await search(page, {});
 
-  await expectSeveralPerSideOnPhone(page, resultFor(page, posted.severalPerSide));
-  await expectOnePerSideOnPhone(page, resultFor(page, posted.onePerSide));
+  await expectLongNamesOnPhone(page, (memo) => resultFor(page, memo), posted);
 });
 
 test('keeps Debit and Credit side by side at 1280px in the Entries list', async ({ page }) => {

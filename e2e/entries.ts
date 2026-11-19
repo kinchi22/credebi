@@ -421,7 +421,7 @@ export async function postEntries(page: Page, entries: readonly TwoLineEntry[]):
   for (const entry of entries) {
     await page.goto('/entries');
     await submitTwoLineEntry(entryForm(page), entry);
-    await expect(listedEntry(page, entry.memo)).toHaveCount(1);
+    await expect(listedEntry(page, entry.memo === '' ? (entry.title ?? '') : entry.memo)).toHaveCount(1);
   }
 }
 

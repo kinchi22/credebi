@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { entryLineName, expectNameCued, expectOnOneRow, typeTile } from './account-type-cues';
+import { entryLineName, expectNameCued } from './account-type-cues';
 import { BOOKS_OPEN } from './accounts';
 import {
   type Account,
@@ -12,9 +12,9 @@ import {
   nameOf,
   openEntryForm,
   postEntries,
-  SIDES,
   submitMultiLineEntry,
 } from './entries';
+import { expectDetailed } from './entry-density';
 import { resultFor, search } from './entry-search';
 import { expectSettingsPageIn, languageChoice } from './language';
 import { ENTRY_SEARCH_PATH } from './routes';
@@ -110,7 +110,7 @@ test('names each Entry line in Entry search by its Account, Account type and Bal
   }
 });
 
-test("shows each Side's tile beside the Side's name in the Entries list, in an Entry of one Account per Side", async ({ page }) => {
+test("shows each Side's line under the Side's name in the Entries list, with its tile and its amount, in an Entry of one Account per Side", async ({ page }) => {
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   const [posted] = await postOnePerSideEntries(page, randomUUID());
   if (posted === undefined) throw new Error('no Entry was posted');
@@ -118,11 +118,11 @@ test("shows each Side's tile beside the Side's name in the Entries list, in an E
   await page.goto('/entries');
   const entry = listedEntry(page, posted.memo);
   await expectCuedLines(entry, posted.lines);
-  const lines = entry.getByTestId('entry-line');
-  for (const [index, side] of SIDES.entries()) {
-    const sideName = entry.getByText(side, { exact: true }).filter({ visible: true }).first();
-    await expectOnOneRow(sideName, typeTile(lines.nth(index)).first(), `the ${side} name and its tile`);
-  }
+  await expectDetailed(
+    entry,
+    posted.lines.map(({ side, account, amount }) => ({ side, name: nameOf(account), amount })),
+    'side by side',
+  );
 });
 
 test('names each Entry line in Korean by its Account, its Account type and its Balance direction when the User reads Korean', async ({ page }) => {
