@@ -84,6 +84,28 @@ sub-issue of the Feature, records every blocking edge as a native dependency,
 and sets its Status to Ready. The Status replaces the `ready-for-agent` label.
 Then the Feature's Status goes to Ready.
 
+`node tools/publish-tasks.ts <manifest.json>` does all of it, and is how
+tickets are published: a loop written by hand in the shell has given Tasks each
+other's titles and bodies. The manifest names the Feature and lists its Tasks
+in dependency order, each with a title, a body file relative to the manifest,
+an optional assignee, and its blockers, each the title of a Task listed before
+it or the number of an existing issue:
+
+```json
+{
+  "feature": 736,
+  "tasks": [
+    { "title": "Specs for entry density", "body": "specs.md" },
+    { "title": "UAT of entry density", "body": "uat.md", "blockedBy": ["Specs for entry density"], "assignee": "kinchi22" }
+  ]
+}
+```
+
+A Task already under the Feature by that title is kept, not opened again, so a
+run that stopped part-way is finished by running it again. It reads the Feature
+back at the end and fails naming any sub-issue or blocking edge it does not
+find.
+
 Every Feature gets these Tasks beside its vertical slices:
 
 - **Specs for `<feature>`**, first, and only one. The Playwright specs under
