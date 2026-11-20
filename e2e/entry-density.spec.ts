@@ -7,12 +7,14 @@ import {
   editDialog,
   entries,
   listedHeading,
+  type MultiLineEntry,
   openDelete,
   openEditEntry,
 } from './entries';
 import {
   chevron,
   entryMemo,
+  expectChevronNamesAnAction,
   expectCompact,
   expectDetailed,
   expectExpanded,
@@ -25,7 +27,6 @@ import {
   type LongKoreanNames,
   nameIn,
   post,
-  type Posted,
   postLongKoreanNames,
   recordViewTransitions,
   selectText,
@@ -59,7 +60,7 @@ const SPLIT_BILL: Titled = {
   lines: [line('Debit', 'Food', '12500'), line('Credit', 'Cash', '12000'), line('Credit', 'Credit card payable', '500')],
 };
 
-const TAXI: Posted = {
+const TAXI: MultiLineEntry = {
   day: DAY,
   memo: 'Taxi home and a tip',
   lines: [line('Debit', 'Transportation', '2000'), line('Credit', 'Cash', '1500'), line('Credit', 'Credit card payable', '500')],
@@ -72,7 +73,7 @@ const LUNCH: Titled = {
   lines: [line('Debit', 'Food', '3580'), line('Credit', 'Cash', '3580')],
 };
 
-const UNTITLED: Posted = {
+const UNTITLED: MultiLineEntry = {
   day: DAY,
   memo: 'Bus fare home',
   lines: [line('Debit', 'Transportation', '1200'), line('Credit', 'Cash', '1200')],
@@ -92,14 +93,14 @@ const RENT: Titled = {
   lines: [line('Debit', 'Other living expenses', '9999999999'), line('Credit', 'Bank deposits', '9999999999')],
 };
 
-async function openEntriesWith(page: Page, posted: readonly Posted[], width: ViewportSize = PHONE): Promise<void> {
+async function openEntriesWith(page: Page, posted: readonly MultiLineEntry[], width: ViewportSize = PHONE): Promise<void> {
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await post(page, posted);
   await page.setViewportSize(width);
   await page.goto('/entries');
 }
 
-const firstLineName = (entry: Locator, posted: Posted): Locator => {
+const firstLineName = (entry: Locator, posted: MultiLineEntry): Locator => {
   const [first] = shownLines(posted);
   if (first === undefined) throw new Error('an Entry has lines');
   return nameIn(entry, first);
@@ -140,18 +141,22 @@ test('puts a collapsed chevron at 390px only on an Entry with more than one line
   test.slow();
   await openEntriesWith(page, [PAYROLL, SPLIT_BILL, LUNCH]);
 
-  await expectExpanded(listedHeading(page, PAYROLL), PAYROLL, false);
-  await expectExpanded(listedHeading(page, SPLIT_BILL), SPLIT_BILL, false);
+  for (const posted of [PAYROLL, SPLIT_BILL]) {
+    await expectExpanded(listedHeading(page, posted), posted, false);
+    await expectChevronNamesAnAction(listedHeading(page, posted), posted);
+  }
   await expectNoChevron(listedHeading(page, LUNCH));
 });
 
-test('names the chevron at 390px by the Entry date and its memo when the Entry has no Title', async ({ page }) => {
+test('names the chevron at 390px by an action, the Entry date and its memo when the Entry has no Title', async ({ page }) => {
   await openEntriesWith(page, [TAXI]);
   const entry = listedHeading(page, TAXI);
 
   await expectExpanded(entry, TAXI, false);
+  await expectChevronNamesAnAction(entry, TAXI);
   await chevron(entry, TAXI).click();
   await expectExpanded(entry, TAXI, true);
+  await expectChevronNamesAnAction(entry, TAXI);
   await expectDetailed(entry, shownLines(TAXI), 'stacked');
 });
 
@@ -339,7 +344,7 @@ async function expectNamesReadable(page: Page, entry: Locator, lines: readonly S
 async function expectLongKoreanNamesReadable(
   page: Page,
   posted: LongKoreanNames,
-  list: (heading: Posted) => Locator,
+  list: (heading: MultiLineEntry) => Locator,
 ): Promise<void> {
   const severalPerSide = list(posted.severalPerSide);
   const several = shownLines(posted.severalPerSide);

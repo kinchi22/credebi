@@ -11,6 +11,7 @@ import {
   type Heading,
   type Line,
   type LineAccount,
+  type MultiLineEntry,
   listedHeading,
   nameOf,
   openEntryForm,
@@ -23,30 +24,30 @@ import {
 import { SETTINGS_PATH } from './routes';
 import { BOOKS_OPEN, signIn } from './session';
 
-export type Posted = Heading & { readonly lines: readonly Line[] };
-
-export type Titled = Posted & { readonly title: string };
+export type Titled = MultiLineEntry & { readonly title: string };
 
 export type ShownLine = { readonly side: Side; readonly name: string; readonly amount: string };
 
 export const line = (side: Side, account: LineAccount, amount: string): Line => ({ side, account, amount });
 
-export const shownLines = (posted: Posted): readonly ShownLine[] =>
+export const shownLines = (posted: MultiLineEntry): readonly ShownLine[] =>
   posted.lines.map(({ side, account, amount }) => ({
     side,
     name: nameOf(account),
     amount: Number(amount).toLocaleString('en-US'),
   }));
 
-function asTwoLine(posted: Posted): readonly TwoLineEntry[] {
-  const [debit, credit, ...more] = posted.lines;
-  if (debit === undefined || credit === undefined || more.length > 0) return [];
-  return [{ ...posted, debitAccount: debit.account, creditAccount: credit.account, amount: debit.amount }];
+const hasTwoLines = (entry: MultiLineEntry): boolean => entry.lines.length === 2;
+
+function asTwoLine(entry: MultiLineEntry): TwoLineEntry {
+  const [debit, credit] = entry.lines;
+  if (debit === undefined || credit === undefined) throw new Error('a Two-line mode Entry has two lines');
+  return { ...entry, debitAccount: debit.account, creditAccount: credit.account, amount: debit.amount };
 }
 
-export async function post(page: Page, posted: readonly Posted[]): Promise<void> {
-  await postEntries(page, posted.flatMap(asTwoLine));
-  for (const entry of posted.filter((each) => asTwoLine(each).length === 0)) {
+export async function post(page: Page, posted: readonly MultiLineEntry[]): Promise<void> {
+  await postEntries(page, posted.filter(hasTwoLines).map(asTwoLine));
+  for (const entry of posted.filter((each) => !hasTwoLines(each))) {
     const form = await openEntryForm(page, 'Multi-line mode');
     await submitMultiLineEntry(form, entry);
     await expect(listedHeading(page, entry)).toHaveCount(1);
@@ -61,7 +62,7 @@ const PAYPAY_POINTS = '\uD398\uC774\uD398\uC774\uD3EC\uC778\uD2B8';
 
 const GROCERIES = '\uC2DD\uB8CC\uD488';
 
-export type LongKoreanNames = { readonly severalPerSide: Posted; readonly onePerSide: Posted };
+export type LongKoreanNames = { readonly severalPerSide: MultiLineEntry; readonly onePerSide: MultiLineEntry };
 
 export async function postLongKoreanNames(page: Page): Promise<LongKoreanNames> {
   const run = randomUUID();
@@ -111,8 +112,8 @@ const firstShown = (scope: Locator): Locator => scope.filter({ visible: true }).
 export const entryDate = (entry: Locator, heading: Heading): Locator =>
   firstShown(entry.getByText(heading.day, { exact: true }));
 
-export const entryTitle = (entry: Locator, heading: Heading): Locator =>
-  firstShown(entry.getByText(heading.title ?? '', { exact: true }));
+export const entryTitle = (entry: Locator, heading: Titled): Locator =>
+  firstShown(entry.getByText(heading.title, { exact: true }));
 
 export const entryMemo = (entry: Locator, heading: Heading): Locator =>
   firstShown(entry.getByText(heading.memo, { exact: true }));
@@ -126,6 +127,16 @@ export const chevronName = (heading: Heading): RegExp =>
 
 export const chevron = (entry: Locator, heading: Heading): Locator =>
   entry.getByRole('button', { name: chevronName(heading) });
+
+const NAMED = /^- button "(?<name>(?:[^"\\]|\\.)*)"/u;
+
+export async function expectChevronNamesAnAction(entry: Locator, heading: Heading): Promise<void> {
+  const button = chevron(entry, heading);
+  await expect(button).toBeVisible();
+  const name = NAMED.exec(await button.ariaSnapshot())?.groups?.['name'] ?? '';
+  const beyondEntry = name.replace(heading.day, '').replace(heading.title ?? heading.memo, '');
+  expect(beyondEntry, `the chevron "${name}" names an action besides the Entry`).toMatch(/\p{L}/u);
+}
 
 export async function expectNoChevron(entry: Locator): Promise<void> {
   await expect(entry).toHaveCount(1);
@@ -217,22 +228,20 @@ export async function expectDetailed(
   }
   const debits = onSide(lines, 'Debit');
   const credits = onSide(lines, 'Credit');
-  for (const debit of debits) {
-    for (const credit of credits) {
-      const pair = `${debit.name} on Debit and ${credit.name} on Credit`;
-      if (arrangement === 'stacked') {
-        await expectBelow(lineOf(entry, debit), lineOf(entry, credit), pair);
-      } else {
-        await expectLeftOf(lineOf(entry, debit), lineOf(entry, credit), pair);
-      }
-    }
-  }
   if (arrangement === 'stacked') {
     for (const debit of debits) {
       await expectBelow(lineOf(entry, debit), firstShown(sideName(entry, 'Credit')), `${debit.name} and the Credit name`);
+      for (const credit of credits) {
+        await expectBelow(lineOf(entry, debit), lineOf(entry, credit), `${debit.name} on Debit and ${credit.name} on Credit`);
+      }
     }
-  } else {
-    await expectOnOneRow(firstShown(sideName(entry, 'Debit')), firstShown(sideName(entry, 'Credit')), 'the Debit and Credit names');
+    return;
+  }
+  await expectOnOneRow(firstShown(sideName(entry, 'Debit')), firstShown(sideName(entry, 'Credit')), 'the Debit and Credit names');
+  for (const debit of debits) {
+    for (const credit of credits) {
+      await expectLeftOf(lineOf(entry, debit), lineOf(entry, credit), `${debit.name} on Debit and ${credit.name} on Credit`);
+    }
   }
 }
 
@@ -309,12 +318,12 @@ const isFocused = async (locator: Locator): Promise<boolean> =>
 
 export async function tabToChevronPassingOver(page: Page, entry: Locator, target: Locator): Promise<void> {
   await expect(target).toBeVisible();
+  const stops = [editButton(entry), deleteButton(entry), target];
   for (let press = 0; press < 120 && !(await isFocused(target)); press += 1) {
     await page.keyboard.press('Tab');
-    expect(await isFocused(entry), 'the Entry body is not a tab stop').toBe(false);
-    const inside = entry.locator(':focus');
-    if ((await inside.count()) > 0) {
-      await expect(inside, 'only a button inside an Entry takes focus').toHaveRole('button');
+    if ((await entry.locator(':focus').count()) > 0 || (await isFocused(entry))) {
+      const focused = await Promise.all(stops.map(isFocused));
+      expect(focused.includes(true), 'focus inside an Entry lands only on Edit, Delete or the chevron').toBe(true);
     }
   }
   await expect(target).toBeFocused();
