@@ -151,3 +151,19 @@
     animation: none;
   }
 }
+
+::view-transition-group(.entry),
+::view-transition-group(.entry-line) {
+  animation-duration: 200ms;
+  animation-timing-function: ease-out;
+}
+
+::view-transition-old(.entry),
+::view-transition-new(.entry),
+::view-transition-old(.entry-line),
+::view-transition-new(.entry-line) {
+  height: 100%;
+  width: 100%;
+  object-fit: none;
+  object-position: left top;
+}
