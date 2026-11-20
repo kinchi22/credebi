@@ -465,6 +465,12 @@ where the wide Account picker puts Debit and Credit side by side and the
 entry form takes a fixed column. The
 stylesheet resets `--breakpoint-*` to `initial`, as it does the colours, so
 Tailwind's default breakpoints do not exist and these two are the only ones.
+The Entries list alone is laid out by its own width rather than the window's.
+`containerWidths` in the tokens module holds that width, `list` at 640px, and
+the stylesheet declares it as `--container-list: 40rem`, which the utilities
+take as the `@list:` variant on a descendant of the list, the `@container`.
+`--container-*` is not reset: Tailwind's own container widths still back the
+`max-w-*` utilities.
 
 The signed-in page's `main` fills the width at every size: below `wide` the
 whole screen, and from `wide` up all of it beside the Sidebar, with no maximum
@@ -971,16 +977,24 @@ numerals.
   hairline parts each Entry from the one above; the first has none and starts
   4px below the panel's padding. Each Entry is padded 16px above and below and
   reaches the panel's edges, as `PANEL_BLEED` does, and under the pointer it is
-  tinted `surface-hover`. Its first row holds the date in `date` and
-  `text-muted`, the Title, when it has one, semibold in `text`, then the memo
-  Regular in `text-muted`, with or without a Title, the two filling the space
-  and wrapping together, and the Entry's total on the right in `figure`,
-  medium; the date, the total and the row actions keep their place on the first
-  line while the text grows downward between them. Below it, from `wide` up, two equal columns,
-  Debit and Credit, Credit's behind a `border` hairline, each headed by the Side
-  in `label` and the Side's colour over a 1.5px rule in that colour. Below
-  `wide` the two stack, full width, Credit 8px below Debit with no hairline, so
-  an Account name never shares a narrow column with an amount. In
+  tinted `surface-hover`. The list lays itself out by its own width, not the
+  window's: the `list` container width, 40rem of the list, decides how an
+  Entry's top and its lines are laid out, and no viewport breakpoint does. Above
+  its lines an Entry shows the date in `date` and `text-muted`, the Title, when
+  it has one, semibold in `text`, the memo Regular in `text-muted`, the Entry's
+  total in `figure`, medium, and the row actions. From 40rem these are one row:
+  the date, then the Title and memo filling the space and wrapping together,
+  then the total, then the actions; the date, the total and the actions keep
+  their place on the first line while the text grows downward between them.
+  Below 40rem they take three rows: the date with the actions at the right; the
+  Title with the total at the right, or the total alone at the right when there
+  is no Title; and the memo across the full width, a row that is absent when
+  there is no memo. Below them every Entry lays its lines out alike, whatever their count: each Side headed by the
+  Side in `label` and the Side's colour over a 1.5px rule in that colour. From
+  40rem the two Sides are two equal columns, Debit and Credit, Credit's behind
+  a `border` hairline. Below 40rem they stack, full width, Credit 8px below
+  Debit with no hairline, so an Account name never shares a narrow column with
+  an amount. In
   `body-dense`, each line is one row, the Account name on the left and its
   amount on the right in `figure` and the Side's colour, never wrapped or
   shrunk. The name is led by its
@@ -989,10 +1003,8 @@ numerals.
   with no word, no Side colour and no red or green; tile and arrow sit level
   with the name's first line when it wraps. The arrow is hidden from assistive
   technology, and the line is named by one message joining the Account's name,
-  its type's name and the direction, as `Mortgage, Liabilities, Decrease`. An
-  Entry with one Account on each Side puts the Account name, with its Tile and
-  arrow, beside its Side's name and shows no line amount: the total states it,
-  and the line's amount stays for assistive technology. There is no shared header row: the first Entry's Side names are
+  its type's name and the direction, as `Mortgage, Liabilities, Decrease`.
+  There is no shared header row: the first Entry's Side names are
   the table's `Debit` and `Credit` column headers, and every later Entry's are
   hidden from assistive technology.
 - **Income statement tables.** Below the `Statement period` form: `Revenue`,
