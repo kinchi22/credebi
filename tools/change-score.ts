@@ -45,19 +45,21 @@ export type Unkilled = Position & {
   readonly status: 'Survived' | 'NoCoverage';
 };
 
-export type ChangedFile = {
+type MeasurableKind = 'created' | 'modified' | 'renamed';
+
+type FileChange<Kind> = {
   readonly path: string;
   readonly from?: string;
-  readonly kind: 'created' | 'modified' | 'renamed';
+  readonly kind: Kind;
+};
+
+export type ChangedFile = FileChange<MeasurableKind> & {
   readonly counts: Counts;
   readonly score: number | null;
   readonly unkilled: readonly Unkilled[];
 };
 
-export type UnmeasuredFile = {
-  readonly path: string;
-  readonly from?: string;
-  readonly kind: 'created' | 'modified' | 'renamed' | 'deleted';
+export type UnmeasuredFile = FileChange<MeasurableKind | 'deleted'> & {
   readonly reason: 'deleted' | 'excluded' | 'non-mutatable' | 'moved' | 'no-changed-mutant';
 };
 
@@ -237,10 +239,13 @@ const count = (mutants: readonly Mutant[]): Counts => {
   };
 };
 
-const scoreOf = ({ killed, timeout, survived, noCoverage }: Counts): number | null => {
-  const valid = killed + timeout + survived + noCoverage;
-  if (valid === 0) return null;
-  return Math.round(((killed + timeout) / valid) * 10_000) / 100;
+const scoredOf = ({ killed, timeout, survived, noCoverage }: Counts): number =>
+  killed + timeout + survived + noCoverage;
+
+const scoreOf = (counts: Counts): number | null => {
+  const scored = scoredOf(counts);
+  if (scored === 0) return null;
+  return Math.round(((counts.killed + counts.timeout) / scored) * 10_000) / 100;
 };
 
 const measure = (mutants: readonly Mutant[]): Measure => {
@@ -248,8 +253,7 @@ const measure = (mutants: readonly Mutant[]): Measure => {
   return { mutants: mutants.length, score: scoreOf(counts), counts };
 };
 
-const kindOf = (changed: DiffFile): UnmeasuredFile['kind'] => {
-  if (changed.deleted) return 'deleted';
+const measurableKindOf = (changed: DiffFile): MeasurableKind => {
   if (changed.created) return 'created';
   return changed.from === undefined ? 'modified' : 'renamed';
 };
@@ -282,13 +286,18 @@ export function buildChangeReport(input: ChangeReportInput): ChangeReport {
   const unmeasured: UnmeasuredFile[] = [];
   const changedMutants: Mutant[] = [];
   for (const changed of parseDiff(input.diff)) {
-    const kind = kindOf(changed);
+    const kind = measurableKindOf(changed);
     const from = changed.from === undefined ? {} : { from: changed.from };
     const all = parsed.value.get(changed.path) ?? [];
     const reason = unmeasuredReason(changed, all, input.mutate);
     const mutants = all.filter((mutant) => changed.created || overlaps(mutant, changed.lines));
-    if (reason !== undefined || mutants.length === 0 || kind === 'deleted') {
-      unmeasured.push({ path: changed.path, ...from, kind, reason: reason ?? 'no-changed-mutant' });
+    if (reason !== undefined || mutants.length === 0) {
+      unmeasured.push({
+        path: changed.path,
+        ...from,
+        kind: changed.deleted ? 'deleted' : kind,
+        reason: reason ?? 'no-changed-mutant',
+      });
       continue;
     }
     changedMutants.push(...mutants);
@@ -313,12 +322,13 @@ export function buildChangeReport(input: ChangeReportInput): ChangeReport {
   files.sort((a, b) => a.path.localeCompare(b.path));
   unmeasured.sort((a, b) => a.path.localeCompare(b.path));
 
+  const change = measure(changedMutants);
   return {
     state: 'complete',
     target: CHANGE_TARGET,
-    change: measure(changedMutants),
+    change,
     surface: measure([...parsed.value.values()].flat()),
-    smallSample: changedMutants.length > 0 && changedMutants.length < SMALL_SAMPLE,
+    smallSample: change.mutants > 0 && scoredOf(change.counts) < SMALL_SAMPLE,
     files,
     unmeasured,
     elapsedMs,
@@ -365,11 +375,11 @@ const changeScoreLine = (
   report: Extract<ChangeReport, { state: 'complete' }>,
 ): string => {
   const { change, target, smallSample } = report;
-  if (change.score === null) {
-    return `**Change score:** N/A, not applicable: no mutant overlaps a line this pull request adds or modifies. Target ${String(target)}%.`;
+  if (change.mutants === 0) {
+    return `**Change score:** N/A: no mutant overlaps a line this pull request adds or modifies. Target ${String(target)}%.`;
   }
-  if (smallSample) {
-    return `**Change score:** ${String(change.mutants)} Changed mutants, fewer than ${String(SMALL_SAMPLE)}: ${rawCounts(change.counts)}. The target is zero survived or no-coverage mutants, and ${remaining(change.counts.survived + change.counts.noCoverage)}.`;
+  if (smallSample || change.score === null) {
+    return `**Change score:** ${String(scoredOf(change.counts))} scored of ${String(change.mutants)} Changed mutants, fewer than ${String(SMALL_SAMPLE)} scored: ${rawCounts(change.counts)}. The target is zero survived or no-coverage mutants, and ${remaining(change.counts.survived + change.counts.noCoverage)}.`;
   }
   return `**Change score:** ${percent(change.score)} of ${String(change.mutants)} Changed mutants, against a target of ${String(target)}%.`;
 };

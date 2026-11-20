@@ -2,6 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-11-20
+**Amended:** 2026-11-21, PR #760, amended rather than superseded by the owner's choice
 
 ## Problem
 
@@ -79,9 +80,13 @@ changed line may weaken the tests of a mutant elsewhere, which this report does
 not see. It measures the mutants the diff touches, not the behaviour the change
 affects.
 
-A small change gives a score that one mutant swings. Below 20 Changed mutants
-the report shows the raw counts and the target of zero survived or no-coverage
-mutants in place of the percentage, and nothing acts on either automatically.
+A small change gives a score that one mutant swings. Below 20 scored Changed
+mutants, those killed, timed out, survived or not covered, the report shows the
+raw counts and the target of zero survived or no-coverage mutants in place of
+the percentage, and nothing acts on either automatically. Errors and ignored
+mutants do not count toward the 20, so a change whose Changed mutants are all
+errors or ignored shows its counts, not N/A, which is kept for a change with no
+Changed mutant at all.
 
 The checkout of the `Mutation testing` job fetches the full history, which
 costs seconds on a job that runs about eight minutes. Release waits that much

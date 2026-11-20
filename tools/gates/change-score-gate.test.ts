@@ -70,41 +70,29 @@ const created = (file: string, lines: number): string =>
     ...Array.from({ length: lines }, (_, i) => `+line ${String(i + 1)}`),
   ].join('\n');
 
-const modified = (file: string, ...hunks: readonly (readonly [number, number])[]): string =>
-  [
-    `diff --git a/${file} b/${file}`,
-    'index 1111111..2222222 100644',
-    `--- a/${file}`,
-    `+++ b/${file}`,
-    ...hunks.flatMap(([start, count]) => [
-      `@@ -${String(start)},${String(count)} +${String(start)},${String(count)} @@`,
-      ...Array.from({ length: count }, () => '-old'),
-      ...Array.from({ length: count }, () => '+new'),
-    ]),
-  ].join('\n');
+type Hunk = readonly [start: number, count: number];
 
-const renamed = (
-  from: string,
-  to: string,
-  ...hunks: readonly (readonly [number, number])[]
-): string =>
+const edits = (from: string, to: string, hunks: readonly Hunk[]): readonly string[] => [
+  'index 1111111..2222222 100644',
+  `--- a/${from}`,
+  `+++ b/${to}`,
+  ...hunks.flatMap(([start, count]) => [
+    `@@ -${String(start)},${String(count)} +${String(start)},${String(count)} @@`,
+    ...Array.from({ length: count }, () => '-old'),
+    ...Array.from({ length: count }, () => '+new'),
+  ]),
+];
+
+const modified = (file: string, ...hunks: readonly Hunk[]): string =>
+  [`diff --git a/${file} b/${file}`, ...edits(file, file, hunks)].join('\n');
+
+const renamed = (from: string, to: string, ...hunks: readonly Hunk[]): string =>
   [
     `diff --git a/${from} b/${to}`,
     `similarity index ${hunks.length === 0 ? '100' : '90'}%`,
     `rename from ${from}`,
     `rename to ${to}`,
-    ...(hunks.length === 0
-      ? []
-      : [
-          'index 1111111..2222222 100644',
-          `--- a/${from}`,
-          `+++ b/${to}`,
-          ...hunks.flatMap(([start, count]) => [
-            `@@ -${String(start)},${String(count)} +${String(start)},${String(count)} @@`,
-            ...Array.from({ length: count }, () => '-old'),
-            ...Array.from({ length: count }, () => '+new'),
-          ]),
-        ]),
+    ...(hunks.length === 0 ? [] : edits(from, to, hunks)),
   ].join('\n');
 
 const deleted = (file: string, lines: number): string =>
@@ -128,6 +116,11 @@ const build = (
   diff: string,
 ): Extract<ChangeReport, { state: 'complete' }> =>
   complete(buildChangeReport({ report: strykerReport(files), diff, mutate: MUTATE, elapsedMs: 1 }));
+
+const changeScoreLine = (report: ChangeReport): string | undefined =>
+  renderChangeReport(report)
+    .split('\n')
+    .find((line) => line.startsWith('**Change score:**'));
 
 const OLD = 'packages/core/src/ledger/domain/entry.ts';
 const NEW = 'packages/core/src/ledger/domain/balance.ts';
@@ -266,11 +259,8 @@ describe('the Change score', () => {
     const report = build({ [OLD]: many(3, 'Killed', 50) }, modified(OLD, [1, 1]));
 
     expect(report.change).toMatchObject({ mutants: 0, score: null });
-    const changeLine = renderChangeReport(report)
-      .split('\n')
-      .find((line) => line.startsWith('**Change score:**'));
-    expect(changeLine).toContain('not applicable');
-    expect(changeLine).not.toContain('100');
+    expect(changeScoreLine(report)).toMatch(/^\*\*Change score:\*\* N\/A: /);
+    expect(changeScoreLine(report)).not.toContain('100');
   });
 
   it('counts no file outside the mutate patterns, even when the report holds it', () => {
@@ -411,16 +401,41 @@ describe('every changed file', () => {
 });
 
 describe('a small change', () => {
-  it('is a small sample below 20 Changed mutants', () => {
+  it('is a small sample below 20 scored Changed mutants', () => {
     expect(build({ [NEW]: many(19, 'Killed') }, created(NEW, 1)).smallSample).toBe(true);
   });
 
-  it('is no small sample at 20 Changed mutants', () => {
-    expect(build({ [NEW]: many(20, 'Killed') }, created(NEW, 1)).smallSample).toBe(false);
+  it('is no small sample at 20 scored Changed mutants', () => {
+    expect(
+      build({ [NEW]: [...many(10, 'Timeout'), ...many(5, 'Survived'), ...many(5, 'NoCoverage')] }, created(NEW, 1))
+        .smallSample,
+    ).toBe(false);
+  });
+
+  it('is a small sample when errors and ignored mutants take the Changed mutants past 20 but the scored stay below', () => {
+    const report = build(
+      { [NEW]: [...many(19, 'Killed'), ...many(2, 'CompileError'), ...many(2, 'Ignored')] },
+      created(NEW, 1),
+    );
+
+    expect(report.change.mutants).toBe(23);
+    expect(report.smallSample).toBe(true);
   });
 
   it('is no small sample with no Changed mutant, being not applicable', () => {
     expect(build({ [OLD]: many(2, 'Killed', 50) }, modified(OLD, [1, 1])).smallSample).toBe(false);
+  });
+
+  it('shows raw counts, never N/A, when every Changed mutant is an error or ignored', () => {
+    const report = build(
+      { [NEW]: [mutant('RuntimeError', 1), mutant('Ignored', 1)] },
+      created(NEW, 1),
+    );
+
+    expect(report.smallSample).toBe(true);
+    expect(changeScoreLine(report)).toBe(
+      '**Change score:** 0 scored of 2 Changed mutants, fewer than 20 scored: 0 killed, 0 timeout, 0 survived, 0 no coverage, 1 error, 1 ignored. The target is zero survived or no-coverage mutants, and none remain.',
+    );
   });
 
   it('shows its raw counts and the rule of zero survived or no-coverage mutants instead of a percentage', () => {
@@ -438,21 +453,13 @@ describe('a small change', () => {
       },
       created(NEW, 1),
     );
-    const changeLine = renderChangeReport(report)
-      .split('\n')
-      .find((line) => line.startsWith('**Change score:**'));
-
-    expect(changeLine).toBe(
-      '**Change score:** 7 Changed mutants, fewer than 20: 2 killed, 1 timeout, 1 survived, 1 no coverage, 1 error, 1 ignored. The target is zero survived or no-coverage mutants, and 2 remain.',
+    expect(changeScoreLine(report)).toBe(
+      '**Change score:** 5 scored of 7 Changed mutants, fewer than 20 scored: 2 killed, 1 timeout, 1 survived, 1 no coverage, 1 error, 1 ignored. The target is zero survived or no-coverage mutants, and 2 remain.',
     );
   });
 
   it('meets its target with no survived or no-coverage mutant', () => {
-    const changeLine = renderChangeReport(build({ [NEW]: many(3, 'Killed') }, created(NEW, 1)))
-      .split('\n')
-      .find((line) => line.startsWith('**Change score:**'));
-
-    expect(changeLine).toContain('The target is zero survived or no-coverage mutants, and none remain.');
+    expect(changeScoreLine(build({ [NEW]: many(3, 'Killed') }, created(NEW, 1)))).toContain('The target is zero survived or no-coverage mutants, and none remain.');
   });
 });
 
