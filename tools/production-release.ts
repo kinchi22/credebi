@@ -2,7 +2,7 @@ import { appendFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-export const REQUIRED_PREREQUISITES = ['Gates', 'Integration'] as const;
+export const REQUIRED_PREREQUISITES = ['Gates', 'Integration', 'Mutation testing'] as const;
 export type RequiredPrerequisite = (typeof REQUIRED_PREREQUISITES)[number];
 
 export const PREREQUISITE_OUTCOMES = ['success', 'failure', 'cancelled', 'skipped'] as const;
