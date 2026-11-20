@@ -15,7 +15,7 @@ import { accountChoices, listedEntry, openEditEntry, postEntries, twoLine } from
 import { ENTRY_SEARCH_PATH, SETTINGS_PATH } from './routes';
 import { signIn } from './session';
 import { menu, sidebar } from './sidebar';
-import { PHONE, scrollEnd, scrollY, viewportOf, WIDE } from './viewport';
+import { PHONE, scrollEnd, scrollY, viewportOf, waitFrames, WIDE } from './viewport';
 
 const SHORT_PHONE = { width: PHONE.width, height: 400 } as const;
 
@@ -35,16 +35,10 @@ const SWIPE_STEPS = 10;
 
 type ScrollBy = (page: Page, at: Point, distance: number) => Promise<void>;
 
-async function waitFramesAfterInput(page: Page): Promise<void> {
-  await page.evaluate(
-    `new Promise((resolve) => { let left = ${String(FRAMES_AFTER_INPUT)}; const next = () => { left -= 1; if (left === 0) resolve(); else requestAnimationFrame(next); }; requestAnimationFrame(next); })`,
-  );
-}
-
 async function wheel(page: Page, at: Point, distance: number): Promise<void> {
   await page.mouse.move(at.x, at.y);
   await page.mouse.wheel(0, distance);
-  await waitFramesAfterInput(page);
+  await waitFrames(page, FRAMES_AFTER_INPUT);
 }
 
 async function swipe(page: Page, at: Point, distance: number): Promise<void> {
@@ -63,7 +57,7 @@ async function swipe(page: Page, at: Point, distance: number): Promise<void> {
   } finally {
     await cdp.detach();
   }
-  await waitFramesAfterInput(page);
+  await waitFrames(page, FRAMES_AFTER_INPUT);
 }
 
 const SWIPE_AND_WHEEL: readonly ScrollBy[] = [swipe, wheel];

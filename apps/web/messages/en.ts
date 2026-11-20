@@ -439,6 +439,7 @@ export const en = {
     empty: 'No entries yet.',
     total: 'Total',
     line: '{account}, {type}, {direction}',
+    expand: 'Expand {date} {entry}',
   },
   editEntry: {
     open: 'Edit',

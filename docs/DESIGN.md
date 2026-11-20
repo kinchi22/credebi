@@ -465,6 +465,12 @@ where the wide Account picker puts Debit and Credit side by side and the
 entry form takes a fixed column. The
 stylesheet resets `--breakpoint-*` to `initial`, as it does the colours, so
 Tailwind's default breakpoints do not exist and these two are the only ones.
+The Entries list alone is laid out by its own width rather than the window's.
+`containerWidths` in the tokens module holds that width, `list` at 640px, and
+the stylesheet declares it as `--container-list: 40rem`, which the utilities
+take as the `@list:` variant on a descendant of the list, the `@container`.
+`--container-*` is not reset: Tailwind's own container widths still back the
+`max-w-*` utilities.
 
 The signed-in page's `main` fills the width at every size: below `wide` the
 whole screen, and from `wide` up all of it beside the Sidebar, with no maximum
@@ -971,30 +977,59 @@ numerals.
   hairline parts each Entry from the one above; the first has none and starts
   4px below the panel's padding. Each Entry is padded 16px above and below and
   reaches the panel's edges, as `PANEL_BLEED` does, and under the pointer it is
-  tinted `surface-hover`. Its first row holds the date in `date` and
-  `text-muted`, the Title, when it has one, semibold in `text`, then the memo
-  Regular in `text-muted`, with or without a Title, the two filling the space
-  and wrapping together, and the Entry's total on the right in `figure`,
-  medium; the date, the total and the row actions keep their place on the first
-  line while the text grows downward between them. Below it, from `wide` up, two equal columns,
-  Debit and Credit, Credit's behind a `border` hairline, each headed by the Side
-  in `label` and the Side's colour over a 1.5px rule in that colour. Below
-  `wide` the two stack, full width, Credit 8px below Debit with no hairline, so
-  an Account name never shares a narrow column with an amount. In
-  `body-dense`, each line is one row, the Account name on the left and its
-  amount on the right in `figure` and the Side's colour, never wrapped or
-  shrunk. The name is led by its
+  tinted `surface-hover`. The list lays itself out by its own width, not the
+  window's: the `list` container width, 40rem of the list, decides how an
+  Entry's top and its lines are laid out, and no viewport breakpoint does. Above
+  its lines an Entry shows the date in `date` and `text-muted`, the Title, when
+  it has one, semibold in `text`, the memo Regular in `text-muted`, the Entry's
+  total in `figure`, medium, and the row actions. From 40rem these are one row:
+  the date, then the Title and memo filling the space and wrapping together,
+  then the total, then the actions; the date, the total and the actions keep
+  their place on the first line while the text grows downward between them.
+  Below 40rem they take three rows: the date with the actions at the right; the
+  Title with the total at the right, or the total alone at the right when there
+  is no Title; and the memo across the full width, a row that is absent when
+  there is no memo. Below them an Entry's lines are laid out detailed or
+  compact. Detailed, every Entry alike whatever its line count, each Side is
+  headed by the Side in `label` and the Side's colour over a 1.5px rule in that
+  colour. From 40rem every Entry is detailed and the two Sides are two equal
+  columns, Debit and Credit, Credit's behind a `border` hairline. Below 40rem a
+  detailed Entry stacks them, full width, Credit 8px below Debit with no
+  hairline, so an Account name never shares a narrow column with an amount.
+  Below 40rem every Entry starts compact: Debit and Credit side by side in two
+  equal columns, Debit left, each over its Side's 1.5px rule, Credit's behind a
+  `border` hairline and 8px in from it, and each line shows its Tile, name and
+  arrow but neither its amount nor the Side's name, both kept for assistive
+  technology only. An Entry with more than one line on a Side expands to the
+  detailed layout and collapses back. Its chevron, a button holding a 16px
+  chevron in `text-muted`, `text` under the pointer, sits centred in the
+  Entry's 16px bottom padding, adding no height, pointing down while collapsed
+  and up while expanded; it carries `aria-expanded` and is named for the action
+  and the Entry, by its date and its Title, or its memo when it has none, as
+  `Expand 2026-09-25 Payroll`. A click anywhere on such an Entry toggles it as
+  well, and it shows the pointer cursor, but not a click on a button, a link or
+  a form control, inside a dialog, or one ending a text selection; the chevron
+  is the one keyboard stop. An Entry of one line per Side has no chevron and
+  does not expand, and from 40rem nothing is compact and there is no chevron.
+  Several Entries may be expanded at once. The state lives in the page for its
+  lifetime alone: a width change keeps it, and a reload, a revisit or a new
+  Entry search starts every Entry compact. The change moves, as a view
+  transition over 200ms, ease-out, both ways: each line glides to its new
+  place, the Side names and the line amounts fade in or out, and the Entries
+  below slide rather than jump, every snapshot anchored at its top left and
+  never stretched. Under `prefers-reduced-motion: reduce`, or where the browser
+  has no view transitions, the change is instant. Lines are set in
+  `body-dense`. A detailed line is one row, the Account name on the left and its amount on the right in `figure` and the
+  Side's colour, never wrapped or shrunk. The name is led by its
   Account type's Tile and followed by the line's Balance direction, the 14px
   arrow, up for `Increase` and down for `Decrease`, in `text-muted`, 6px apart,
   with no word, no Side colour and no red or green; tile and arrow sit level
   with the name's first line when it wraps. The arrow is hidden from assistive
   technology, and the line is named by one message joining the Account's name,
-  its type's name and the direction, as `Mortgage, Liabilities, Decrease`. An
-  Entry with one Account on each Side puts the Account name, with its Tile and
-  arrow, beside its Side's name and shows no line amount: the total states it,
-  and the line's amount stays for assistive technology. There is no shared header row: the first Entry's Side names are
-  the table's `Debit` and `Credit` column headers, and every later Entry's are
-  hidden from assistive technology.
+  its type's name and the direction, as `Mortgage, Liabilities, Decrease`.
+  There is no shared header row: the first Entry's Side names are
+  the table's `Debit` and `Credit` column headers, visually hidden while it is
+  compact, and every later Entry's are hidden from assistive technology.
 - **Income statement tables.** Below the `Statement period` form: `Revenue`,
   `Expenses` and `Totals`, each table a panel of its own, the panels 16px
   apart. Below `split` they stack in one column in that order. From `split` up
@@ -1157,10 +1192,11 @@ numerals.
   iOS overscroll bounce reports, changes nothing. Focus reaching `Menu`, or
   anything else in the Top bar, shows it at once. It hides and shows by sliding
   vertically past the top edge over 200ms, ease-out, both ways, without a fade,
-  and instantly under `prefers-reduced-motion: reduce`. This and the Line
-  chart's dot pop are the design's only motion, so neither has a token. Focus starts on the
-  drawer, and Tab reaches `Entries` first. Escape, a click on the scrim or
-  following a link closes it, and focus returns to `Menu`.
+  and instantly under `prefers-reduced-motion: reduce`. This, the Entry
+  expansion in the Entries list and the Line chart's dot pop are the design's
+  only motion, so none has a token. Focus starts on the drawer, and Tab
+  reaches `Entries` first. Escape, a click on the scrim or following a link
+  closes it, and focus returns to `Menu`.
 - **Focus.** A 2px ring on every focusable element: `focus` on a light ground,
   `focus-on-dark` on a dark one, 2px outside its edge. A focused Input adds a
   3px `accent` halo at 25%, `ring-3 ring-accent/25`, around its edge and under

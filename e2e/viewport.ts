@@ -6,6 +6,8 @@ export const WIDE = { width: 1280, height: 720 } as const;
 
 export const WIDE_BELOW_SPLIT = { width: 1024, height: 720 } as const;
 
+export const WIDE_BESIDE_SIDEBAR = { width: 800, height: 900 } as const;
+
 export function viewportOf(page: Page): ViewportSize {
   const viewport = page.viewportSize();
   if (viewport === null) throw new Error('the page has no viewport');
@@ -31,5 +33,11 @@ export async function expectTypedWithoutZoom(control: Locator): Promise<void> {
   await expect(control, 'a control smaller than 16px makes iOS Safari zoom in on focus').toHaveCSS(
     'font-size',
     AT_LEAST_16PX,
+  );
+}
+
+export async function waitFrames(page: Page, frames: number): Promise<void> {
+  await page.evaluate(
+    `new Promise((resolve) => { let left = ${String(frames)}; const next = () => { left -= 1; if (left === 0) resolve(); else requestAnimationFrame(next); }; requestAnimationFrame(next); })`,
   );
 }

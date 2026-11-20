@@ -293,6 +293,9 @@ export async function deleteListed(entry: Locator): Promise<void> {
 export const listedEntry = (page: Page, text: string): Locator =>
   page.getByTestId('entry').filter({ hasText: text });
 
+export const listedHeading = (page: Page, heading: Heading): Locator =>
+  listedEntry(page, heading.memo === '' ? (heading.title ?? '') : heading.memo);
+
 export const titleField = (form: Locator): Locator =>
   form.getByRole('combobox', { name: 'Title', exact: true });
 
@@ -421,7 +424,7 @@ export async function postEntries(page: Page, entries: readonly TwoLineEntry[]):
   for (const entry of entries) {
     await page.goto('/entries');
     await submitTwoLineEntry(entryForm(page), entry);
-    await expect(listedEntry(page, entry.memo)).toHaveCount(1);
+    await expect(listedHeading(page, entry)).toHaveCount(1);
   }
 }
 

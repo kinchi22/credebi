@@ -83,6 +83,7 @@
   --text-date--font-weight: 400;
   --breakpoint-wide: 45rem;
   --breakpoint-split: 80rem;
+  --container-list: 40rem;
   --radius-control: 6px;
   --radius-panel: 8px;
   --radius-card: 12px;
@@ -149,4 +150,21 @@
   .chart-active-dot {
     animation: none;
   }
+}
+
+::view-transition-group(root),
+::view-transition-group(.entry-expansion),
+::view-transition-group(.entry-expansion-line) {
+  animation-duration: 200ms;
+  animation-timing-function: ease-out;
+}
+
+::view-transition-old(.entry-expansion),
+::view-transition-new(.entry-expansion),
+::view-transition-old(.entry-expansion-line),
+::view-transition-new(.entry-expansion-line) {
+  height: 100%;
+  width: 100%;
+  object-fit: none;
+  object-position: left top;
 }
