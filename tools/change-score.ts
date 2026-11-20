@@ -4,6 +4,7 @@ import stryker from '../stryker.config.ts';
 import { findMergeBase, git } from './run-advisory-specs.ts';
 
 export const CHANGE_TARGET = 95;
+export const SMALL_SAMPLE = 20;
 
 export const REPORT_DIR = 'reports/mutation';
 export const STRYKER_JSON = `${REPORT_DIR}/mutation.json`;
@@ -46,13 +47,25 @@ export type Unkilled = Position & {
 
 export type ChangedFile = {
   readonly path: string;
-  readonly kind: 'created' | 'modified';
+  readonly from?: string;
+  readonly kind: 'created' | 'modified' | 'renamed';
   readonly counts: Counts;
   readonly score: number | null;
   readonly unkilled: readonly Unkilled[];
 };
 
-export type Measure = { readonly mutants: number; readonly score: number | null };
+export type UnmeasuredFile = {
+  readonly path: string;
+  readonly from?: string;
+  readonly kind: 'created' | 'modified' | 'renamed' | 'deleted';
+  readonly reason: 'deleted' | 'excluded' | 'non-mutatable' | 'moved' | 'no-changed-mutant';
+};
+
+export type Measure = {
+  readonly mutants: number;
+  readonly score: number | null;
+  readonly counts: Counts;
+};
 
 export type ChangeReport =
   | {
@@ -60,7 +73,9 @@ export type ChangeReport =
       readonly target: number;
       readonly change: Measure;
       readonly surface: Measure;
+      readonly smallSample: boolean;
       readonly files: readonly ChangedFile[];
+      readonly unmeasured: readonly UnmeasuredFile[];
       readonly elapsedMs: number | undefined;
     }
   | {
@@ -78,6 +93,7 @@ export type ChangeReportInput = {
 
 type DiffFile = {
   readonly path: string;
+  readonly from: string | undefined;
   readonly created: boolean;
   readonly deleted: boolean;
   readonly lines: ReadonlySet<number>;
@@ -144,7 +160,9 @@ const DIFF_HEADER = /^diff --git a\/.* b\/(.*)$/;
 
 export function parseDiff(text: string): readonly DiffFile[] {
   const files: DiffFile[] = [];
-  let current: { path: string; created: boolean; deleted: boolean; lines: Set<number> } | undefined;
+  let current:
+    | { path: string; from: string | undefined; created: boolean; deleted: boolean; lines: Set<number> }
+    | undefined;
   let oldLeft = 0;
   let newLeft = 0;
 
@@ -157,7 +175,13 @@ export function parseDiff(text: string): readonly DiffFile[] {
 
     const header = DIFF_HEADER.exec(line);
     if (header !== null) {
-      current = { path: header[1] ?? '', created: false, deleted: false, lines: new Set() };
+      current = {
+        path: header[1] ?? '',
+        from: undefined,
+        created: false,
+        deleted: false,
+        lines: new Set(),
+      };
       files.push(current);
       continue;
     }
@@ -165,6 +189,7 @@ export function parseDiff(text: string): readonly DiffFile[] {
 
     if (line.startsWith('new file mode')) current.created = true;
     else if (line.startsWith('deleted file mode') || line === '+++ /dev/null') current.deleted = true;
+    else if (line.startsWith('rename from ')) current.from = line.slice('rename from '.length);
     else if (line.startsWith('rename to ')) current.path = line.slice('rename to '.length);
     else if (line.startsWith('+++ b/')) current.path = line.slice('+++ b/'.length);
     else {
@@ -218,10 +243,28 @@ const scoreOf = ({ killed, timeout, survived, noCoverage }: Counts): number | nu
   return Math.round(((killed + timeout) / valid) * 10_000) / 100;
 };
 
-const measure = (mutants: readonly Mutant[]): Measure => ({
-  mutants: mutants.length,
-  score: scoreOf(count(mutants)),
-});
+const measure = (mutants: readonly Mutant[]): Measure => {
+  const counts = count(mutants);
+  return { mutants: mutants.length, score: scoreOf(counts), counts };
+};
+
+const kindOf = (changed: DiffFile): UnmeasuredFile['kind'] => {
+  if (changed.deleted) return 'deleted';
+  if (changed.created) return 'created';
+  return changed.from === undefined ? 'modified' : 'renamed';
+};
+
+const unmeasuredReason = (
+  changed: DiffFile,
+  mutants: readonly Mutant[],
+  mutate: readonly string[],
+): UnmeasuredFile['reason'] | undefined => {
+  if (changed.deleted) return 'deleted';
+  if (!inSurface(changed.path, mutate)) return 'excluded';
+  if (mutants.length === 0) return 'non-mutatable';
+  if (changed.from !== undefined && changed.lines.size === 0) return 'moved';
+  return undefined;
+};
 
 const isUnkilled = (
   mutant: Mutant,
@@ -236,18 +279,24 @@ export function buildChangeReport(input: ChangeReportInput): ChangeReport {
   if (!parsed.ok) return { state: 'incomplete', reason: parsed.reason, elapsedMs };
 
   const files: ChangedFile[] = [];
+  const unmeasured: UnmeasuredFile[] = [];
   const changedMutants: Mutant[] = [];
   for (const changed of parseDiff(input.diff)) {
-    if (changed.deleted || !inSurface(changed.path, input.mutate)) continue;
-    const mutants = (parsed.value.get(changed.path) ?? []).filter(
-      (mutant) => changed.created || overlaps(mutant, changed.lines),
-    );
-    if (mutants.length === 0) continue;
+    const kind = kindOf(changed);
+    const from = changed.from === undefined ? {} : { from: changed.from };
+    const all = parsed.value.get(changed.path) ?? [];
+    const reason = unmeasuredReason(changed, all, input.mutate);
+    const mutants = all.filter((mutant) => changed.created || overlaps(mutant, changed.lines));
+    if (reason !== undefined || mutants.length === 0 || kind === 'deleted') {
+      unmeasured.push({ path: changed.path, ...from, kind, reason: reason ?? 'no-changed-mutant' });
+      continue;
+    }
     changedMutants.push(...mutants);
     const counts = count(mutants);
     files.push({
       path: changed.path,
-      kind: changed.created ? 'created' : 'modified',
+      ...from,
+      kind,
       counts,
       score: scoreOf(counts),
       unkilled: mutants
@@ -262,13 +311,16 @@ export function buildChangeReport(input: ChangeReportInput): ChangeReport {
     });
   }
   files.sort((a, b) => a.path.localeCompare(b.path));
+  unmeasured.sort((a, b) => a.path.localeCompare(b.path));
 
   return {
     state: 'complete',
     target: CHANGE_TARGET,
     change: measure(changedMutants),
     surface: measure([...parsed.value.values()].flat()),
+    smallSample: changedMutants.length > 0 && changedMutants.length < SMALL_SAMPLE,
     files,
+    unmeasured,
     elapsedMs,
   };
 }
@@ -281,6 +333,45 @@ const formatElapsed = (ms: number | undefined): string => {
   const minutes = Math.floor(seconds / 60);
   const rest = seconds % 60;
   return minutes === 0 ? `${String(rest)}s` : `${String(minutes)}m ${String(rest)}s`;
+};
+
+const WHY_NOT_MEASURED: Record<UnmeasuredFile['reason'], string> = {
+  deleted: 'contributes nothing',
+  excluded: 'excluded, outside the `mutate` patterns',
+  'non-mutatable': 'non-mutatable, inside the `mutate` patterns with no mutant',
+  moved: 'moved with no edited line',
+  'no-changed-mutant': 'no Changed mutant, no mutant on an edited line',
+};
+
+const describeKind = ({ kind, from }: UnmeasuredFile): string =>
+  from === undefined ? kind : `${kind} from \`${from}\``;
+
+const rawCounts = ({ killed, timeout, survived, noCoverage, errors, ignored }: Counts): string =>
+  [
+    `${String(killed)} killed`,
+    `${String(timeout)} timeout`,
+    `${String(survived)} survived`,
+    `${String(noCoverage)} no coverage`,
+    `${String(errors)} ${errors === 1 ? 'error' : 'errors'}`,
+    `${String(ignored)} ignored`,
+  ].join(', ');
+
+const remaining = (unkilled: number): string => {
+  if (unkilled === 0) return 'none remain';
+  return unkilled === 1 ? '1 remains' : `${String(unkilled)} remain`;
+};
+
+const changeScoreLine = (
+  report: Extract<ChangeReport, { state: 'complete' }>,
+): string => {
+  const { change, target, smallSample } = report;
+  if (change.score === null) {
+    return `**Change score:** N/A, not applicable: no mutant overlaps a line this pull request adds or modifies. Target ${String(target)}%.`;
+  }
+  if (smallSample) {
+    return `**Change score:** ${String(change.mutants)} Changed mutants, fewer than ${String(SMALL_SAMPLE)}: ${rawCounts(change.counts)}. The target is zero survived or no-coverage mutants, and ${remaining(change.counts.survived + change.counts.noCoverage)}.`;
+  }
+  return `**Change score:** ${percent(change.score)} of ${String(change.mutants)} Changed mutants, against a target of ${String(target)}%.`;
 };
 
 export function renderChangeReport(report: ChangeReport): string {
@@ -298,11 +389,8 @@ export function renderChangeReport(report: ChangeReport): string {
     ].join('\n');
   }
 
-  const { change, surface, target, files } = report;
-  const changeLine =
-    change.score === null
-      ? `**Change score:** not applicable: no mutant overlaps a line this pull request adds or modifies. Target ${String(target)}%.`
-      : `**Change score:** ${percent(change.score)} of ${String(change.mutants)} Changed mutants, against a target of ${String(target)}%.`;
+  const { surface, files, unmeasured } = report;
+  const changeLine = changeScoreLine(report);
   const surfaceLine =
     surface.score === null
       ? `**Whole-surface score:** not applicable: the surface holds no mutant.`
@@ -321,11 +409,11 @@ export function renderChangeReport(report: ChangeReport): string {
 
   if (files.length > 0) {
     lines.push(
-      '| File | Kind | Killed | Survived | No coverage | Timeout | Errors | Score |',
-      '| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |',
+      '| File | Kind | Killed | Survived | No coverage | Timeout | Errors | Ignored | Score |',
+      '| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |',
       ...files.map(
         ({ path: file, kind, counts, score }) =>
-          `| \`${file}\` | ${kind} | ${String(counts.killed)} | ${String(counts.survived)} | ${String(counts.noCoverage)} | ${String(counts.timeout)} | ${String(counts.errors)} | ${score === null ? 'n/a' : percent(score)} |`,
+          `| \`${file}\` | ${kind} | ${String(counts.killed)} | ${String(counts.survived)} | ${String(counts.noCoverage)} | ${String(counts.timeout)} | ${String(counts.errors)} | ${String(counts.ignored)} | ${score === null ? 'n/a' : percent(score)} |`,
       ),
       '',
     );
@@ -337,6 +425,17 @@ export function renderChangeReport(report: ChangeReport): string {
       ),
     );
     if (unkilled.length > 0) lines.push('### Survived and no coverage', '', ...unkilled, '');
+  }
+
+  if (unmeasured.length > 0) {
+    lines.push(
+      '### Not measured',
+      '',
+      ...unmeasured.map(
+        (file) => `- \`${file.path}\`, ${describeKind(file)}: ${WHY_NOT_MEASURED[file.reason]}`,
+      ),
+      '',
+    );
   }
 
   lines.push(elapsed, '');

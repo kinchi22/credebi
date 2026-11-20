@@ -83,6 +83,41 @@ const modified = (file: string, ...hunks: readonly (readonly [number, number])[]
     ]),
   ].join('\n');
 
+const renamed = (
+  from: string,
+  to: string,
+  ...hunks: readonly (readonly [number, number])[]
+): string =>
+  [
+    `diff --git a/${from} b/${to}`,
+    `similarity index ${hunks.length === 0 ? '100' : '90'}%`,
+    `rename from ${from}`,
+    `rename to ${to}`,
+    ...(hunks.length === 0
+      ? []
+      : [
+          'index 1111111..2222222 100644',
+          `--- a/${from}`,
+          `+++ b/${to}`,
+          ...hunks.flatMap(([start, count]) => [
+            `@@ -${String(start)},${String(count)} +${String(start)},${String(count)} @@`,
+            ...Array.from({ length: count }, () => '-old'),
+            ...Array.from({ length: count }, () => '+new'),
+          ]),
+        ]),
+  ].join('\n');
+
+const deleted = (file: string, lines: number): string =>
+  [
+    `diff --git a/${file} b/${file}`,
+    'deleted file mode 100644',
+    'index 1111111..0000000',
+    `--- a/${file}`,
+    '+++ /dev/null',
+    `@@ -1,${String(lines)} +0,0 @@`,
+    ...Array.from({ length: lines }, (_, i) => `-line ${String(i + 1)}`),
+  ].join('\n');
+
 const complete = (report: ChangeReport): Extract<ChangeReport, { state: 'complete' }> => {
   if (report.state !== 'complete') throw new Error(`expected a complete report, got ${report.reason}`);
   return report;
@@ -96,6 +131,9 @@ const build = (
 
 const OLD = 'packages/core/src/ledger/domain/entry.ts';
 const NEW = 'packages/core/src/ledger/domain/balance.ts';
+const MOVED = 'packages/core/src/ledger/domain/posting.ts';
+const ROUTER = 'apps/web/server/routers/ledger.ts';
+const TYPES = 'packages/contracts/src/ledger-types.ts';
 
 describe('the Change score', () => {
   it('scores a new file whose tests kill nothing low while the whole surface stays above the floor', () => {
@@ -104,7 +142,7 @@ describe('the Change score', () => {
       created(NEW, 4),
     );
 
-    expect(report.change).toEqual({ mutants: 10, score: 0 });
+    expect(report.change).toMatchObject({ mutants: 10, score: 0 });
     expect(report.surface.score).toBeGreaterThanOrEqual(90);
     expect(report.surface.mutants).toBe(210);
   });
@@ -112,7 +150,7 @@ describe('the Change score', () => {
   it('counts every mutant of a file the pull request creates, beyond the lines of its hunks', () => {
     const report = build({ [NEW]: [mutant('Killed', 1), mutant('Survived', 40)] }, created(NEW, 2));
 
-    expect(report.change).toEqual({ mutants: 2, score: 50 });
+    expect(report.change).toMatchObject({ mutants: 2, score: 50 });
   });
 
   it('counts only the mutants that overlap an added or modified line of a modified file', () => {
@@ -128,7 +166,7 @@ describe('the Change score', () => {
       modified(OLD, [10, 2]),
     );
 
-    expect(report.change).toEqual({ mutants: 2, score: 0 });
+    expect(report.change).toMatchObject({ mutants: 2, score: 0 });
     expect(report.files.map((file) => file.counts.survived)).toEqual([2]);
   });
 
@@ -145,7 +183,7 @@ describe('the Change score', () => {
       modified(OLD, [10, 3]),
     );
 
-    expect(report.change).toEqual({ mutants: 2, score: 50 });
+    expect(report.change).toMatchObject({ mutants: 2, score: 50 });
   });
 
   it('counts a mutant that starts before a hunk and ends inside it', () => {
@@ -154,7 +192,7 @@ describe('the Change score', () => {
       modified(OLD, [10, 1]),
     );
 
-    expect(report.change).toEqual({ mutants: 1, score: 0 });
+    expect(report.change).toMatchObject({ mutants: 1, score: 0 });
   });
 
   it('does not count a mutant whose exclusive end falls at the first column of a hunk', () => {
@@ -163,7 +201,7 @@ describe('the Change score', () => {
       modified(OLD, [10, 1]),
     );
 
-    expect(report.change).toEqual({ mutants: 0, score: null });
+    expect(report.change).toMatchObject({ mutants: 0, score: null });
   });
 
   it('counts no line for a hunk that only deletes', () => {
@@ -179,7 +217,7 @@ describe('the Change score', () => {
 
     const report = build({ [OLD]: [mutant('Survived', 9), mutant('Survived', 10)] }, diff);
 
-    expect(report.change).toEqual({ mutants: 0, score: null });
+    expect(report.change).toMatchObject({ mutants: 0, score: null });
   });
 
   it('reads a hunk header that omits its count as one line', () => {
@@ -194,7 +232,7 @@ describe('the Change score', () => {
 
     const report = build({ [OLD]: [mutant('Killed', 7), mutant('Survived', 8)] }, diff);
 
-    expect(report.change).toEqual({ mutants: 1, score: 100 });
+    expect(report.change).toMatchObject({ mutants: 1, score: 100 });
   });
 
   it('counts the way Stryker does: timeouts as detected, errors and ignored outside the denominator', () => {
@@ -213,7 +251,7 @@ describe('the Change score', () => {
       created(NEW, 1),
     );
 
-    expect(report.change).toEqual({ mutants: 7, score: 50 });
+    expect(report.change).toMatchObject({ mutants: 7, score: 50 });
     expect(report.files[0]?.counts).toEqual({
       killed: 1,
       survived: 1,
@@ -227,7 +265,7 @@ describe('the Change score', () => {
   it('is not applicable, never 100, when no mutant overlaps the change', () => {
     const report = build({ [OLD]: many(3, 'Killed', 50) }, modified(OLD, [1, 1]));
 
-    expect(report.change).toEqual({ mutants: 0, score: null });
+    expect(report.change).toMatchObject({ mutants: 0, score: null });
     const changeLine = renderChangeReport(report)
       .split('\n')
       .find((line) => line.startsWith('**Change score:**'));
@@ -236,11 +274,30 @@ describe('the Change score', () => {
   });
 
   it('counts no file outside the mutate patterns, even when the report holds it', () => {
-    const router = 'apps/web/server/routers/ledger.ts';
-    const report = build({ [router]: many(2, 'Survived') }, created(router, 3));
+    const report = build({ [ROUTER]: many(2, 'Survived') }, created(ROUTER, 3));
 
-    expect(report.change).toEqual({ mutants: 0, score: null });
+    expect(report.change).toMatchObject({ mutants: 0, score: null });
     expect(report.files).toEqual([]);
+  });
+
+  it('counts the errors and ignored mutants of the change apart from its score', () => {
+    const report = build(
+      {
+        [NEW]: [
+          mutant('Killed', 1),
+          mutant('CompileError', 1),
+          mutant('RuntimeError', 1),
+          mutant('Ignored', 1),
+        ],
+      },
+      created(NEW, 1),
+    );
+
+    expect(report.change).toEqual({
+      mutants: 4,
+      score: 100,
+      counts: { killed: 1, survived: 0, noCoverage: 0, timeout: 0, errors: 2, ignored: 1 },
+    });
   });
 
   it('lists each changed file with its unkilled mutants, location and mutator', () => {
@@ -275,6 +332,127 @@ describe('the Change score', () => {
         unkilled: [{ line: 4, column: 3, mutator: 'BlockStatement', status: 'Survived' }],
       },
     ]);
+  });
+});
+
+describe('every changed file', () => {
+  it('counts nothing of a file only renamed, and lists it as moved', () => {
+    const report = build({ [MOVED]: many(3, 'Survived', 2) }, renamed(OLD, MOVED));
+
+    expect(report.change).toMatchObject({ mutants: 0, score: null });
+    expect(report.files).toEqual([]);
+    expect(report.unmeasured).toEqual([{ path: MOVED, from: OLD, kind: 'renamed', reason: 'moved' }]);
+  });
+
+  it('counts only the edited lines of a file renamed with edits', () => {
+    const report = build(
+      { [MOVED]: [mutant('Survived', 2), mutant('Killed', 7), mutant('Survived', 30)] },
+      renamed(OLD, MOVED, [7, 1]),
+    );
+
+    expect(report.change).toMatchObject({ mutants: 1, score: 100 });
+    expect(report.files).toMatchObject([{ path: MOVED, from: OLD, kind: 'renamed' }]);
+    expect(report.unmeasured).toEqual([]);
+  });
+
+  it('counts nothing of a deleted file, and lists it as deleted', () => {
+    const report = build({ [OLD]: many(2, 'Survived') }, deleted(OLD, 4));
+
+    expect(report.change).toMatchObject({ mutants: 0, score: null });
+    expect(report.unmeasured).toEqual([{ path: OLD, kind: 'deleted', reason: 'deleted' }]);
+  });
+
+  it('lists a file outside the mutate patterns as excluded', () => {
+    const report = build({ [OLD]: many(2, 'Killed') }, modified(ROUTER, [3, 1]));
+
+    expect(report.unmeasured).toEqual([{ path: ROUTER, kind: 'modified', reason: 'excluded' }]);
+  });
+
+  it('lists a file inside the mutate patterns whose report entry holds no mutant as non-mutatable', () => {
+    const report = build({ [TYPES]: [], [OLD]: many(2, 'Killed') }, created(TYPES, 5));
+
+    expect(report.change).toMatchObject({ mutants: 0, score: null });
+    expect(report.unmeasured).toEqual([{ path: TYPES, kind: 'created', reason: 'non-mutatable' }]);
+  });
+
+  it('lists a file inside the mutate patterns that the report omits as non-mutatable', () => {
+    const report = build({ [OLD]: many(2, 'Killed') }, modified(TYPES, [1, 1]));
+
+    expect(report.unmeasured).toEqual([{ path: TYPES, kind: 'modified', reason: 'non-mutatable' }]);
+  });
+
+  it('lists a modified file whose edited lines hold no mutant apart from the measured ones', () => {
+    const report = build({ [OLD]: many(2, 'Killed', 50) }, modified(OLD, [1, 1]));
+
+    expect(report.files).toEqual([]);
+    expect(report.unmeasured).toEqual([{ path: OLD, kind: 'modified', reason: 'no-changed-mutant' }]);
+  });
+
+  it('classifies every file of one diff, measured or not, each in path order', () => {
+    const report = build(
+      { [NEW]: many(2, 'Killed'), [OLD]: many(1, 'Killed'), [MOVED]: many(1, 'Killed') },
+      [
+        created(NEW, 2),
+        modified(ROUTER, [1, 1]),
+        created(TYPES, 3),
+        deleted(OLD, 1),
+        renamed('packages/core/src/ledger/domain/old-posting.ts', MOVED),
+      ].join('\n'),
+    );
+
+    expect(report.files.map(({ path: file }) => file)).toEqual([NEW]);
+    expect(report.unmeasured.map(({ path: file, reason }) => [file, reason])).toEqual([
+      [ROUTER, 'excluded'],
+      [TYPES, 'non-mutatable'],
+      [OLD, 'deleted'],
+      [MOVED, 'moved'],
+    ]);
+  });
+});
+
+describe('a small change', () => {
+  it('is a small sample below 20 Changed mutants', () => {
+    expect(build({ [NEW]: many(19, 'Killed') }, created(NEW, 1)).smallSample).toBe(true);
+  });
+
+  it('is no small sample at 20 Changed mutants', () => {
+    expect(build({ [NEW]: many(20, 'Killed') }, created(NEW, 1)).smallSample).toBe(false);
+  });
+
+  it('is no small sample with no Changed mutant, being not applicable', () => {
+    expect(build({ [OLD]: many(2, 'Killed', 50) }, modified(OLD, [1, 1])).smallSample).toBe(false);
+  });
+
+  it('shows its raw counts and the rule of zero survived or no-coverage mutants instead of a percentage', () => {
+    const report = build(
+      {
+        [NEW]: [
+          mutant('Killed', 1),
+          mutant('Killed', 1),
+          mutant('Timeout', 1),
+          mutant('Survived', 1),
+          mutant('NoCoverage', 1),
+          mutant('CompileError', 1),
+          mutant('Ignored', 1),
+        ],
+      },
+      created(NEW, 1),
+    );
+    const changeLine = renderChangeReport(report)
+      .split('\n')
+      .find((line) => line.startsWith('**Change score:**'));
+
+    expect(changeLine).toBe(
+      '**Change score:** 7 Changed mutants, fewer than 20: 2 killed, 1 timeout, 1 survived, 1 no coverage, 1 error, 1 ignored. The target is zero survived or no-coverage mutants, and 2 remain.',
+    );
+  });
+
+  it('meets its target with no survived or no-coverage mutant', () => {
+    const changeLine = renderChangeReport(build({ [NEW]: many(3, 'Killed') }, created(NEW, 1)))
+      .split('\n')
+      .find((line) => line.startsWith('**Change score:**'));
+
+    expect(changeLine).toContain('The target is zero survived or no-coverage mutants, and none remain.');
   });
 });
 
@@ -322,7 +500,7 @@ describe('the rendered report', () => {
   const report = build(
     {
       [OLD]: many(97, 'Killed'),
-      [NEW]: [mutant('Killed', 1), mutant('Survived', 2, { mutator: 'EqualityOperator' })],
+      [NEW]: [...many(19, 'Killed'), mutant('Survived', 2, { mutator: 'EqualityOperator' })],
     },
     created(NEW, 2),
   );
@@ -330,9 +508,9 @@ describe('the rendered report', () => {
 
   it('states the Change score against its target, apart from the whole-surface score', () => {
     expect(markdown).toContain(
-      '**Change score:** 50.00% of 2 Changed mutants, against a target of 95%',
+      '**Change score:** 95.00% of 20 Changed mutants, against a target of 95%',
     );
-    expect(markdown).toContain('**Whole-surface score:** 98.99% of 99 mutants');
+    expect(markdown).toContain('**Whole-surface score:** 99.15% of 117 mutants');
   });
 
   it('says the Change score fails nothing', () => {
@@ -340,12 +518,73 @@ describe('the rendered report', () => {
   });
 
   it('lists each changed file with its counts and its unkilled mutants', () => {
-    expect(markdown).toContain(`| \`${NEW}\` | created | 1 | 1 | 0 | 0 | 0 | 50.00% |`);
+    expect(markdown).toContain(`| \`${NEW}\` | created | 19 | 1 | 0 | 0 | 0 | 0 | 95.00% |`);
     expect(markdown).toContain(`- \`${NEW}:2:3\` EqualityOperator, Survived`);
   });
 
   it('states the elapsed time', () => {
     expect(markdown).toContain('8m 12s');
+  });
+});
+
+describe('the rendered files not measured', () => {
+  const report = build(
+    { [NEW]: many(20, 'Killed'), [OLD]: many(1, 'Killed', 40), [MOVED]: many(1, 'Killed') },
+    [
+      created(NEW, 2),
+      modified(ROUTER, [1, 1]),
+      created(TYPES, 3),
+      modified(OLD, [1, 1]),
+      deleted('packages/core/src/ledger/domain/gone.ts', 1),
+      renamed('packages/core/src/ledger/domain/old-posting.ts', MOVED),
+    ].join('\n'),
+  );
+  const [measured = '', notMeasured = ''] = renderChangeReport(report).split('### Not measured');
+
+  it('lists only the measured file in the table', () => {
+    expect(measured).toContain(`| \`${NEW}\` | created |`);
+    for (const file of [ROUTER, TYPES, OLD, MOVED, 'gone.ts']) {
+      expect(measured).not.toContain(file);
+    }
+  });
+
+  it('lists every other file apart, with why it was not measured', () => {
+    expect(notMeasured).toContain(
+      `- \`${ROUTER}\`, modified: excluded, outside the \`mutate\` patterns`,
+    );
+    expect(notMeasured).toContain(
+      `- \`${TYPES}\`, created: non-mutatable, inside the \`mutate\` patterns with no mutant`,
+    );
+    expect(notMeasured).toContain(
+      `- \`${OLD}\`, modified: no Changed mutant, no mutant on an edited line`,
+    );
+    expect(notMeasured).toContain(
+      '- `packages/core/src/ledger/domain/gone.ts`, deleted: contributes nothing',
+    );
+    expect(notMeasured).toContain(
+      `- \`${MOVED}\`, renamed from \`packages/core/src/ledger/domain/old-posting.ts\`: moved with no edited line`,
+    );
+  });
+
+  it('shows no section of files not measured when every file is measured', () => {
+    expect(
+      renderChangeReport(build({ [NEW]: many(1, 'Killed') }, created(NEW, 1))),
+    ).not.toContain('Not measured');
+  });
+});
+
+describe('the rendered report of a change with no Changed mutant', () => {
+  const markdown = renderChangeReport(
+    build({ [OLD]: many(1, 'Killed', 40) }, modified(ROUTER, [1, 1])),
+  );
+
+  it('shows N/A rather than a score', () => {
+    expect(markdown).toContain('**Change score:** N/A');
+    expect(markdown).not.toMatch(/Change score:\*\* \d/);
+  });
+
+  it('still lists the files not measured', () => {
+    expect(markdown).toContain(`### Not measured\n\n- \`${ROUTER}\`, modified: excluded`);
   });
 });
 
