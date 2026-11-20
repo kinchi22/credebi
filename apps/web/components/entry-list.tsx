@@ -123,7 +123,7 @@ function SideLine({
       aria-label={
         accountType === undefined ? undefined : cuedName(line.accountName, accountType, line.side)
       }
-      style={{ viewTransitionName: transitionName, viewTransitionClass: 'entry-line' }}
+      style={{ viewTransitionName: transitionName, viewTransitionClass: 'entry-expansion-line' }}
       className="flex items-baseline gap-x-3 py-1"
     >
       <LineAccount line={line} accountType={accountType} />{' '}
@@ -187,16 +187,16 @@ type EntryExpansion = {
 function useEntryExpansion(): EntryExpansion {
   const [expanded, setExpanded] = useState(false);
   const chevron = useRef<HTMLButtonElement>(null);
-  const flip = (): void => {
+  const toggleAtOnce = (): void => {
     setExpanded((current) => !current);
   };
   const toggle = (): void => {
     if (window.matchMedia(REDUCED_MOTION_QUERY).matches || !('startViewTransition' in document)) {
-      flip();
+      toggleAtOnce();
       return;
     }
     document.startViewTransition(() => {
-      flushSync(flip);
+      flushSync(toggleAtOnce);
     });
   };
   return {
@@ -229,7 +229,7 @@ function ListedEntry({
       role="rowgroup"
       data-testid="entry"
       onClick={expandable ? toggleOnBodyClick : undefined}
-      style={{ viewTransitionName: entryTransitionName(entry), viewTransitionClass: 'entry' }}
+      style={{ viewTransitionName: entryTransitionName(entry), viewTransitionClass: 'entry-expansion' }}
       className={`${PANEL_BLEED} relative grid grid-cols-1 @list:grid-cols-2 ${compact ? '@max-list:grid-cols-2' : ''} ${expandable ? '@max-list:cursor-pointer' : ''} border-t border-border py-4 first:border-t-0 first:pt-1 hover:bg-surface-hover ${typeClasses['body-dense']}`}
     >
       <div role="row" className="contents">

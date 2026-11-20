@@ -152,16 +152,17 @@
   }
 }
 
-::view-transition-group(.entry),
-::view-transition-group(.entry-line) {
+::view-transition-group(root),
+::view-transition-group(.entry-expansion),
+::view-transition-group(.entry-expansion-line) {
   animation-duration: 200ms;
   animation-timing-function: ease-out;
 }
 
-::view-transition-old(.entry),
-::view-transition-new(.entry),
-::view-transition-old(.entry-line),
-::view-transition-new(.entry-line) {
+::view-transition-old(.entry-expansion),
+::view-transition-new(.entry-expansion),
+::view-transition-old(.entry-expansion-line),
+::view-transition-new(.entry-expansion-line) {
   height: 100%;
   width: 100%;
   object-fit: none;
