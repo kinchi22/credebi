@@ -32,18 +32,20 @@ export type EntryListProps = {
   readonly controls: EntryControls;
 };
 
-const CREDIT_DIVIDER = '@min-[40rem]:border-l @min-[40rem]:border-l-border';
+const CREDIT_DIVIDER = '@list:border-l @list:border-l-border';
 
 const SIDE_RULE = 'border-t-[1.5px]';
 
-const SIDE_HEADING_PLACE: Readonly<Record<Side, string>> = {
+const LINE_AMOUNT = `ml-auto shrink-0 whitespace-nowrap text-right ${typeClasses.figure}`;
+
+const SIDE_HEADING_GRID: Readonly<Record<Side, string>> = {
   debit: `col-start-1 row-start-2 ${SIDE_RULE} px-4 pt-2`,
-  credit: `col-start-1 row-start-4 mt-2 @min-[40rem]:col-start-2 @min-[40rem]:row-start-2 @min-[40rem]:mt-0 ${SIDE_RULE} px-4 pt-2 ${CREDIT_DIVIDER}`,
+  credit: `col-start-1 row-start-4 mt-2 @list:col-start-2 @list:row-start-2 @list:mt-0 ${SIDE_RULE} px-4 pt-2 ${CREDIT_DIVIDER}`,
 };
 
-const SIDE_LINES_PLACE: Readonly<Record<Side, string>> = {
+const SIDE_LINES_GRID: Readonly<Record<Side, string>> = {
   debit: 'col-start-1 row-start-3 px-4 pb-1',
-  credit: `col-start-1 row-start-5 @min-[40rem]:col-start-2 @min-[40rem]:row-start-3 px-4 pb-1 ${CREDIT_DIVIDER}`,
+  credit: `col-start-1 row-start-5 @list:col-start-2 @list:row-start-3 px-4 pb-1 ${CREDIT_DIVIDER}`,
 };
 
 const SIDE_HEADING = `${typeClasses.label} leading-5`;
@@ -56,7 +58,7 @@ function SideHeadings({ named }: { readonly named: boolean }): ReactNode {
         <span
           key={side}
           role={named ? 'columnheader' : undefined}
-          className={`${SIDE_HEADING_PLACE[side]} ${SIDE_HEADING} ${SIDE_TONE[side].edge} ${SIDE_TONE[side].text}`}
+          className={`${SIDE_HEADING_GRID[side]} ${SIDE_HEADING} ${SIDE_TONE[side].edge} ${SIDE_TONE[side].text}`}
         >
           {t(`sides.${side}`)}
         </span>
@@ -99,7 +101,7 @@ function SideLine({
       className="flex items-baseline gap-x-3 py-1"
     >
       <LineAccount line={line} accountType={accountType} />{' '}
-      <span className={`ml-auto shrink-0 whitespace-nowrap text-right ${typeClasses.figure} ${SIDE_TONE[line.side].text}`}>
+      <span className={`${LINE_AMOUNT} ${SIDE_TONE[line.side].text}`}>
         {formatAmount(line.amount)}
       </span>
     </li>
@@ -116,7 +118,7 @@ function SideLines({
   readonly accountTypes: AccountTypes;
 }): ReactNode {
   return (
-    <div role="cell" className={`min-w-0 ${SIDE_LINES_PLACE[side]} ${SIDE_TONE[side].edge}`}>
+    <div role="cell" className={`min-w-0 ${SIDE_LINES_GRID[side]} ${SIDE_TONE[side].edge}`}>
       <ul>
         {linesOn(entry, side).map((line, index) => (
           <SideLine key={index} line={line} accountType={accountTypes.get(line.account)} />
@@ -142,7 +144,7 @@ function ListedEntry({
     <div
       role="rowgroup"
       data-testid="entry"
-      className={`${PANEL_BLEED} grid grid-cols-1 @min-[40rem]:grid-cols-2 border-t border-border py-4 first:border-t-0 first:pt-1 hover:bg-surface-hover ${typeClasses['body-dense']}`}
+      className={`${PANEL_BLEED} grid grid-cols-1 @list:grid-cols-2 border-t border-border py-4 first:border-t-0 first:pt-1 hover:bg-surface-hover ${typeClasses['body-dense']}`}
     >
       <div role="row" className="contents">
         <div
@@ -150,7 +152,7 @@ function ListedEntry({
           className="col-span-full row-start-1 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-2 gap-y-1 pb-2"
         >
           <p
-            className={`contents @min-[40rem]:col-start-1 @min-[40rem]:row-start-1 @min-[40rem]:flex @min-[40rem]:min-w-0 @min-[40rem]:items-baseline @min-[40rem]:gap-x-3.5 ${typeClasses['body-sm']}`}
+            className={`contents @list:col-start-1 @list:row-start-1 @list:flex @list:min-w-0 @list:items-baseline @list:gap-x-3.5 ${typeClasses['body-sm']}`}
           >
             <time
               dateTime={entry.entryDate}
@@ -158,7 +160,7 @@ function ListedEntry({
             >
               {entry.entryDate}
             </time>{' '}
-            <span className="contents @min-[40rem]:flex @min-[40rem]:min-w-0 @min-[40rem]:grow @min-[40rem]:flex-wrap @min-[40rem]:items-baseline @min-[40rem]:gap-x-2">
+            <span className="contents @list:flex @list:min-w-0 @list:grow @list:flex-wrap @list:items-baseline @list:gap-x-2">
               {entry.title === '' ? null : (
                 <>
                   <span className="col-start-1 row-start-2 self-baseline font-semibold wrap-anywhere">

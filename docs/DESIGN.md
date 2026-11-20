@@ -465,8 +465,12 @@ where the wide Account picker puts Debit and Credit side by side and the
 entry form takes a fixed column. The
 stylesheet resets `--breakpoint-*` to `initial`, as it does the colours, so
 Tailwind's default breakpoints do not exist and these two are the only ones.
-The Entries list alone is laid out by its own width rather than the window's,
-by a container query at 40rem, as its component below says.
+The Entries list alone is laid out by its own width rather than the window's.
+`containerWidths` in the tokens module holds that width, `list` at 640px, and
+the stylesheet declares it as `--container-list: 40rem`, which the utilities
+take as the `@list:` variant on a descendant of the list, the `@container`.
+`--container-*` is not reset: Tailwind's own container widths still back the
+`max-w-*` utilities.
 
 The signed-in page's `main` fills the width at every size: below `wide` the
 whole screen, and from `wide` up all of it beside the Sidebar, with no maximum
@@ -974,18 +978,18 @@ numerals.
   4px below the panel's padding. Each Entry is padded 16px above and below and
   reaches the panel's edges, as `PANEL_BLEED` does, and under the pointer it is
   tinted `surface-hover`. The list lays itself out by its own width, not the
-  window's: a container query on the list at 40rem decides the header and the
-  lines, and no viewport breakpoint does. The header holds the date in `date`
-  and `text-muted`, the Title, when it has one, semibold in `text`, the memo
-  Regular in `text-muted`, the Entry's total in `figure`, medium, and the row
-  actions. From 40rem it is one row: the date, then the Title and memo filling
-  the space and wrapping together, then the total, then the actions; the date,
-  the total and the actions keep their place on the first line while the text
-  grows downward between them. Below 40rem it takes three rows: the date with
-  the actions at the right; the Title with the total at the right, or the total
-  alone at the right when there is no Title; and the memo across the full
-  width, a row that is absent when there is no memo. Below the header every
-  Entry lays its lines out alike, whatever their count: each Side headed by the
+  window's: the `list` container width, 40rem of the list, decides how an
+  Entry's top and its lines are laid out, and no viewport breakpoint does. Above
+  its lines an Entry shows the date in `date` and `text-muted`, the Title, when
+  it has one, semibold in `text`, the memo Regular in `text-muted`, the Entry's
+  total in `figure`, medium, and the row actions. From 40rem these are one row:
+  the date, then the Title and memo filling the space and wrapping together,
+  then the total, then the actions; the date, the total and the actions keep
+  their place on the first line while the text grows downward between them.
+  Below 40rem they take three rows: the date with the actions at the right; the
+  Title with the total at the right, or the total alone at the right when there
+  is no Title; and the memo across the full width, a row that is absent when
+  there is no memo. Below them every Entry lays its lines out alike, whatever their count: each Side headed by the
   Side in `label` and the Side's colour over a 1.5px rule in that colour. From
   40rem the two Sides are two equal columns, Debit and Credit, Credit's behind
   a `border` hairline. Below 40rem they stack, full width, Credit 8px below

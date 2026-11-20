@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { colorDifference, contrastRatio } from './contrast';
 import {
   breakpoints,
+  containerWidths,
   CONTROL_EDGE_MINIMUM,
   controlEdgePairs,
   controlFontSize,
@@ -265,6 +266,12 @@ describe('the breakpoints', () => {
   });
 });
 
+describe('the container widths', () => {
+  it('holds one container width, the Entries list laying itself out from 640px of its own width', () => {
+    expect(containerWidths).toEqual({ list: 640 });
+  });
+});
+
 describe('the shapes', () => {
   it('rounds a control 6px, a panel 8px and the Sign in card 12px', () => {
     expect(radii).toEqual({ control: 6, panel: 8, card: 12 });
@@ -350,6 +357,10 @@ describe('themeDeclarations', () => {
     expect(themeDeclarations()['--breakpoint-split']).toBe('80rem');
   });
 
+  it('declares each container width in rem, the unit of the container widths Tailwind keeps', () => {
+    expect(themeDeclarations()['--container-list']).toBe('40rem');
+  });
+
   it('declares each radius in px', () => {
     const declarations = themeDeclarations();
     expect(declarations['--radius-control']).toBe('6px');
@@ -378,18 +389,19 @@ describe('themeDeclarations', () => {
     expect(declarations['--text-control--font-weight']).toBeUndefined();
   });
 
-  it('declares nothing but the colours, the faces, the type scale, the breakpoints, the radii, the shadows, the control height and the control text size', () => {
+  it('declares nothing but the colours, the faces, the type scale, the breakpoints, the container widths, the radii, the shadows, the control height and the control text size', () => {
     const declarations = themeDeclarations();
     const colours = Object.keys(semanticColors).length;
     const faces = Object.keys(fontFaces).length;
     const typeSteps = Object.values(typeScale);
     const spacing = typeSteps.filter((step) => step.letterSpacing !== undefined).length;
     const widths = Object.keys(breakpoints).length;
+    const containers = Object.keys(containerWidths).length;
     const corners = Object.keys(radii).length;
     const lifts = Object.keys(shadows).length;
     const sizes = Object.keys(textSizeTokens).length;
     expect(Object.keys(declarations)).toHaveLength(
-      colours + faces + typeSteps.length * 3 + spacing + widths + corners + lifts + 1 + sizes,
+      colours + faces + typeSteps.length * 3 + spacing + widths + containers + corners + lifts + 1 + sizes,
     );
   });
 });

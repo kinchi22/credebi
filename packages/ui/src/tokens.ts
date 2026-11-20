@@ -296,6 +296,10 @@ export const breakpoints = {
   split: 1280,
 } as const satisfies Record<string, number>;
 
+export const containerWidths = {
+  list: 640,
+} as const satisfies Record<string, number>;
+
 export type RadiusName = 'control' | 'panel' | 'card';
 
 export const radii: Readonly<Record<RadiusName, number>> = {
@@ -410,6 +414,10 @@ export function themeDeclarations(): Readonly<Record<string, string>> {
     `--breakpoint-${name}`,
     `${String(width / ROOT_FONT_SIZE)}rem`,
   ]);
+  const containers = Object.entries(containerWidths).map(([name, width]): [string, string] => [
+    `--container-${name}`,
+    `${String(width / ROOT_FONT_SIZE)}rem`,
+  ]);
   const corners = Object.entries(radii).map(([name, radius]): [string, string] => [
     `--radius-${name}`,
     px(radius),
@@ -427,6 +435,7 @@ export function themeDeclarations(): Readonly<Record<string, string>> {
     ...faces,
     ...type,
     ...widths,
+    ...containers,
     ...corners,
     ...lifts,
     ['--height-control', px(controlHeight)],
