@@ -68,6 +68,7 @@ status in the ADR itself.
 | [ADR-0030: Draw charts with Recharts](adr/0030-draw-charts-with-recharts.md) | Accepted |
 | [ADR-0031: Authorize MCP clients with our own OAuth server](adr/0031-authorize-mcp-clients-with-our-own-oauth-server.md) | Accepted |
 | [ADR-0032: Identify a retried post by its Request key](adr/0032-identify-a-retried-post-by-its-request-key.md) | Accepted |
+| [ADR-0033: Report the Change score beside the floor](adr/0033-report-the-change-score-beside-the-floor.md) | Accepted |
 
 ## Package layout
 
@@ -207,6 +208,10 @@ the browser suite in `vitest.e2e-liveness.config.ts`, and the mutation runner
 runs the unit config. ADR-0004 carries the reasoning, the numbers and the
 limits; the config is an owned path below, so the exclusion list cannot grow
 without the owner seeing it.
+
+Beside the floor, every pull request's `Mutation testing` job reports its
+Change score, the score of its Changed mutants alone, against a target of 95.
+It is advisory: a low one fails nothing. ADR-0033.
 
 Which files those suites run is gated too. The unit project collects
 `{packages,apps}/**/*.test.ts` as one glob, and
