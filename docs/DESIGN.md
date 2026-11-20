@@ -1013,9 +1013,13 @@ numerals.
   does not expand, and from 40rem nothing is compact and there is no chevron.
   Several Entries may be expanded at once. The state lives in the page for its
   lifetime alone: a width change keeps it, and a reload, a revisit or a new
-  Entry search starts every Entry compact. The change is instant, with no
-  motion. Lines are set in `body-dense`. A detailed line is one row, the
-  Account name on the left and its amount on the right in `figure` and the
+  Entry search starts every Entry compact. The change moves, as a view
+  transition over 200ms, ease-out, both ways: each line glides to its new
+  place, the Side names and the line amounts fade in or out, and the Entries
+  below slide rather than jump, every snapshot anchored at its top left and
+  never stretched. Under `prefers-reduced-motion: reduce`, or where the browser
+  has no view transitions, the change is instant. Lines are set in
+  `body-dense`. A detailed line is one row, the Account name on the left and its amount on the right in `figure` and the
   Side's colour, never wrapped or shrunk. The name is led by its
   Account type's Tile and followed by the line's Balance direction, the 14px
   arrow, up for `Increase` and down for `Decrease`, in `text-muted`, 6px apart,
@@ -1188,10 +1192,11 @@ numerals.
   iOS overscroll bounce reports, changes nothing. Focus reaching `Menu`, or
   anything else in the Top bar, shows it at once. It hides and shows by sliding
   vertically past the top edge over 200ms, ease-out, both ways, without a fade,
-  and instantly under `prefers-reduced-motion: reduce`. This and the Line
-  chart's dot pop are the design's only motion, so neither has a token. Focus starts on the
-  drawer, and Tab reaches `Entries` first. Escape, a click on the scrim or
-  following a link closes it, and focus returns to `Menu`.
+  and instantly under `prefers-reduced-motion: reduce`. This, the Entry
+  expansion in the Entries list and the Line chart's dot pop are the design's
+  only motion, so none has a token. Focus starts on the drawer, and Tab
+  reaches `Entries` first. Escape, a click on the scrim or following a link
+  closes it, and focus returns to `Menu`.
 - **Focus.** A 2px ring on every focusable element: `focus` on a light ground,
   `focus-on-dark` on a dark one, 2px outside its edge. A focused Input adds a
   3px `accent` halo at 25%, `ring-3 ring-accent/25`, around its edge and under

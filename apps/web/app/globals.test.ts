@@ -18,6 +18,19 @@ const themeBlock = (css: string): Readonly<Record<string, string>> =>
     }),
   );
 
+const ruleFor = (selector: string): Readonly<Record<string, string>> => {
+  const rule = [...stylesheet.matchAll(/([^{}]+)\{([^{}]*)\}/gu)].find((match) =>
+    (match[1] ?? '').split(',').some((each) => each.trim() === selector),
+  );
+  return Object.fromEntries(
+    (rule?.[2] ?? '')
+      .split(';')
+      .map((declaration) => /^\s*([\w-]+)\s*:\s*(.+?)\s*$/u.exec(declaration))
+      .filter((match) => match !== null)
+      .map((match): [string, string] => [match[1] ?? '', match[2] ?? '']),
+  );
+};
+
 const COLOUR_RESET = '--color-*';
 const BREAKPOINT_RESET = '--breakpoint-*';
 const RADIUS_RESET = '--radius-*';
@@ -84,6 +97,33 @@ describe('the global stylesheet', () => {
         .map((match): [string, string] => [match[1] ?? '', match[2] ?? '']),
     );
     expect(declarations).toEqual({ 'word-break': 'keep-all', 'overflow-wrap': 'break-word' });
+  });
+
+  it('runs the whole Entry expansion, the page behind it included, over 200ms ease-out', () => {
+    expect(ruleFor('::view-transition-group(root)')).toEqual({
+      'animation-duration': '200ms',
+      'animation-timing-function': 'ease-out',
+    });
+    expect(ruleFor('::view-transition-group(.entry-expansion)')).toEqual(ruleFor('::view-transition-group(root)'));
+    expect(ruleFor('::view-transition-group(.entry-expansion-line)')).toEqual(
+      ruleFor('::view-transition-group(root)'),
+    );
+  });
+
+  it('anchors every Entry and line snapshot of the Entry expansion at its top left, never stretched', () => {
+    for (const snapshot of [
+      '::view-transition-old(.entry-expansion)',
+      '::view-transition-new(.entry-expansion)',
+      '::view-transition-old(.entry-expansion-line)',
+      '::view-transition-new(.entry-expansion-line)',
+    ]) {
+      expect(ruleFor(snapshot)).toEqual({
+        height: '100%',
+        width: '100%',
+        'object-fit': 'none',
+        'object-position': 'left top',
+      });
+    }
   });
 
   it('imports Tailwind', () => {

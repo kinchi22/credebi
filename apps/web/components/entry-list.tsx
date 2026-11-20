@@ -13,6 +13,7 @@ import {
 import { ChevronIcon, Panel, PANEL_BLEED } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { type MouseEvent, type ReactNode, type RefObject, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { formatAmount } from './amount';
 import { DeleteEntry, type DeleteEntryAction } from './delete-entry';
 import { EditEntry, type EditEntryAction } from './edit-entry';
@@ -61,6 +62,13 @@ const COMPACT_HIDDEN = '@max-list:sr-only';
 
 const SIDE_HEADING = `${typeClasses.label} leading-5`;
 
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+
+const entryTransitionName = (entry: PostedEntry): string => `entry-${entry.id}`;
+
+const lineTransitionName = (entry: PostedEntry, side: Side, index: number): string =>
+  `${entryTransitionName(entry)}-${side}-${String(index)}`;
+
 const INTERACTIVE_DESCENDANTS = 'a, button, input, select, textarea, label, dialog, [role="dialog"]';
 
 function SideHeadings({ named, compact }: { readonly named: boolean; readonly compact: boolean }): ReactNode {
@@ -101,10 +109,12 @@ function SideLine({
   line,
   accountType,
   compact,
+  transitionName,
 }: {
   readonly line: PostedLine;
   readonly accountType: AccountType | undefined;
   readonly compact: boolean;
+  readonly transitionName: string;
 }): ReactNode {
   const cuedName = useCuedAccountName();
   return (
@@ -113,6 +123,7 @@ function SideLine({
       aria-label={
         accountType === undefined ? undefined : cuedName(line.accountName, accountType, line.side)
       }
+      style={{ viewTransitionName: transitionName, viewTransitionClass: 'entry-expansion-line' }}
       className="flex items-baseline gap-x-3 py-1"
     >
       <LineAccount line={line} accountType={accountType} />{' '}
@@ -146,6 +157,7 @@ function SideLines({
             line={line}
             accountType={accountTypes.get(line.account)}
             compact={compact}
+            transitionName={lineTransitionName(entry, side, index)}
           />
         ))}
       </ul>
@@ -175,8 +187,17 @@ type EntryExpansion = {
 function useEntryExpansion(): EntryExpansion {
   const [expanded, setExpanded] = useState(false);
   const chevron = useRef<HTMLButtonElement>(null);
-  const toggle = (): void => {
+  const toggleAtOnce = (): void => {
     setExpanded((current) => !current);
+  };
+  const toggle = (): void => {
+    if (window.matchMedia(REDUCED_MOTION_QUERY).matches || !('startViewTransition' in document)) {
+      toggleAtOnce();
+      return;
+    }
+    document.startViewTransition(() => {
+      flushSync(toggleAtOnce);
+    });
   };
   return {
     expanded,
@@ -208,6 +229,7 @@ function ListedEntry({
       role="rowgroup"
       data-testid="entry"
       onClick={expandable ? toggleOnBodyClick : undefined}
+      style={{ viewTransitionName: entryTransitionName(entry), viewTransitionClass: 'entry-expansion' }}
       className={`${PANEL_BLEED} relative grid grid-cols-1 @list:grid-cols-2 ${compact ? '@max-list:grid-cols-2' : ''} ${expandable ? '@max-list:cursor-pointer' : ''} border-t border-border py-4 first:border-t-0 first:pt-1 hover:bg-surface-hover ${typeClasses['body-dense']}`}
     >
       <div role="row" className="contents">
