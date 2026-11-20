@@ -12,7 +12,7 @@ import {
 } from '@repo/contracts';
 import { ChevronIcon, Panel, PANEL_BLEED } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
-import { type MouseEvent, type ReactNode, useRef, useState } from 'react';
+import { type MouseEvent, type ReactNode, type RefObject, useRef, useState } from 'react';
 import { formatAmount } from './amount';
 import { DeleteEntry, type DeleteEntryAction } from './delete-entry';
 import { EditEntry, type EditEntryAction } from './edit-entry';
@@ -61,7 +61,7 @@ const COMPACT_HIDDEN = '@max-list:sr-only';
 
 const SIDE_HEADING = `${typeClasses.label} leading-5`;
 
-const CLICKS_OF_THEIR_OWN = 'a, button, input, select, textarea, label, dialog, [role="dialog"]';
+const INTERACTIVE_DESCENDANTS = 'a, button, input, select, textarea, label, dialog, [role="dialog"]';
 
 function SideHeadings({ named, compact }: { readonly named: boolean; readonly compact: boolean }): ReactNode {
   const t = useTranslations();
@@ -153,6 +153,41 @@ function SideLines({
   );
 }
 
+function togglesOnClick(event: MouseEvent<HTMLElement>, chevron: HTMLButtonElement | null): boolean {
+  const target = event.target;
+  return (
+    chevron !== null &&
+    chevron.checkVisibility() &&
+    target instanceof Element &&
+    event.currentTarget.contains(target) &&
+    target.closest(INTERACTIVE_DESCENDANTS) === null &&
+    window.getSelection()?.isCollapsed !== false
+  );
+}
+
+type EntryExpansion = {
+  readonly expanded: boolean;
+  readonly toggle: () => void;
+  readonly chevron: RefObject<HTMLButtonElement | null>;
+  readonly toggleOnBodyClick: (event: MouseEvent<HTMLElement>) => void;
+};
+
+function useEntryExpansion(): EntryExpansion {
+  const [expanded, setExpanded] = useState(false);
+  const chevron = useRef<HTMLButtonElement>(null);
+  const toggle = (): void => {
+    setExpanded((current) => !current);
+  };
+  return {
+    expanded,
+    toggle,
+    chevron,
+    toggleOnBodyClick: (event) => {
+      if (togglesOnClick(event, chevron.current)) toggle();
+    },
+  };
+}
+
 function ListedEntry({
   entry,
   headsColumns,
@@ -166,23 +201,13 @@ function ListedEntry({
 }): ReactNode {
   const t = useTranslations();
   const expandable = !hasOneLinePerSide(entry);
-  const [expanded, setExpanded] = useState(false);
-  const chevron = useRef<HTMLButtonElement>(null);
+  const { expanded, toggle, chevron, toggleOnBodyClick } = useEntryExpansion();
   const compact = !expanded;
-  const toggle = (): void => {
-    setExpanded((current) => !current);
-  };
   return (
     <div
       role="rowgroup"
       data-testid="entry"
-      onClick={
-        expandable
-          ? (event) => {
-              if (togglesOnClick(event, chevron.current)) toggle();
-            }
-          : undefined
-      }
+      onClick={expandable ? toggleOnBodyClick : undefined}
       className={`${PANEL_BLEED} relative grid grid-cols-1 @list:grid-cols-2 ${compact ? '@max-list:grid-cols-2' : ''} ${expandable ? '@max-list:cursor-pointer' : ''} border-t border-border py-4 first:border-t-0 first:pt-1 hover:bg-surface-hover ${typeClasses['body-dense']}`}
     >
       <div role="row" className="contents">
@@ -265,17 +290,6 @@ function ListedEntry({
   );
 }
 
-function togglesOnClick(event: MouseEvent<HTMLElement>, chevron: HTMLButtonElement | null): boolean {
-  const target = event.target;
-  return (
-    chevron !== null &&
-    chevron.checkVisibility() &&
-    target instanceof Element &&
-    event.currentTarget.contains(target) &&
-    target.closest(CLICKS_OF_THEIR_OWN) === null &&
-    window.getSelection()?.isCollapsed !== false
-  );
-}
 
 export function EntryList({ entries, controls }: EntryListProps): ReactNode {
   const t = useTranslations();
