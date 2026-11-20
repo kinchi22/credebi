@@ -455,6 +455,7 @@ export const ko = {
     empty: '아직 거래가 없습니다.',
     total: '합계',
     line: '{account}, {type}, {direction}',
+    expand: '{date} {entry} 펼치기',
   },
   editEntry: {
     open: '수정',
