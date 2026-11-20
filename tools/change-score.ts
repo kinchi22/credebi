@@ -1,7 +1,7 @@
-import { execFileSync } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import stryker from '../stryker.config.ts';
+import { findMergeBase, git } from './run-advisory-specs.ts';
 
 export const CHANGE_TARGET = 95;
 
@@ -39,9 +39,7 @@ export type Counts = {
   readonly ignored: number;
 };
 
-export type Unkilled = {
-  readonly line: number;
-  readonly column: number;
+export type Unkilled = Position & {
   readonly mutator: string;
   readonly status: 'Survived' | 'NoCoverage';
 };
@@ -345,25 +343,31 @@ export function renderChangeReport(report: ChangeReport): string {
   return lines.join('\n');
 }
 
-const git = (...args: readonly string[]): string =>
-  execFileSync('git', ['-c', 'core.quotePath=false', ...args], {
-    encoding: 'utf8',
-    maxBuffer: 64 * 1024 * 1024,
-  });
-
 if (import.meta.main) {
   const base = process.argv[2];
   if (base === undefined || base === '') {
     throw new Error('Usage: node tools/change-score.ts <base-ref>');
   }
 
-  const mergeBase = git('merge-base', base, 'HEAD').trim();
-  const diff = git('diff', '--no-color', '--no-ext-diff', '-U0', '-M', mergeBase, 'HEAD');
+  const found = findMergeBase(process.cwd(), base);
+  if (!found.ok) throw new Error(found.problem);
+  const diff = git(process.cwd(), [
+    '-c',
+    'core.quotePath=false',
+    'diff',
+    '--no-color',
+    '--no-ext-diff',
+    '-U0',
+    '-M',
+    found.mergeBase,
+    found.head,
+  ]);
+  if (!diff.ok) throw new Error(diff.problem);
   const startedAt = Number(process.env['MUTATION_STARTED_AT']);
 
   const report = buildChangeReport({
     report: existsSync(STRYKER_JSON) ? readFileSync(STRYKER_JSON, 'utf8') : undefined,
-    diff,
+    diff: diff.stdout,
     mutate: stryker.mutate,
     elapsedMs: Number.isFinite(startedAt) && startedAt > 0 ? Date.now() - startedAt * 1000 : undefined,
   });

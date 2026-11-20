@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import stryker from '../../stryker.config';
 import {
   buildChangeReport,
-  CHANGE_TARGET,
   renderChangeReport,
   type ChangeReport,
 } from '../change-score';
@@ -25,12 +24,7 @@ type Mutant = {
   readonly mutator?: string;
 };
 
-const MUTATE = [
-  'packages/core/src/*/{domain,application}/**/*.ts',
-  'apps/web/server/**/*.ts',
-  '!apps/web/server/routers/**',
-  '!**/*.test.ts',
-];
+const MUTATE = stryker.mutate;
 
 const mutant = (status: Status, line: number, rest: Partial<Mutant> = {}): Mutant => ({
   status,
@@ -336,7 +330,7 @@ describe('the rendered report', () => {
 
   it('states the Change score against its target, apart from the whole-surface score', () => {
     expect(markdown).toContain(
-      `**Change score:** 50.00% of 2 Changed mutants, against a target of ${String(CHANGE_TARGET)}%`,
+      '**Change score:** 50.00% of 2 Changed mutants, against a target of 95%',
     );
     expect(markdown).toContain('**Whole-surface score:** 98.99% of 99 mutants');
   });
@@ -352,10 +346,6 @@ describe('the rendered report', () => {
 
   it('states the elapsed time', () => {
     expect(markdown).toContain('8m 12s');
-  });
-
-  it('targets 95', () => {
-    expect(CHANGE_TARGET).toBe(95);
   });
 });
 

@@ -38,6 +38,8 @@ timeout, survived and no coverage. Compile and runtime errors and ignored
 mutants are counted apart, outside the denominator. No Changed mutant is not
 applicable, never 100. A Stryker JSON report that is missing, unparseable, not
 a report, or holding a mutant that never ran is incomplete, never a score.
+Stryker writes its JSON report only once every mutant has run, so a run cut
+short leaves no report, and a missing report is how a partial run shows.
 
 The report is advisory. The target of 95 is shown beside the Change score and
 fails nothing; the reporter failing to run fails the step, because a report
@@ -58,7 +60,9 @@ against.
 
 Production waits for mutation: the release sequence on a push to `main` needs
 `Mutation testing` to have succeeded on the same commit, and a skipped,
-cancelled or missing result holds the release as a failure does.
+cancelled or missing result holds the release as a failure does. #754 builds
+this, in PR #758, through the release readiness decision in
+`tools/production-release.ts`.
 
 ## Consequences
 

@@ -61,10 +61,15 @@ export function classifySpecFiles(
   };
 }
 
-type GitResult = { readonly ok: true; readonly stdout: string } | { readonly ok: false; readonly problem: string };
+export type GitResult = { readonly ok: true; readonly stdout: string } | { readonly ok: false; readonly problem: string };
 
-function git(cwd: string, args: readonly string[]): GitResult {
-  const result = spawnSync('git', [...args], { cwd, encoding: 'utf8', shell: false });
+export function git(cwd: string, args: readonly string[]): GitResult {
+  const result = spawnSync('git', [...args], {
+    cwd,
+    encoding: 'utf8',
+    shell: false,
+    maxBuffer: 64 * 1024 * 1024,
+  });
   if (result.status === 0) return { ok: true, stdout: result.stdout };
   const reason = (result.error?.message ?? result.stderr).trim();
   return { ok: false, problem: `git ${args.join(' ')} failed: ${reason === '' ? `exit status ${String(result.status)}` : reason}` };
@@ -95,10 +100,14 @@ const unresolved = (cwd: string, baseRef: string): string => {
     shallow.ok && shallow.stdout.trim() === 'true'
       ? ' This clone is shallow, so its history may be too short to reach the merge-base: fetch the whole history.'
       : '';
-  return `${baseRef} and HEAD have no merge-base in this clone, so the inherited specs are unknown.${hint}`;
+  return `${baseRef} and HEAD have no merge-base in this clone.${hint}`;
 };
 
-export function compareWithBase(cwd: string, baseRef: string): Comparison {
+export type MergeBase =
+  | { readonly ok: true; readonly head: string; readonly mergeBase: string }
+  | { readonly ok: false; readonly problem: string };
+
+export function findMergeBase(cwd: string, baseRef: string): MergeBase {
   const base = git(cwd, ['rev-parse', '--verify', '--quiet', '--end-of-options', `${baseRef}^{commit}`]);
   if (!base.ok) {
     return {
@@ -111,8 +120,14 @@ export function compareWithBase(cwd: string, baseRef: string): Comparison {
 
   const mergeBase = git(cwd, ['merge-base', base.stdout.trim(), head.stdout.trim()]);
   if (!mergeBase.ok) return { ok: false, problem: unresolved(cwd, baseRef) };
+  return { ok: true, head: head.stdout.trim(), mergeBase: mergeBase.stdout.trim() };
+}
 
-  const [from, to] = [mergeBase.stdout.trim(), head.stdout.trim()];
+export function compareWithBase(cwd: string, baseRef: string): Comparison {
+  const found = findMergeBase(cwd, baseRef);
+  if (!found.ok) return found;
+
+  const [from, to] = [found.mergeBase, found.head];
   const baseline = git(cwd, ['ls-tree', '-r', '-z', '--name-only', from, '--', SPEC_ROOT]);
   if (!baseline.ok) return baseline;
   const current = git(cwd, ['ls-tree', '-r', '-z', '--name-only', to, '--', SPEC_ROOT]);
