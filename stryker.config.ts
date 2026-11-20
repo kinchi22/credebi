@@ -21,8 +21,9 @@ export default {
     '!**/*.test.ts',
   ],
   coverageAnalysis: 'perTest',
-  reporters: ['progress', 'clear-text', 'html'],
+  reporters: ['progress', 'clear-text', 'html', 'json'],
   htmlReporter: { fileName: 'reports/mutation/index.html' },
+  jsonReporter: { fileName: 'reports/mutation/mutation.json' },
   thresholds: { high: 95, low: 90, break: 90 },
   tempDirName: '.stryker-tmp',
 } satisfies StrykerOptions;

@@ -96,13 +96,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      # Full history, so the change report can find the pull request's merge
+      # base with its base branch.
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Record the start of the mutation run
+        run: echo "MUTATION_STARTED_AT=$(date +%s)" >> "$GITHUB_ENV"
       # Vitest adds its `github-actions` reporter whenever `GITHUB_ACTIONS` is
       # set, and that reporter appends a "Vitest Test Report" to the job summary
       # at the end of every run. Stryker runs Vitest once per mutant, so the
@@ -111,11 +117,29 @@ jobs:
       # the annotations go, never reaches the log anyway.
       - name: 5. test:mutation
         run: env -u GITHUB_STEP_SUMMARY pnpm test:mutation
+      # ADR-0033. The Change score, beside the whole-surface score, in the job
+      # summary and the artifact. Advisory: a low score passes, and only the
+      # reporter itself failing fails this step. It runs when Stryker failed
+      # too, so a broken or partial run reads as incomplete rather than as
+      # nothing.
+      - name: Change score
+        if: always() && github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: node tools/change-score.ts "origin/$BASE_REF"
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && github.event_name == 'pull_request'
         with:
           name: mutation-report
           path: reports/mutation
+          if-no-files-found: warn
+      # The baseline later comparisons read: main's Stryker JSON report alone.
+      - uses: actions/upload-artifact@v4
+        if: always() && github.event_name == 'push'
+        with:
+          name: mutation-json
+          path: reports/mutation/mutation.json
+          retention-days: 90
           if-no-files-found: warn
 
   # Section 9. Kept in CI permanently: a rule that dies later must surface here,
