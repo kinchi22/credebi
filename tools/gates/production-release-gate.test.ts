@@ -22,7 +22,9 @@ import {
   crossCheckIdentity,
   decideCompatibility,
   decideProductionRelease,
+  type PrerequisiteOutcome,
   readHealthDeployment,
+  type RequiredPrerequisite,
   selectReleaseCommit,
   type VerifiedDeployment,
 } from '../production-release';
@@ -31,16 +33,21 @@ import { REPO_ROOT } from './run-gate';
 const SUCCESSFUL_PREREQUISITES = [
   { name: 'Gates', outcome: 'success' },
   { name: 'Integration', outcome: 'success' },
+  { name: 'Mutation testing', outcome: 'success' },
 ] as const;
 
+const REQUIRED_NAMES = SUCCESSFUL_PREREQUISITES.map(({ name }) => name);
+
+const withOutcome = (name: RequiredPrerequisite, outcome: PrerequisiteOutcome) =>
+  SUCCESSFUL_PREREQUISITES.map((prerequisite) =>
+    prerequisite.name === name ? { name, outcome } : prerequisite,
+  );
+
 describe('decideProductionRelease', () => {
-  it.each([
-    ['Gates', [{ name: 'Integration', outcome: 'success' }]],
-    ['Integration', [{ name: 'Gates', outcome: 'success' }]],
-  ] as const)('fails closed when the %s result is missing', (name, prerequisites) => {
+  it.each(REQUIRED_NAMES)('fails closed when the %s result is missing', (name) => {
     expect(
       decideProductionRelease({
-        prerequisites,
+        prerequisites: SUCCESSFUL_PREREQUISITES.filter((prerequisite) => prerequisite.name !== name),
         migration: { state: 'none', outcome: 'skipped-no-migration' },
       }),
     ).toEqual({
@@ -52,11 +59,7 @@ describe('decideProductionRelease', () => {
   it('fails closed when a required prerequisite result is duplicated', () => {
     expect(
       decideProductionRelease({
-        prerequisites: [
-          { name: 'Gates', outcome: 'success' },
-          { name: 'Gates', outcome: 'failure' },
-          { name: 'Integration', outcome: 'success' },
-        ],
+        prerequisites: [...SUCCESSFUL_PREREQUISITES, { name: 'Gates', outcome: 'failure' }],
         migration: { state: 'none', outcome: 'skipped-no-migration' },
       }),
     ).toEqual({
@@ -80,23 +83,33 @@ describe('decideProductionRelease', () => {
     },
   );
 
-  it.each(['failure', 'cancelled', 'skipped'] as const)(
-    'fails when a prerequisite is %s',
-    (outcome) => {
-      expect(
-        decideProductionRelease({
-          prerequisites: [
-            { name: 'Gates', outcome: 'success' },
-            { name: 'Integration', outcome },
-          ],
-          migration: { state: 'none', outcome: 'skipped-no-migration' },
-        }),
-      ).toEqual({
-        decision: 'fail',
-        reason: `Integration was ${outcome}; Production is not ready.`,
-      });
-    },
-  );
+  it.each(
+    REQUIRED_NAMES.flatMap((name) =>
+      (['failure', 'cancelled', 'skipped'] as const).map((outcome) => [name, outcome] as const),
+    ),
+  )('fails when %s is %s', (name, outcome) => {
+    expect(
+      decideProductionRelease({
+        prerequisites: withOutcome(name, outcome),
+        migration: { state: 'none', outcome: 'skipped-no-migration' },
+      }),
+    ).toEqual({
+      decision: 'fail',
+      reason: `${name} was ${outcome}; Production is not ready.`,
+    });
+  });
+
+  it('is ready when Gates, Integration and Mutation testing all succeeded', () => {
+    expect(
+      decideProductionRelease({
+        prerequisites: SUCCESSFUL_PREREQUISITES,
+        migration: { state: 'none', outcome: 'skipped-no-migration' },
+      }),
+    ).toEqual({
+      decision: 'production-ready',
+      reason: 'No migration is pending; the intentional migration skip is valid.',
+    });
+  });
 
   it.each([
     [
@@ -361,7 +374,7 @@ describe('Production release workflow invariants', () => {
   it('keeps a running migration and the newest waiting run without canceling validation', () => {
     expect(ci).not.toMatch(/^concurrency:/m);
     expect(ci).toMatch(/group: production-release\n\s+queue: max/);
-    expect(ci).toMatch(/release:\n[\s\S]*?needs: \[gates, integration\]/);
+    expect(ci).toMatch(/release:\n[\s\S]*?needs: \[gates, integration, mutation\]/);
     expect(release).toContain("needs.select.outputs.current == 'true'");
   });
 
@@ -370,7 +383,16 @@ describe('Production release workflow invariants', () => {
     expect(release).toMatch(/migrate:[\s\S]*?needs: pending/);
     expect(release).toContain('exit 1');
     expect(ci).toMatch(/production-ready:\n\s+name: Production ready\n\s+if: always\(\)/);
-    expect(ci).toContain('needs: [gates, integration, release]');
+    expect(ci).toContain('needs: [gates, integration, mutation, release]');
+  });
+
+  it('releases only a commit whose Mutation testing succeeded, and decides readiness on its result', () => {
+    const releaseJob = ci.slice(ci.indexOf('\n  release:'), ci.indexOf('\n  production-ready:'));
+    const readiness = ci.slice(ci.indexOf('\n  production-ready:'));
+
+    expect(releaseJob).toContain("needs.mutation.result == 'success'");
+    expect(readiness).toContain('MUTATION_RESULT: ${{ needs.mutation.result }}');
+    expect(readiness).toContain('{name:"Mutation testing",outcome:process.env.MUTATION_RESULT}');
   });
 
   it('rechecks the main commit after pending detection before requesting approval', () => {
@@ -603,14 +625,14 @@ describe('production-release.ts, run as CI runs it', () => {
 
   it('fails closed when a required prerequisite result is absent', () => {
     const result = runCommand('decide', {
-      prerequisites: [{ name: 'Gates', outcome: 'success' }],
+      prerequisites: SUCCESSFUL_PREREQUISITES.filter(({ name }) => name !== 'Mutation testing'),
       migration: { state: 'none', outcome: 'skipped-no-migration' },
     });
 
     expect(result.status, result.stderr).toBe(0);
     expect(JSON.parse(result.stdout)).toEqual({
       decision: 'fail',
-      reason: 'Integration result is missing; Production is not ready.',
+      reason: 'Mutation testing result is missing; Production is not ready.',
     });
   });
 

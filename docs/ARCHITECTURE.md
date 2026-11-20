@@ -504,16 +504,18 @@ pass on its exact commit:
 
 | Check | Where | What it proves |
 | ----- | ----- | -------------- |
-| `Production ready` | job in `.github/workflows/ci.yml` | `Gates` and `Integration` passed, the release sequence finished for this commit, and Current Production passed smoke on the resulting schema |
+| `Production ready` | job in `.github/workflows/ci.yml` | `Gates`, `Integration` and `Mutation testing` passed, the release sequence finished for this commit, and Current Production passed smoke on the resulting schema |
 | `E2E build` | `.github/workflows/e2e-build.yml` | the whole suite, against a build of the commit on a database migrated with its own migrations |
 | `Candidate Production smoke` | commit status from `.github/workflows/candidate-production-smoke.yml` | the `@smoke` specs, against the candidate deployment's own URL |
 
-`Mutation testing`, `Gate liveness` and `Spec isolation` stay merge checks and
-are not Deployment Checks: a commit on `main` has already passed them.
+`Gate liveness` and `Spec isolation` stay merge checks and are not Deployment
+Checks: a commit on `main` has already passed them. `Mutation testing` is a merge
+check too, and runs again on the push to `main`, where the release sequence
+waits for it.
 
 **Migration ordering.** The release sequence,
-`.github/workflows/production-release.yml`, runs once `Gates` and `Integration`
-pass on a push to `main`:
+`.github/workflows/production-release.yml`, runs once `Gates`, `Integration` and
+`Mutation testing` pass on a push to `main`:
 
 1. *Select.* The commit must still be `main`'s head, or the sequence stops and
    its `Production ready` fails.

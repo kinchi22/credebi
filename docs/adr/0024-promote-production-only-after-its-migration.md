@@ -5,6 +5,7 @@
 **Amended:** 2026-10-12, PR #377 and PR #379
 **Amended:** 2026-10-14, PR #439
 **Amended:** 2026-10-24, PR #541
+**Amended:** 2026-11-20, PR #758
 
 ## Problem
 
@@ -72,10 +73,11 @@ deployments from its Git integration, and its Deployment Checks hold each one
 unpromoted until three checks pass on its exact commit:
 
 1. `Production ready`, one always-present job in `ci.yml`. It passes only when
-   `Gates` and `Integration` succeeded, the shared Preview database was
-   migrated, any pending Production migration was approved and applied, and
-   Current Production passed smoke on the resulting schema. It tells an
-   intentional no-migration skip apart from a skipped or failed prerequisite.
+   `Gates`, `Integration` and `Mutation testing` succeeded, the shared Preview
+   database was migrated, any pending Production migration was approved and
+   applied, and Current Production passed smoke on the resulting schema. It
+   tells an intentional no-migration skip apart from a skipped or failed
+   prerequisite.
    `Apply migrations` is never the release signal itself.
 2. `E2E build`, the whole suite against a build of the commit on its own
    migrated database (ADR-0006, ADR-0012).
