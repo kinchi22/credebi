@@ -2,6 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-11-20
+**Amended:** 2026-11-21, PR #760, amended rather than superseded by the owner's choice
 
 ## Problem
 
@@ -32,6 +33,13 @@ end line, its end being exclusive, so an end at the first column of a line does
 not reach that line. A hunk that only deletes adds no line. A file only renamed
 or moved is not a change, and a deleted file has none. Only files the `mutate`
 patterns measure contribute.
+
+Every file the pull request touches is classified, so nothing unmeasured reads
+as tested. A file with a Changed mutant is measured: created, modified, or
+renamed with edits, whose edited lines alone count. Every other file is listed
+apart, with why it was not measured: deleted; excluded, outside the `mutate`
+patterns; non-mutatable, inside them with no mutant in the report; moved,
+renamed with no edited line; or touched on lines that hold no mutant.
 
 The score counts the way Stryker counts: killed and timeout over killed,
 timeout, survived and no coverage. Compile and runtime errors and ignored
@@ -72,8 +80,13 @@ changed line may weaken the tests of a mutant elsewhere, which this report does
 not see. It measures the mutants the diff touches, not the behaviour the change
 affects.
 
-A small change gives a score that one mutant swings. The percentage is shown
-with its raw counts, and nothing acts on it automatically.
+A small change gives a score that one mutant swings. Below 20 scored Changed
+mutants, those killed, timed out, survived or not covered, the report shows the
+raw counts and the target of zero survived or no-coverage mutants in place of
+the percentage, and nothing acts on either automatically. Errors and ignored
+mutants do not count toward the 20, so a change whose Changed mutants are all
+errors or ignored shows its counts, not N/A, which is kept for a change with no
+Changed mutant at all.
 
 The checkout of the `Mutation testing` job fetches the full history, which
 costs seconds on a job that runs about eight minutes. Release waits that much
