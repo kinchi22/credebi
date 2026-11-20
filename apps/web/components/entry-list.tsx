@@ -1,3 +1,5 @@
+'use client';
+
 import { useTranslations } from 'next-intl';
 import {
   type AccountType,
@@ -8,13 +10,14 @@ import {
   type OfferedTitle,
   type PostedLine,
 } from '@repo/contracts';
-import { Panel, PANEL_BLEED } from '@repo/ui';
+import { ChevronIcon, Panel, PANEL_BLEED } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
-import { type ReactNode } from 'react';
+import { type MouseEvent, type ReactNode, useRef, useState } from 'react';
 import { formatAmount } from './amount';
 import { DeleteEntry, type DeleteEntryAction } from './delete-entry';
 import { EditEntry, type EditEntryAction } from './edit-entry';
-import { accountTypesIn, linesOn, SIDES, type AccountTypes } from './entry-lines';
+import { BARE_ICON_BUTTON } from './control-classes';
+import { accountTypesIn, hasOneLinePerSide, linesOn, SIDES, type AccountTypes } from './entry-lines';
 import { SIDE_TONE } from './side-classes';
 import { MUTED_TEXT } from './text-classes';
 import { CuedAccount, useCuedAccountName } from './type-band';
@@ -48,9 +51,19 @@ const SIDE_LINES_GRID: Readonly<Record<Side, string>> = {
   credit: `col-start-1 row-start-5 @list:col-start-2 @list:row-start-3 px-4 pb-1 ${CREDIT_DIVIDER}`,
 };
 
+const COMPACT_LINES: Readonly<Record<Side, string>> = {
+  debit: '@max-list:row-start-2 @max-list:border-t-[1.5px] @max-list:pt-1 @max-list:pr-2 @max-list:pl-0',
+  credit:
+    '@max-list:col-start-2 @max-list:row-start-2 @max-list:border-t-[1.5px] @max-list:border-l @max-list:border-l-border @max-list:pt-1 @max-list:pr-0 @max-list:pl-2',
+};
+
+const COMPACT_HIDDEN = '@max-list:sr-only';
+
 const SIDE_HEADING = `${typeClasses.label} leading-5`;
 
-function SideHeadings({ named }: { readonly named: boolean }): ReactNode {
+const CLICKS_OF_THEIR_OWN = 'a, button, input, select, textarea, label, dialog, [role="dialog"]';
+
+function SideHeadings({ named, compact }: { readonly named: boolean; readonly compact: boolean }): ReactNode {
   const t = useTranslations();
   return (
     <div role={named ? 'row' : undefined} aria-hidden={named ? undefined : true} className="contents">
@@ -58,7 +71,7 @@ function SideHeadings({ named }: { readonly named: boolean }): ReactNode {
         <span
           key={side}
           role={named ? 'columnheader' : undefined}
-          className={`${SIDE_HEADING_GRID[side]} ${SIDE_HEADING} ${SIDE_TONE[side].edge} ${SIDE_TONE[side].text}`}
+          className={`${SIDE_HEADING_GRID[side]} ${SIDE_HEADING} ${SIDE_TONE[side].edge} ${SIDE_TONE[side].text} ${compact ? COMPACT_HIDDEN : ''}`}
         >
           {t(`sides.${side}`)}
         </span>
@@ -87,9 +100,11 @@ function LineAccount({
 function SideLine({
   line,
   accountType,
+  compact,
 }: {
   readonly line: PostedLine;
   readonly accountType: AccountType | undefined;
+  readonly compact: boolean;
 }): ReactNode {
   const cuedName = useCuedAccountName();
   return (
@@ -101,7 +116,7 @@ function SideLine({
       className="flex items-baseline gap-x-3 py-1"
     >
       <LineAccount line={line} accountType={accountType} />{' '}
-      <span className={`${LINE_AMOUNT} ${SIDE_TONE[line.side].text}`}>
+      <span className={`${LINE_AMOUNT} ${SIDE_TONE[line.side].text} ${compact ? COMPACT_HIDDEN : ''}`}>
         {formatAmount(line.amount)}
       </span>
     </li>
@@ -112,16 +127,26 @@ function SideLines({
   entry,
   side,
   accountTypes,
+  compact,
 }: {
   readonly entry: PostedEntry;
   readonly side: Side;
   readonly accountTypes: AccountTypes;
+  readonly compact: boolean;
 }): ReactNode {
   return (
-    <div role="cell" className={`min-w-0 ${SIDE_LINES_GRID[side]} ${SIDE_TONE[side].edge}`}>
+    <div
+      role="cell"
+      className={`min-w-0 ${SIDE_LINES_GRID[side]} ${SIDE_TONE[side].edge} ${compact ? COMPACT_LINES[side] : ''}`}
+    >
       <ul>
         {linesOn(entry, side).map((line, index) => (
-          <SideLine key={index} line={line} accountType={accountTypes.get(line.account)} />
+          <SideLine
+            key={index}
+            line={line}
+            accountType={accountTypes.get(line.account)}
+            compact={compact}
+          />
         ))}
       </ul>
     </div>
@@ -140,11 +165,25 @@ function ListedEntry({
   readonly accountTypes: AccountTypes;
 }): ReactNode {
   const t = useTranslations();
+  const expandable = !hasOneLinePerSide(entry);
+  const [expanded, setExpanded] = useState(false);
+  const chevron = useRef<HTMLButtonElement>(null);
+  const compact = !expanded;
+  const toggle = (): void => {
+    setExpanded((current) => !current);
+  };
   return (
     <div
       role="rowgroup"
       data-testid="entry"
-      className={`${PANEL_BLEED} grid grid-cols-1 @list:grid-cols-2 border-t border-border py-4 first:border-t-0 first:pt-1 hover:bg-surface-hover ${typeClasses['body-dense']}`}
+      onClick={
+        expandable
+          ? (event) => {
+              if (togglesOnClick(event, chevron.current)) toggle();
+            }
+          : undefined
+      }
+      className={`${PANEL_BLEED} relative grid grid-cols-1 @list:grid-cols-2 ${compact ? '@max-list:grid-cols-2' : ''} ${expandable ? '@max-list:cursor-pointer' : ''} border-t border-border py-4 first:border-t-0 first:pt-1 hover:bg-surface-hover ${typeClasses['body-dense']}`}
     >
       <div role="row" className="contents">
         <div
@@ -193,13 +232,48 @@ function ListedEntry({
           </div>
         </div>
       </div>
-      <SideHeadings named={headsColumns} />
+      <SideHeadings named={headsColumns} compact={compact} />
       <div role="row" className="contents">
         {SIDES.map((side) => (
-          <SideLines key={side} entry={entry} side={side} accountTypes={accountTypes} />
+          <SideLines
+            key={side}
+            entry={entry}
+            side={side}
+            accountTypes={accountTypes}
+            compact={compact}
+          />
         ))}
       </div>
+      {expandable ? (
+        <button
+          ref={chevron}
+          type="button"
+          aria-expanded={expanded}
+          aria-label={t('entryList.expand', {
+            date: entry.entryDate,
+            entry: entry.title === '' ? entry.memo : entry.title,
+          })}
+          onClick={toggle}
+          className={`absolute bottom-0 left-1/2 h-4 w-10 -translate-x-1/2 @list:hidden ${BARE_ICON_BUTTON}`}
+        >
+          <span className={`flex ${expanded ? '-rotate-90' : 'rotate-90'}`}>
+            <ChevronIcon />
+          </span>
+        </button>
+      ) : null}
     </div>
+  );
+}
+
+function togglesOnClick(event: MouseEvent<HTMLElement>, chevron: HTMLButtonElement | null): boolean {
+  const target = event.target;
+  return (
+    chevron !== null &&
+    chevron.checkVisibility() &&
+    target instanceof Element &&
+    event.currentTarget.contains(target) &&
+    target.closest(CLICKS_OF_THEIR_OWN) === null &&
+    window.getSelection()?.isCollapsed !== false
   );
 }
 
