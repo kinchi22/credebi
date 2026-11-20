@@ -1,45 +1,131 @@
+import { randomUUID } from 'node:crypto';
 import { expect, type Locator, type Page } from '@playwright/test';
-import { directionArrow, expectLeftOf, expectOnOneRow, typeTile } from './account-type-cues';
-import { boxOf } from './accounts';
-import { deleteButton, editButton, escaped, type Heading, type Side, SIDES } from './entries';
+import { directionArrow, expectBelow, expectLeftOf, expectOnOneRow, typeTile } from './account-type-cues';
+import { addAccount, boxOf } from './accounts';
+import {
+  added,
+  DAY,
+  deleteButton,
+  editButton,
+  escaped,
+  type Heading,
+  type Line,
+  type LineAccount,
+  listedHeading,
+  nameOf,
+  openEntryForm,
+  postEntries,
+  type Side,
+  SIDES,
+  submitMultiLineEntry,
+  type TwoLineEntry,
+} from './entries';
+import { SETTINGS_PATH } from './routes';
+import { BOOKS_OPEN, signIn } from './session';
 
-export const NARROW_WIDE = { width: 800, height: 900 } as const;
+export type Posted = Heading & { readonly lines: readonly Line[] };
+
+export type Titled = Posted & { readonly title: string };
 
 export type ShownLine = { readonly side: Side; readonly name: string; readonly amount: string };
 
-export const lineOf = (entry: Locator, line: ShownLine): Locator =>
+export const line = (side: Side, account: LineAccount, amount: string): Line => ({ side, account, amount });
+
+export const shownLines = (posted: Posted): readonly ShownLine[] =>
+  posted.lines.map(({ side, account, amount }) => ({
+    side,
+    name: nameOf(account),
+    amount: Number(amount).toLocaleString('en-US'),
+  }));
+
+function asTwoLine(posted: Posted): readonly TwoLineEntry[] {
+  const [debit, credit, ...more] = posted.lines;
+  if (debit === undefined || credit === undefined || more.length > 0) return [];
+  return [{ ...posted, debitAccount: debit.account, creditAccount: credit.account, amount: debit.amount }];
+}
+
+export async function post(page: Page, posted: readonly Posted[]): Promise<void> {
+  await postEntries(page, posted.flatMap(asTwoLine));
+  for (const entry of posted.filter((each) => asTwoLine(each).length === 0)) {
+    const form = await openEntryForm(page, 'Multi-line mode');
+    await submitMultiLineEntry(form, entry);
+    await expect(listedHeading(page, entry)).toHaveCount(1);
+  }
+}
+
+const RAKUTEN_BANK = '\uB77C\uCFE0\uD150\uC740\uD589';
+
+const NOMURA_SECURITIES = '\uB178\uBB34\uB77C\uC99D\uAD8C';
+
+const PAYPAY_POINTS = '\uD398\uC774\uD398\uC774\uD3EC\uC778\uD2B8';
+
+const GROCERIES = '\uC2DD\uB8CC\uD488';
+
+export type LongKoreanNames = { readonly severalPerSide: Posted; readonly onePerSide: Posted };
+
+export async function postLongKoreanNames(page: Page): Promise<LongKoreanNames> {
+  const run = randomUUID();
+  const posted: LongKoreanNames = {
+    severalPerSide: {
+      day: DAY,
+      memo: `Several ${run}`,
+      lines: [
+        line('Debit', added(RAKUTEN_BANK), '12345678'),
+        line('Debit', added(NOMURA_SECURITIES), '150000'),
+        line('Credit', added(PAYPAY_POINTS), '150000'),
+        line('Credit', 'Salary', '12345678'),
+      ],
+    },
+    onePerSide: {
+      day: DAY,
+      memo: `One ${run}`,
+      lines: [line('Debit', added(GROCERIES), '3580'), line('Credit', added(RAKUTEN_BANK), '3580')],
+    },
+  };
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
+  await page.goto(SETTINGS_PATH);
+  for (const name of [RAKUTEN_BANK, NOMURA_SECURITIES, PAYPAY_POINTS]) {
+    await addAccount(page, 'Assets', { name, activeFrom: BOOKS_OPEN });
+  }
+  await addAccount(page, 'Expenses', { name: GROCERIES, activeFrom: BOOKS_OPEN });
+  await post(page, [posted.onePerSide, posted.severalPerSide]);
+  return posted;
+}
+
+export const lineOf = (entry: Locator, shown: ShownLine): Locator =>
   entry
     .getByTestId('entry-line')
     .filter({ visible: true })
-    .filter({ has: entry.page().getByText(line.name, { exact: true }) });
+    .filter({ has: entry.page().getByText(shown.name, { exact: true }) });
 
-export const nameIn = (entry: Locator, line: ShownLine): Locator =>
-  lineOf(entry, line).getByText(line.name, { exact: true });
+export const nameIn = (entry: Locator, shown: ShownLine): Locator =>
+  lineOf(entry, shown).getByText(shown.name, { exact: true });
 
-const amountIn = (entry: Locator, line: ShownLine): Locator =>
-  lineOf(entry, line).getByText(line.amount, { exact: true });
+const amountIn = (entry: Locator, shown: ShownLine): Locator =>
+  lineOf(entry, shown).getByText(shown.amount, { exact: true });
 
 const sideName = (entry: Locator, side: Side): Locator => entry.getByText(side, { exact: true });
 
-const shown = (scope: Locator): Locator => scope.filter({ visible: true }).first();
+const firstShown = (scope: Locator): Locator => scope.filter({ visible: true }).first();
 
 export const entryDate = (entry: Locator, heading: Heading): Locator =>
-  shown(entry.getByText(heading.day, { exact: true }));
+  firstShown(entry.getByText(heading.day, { exact: true }));
 
 export const entryTitle = (entry: Locator, heading: Heading): Locator =>
-  shown(entry.getByText(heading.title ?? '', { exact: true }));
+  firstShown(entry.getByText(heading.title ?? '', { exact: true }));
 
 export const entryMemo = (entry: Locator, heading: Heading): Locator =>
-  shown(entry.getByText(heading.memo, { exact: true }));
+  firstShown(entry.getByText(heading.memo, { exact: true }));
 
 export const entryTotal = (entry: Locator): Locator => entry.getByTestId('entry-total');
 
 const lookahead = (text: string): string => `(?=.*${escaped(text)})`;
 
+export const chevronName = (heading: Heading): RegExp =>
+  new RegExp(`^${lookahead(heading.day)}${lookahead(heading.title ?? heading.memo)}`, 'u');
+
 export const chevron = (entry: Locator, heading: Heading): Locator =>
-  entry.getByRole('button', {
-    name: new RegExp(`^${lookahead(heading.day)}${lookahead(heading.title ?? heading.memo)}`, 'u'),
-  });
+  entry.getByRole('button', { name: chevronName(heading) });
 
 export async function expectNoChevron(entry: Locator): Promise<void> {
   await expect(entry).toHaveCount(1);
@@ -52,8 +138,7 @@ export async function expectExpanded(entry: Locator, heading: Heading, expanded:
   await expect(chevron(entry, heading)).toHaveAttribute('aria-expanded', String(expanded));
 }
 
-export async function expectVisuallyHidden(locator: Locator, what: string): Promise<void> {
-  await expect(locator.first(), `${what} is still in the page`).toBeAttached();
+async function expectNotShown(locator: Locator, what: string): Promise<void> {
   for (const each of await locator.all()) {
     const box = await each.boundingBox();
     expect(box === null || box.width <= 1 || box.height <= 1, `${what} is not shown`).toBe(true);
@@ -67,41 +152,21 @@ async function expectShown(locator: Locator, what: string): Promise<void> {
   expect(box.height, `${what} is shown taller than a pixel`).toBeGreaterThan(1);
 }
 
-export async function expectBelow(above: Locator, below: Locator, what: string): Promise<void> {
-  const upper = await boxOf(above, `${what}: the upper one`);
-  const lower = await boxOf(below, `${what}: the lower one`);
-  expect(lower.y, `${what}: one below the other`).toBeGreaterThanOrEqual(upper.y + upper.height - 1);
-}
-
-type Styled = {
-  readonly ownerDocument: {
-    readonly defaultView: { getComputedStyle: (element: Styled) => { readonly lineHeight: string } } | null;
-  };
-};
-
-export async function expectOnOneLine(name: Locator, what: string): Promise<void> {
-  const box = await boxOf(name, what);
-  const lineHeight = Number.parseFloat(
-    await name.evaluate((element: Styled) => element.ownerDocument.defaultView?.getComputedStyle(element).lineHeight ?? ''),
-  );
-  expect(box.height, `${what} fits on one line`).toBeLessThan(lineHeight * 1.5);
-}
-
-async function expectCuedLine(entry: Locator, line: ShownLine): Promise<void> {
-  const shownLine = lineOf(entry, line);
-  await expect(shownLine, `${line.name} on ${line.side} is listed once`).toHaveCount(1);
-  const name = nameIn(entry, line);
-  await expectShown(typeTile(shownLine).first(), `${line.name}'s tile`);
-  await expectShown(name, `${line.name}'s name`);
-  await expectShown(directionArrow(shownLine).first(), `${line.name}'s Balance direction arrow`);
-  await expectLeftOf(typeTile(shownLine).first(), name, `${line.name}'s tile and name`);
-  await expectLeftOf(name, directionArrow(shownLine).first(), `${line.name}'s name and arrow`);
+async function expectCuedLine(entry: Locator, shown: ShownLine): Promise<void> {
+  const shownLine = lineOf(entry, shown);
+  await expect(shownLine, `${shown.name} on ${shown.side} is listed once`).toHaveCount(1);
+  const name = nameIn(entry, shown);
+  await expectShown(typeTile(shownLine).first(), `${shown.name}'s tile`);
+  await expectShown(name, `${shown.name}'s name`);
+  await expectShown(directionArrow(shownLine).first(), `${shown.name}'s Balance direction arrow`);
+  await expectLeftOf(typeTile(shownLine).first(), name, `${shown.name}'s tile and name`);
+  await expectLeftOf(name, directionArrow(shownLine).first(), `${shown.name}'s name and arrow`);
 }
 
 const onSide = (lines: readonly ShownLine[], side: Side): readonly ShownLine[] =>
-  lines.filter((line) => line.side === side);
+  lines.filter((each) => each.side === side);
 
-function firstOn(lines: readonly ShownLine[], side: Side): ShownLine {
+export function firstOn(lines: readonly ShownLine[], side: Side): ShownLine {
   const [first] = onSide(lines, side);
   if (first === undefined) throw new Error(`an Entry has a line on ${side}`);
   return first;
@@ -109,16 +174,16 @@ function firstOn(lines: readonly ShownLine[], side: Side): ShownLine {
 
 export async function expectCompact(entry: Locator, lines: readonly ShownLine[]): Promise<void> {
   await expect(entry).toHaveCount(1);
-  for (const line of lines) {
-    await expectCuedLine(entry, line);
-    await expectVisuallyHidden(amountIn(entry, line), `${line.name}'s amount in the compact line`);
+  for (const shown of lines) {
+    await expectCuedLine(entry, shown);
+    await expectNotShown(amountIn(entry, shown), `${shown.name}'s amount in the compact line`);
     expect(
-      await lineOf(entry, line).ariaSnapshot(),
-      `${line.name}'s amount is still told to assistive technology`,
-    ).toContain(line.amount);
+      await lineOf(entry, shown).ariaSnapshot(),
+      `${shown.name}'s amount is still told to assistive technology`,
+    ).toContain(shown.amount);
   }
   for (const side of SIDES) {
-    await expectVisuallyHidden(sideName(entry, side), `the ${side} name in the compact Entry`);
+    await expectNotShown(sideName(entry, side), `the ${side} name in the compact Entry`);
   }
   for (const debit of onSide(lines, 'Debit')) {
     for (const credit of onSide(lines, 'Credit')) {
@@ -141,14 +206,14 @@ export async function expectDetailed(
 ): Promise<void> {
   await expect(entry).toHaveCount(1);
   for (const side of SIDES) {
-    await expectShown(shown(sideName(entry, side)), `the ${side} name`);
+    await expectShown(firstShown(sideName(entry, side)), `the ${side} name`);
   }
-  for (const line of lines) {
-    await expectCuedLine(entry, line);
-    const amount = amountIn(entry, line);
-    await expectShown(amount, `${line.name}'s amount`);
-    await expectOnOneRow(nameIn(entry, line), amount, `${line.name}'s name and amount`);
-    await expectBelow(shown(sideName(entry, line.side)), lineOf(entry, line), `the ${line.side} name and ${line.name}`);
+  for (const shown of lines) {
+    await expectCuedLine(entry, shown);
+    const amount = amountIn(entry, shown);
+    await expectShown(amount, `${shown.name}'s amount`);
+    await expectOnOneRow(nameIn(entry, shown), amount, `${shown.name}'s name and amount`);
+    await expectBelow(firstShown(sideName(entry, shown.side)), lineOf(entry, shown), `the ${shown.side} name and ${shown.name}`);
   }
   const debits = onSide(lines, 'Debit');
   const credits = onSide(lines, 'Credit');
@@ -164,14 +229,14 @@ export async function expectDetailed(
   }
   if (arrangement === 'stacked') {
     for (const debit of debits) {
-      await expectBelow(lineOf(entry, debit), shown(sideName(entry, 'Credit')), `${debit.name} and the Credit name`);
+      await expectBelow(lineOf(entry, debit), firstShown(sideName(entry, 'Credit')), `${debit.name} and the Credit name`);
     }
   } else {
-    await expectOnOneRow(shown(sideName(entry, 'Debit')), shown(sideName(entry, 'Credit')), 'the Debit and Credit names');
+    await expectOnOneRow(firstShown(sideName(entry, 'Debit')), firstShown(sideName(entry, 'Credit')), 'the Debit and Credit names');
   }
 }
 
-export async function expectThreeRowHeader(entry: Locator, heading: Heading & { readonly title: string }): Promise<void> {
+export async function expectThreeRowHeader(entry: Locator, heading: Titled): Promise<void> {
   const date = entryDate(entry, heading);
   const title = entryTitle(entry, heading);
   const memo = entryMemo(entry, heading);
@@ -200,7 +265,7 @@ export async function expectTotalAloneOnItsRow(entry: Locator, heading: Heading)
   expect(totalBox.x + totalBox.width, 'the Entry total ends at the right, under Delete').toBeGreaterThan(deleteBox.x);
 }
 
-export async function expectOneRowHeader(entry: Locator, heading: Heading & { readonly title: string }): Promise<void> {
+export async function expectOneRowHeader(entry: Locator, heading: Titled): Promise<void> {
   const date = entryDate(entry, heading);
   const total = entryTotal(entry);
   await expectOnOneRow(date, entryTitle(entry, heading), 'the date and the Title');
@@ -227,14 +292,6 @@ export async function recordViewTransitions(page: Page): Promise<void> {
 export const viewTransitionAnimations = async (page: Page): Promise<number> =>
   Number(await page.evaluate('window.viewTransitionAnimations'));
 
-export async function waitFrames(page: Page, frames: number): Promise<void> {
-  await page.evaluate(`new Promise((resolve) => {
-    let left = ${String(frames)};
-    const next = () => (--left > 0 ? requestAnimationFrame(next) : resolve(undefined));
-    requestAnimationFrame(next);
-  })`);
-}
-
 export async function selectText(page: Page, text: Locator): Promise<void> {
   const box = await boxOf(text, 'the text to select');
   const y = box.y + box.height / 2;
@@ -243,4 +300,22 @@ export async function selectText(page: Page, text: Locator): Promise<void> {
   await page.mouse.move(box.x + box.width - 2, y, { steps: 8 });
   await page.mouse.up();
   expect(String(await page.evaluate('String(window.getSelection())')).length, 'some text is selected').toBeGreaterThan(0);
+}
+
+type Focusable = { readonly ownerDocument: { readonly activeElement: unknown } };
+
+const isFocused = async (locator: Locator): Promise<boolean> =>
+  (await locator.count()) === 1 && locator.evaluate((each: Focusable) => each.ownerDocument.activeElement === each);
+
+export async function tabToChevronPassingOver(page: Page, entry: Locator, target: Locator): Promise<void> {
+  await expect(target).toBeVisible();
+  for (let press = 0; press < 120 && !(await isFocused(target)); press += 1) {
+    await page.keyboard.press('Tab');
+    expect(await isFocused(entry), 'the Entry body is not a tab stop').toBe(false);
+    const inside = entry.locator(':focus');
+    if ((await inside.count()) > 0) {
+      await expect(inside, 'only a button inside an Entry takes focus').toHaveRole('button');
+    }
+  }
+  await expect(target).toBeFocused();
 }

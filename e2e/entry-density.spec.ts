@@ -1,22 +1,14 @@
 import { expect, test, type Locator, type Page, type ViewportSize } from '@playwright/test';
+import { expectOnOneLine } from './account-type-cues';
 import { boxOf } from './accounts';
 import {
-  type Account,
   DAY,
-  type Line,
-  nameOf,
-  type Side,
-  type TwoLineEntry,
   deleteButton,
   editDialog,
   entries,
-  type Heading,
-  listedEntry,
+  listedHeading,
   openDelete,
   openEditEntry,
-  openEntryForm,
-  postEntries,
-  submitMultiLineEntry,
 } from './entries';
 import {
   chevron,
@@ -28,24 +20,25 @@ import {
   expectOneRowHeader,
   expectThreeRowHeader,
   expectTotalAloneOnItsRow,
-  NARROW_WIDE,
+  line,
+  lineOf,
+  type LongKoreanNames,
   nameIn,
+  post,
+  type Posted,
+  postLongKoreanNames,
   recordViewTransitions,
   selectText,
   type ShownLine,
+  shownLines,
+  tabToChevronPassingOver,
+  type Titled,
   viewTransitionAnimations,
-  waitFrames,
 } from './entry-density';
 import { resultFor, search } from './entry-search';
 import { ENTRY_SEARCH_PATH } from './routes';
 import { BOOKS_OPEN, signIn } from './session';
-import { expectWithinPhone, PHONE, WIDE, WIDE_BELOW_SPLIT } from './viewport';
-
-type Posted = Heading & { readonly lines: readonly Line[] };
-
-type Titled = Posted & { readonly title: string };
-
-const line = (side: Side, account: Account, amount: string): Line => ({ side, account, amount });
+import { expectWithinPhone, PHONE, waitFrames, WIDE, WIDE_BELOW_SPLIT, WIDE_BESIDE_SIDEBAR } from './viewport';
 
 const PAYROLL: Titled = {
   day: DAY,
@@ -64,6 +57,12 @@ const SPLIT_BILL: Titled = {
   title: 'Groceries',
   memo: 'Paid partly by card',
   lines: [line('Debit', 'Food', '12500'), line('Credit', 'Cash', '12000'), line('Credit', 'Credit card payable', '500')],
+};
+
+const TAXI: Posted = {
+  day: DAY,
+  memo: 'Taxi home and a tip',
+  lines: [line('Debit', 'Transportation', '2000'), line('Credit', 'Cash', '1500'), line('Credit', 'Credit card payable', '500')],
 };
 
 const LUNCH: Titled = {
@@ -93,37 +92,12 @@ const RENT: Titled = {
   lines: [line('Debit', 'Other living expenses', '9999999999'), line('Credit', 'Bank deposits', '9999999999')],
 };
 
-const shownLines = (posted: Posted): readonly ShownLine[] =>
-  posted.lines.map(({ side, account, amount }) => ({
-    side,
-    name: nameOf(account),
-    amount: Number(amount).toLocaleString('en-US'),
-  }));
-
-function asTwoLine(posted: Posted): readonly TwoLineEntry[] {
-  const [debit, credit, ...more] = posted.lines;
-  if (debit === undefined || credit === undefined || more.length > 0) return [];
-  return [{ ...posted, debitAccount: debit.account, creditAccount: credit.account, amount: debit.amount }];
-}
-
-async function post(page: Page, posted: readonly Posted[]): Promise<void> {
-  await postEntries(page, posted.flatMap(asTwoLine));
-  for (const entry of posted.filter((each) => asTwoLine(each).length === 0)) {
-    const form = await openEntryForm(page, 'Multi-line mode');
-    await submitMultiLineEntry(form, entry);
-    await expect(listedEntry(page, entry.memo)).toHaveCount(1);
-  }
-}
-
 async function openEntriesWith(page: Page, posted: readonly Posted[], width: ViewportSize = PHONE): Promise<void> {
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   await post(page, posted);
   await page.setViewportSize(width);
   await page.goto('/entries');
 }
-
-const listed = (page: Page, posted: Posted): Locator =>
-  listedEntry(page, posted.memo === '' ? (posted.title ?? '') : posted.memo);
 
 const firstLineName = (entry: Locator, posted: Posted): Locator => {
   const [first] = shownLines(posted);
@@ -134,7 +108,7 @@ const firstLineName = (entry: Locator, posted: Posted): Locator => {
 test('lays an Entry out at 390px in three header rows: the date with Edit and Delete, the Title with the Entry total, then the memo across the full width', async ({ page }) => {
   await openEntriesWith(page, [RENT]);
 
-  const entry = listed(page, RENT);
+  const entry = listedHeading(page, RENT);
   await expectThreeRowHeader(entry, RENT);
   await expectWithinPhone(page, entry);
 });
@@ -143,20 +117,19 @@ test('puts the Entry total alone on the Title row at the right at 390px when an 
   test.slow();
   await openEntriesWith(page, [UNTITLED, NO_MEMO, LUNCH]);
 
-  await expectTotalAloneOnItsRow(listed(page, UNTITLED), UNTITLED);
-  const withoutMemo = await boxOf(listed(page, NO_MEMO), 'the Entry with no memo');
-  const withMemo = await boxOf(listed(page, LUNCH), 'the Entry with a memo');
-  const memo = await boxOf(entryMemo(listed(page, LUNCH), LUNCH), 'the memo');
+  await expectTotalAloneOnItsRow(listedHeading(page, UNTITLED), UNTITLED);
+  const withoutMemo = await boxOf(listedHeading(page, NO_MEMO), 'the Entry with no memo');
+  const withMemo = await boxOf(listedHeading(page, LUNCH), 'the Entry with a memo');
+  const memo = await boxOf(entryMemo(listedHeading(page, LUNCH), LUNCH), 'the memo');
   expect(withoutMemo.height, 'an Entry with no memo has no memo row').toBeLessThan(withMemo.height - memo.height / 2);
 });
 
 test('shows Debit and Credit side by side at 390px, each compact line with its tile, name and arrow and its amount told only to assistive technology, keeping the Debit and Credit column headers', async ({ page }) => {
-  test.slow();
   await openEntriesWith(page, [PAYROLL, LUNCH]);
 
   for (const posted of [PAYROLL, LUNCH]) {
-    await expectCompact(listed(page, posted), shownLines(posted));
-    await expectWithinPhone(page, listed(page, posted));
+    await expectCompact(listedHeading(page, posted), shownLines(posted));
+    await expectWithinPhone(page, listedHeading(page, posted));
   }
   for (const side of ['Debit', 'Credit'] as const) {
     await expect(entries(page).getByRole('columnheader', { name: side, exact: true })).toHaveCount(1);
@@ -167,14 +140,24 @@ test('puts a collapsed chevron at 390px only on an Entry with more than one line
   test.slow();
   await openEntriesWith(page, [PAYROLL, SPLIT_BILL, LUNCH]);
 
-  await expectExpanded(listed(page, PAYROLL), PAYROLL, false);
-  await expectExpanded(listed(page, SPLIT_BILL), SPLIT_BILL, false);
-  await expectNoChevron(listed(page, LUNCH));
+  await expectExpanded(listedHeading(page, PAYROLL), PAYROLL, false);
+  await expectExpanded(listedHeading(page, SPLIT_BILL), SPLIT_BILL, false);
+  await expectNoChevron(listedHeading(page, LUNCH));
+});
+
+test('names the chevron at 390px by the Entry date and its memo when the Entry has no Title', async ({ page }) => {
+  await openEntriesWith(page, [TAXI]);
+  const entry = listedHeading(page, TAXI);
+
+  await expectExpanded(entry, TAXI, false);
+  await chevron(entry, TAXI).click();
+  await expectExpanded(entry, TAXI, true);
+  await expectDetailed(entry, shownLines(TAXI), 'stacked');
 });
 
 test('expands an Entry at 390px by its chevron, stacking its lines under their Side names with their amounts, and collapses it by the chevron again', async ({ page }) => {
   await openEntriesWith(page, [PAYROLL]);
-  const entry = listed(page, PAYROLL);
+  const entry = listedHeading(page, PAYROLL);
 
   await chevron(entry, PAYROLL).click();
   await expectExpanded(entry, PAYROLL, true);
@@ -188,7 +171,7 @@ test('expands an Entry at 390px by its chevron, stacking its lines under their S
 
 test('expands and collapses an Entry at 390px by a click anywhere on its body', async ({ page }) => {
   await openEntriesWith(page, [SPLIT_BILL]);
-  const entry = listed(page, SPLIT_BILL);
+  const entry = listedHeading(page, SPLIT_BILL);
 
   await firstLineName(entry, SPLIT_BILL).click();
   await expectExpanded(entry, SPLIT_BILL, true);
@@ -199,11 +182,11 @@ test('expands and collapses an Entry at 390px by a click anywhere on its body', 
   await expectCompact(entry, shownLines(SPLIT_BILL));
 });
 
-test('expands and collapses an Entry at 390px by Enter and Space on its chevron', async ({ page }) => {
+test('reaches the chevron at 390px with Tab, passing over the Entry body, and expands and collapses the Entry by Enter and Space', async ({ page }) => {
   await openEntriesWith(page, [PAYROLL]);
-  const entry = listed(page, PAYROLL);
+  const entry = listedHeading(page, PAYROLL);
 
-  await chevron(entry, PAYROLL).focus();
+  await tabToChevronPassingOver(page, entry, chevron(entry, PAYROLL));
   await page.keyboard.press('Enter');
   await expectExpanded(entry, PAYROLL, true);
   await expectDetailed(entry, shownLines(PAYROLL), 'stacked');
@@ -215,7 +198,7 @@ test('expands and collapses an Entry at 390px by Enter and Space on its chevron'
 
 test('never toggles an Entry at 390px for Edit, Delete, a click in their dialogs, or a text selection', async ({ page }) => {
   await openEntriesWith(page, [PAYROLL]);
-  const entry = listed(page, PAYROLL);
+  const entry = listedHeading(page, PAYROLL);
 
   const edit = await openEditEntry(entry);
   await edit.getByRole('heading', { name: 'Edit entry', exact: true }).click();
@@ -237,7 +220,7 @@ test('never toggles an Entry at 390px for Edit, Delete, a click in their dialogs
 
 test('does not expand an Entry of one line per Side at 390px when its body is clicked', async ({ page }) => {
   await openEntriesWith(page, [LUNCH]);
-  const entry = listed(page, LUNCH);
+  const entry = listedHeading(page, LUNCH);
 
   await firstLineName(entry, LUNCH).click();
   await entryMemo(entry, LUNCH).click();
@@ -247,35 +230,47 @@ test('does not expand an Entry of one line per Side at 390px when its body is cl
 });
 
 test('keeps several Entries expanded at once at 390px, and starts every Entry collapsed again on a reload', async ({ page }) => {
-  test.slow();
   await openEntriesWith(page, [PAYROLL, SPLIT_BILL]);
 
   for (const posted of [PAYROLL, SPLIT_BILL]) {
-    await chevron(listed(page, posted), posted).click();
+    await chevron(listedHeading(page, posted), posted).click();
   }
   for (const posted of [PAYROLL, SPLIT_BILL]) {
-    await expectExpanded(listed(page, posted), posted, true);
-    await expectDetailed(listed(page, posted), shownLines(posted), 'stacked');
+    await expectExpanded(listedHeading(page, posted), posted, true);
+    await expectDetailed(listedHeading(page, posted), shownLines(posted), 'stacked');
   }
 
   await page.reload();
   for (const posted of [PAYROLL, SPLIT_BILL]) {
-    await expectExpanded(listed(page, posted), posted, false);
-    await expectCompact(listed(page, posted), shownLines(posted));
+    await expectExpanded(listedHeading(page, posted), posted, false);
+    await expectCompact(listedHeading(page, posted), shownLines(posted));
   }
 });
 
+test('keeps an Entry expanded at 390px through a widening of the window to 1280px and back', async ({ page }) => {
+  await openEntriesWith(page, [PAYROLL]);
+  const entry = listedHeading(page, PAYROLL);
+  await chevron(entry, PAYROLL).click();
+  await expectExpanded(entry, PAYROLL, true);
+
+  await page.setViewportSize(WIDE);
+  await expectDetailed(entry, shownLines(PAYROLL), 'side by side');
+  await page.setViewportSize(PHONE);
+
+  await expectExpanded(entry, PAYROLL, true);
+  await expectDetailed(entry, shownLines(PAYROLL), 'stacked');
+});
+
 test('keeps the compact layout and the chevron at 800px, where the list beside the Sidebar is under 40rem', async ({ page }) => {
-  test.slow();
-  await openEntriesWith(page, [PAYROLL, LUNCH], NARROW_WIDE);
+  await openEntriesWith(page, [PAYROLL, LUNCH], WIDE_BESIDE_SIDEBAR);
 
-  await expectCompact(listed(page, PAYROLL), shownLines(PAYROLL));
-  await expectCompact(listed(page, LUNCH), shownLines(LUNCH));
-  await expectNoChevron(listed(page, LUNCH));
+  await expectCompact(listedHeading(page, PAYROLL), shownLines(PAYROLL));
+  await expectCompact(listedHeading(page, LUNCH), shownLines(LUNCH));
+  await expectNoChevron(listedHeading(page, LUNCH));
 
-  await chevron(listed(page, PAYROLL), PAYROLL).click();
-  await expectExpanded(listed(page, PAYROLL), PAYROLL, true);
-  await expectDetailed(listed(page, PAYROLL), shownLines(PAYROLL), 'stacked');
+  await chevron(listedHeading(page, PAYROLL), PAYROLL).click();
+  await expectExpanded(listedHeading(page, PAYROLL), PAYROLL, true);
+  await expectDetailed(listedHeading(page, PAYROLL), shownLines(PAYROLL), 'stacked');
 });
 
 for (const width of [WIDE_BELOW_SPLIT, WIDE]) {
@@ -284,7 +279,7 @@ for (const width of [WIDE_BELOW_SPLIT, WIDE]) {
     await openEntriesWith(page, [PAYROLL, LUNCH, RENT], width);
 
     for (const posted of [PAYROLL, LUNCH, RENT]) {
-      const entry = listed(page, posted);
+      const entry = listedHeading(page, posted);
       await expectNoChevron(entry);
       await expectOneRowHeader(entry, posted);
       await expectDetailed(entry, shownLines(posted), 'side by side');
@@ -296,10 +291,10 @@ test('runs View Transition animations right after an Entry expands at 390px', as
   await openEntriesWith(page, [PAYROLL]);
   await recordViewTransitions(page);
 
-  await chevron(listed(page, PAYROLL), PAYROLL).click();
+  await chevron(listedHeading(page, PAYROLL), PAYROLL).click();
 
   await expect.poll(() => viewTransitionAnimations(page), { timeout: 2000 }).toBeGreaterThan(0);
-  await expectExpanded(listed(page, PAYROLL), PAYROLL, true);
+  await expectExpanded(listedHeading(page, PAYROLL), PAYROLL, true);
 });
 
 test('expands an Entry at 390px at once, with no View Transition animation, when the User prefers reduced motion', async ({ page }) => {
@@ -307,16 +302,15 @@ test('expands an Entry at 390px at once, with no View Transition animation, when
   await openEntriesWith(page, [PAYROLL]);
   await recordViewTransitions(page);
 
-  await chevron(listed(page, PAYROLL), PAYROLL).click();
+  await chevron(listedHeading(page, PAYROLL), PAYROLL).click();
 
-  await expectExpanded(listed(page, PAYROLL), PAYROLL, true);
+  await expectExpanded(listedHeading(page, PAYROLL), PAYROLL, true);
   await waitFrames(page, 30);
   expect(await viewTransitionAnimations(page)).toBe(0);
-  await expectDetailed(listed(page, PAYROLL), shownLines(PAYROLL), 'stacked');
+  await expectDetailed(listedHeading(page, PAYROLL), shownLines(PAYROLL), 'stacked');
 });
 
 test('shows the results of Entry search at 390px compact, expands one by its chevron, and starts a new search with every result collapsed', async ({ page }) => {
-  test.slow();
   await openEntriesWith(page, [PAYROLL, LUNCH]);
   await page.goto(ENTRY_SEARCH_PATH);
   await search(page, {});
@@ -333,4 +327,54 @@ test('shows the results of Entry search at 390px compact, expands one by its che
   await search(page, { memo: PAYROLL.memo });
   await expectExpanded(result, PAYROLL, false);
   await expectCompact(result, shownLines(PAYROLL));
+});
+
+async function expectNamesReadable(page: Page, entry: Locator, lines: readonly ShownLine[]): Promise<void> {
+  await expectWithinPhone(page, entry);
+  for (const shown of lines) {
+    await expectOnOneLine(nameIn(entry, shown), `${shown.name} on ${shown.side}`);
+  }
+}
+
+async function expectLongKoreanNamesReadable(
+  page: Page,
+  posted: LongKoreanNames,
+  list: (heading: Posted) => Locator,
+): Promise<void> {
+  const severalPerSide = list(posted.severalPerSide);
+  const several = shownLines(posted.severalPerSide);
+
+  for (const heading of [posted.severalPerSide, posted.onePerSide]) {
+    await expectCompact(list(heading), shownLines(heading));
+    await expectNamesReadable(page, list(heading), shownLines(heading));
+  }
+
+  await chevron(severalPerSide, posted.severalPerSide).click();
+  await expectExpanded(severalPerSide, posted.severalPerSide, true);
+  await expectDetailed(severalPerSide, several, 'stacked');
+  await expectNamesReadable(page, severalPerSide, several);
+  for (const shown of several) {
+    const lineBox = await boxOf(lineOf(severalPerSide, shown), `${shown.name}'s line`);
+    const amountBox = await boxOf(lineOf(severalPerSide, shown).getByText(shown.amount, { exact: true }), `${shown.name}'s amount`);
+    expect(amountBox.x + amountBox.width, `${shown.name}'s amount ends at the line's right edge`).toBeGreaterThanOrEqual(
+      lineBox.x + lineBox.width - 1,
+    );
+  }
+}
+
+test('keeps each long Korean Account name readable at 390px in the Entries list, compact and expanded, with no horizontal overflow', async ({ page }) => {
+  const posted = await postLongKoreanNames(page);
+  await page.setViewportSize(PHONE);
+  await page.goto('/entries');
+
+  await expectLongKoreanNamesReadable(page, posted, (heading) => listedHeading(page, heading));
+});
+
+test('keeps each long Korean Account name readable at 390px in Entry search, compact and expanded, with no horizontal overflow', async ({ page }) => {
+  const posted = await postLongKoreanNames(page);
+  await page.setViewportSize(PHONE);
+  await page.goto(ENTRY_SEARCH_PATH);
+  await search(page, {});
+
+  await expectLongKoreanNamesReadable(page, posted, (heading) => resultFor(page, heading.memo));
 });
