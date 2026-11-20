@@ -59,12 +59,7 @@ describe('decideProductionRelease', () => {
   it('fails closed when a required prerequisite result is duplicated', () => {
     expect(
       decideProductionRelease({
-        prerequisites: [
-          { name: 'Gates', outcome: 'success' },
-          { name: 'Gates', outcome: 'failure' },
-          { name: 'Integration', outcome: 'success' },
-          { name: 'Mutation testing', outcome: 'success' },
-        ],
+        prerequisites: [...SUCCESSFUL_PREREQUISITES, { name: 'Gates', outcome: 'failure' }],
         migration: { state: 'none', outcome: 'skipped-no-migration' },
       }),
     ).toEqual({
@@ -630,10 +625,7 @@ describe('production-release.ts, run as CI runs it', () => {
 
   it('fails closed when a required prerequisite result is absent', () => {
     const result = runCommand('decide', {
-      prerequisites: [
-        { name: 'Gates', outcome: 'success' },
-        { name: 'Integration', outcome: 'success' },
-      ],
+      prerequisites: SUCCESSFUL_PREREQUISITES.filter(({ name }) => name !== 'Mutation testing'),
       migration: { state: 'none', outcome: 'skipped-no-migration' },
     });
 

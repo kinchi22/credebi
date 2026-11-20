@@ -429,8 +429,9 @@ once by hand, and only when all of these hold:
 1. Its commit introduces the Deployment identity, and Current Production is
    older than it.
 2. `Production ready` failed in the compatibility run only, because Current
-   Production reports no identity: `Gates`, `Integration` and `Migrate preview`
-   passed, and `Apply migrations` was skipped because nothing was pending.
+   Production reports no identity: `Gates`, `Integration`, `Mutation testing`
+   and `Migrate preview` passed, and `Apply migrations` was skipped because
+   nothing was pending.
 3. `E2E build` passed on the commit.
 
 `Candidate Production smoke` waits for `Production ready`, so it fails too and
