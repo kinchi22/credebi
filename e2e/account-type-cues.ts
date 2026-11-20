@@ -78,6 +78,12 @@ export async function expectOnOneRow(first: Locator, then: Locator, what: string
   expect(centre, `${what}: on one row`).toBeLessThanOrEqual(left.y + left.height);
 }
 
+export async function expectBelow(above: Locator, below: Locator, what: string): Promise<void> {
+  const upper = await boxOf(above, `${what}: the upper one`);
+  const lower = await boxOf(below, `${what}: the lower one`);
+  expect(lower.y, `${what}: one below the other`).toBeGreaterThanOrEqual(upper.y + upper.height - 1);
+}
+
 export async function expectNameCued(scope: Locator, account: string): Promise<void> {
   await expectTile(scope, typeOf(account));
   const name = scope.getByText(account, { exact: true }).filter({ visible: true }).first();
@@ -88,7 +94,11 @@ export async function expectNameCued(scope: Locator, account: string): Promise<v
 type Styled = {
   readonly ownerDocument: {
     readonly defaultView: {
-      getComputedStyle: (element: Styled) => { readonly backgroundColor: string; readonly paddingLeft: string };
+      getComputedStyle: (element: Styled) => {
+        readonly backgroundColor: string;
+        readonly paddingLeft: string;
+        readonly lineHeight: string;
+      };
     } | null;
   };
   readonly querySelectorAll: (selectors: string) => ArrayLike<Styled>;
@@ -116,4 +126,12 @@ export async function expectLeadsTypedText(tile: Locator, field: Locator, what: 
   expect(shown.x + shown.width, `${what}: the tile ends before the typed text starts`).toBeLessThanOrEqual(
     box.x + padding,
   );
+}
+
+export async function expectOnOneLine(text: Locator, what: string): Promise<void> {
+  const box = await boxOf(text, what);
+  const lineHeight = Number.parseFloat(
+    await text.evaluate((each: Styled) => each.ownerDocument.defaultView?.getComputedStyle(each).lineHeight ?? ''),
+  );
+  expect(box.height, `${what} fits on one line`).toBeLessThan(lineHeight * 1.5);
 }
