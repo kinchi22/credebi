@@ -1201,7 +1201,10 @@ numerals.
   vertically past the top edge over 200ms, ease-out, both ways, without a fade,
   and instantly under `prefers-reduced-motion: reduce`. This, the Entry
   expansion in the Entries list, the Landing page's opening Entry and the Line
-  chart's dot pop are the design's only motion, so none has a token. Focus starts on the drawer, and Tab
+  chart's dot pop are the design's only motion. The Entry expansion and the
+  opening Entry share one timing, which `apps/web/app/globals.css` declares as
+  `--entry-expansion-duration` and `--entry-expansion-easing`; the Top bar and
+  the dot pop each state their own. Focus starts on the drawer, and Tab
   reaches `Entries` first. Escape, a click on the scrim or following a link
   closes it, and focus returns to `Menu`.
 - **Focus.** A 2px ring on every focusable element: `focus` on a light ground,
