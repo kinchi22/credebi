@@ -2,7 +2,7 @@
 
 import { trendLineSchema } from '@repo/contracts';
 import { PANEL } from '@repo/ui';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { type ReactNode } from 'react';
 import { AssetsAndLiabilitiesTrendChart } from './assets-and-liabilities-trend-chart';
 import { type EntryDeletion } from './delete-entry';
@@ -10,6 +10,7 @@ import { type EntryFormState } from './entry-form';
 import { EntryList } from './entry-list';
 import { IncomeStatementTables } from './income-statement-tables';
 import { sampleBooks, type SampleBooks } from './sample-books';
+import { useUnfoldingEntry } from './use-unfolding-entry';
 
 const keepNothing = (): Promise<void> => Promise.resolve();
 
@@ -26,14 +27,22 @@ function useSampleBooks(): SampleBooks {
   });
 }
 
+function UnfoldingEntries({ chart, entries }: Pick<SampleBooks, 'chart' | 'entries'>): ReactNode {
+  const { list, heldOpen, reserved } = useUnfoldingEntry(entries);
+  return (
+    <div ref={list} style={{ minHeight: reserved }} className="flex flex-col *:flex-1">
+      <EntryList
+        entries={entries}
+        heldOpen={heldOpen}
+        controls={{ chart, titles: [], entryFormMode: 'two-line', editEntry: editNothing, deleteEntry: deleteNothing }}
+      />
+    </div>
+  );
+}
+
 export function EntriesPreview(): ReactNode {
   const { chart, entries } = useSampleBooks();
-  return (
-    <EntryList
-      entries={entries}
-      controls={{ chart, titles: [], entryFormMode: 'two-line', editEntry: editNothing, deleteEntry: deleteNothing }}
-    />
-  );
+  return <UnfoldingEntries key={useLocale()} chart={chart} entries={entries} />;
 }
 
 export function TrendPreview(): ReactNode {

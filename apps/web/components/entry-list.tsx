@@ -65,7 +65,7 @@ const COMPACT_HIDDEN = '@max-list:sr-only';
 
 const SIDE_HEADING = `${typeClasses.label} leading-5`;
 
-const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+export const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
 const entryTransitionName = (entry: PostedEntry): string => `entry-${entry.id}`;
 
