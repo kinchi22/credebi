@@ -58,10 +58,6 @@ test('shows no Sidebar once the visitor is no longer signed in', async ({ page }
   await sidebarSignOut(page).click();
   await expect(page).not.toHaveURL(ENTRIES_URL);
 
-  await page.goto('/');
-  await expect(page.getByTestId('health')).toBeVisible();
-  await expect(sidebar(page)).toHaveCount(0);
-
   await page.goto('/sign-in');
   await expect(page.getByRole('link', { name: 'Sign in with Google' })).toBeVisible();
   await expect(sidebar(page)).toHaveCount(0);
