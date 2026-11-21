@@ -4,7 +4,7 @@ import { typeClasses } from '@repo/ui/type-classes';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { type ReactNode } from 'react';
-import { BUTTON, LARGE_PRIMARY_BUTTON } from './control-classes';
+import { BARE_ICON_BUTTON, BUTTON, LARGE_PRIMARY_BUTTON, ON_DARK_FOCUS } from './control-classes';
 import { LanguageSwitch } from './language-switch';
 import { SIGN_IN_PATH } from '../server/return-path';
 
@@ -18,9 +18,9 @@ const SOURCE_REPOSITORY = 'https://github.com/kinchi22/credebi';
 const LOGO_HEIGHT = 28;
 const SECTION = 'mx-auto w-full max-w-6xl px-4 wide:px-14';
 const HERO_HIGHLIGHT: Highlight = 'entries';
-const ROWS: readonly { readonly highlight: Highlight; readonly textFirst: boolean }[] = [
-  { highlight: 'trend', textFirst: false },
-  { highlight: 'statement', textFirst: true },
+const ROWS: readonly { readonly highlight: Highlight; readonly previewSide: 'left' | 'right' }[] = [
+  { highlight: 'trend', previewSide: 'left' },
+  { highlight: 'statement', previewSide: 'right' },
 ];
 
 function GetStarted(): ReactNode {
@@ -56,7 +56,7 @@ function Header({ chooseLanguage }: LandingPageProps): ReactNode {
         <Logo variant="horizontal" tone="reverse" name={t('app.name')} height={LOGO_HEIGHT} />
         <span className="ml-auto flex items-center gap-3">
           <LanguageSwitch action={chooseLanguage} onDark />
-          <Link href={SIGN_IN_PATH} className={`${BUTTON} inline-flex items-center focus-visible:outline-focus-on-dark`}>
+          <Link href={SIGN_IN_PATH} className={`${BUTTON} inline-flex items-center ${ON_DARK_FOCUS}`}>
             {t('landingPage.logIn')}
           </Link>
         </span>
@@ -92,10 +92,10 @@ function Hero(): ReactNode {
   );
 }
 
-function HighlightRow({ highlight, textFirst }: { readonly highlight: Highlight; readonly textFirst: boolean }): ReactNode {
+function HighlightRow({ highlight, previewSide }: { readonly highlight: Highlight; readonly previewSide: 'left' | 'right' }): ReactNode {
   return (
     <section className={`${SECTION} grid items-center gap-6 py-10 wide:grid-cols-5 wide:gap-12 wide:py-16`}>
-      <div className={`flex flex-col gap-3 wide:col-span-2 ${textFirst ? '' : 'wide:order-2'}`}>
+      <div className={`flex flex-col gap-3 wide:col-span-2 ${previewSide === 'left' ? 'wide:order-2' : ''}`}>
         <HighlightText highlight={highlight} onDark={false} />
       </div>
       <PreviewSlot className="wide:col-span-3" />
@@ -111,7 +111,7 @@ function Footer(): ReactNode {
         href={SOURCE_REPOSITORY}
         aria-label={t('source')}
         title={t('source')}
-        className="inline-flex rounded-control text-text-muted hover:text-text"
+        className={BARE_ICON_BUTTON}
       >
         <GitHubMark />
       </a>
@@ -126,7 +126,7 @@ export function LandingPage({ chooseLanguage }: LandingPageProps): ReactNode {
       <main>
         <Hero />
         {ROWS.map((row) => (
-          <HighlightRow key={row.highlight} highlight={row.highlight} textFirst={row.textFirst} />
+          <HighlightRow key={row.highlight} highlight={row.highlight} previewSide={row.previewSide} />
         ))}
         <section className={`${SECTION} flex justify-center py-16 wide:py-24`}>
           <GetStarted />

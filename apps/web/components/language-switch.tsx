@@ -14,7 +14,7 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from 'react';
-import { BARE_ICON_BUTTON } from './control-classes';
+import { BARE_ICON_BUTTON, ON_DARK_FOCUS, QUIET_ON_DARK } from './control-classes';
 import { useDismissOutside } from './use-dismiss-outside';
 import { DOWN_STEPS } from './roving-focus';
 
@@ -23,8 +23,7 @@ export type LanguageSwitchProps = {
   readonly onDark?: boolean;
 };
 
-const ON_DARK_BUTTON =
-  'inline-flex items-center justify-center rounded-control text-text-muted-on-dark hover:bg-ground-dark-hover hover:text-text-on-dark focus-visible:outline-focus-on-dark';
+const ON_DARK_BUTTON = `inline-flex items-center justify-center rounded-control ${QUIET_ON_DARK} ${ON_DARK_FOCUS}`;
 
 const LANGUAGES = languageSchema.options;
 

@@ -286,7 +286,7 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `ground`             | `mist`      | the page background                   |
 | `text`               | `ink`       | body text, headings                   |
 | `text-muted`         | `slate`     | labels, hints, dates                  |
-| `text-on-dark`       | `frost`     | text in the Sidebar and on the Landing page's dark band |
+| `text-on-dark`       | `frost`     | text in the Sidebar, the Landing page's header and hero |
 | `text-muted-on-dark` | `sage`      | links in the Sidebar, the Landing page's value proposition |
 | `ground-dark`        | `ink`       | the Sidebar's ground, the Landing page's header and hero |
 | `ground-dark-raised` | `ink-raised` | the active Sidebar item              |
@@ -544,7 +544,8 @@ lint rule `repo/no-raw-shape` rejects one anywhere in `apps/web` or
 `packages/ui`, reading the radius names from the tokens module.
 
 Every input, select, secondary, primary and danger button and Icon button on a
-light ground is 36px tall, `controlHeight` in the tokens module and
+light ground is 36px tall, except the Landing page's Get started, a primary
+button 48px tall, `controlHeight` in the tokens module and
 `h-control` from `--height-control` in the stylesheet, at every width. Below
 `wide`, a typed control's text is 16px, `controlFontSize` in the tokens module
 and `text-control` from `--text-control` in the stylesheet, so a phone does not
@@ -561,7 +562,8 @@ numerals.
   tall as the Input it sits beside: Entry search's submit beside the memo
   field, and the entry form's submit beside the amount field in Two-line mode.
   A transparent edge as wide as an Input's border keeps its text where a
-  secondary button's sits.
+  secondary button's sits. The one exception to its height is the Landing
+  page's Get started, 48px tall in `body` with 24px at its sides.
 - **Secondary button.** `surface` fill, `text`, a `border-control` edge, 36px
   tall.
 - **Danger button.** `danger` fill, `surface` text, semibold, 36px tall, with
@@ -588,7 +590,8 @@ numerals.
 - **Language switch.** On `/sign-in`, centred 16px below the Sign in card, and
   in its dark variant in the Landing page's header. It is a bare button 36px tall in `body-sm` and `text-muted`, `text` under the
   pointer: a 16px globe icon, never a flag, 6px before `Language` in the
-  page's Language, which is its accessible name. It opens a menu above it: a
+  page's Language, which is its accessible name. It opens a menu above it,
+  except in the dark variant, whose menu opens below it: a
   `surface` fill, a `border` edge and the `control` radius, at least 160px wide,
   with no shadow. The menu lists each Language in itself -- English, 한국어,
   日本語 -- in that order whatever the page's Language, each a row 36px tall in
@@ -600,9 +603,9 @@ numerals.
   the browser's Language and renders the page again in it. Its dark variant
   keeps the same button and menu, its text in `text-muted-on-dark`, and under
   the pointer `text-on-dark` on a `ground-dark-hover` fill, with the
-  `focus-on-dark` ring, as the Quiet button on dark is. Its menu opens
-  downwards, 4px below the button and aligned to its right edge, since the
-  header has no room above it.
+  `focus-on-dark` ring, as the Quiet button on dark is. Its menu sits 4px
+  below the button, aligned to its right edge, since the header has no room
+  above it.
 - **Quiet button on dark.** No fill and no border: `text-muted-on-dark` text,
   and under the pointer `text-on-dark` on a `ground-dark-hover` fill, with the
   `control` radius and the `focus-on-dark` ring. It is Sign out in the Sidebar:
@@ -1278,7 +1281,7 @@ hidden.
 ## Landing page
 
 What `/` shows a visitor who is not signed in, as the approved prototype's
-variant B settled it. Every band sits in one column at most 1152px wide,
+variant B settled it. Every part of it sits in one column at most 1152px wide,
 `max-w-6xl`, with the page gutter: 16px below `wide`, 56px at the sides from
 `wide` up.
 
@@ -1292,9 +1295,9 @@ variant B settled it. Every band sits in one column at most 1152px wide,
   `text-muted-on-dark`, and Get started, 20px apart; then the first highlight,
   90px below them, its heading in `h2` and `text-on-dark` and its text in
   `text-muted-on-dark`. The whole column is centred against the preview on the
-  right, which overlaps the band's lower edge by 64px. Below `wide` the column
+  right, which overlaps the hero's lower edge by 64px. Below `wide` the column
   holds the headline, the value proposition and Get started, the preview
-  follows, overlapping the band's edge by 32px, and the first highlight comes
+  follows, overlapping the hero's lower edge by 32px, and the first highlight comes
   after it on the `ground`, in `text` and `text-muted`.
 - **Highlights.** The other two follow, each in a row of its own: from `wide`
   up its text takes two fifths and its preview three fifths, 48px apart, the
@@ -1306,8 +1309,8 @@ variant B settled it. Every band sits in one column at most 1152px wide,
   8px below `wide` and 12px from `wide` up. A preview is `inert`, so it takes
   no focus and is skipped by assistive technology; the highlight's text carries
   its meaning.
-- **Get started.** A primary button 48px tall with 24px at its sides, the one
-  primary button taller than 36px, linking to `/sign-in`. It stands in the hero
+- **Get started.** A primary button 48px tall in `body` with 24px at its
+  sides, the one primary button taller than 36px, linking to `/sign-in`. It stands in the hero
   and again centred above the footer, 64px above and below it, 96px from `wide`
   up.
 - **Footer.** A `border` hairline above it, 24px above and below, holding only
