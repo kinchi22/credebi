@@ -63,23 +63,38 @@ export const en = {
   notFoundPage: {
     title: 'Page not found',
   },
-  healthPanel: {
-    title: 'Pipeline health',
-    reachable: 'reachable',
-    unreachable: 'unreachable',
-    checkedAt: 'checked at {instant}',
-  },
-  refreshButton: {
-    idle: 'Re-check',
-    pending: 'Checking...',
-  },
-  home: {
-    entriesLink: 'Entries',
-  },
   signInPage: {
     title: 'Sign in',
     google: 'Sign in with Google',
     failed: 'Signing in did not work. Try again.',
+  },
+  landingPage: {
+    headline: 'See where your money came from, and where it went.',
+    valueProposition:
+      'Record every transaction on two sides and your balances always add up, with assets, liabilities, income and spending in one set of books.',
+    getStarted: 'Get started',
+    logIn: 'Log in',
+    source: 'View the source on GitHub',
+    sampleTitles: {
+      salary: 'October salary',
+      groceries: 'Weekend groceries',
+      teamDinner: 'Team dinner',
+      subwayFare: 'Subway fare',
+    },
+    highlights: {
+      entries: {
+        title: 'Every transaction, both sides',
+        body: 'Buy a coffee by card and your food spending goes up, and so does what you owe the card. Credebi records both, so the totals never drift. Double-entry bookkeeping is one idea: money never disappears, it only moves. Write down where it came from and where it went, and the books check themselves.',
+      },
+      trend: {
+        title: 'Watch your net worth grow',
+        body: 'See assets, liabilities and the difference between them at the end of every month. You record; the arithmetic is done for you.',
+      },
+      statement: {
+        title: 'What came in, what went out',
+        body: 'Income and spending, totalled by account, show what is left this month. Group accounts to see only the big picture.',
+      },
+    },
   },
   consentPage: {
     title: 'Connect an application',

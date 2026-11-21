@@ -14,17 +14,20 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from 'react';
-import { BARE_ICON_BUTTON } from './control-classes';
+import { BARE_ICON_BUTTON, ON_DARK_FOCUS, QUIET_ON_DARK } from './control-classes';
 import { useDismissOutside } from './use-dismiss-outside';
 import { DOWN_STEPS } from './roving-focus';
 
 export type LanguageSwitchProps = {
   readonly action: (language: Language) => Promise<void>;
+  readonly onDark?: boolean;
 };
+
+const ON_DARK_BUTTON = `inline-flex items-center justify-center rounded-control ${QUIET_ON_DARK} ${ON_DARK_FOCUS}`;
 
 const LANGUAGES = languageSchema.options;
 
-export function LanguageSwitch({ action }: LanguageSwitchProps): ReactNode {
+export function LanguageSwitch({ action, onDark = false }: LanguageSwitchProps): ReactNode {
   const t = useTranslations('language');
   const current = useLocale();
   const [open, setOpen] = useState(false);
@@ -95,7 +98,7 @@ export function LanguageSwitch({ action }: LanguageSwitchProps): ReactNode {
             setOpen(true);
           }
         }}
-        className={`h-control gap-1.5 px-2 ${typeClasses['body-sm']} ${BARE_ICON_BUTTON}`}
+        className={`h-control gap-1.5 px-2 ${typeClasses['body-sm']} ${onDark ? ON_DARK_BUTTON : BARE_ICON_BUTTON}`}
       >
         <GlobeIcon />
         {t('label')}
@@ -106,7 +109,7 @@ export function LanguageSwitch({ action }: LanguageSwitchProps): ReactNode {
           role="menu"
           aria-label={t('label')}
           onKeyDown={moveFocus}
-          className="absolute bottom-full z-10 mb-1 flex min-w-40 flex-col rounded-control border border-border bg-surface py-1"
+          className={`absolute ${onDark ? 'top-full right-0 mt-1' : 'bottom-full mb-1'} z-10 flex min-w-40 flex-col rounded-control border border-border bg-surface py-1`}
         >
           {LANGUAGES.map((language, index) => {
             const chosen = language === current;

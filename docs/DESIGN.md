@@ -70,7 +70,6 @@ colors:
   border-control: "{colors.steel}"
   danger: "{colors.rust}"
   warning: "{colors.ochre}"
-  positive: "{colors.mint-deep}"
   focus: "{colors.mint-deep}"
   focus-on-dark: "{colors.mint}"
   debit: "{colors.cobalt}"
@@ -286,9 +285,9 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `ground`             | `mist`      | the page background                   |
 | `text`               | `ink`       | body text, headings                   |
 | `text-muted`         | `slate`     | labels, hints, dates                  |
-| `text-on-dark`       | `frost`     | text in the Sidebar                   |
-| `text-muted-on-dark` | `sage`      | links in the Sidebar                  |
-| `ground-dark`        | `ink`       | the Sidebar's ground                  |
+| `text-on-dark`       | `frost`     | text in the Sidebar, the Landing page's header and hero |
+| `text-muted-on-dark` | `sage`      | links in the Sidebar, muted text and the Language switch on the Landing page's header and hero |
+| `ground-dark`        | `ink`       | the Sidebar's ground, the Landing page's header and hero |
 | `ground-dark-raised` | `ink-raised` | the active Sidebar item              |
 | `ground-dark-hover`  | `ink-mid`    | an idle Sidebar item under the pointer |
 | `surface-hover`      | `mist-pale`  | an Entry in the Entries list, and a Title suggestion, under the pointer or reached by the arrow keys |
@@ -310,8 +309,7 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `band-suggested`     | `mint-fog`  | the Suggested Band in the Account picker and the Account sheet |
 | `border-control`     | `steel`     | inputs, secondary buttons, tree connectors, and at 55% the Account picker's group rules |
 | `danger`             | `rust`      | refusals, errors                      |
-| `warning`            | `ochre`     | a degraded health status, a Difference not 0, a line not active on the day, a Title needing Multi-line mode |
-| `positive`           | `mint-deep` | a healthy status                      |
+| `warning`            | `ochre`     | a Difference not 0, a line not active on the day, a Title needing Multi-line mode |
 | `focus`              | `mint-deep` | the 2px focus ring on a light ground  |
 | `focus-on-dark`      | `mint`      | the 2px focus ring on a dark ground   |
 | `debit`              | `cobalt`    | a Debit amount or label               |
@@ -498,7 +496,8 @@ reach the panel's edges at every width.
 ## Elevation & Depth
 
 Hierarchy comes mainly from tonal layers: `surface` panels with a `border` edge
-sit on the `ground`, and the Sidebar is the one dark layer. Beside the layers,
+sit on the `ground`, and the Sidebar and the Landing page's header and hero are
+the dark layers. Beside the layers,
 two shadows tinted from `ink`, `shadows` in the tokens module and
 `--shadow-lift` and `--shadow-lift-card` in the stylesheet:
 
@@ -536,15 +535,16 @@ used:
 
 A surface fixed to a screen edge rounds only its free corners: the Account sheet
 its top ones with `rounded-t-panel`, the Sidebar drawer its right ones with
-`rounded-r-panel`. The 8px status dot is a circle, `rounded-full`, the one
-corner outside the three. The stylesheet resets `--radius-*` to `initial`, so a
+`rounded-r-panel`. The stylesheet resets `--radius-*` to `initial`, so a
 bare `rounded` or any of Tailwind's own radii would draw a square corner; the
 lint rule `repo/no-raw-shape` rejects one anywhere in `apps/web` or
 `packages/ui`, reading the radius names from the tokens module.
 
 Every input, select, secondary, primary and danger button and Icon button on a
 light ground is 36px tall, `controlHeight` in the tokens module and
-`h-control` from `--height-control` in the stylesheet, at every width. Below
+`h-control` from `--height-control` in the stylesheet, at every width. The one
+exception is the Landing page's Get started, a primary button 48px tall
+wherever it stands, on the hero's `ground-dark` as on the `ground`. Below
 `wide`, a typed control's text is 16px, `controlFontSize` in the tokens module
 and `text-control` from `--text-control` in the stylesheet, so a phone does not
 zoom in on focus; a date or an amount keeps IBM Plex Mono and its tabular
@@ -553,14 +553,15 @@ numerals.
 ## Components
 
 - **Primary button.** `accent` fill with `text`. White on mint reads 2.0:1 and
-  is never used. It is kept for a page's main action: the entry form's submit
-  and Entry search's submit. Every other button on a light ground is
+  is never used. It is kept for a page's main action: the entry form's submit,
+  Entry search's submit and the Landing page's Get started. Every other button on a light ground is
   secondary, except the Google sign-in button, the danger button and the bare
   icon buttons named below. It is 36px tall, as an Input is, so it stands as
   tall as the Input it sits beside: Entry search's submit beside the memo
   field, and the entry form's submit beside the amount field in Two-line mode.
   A transparent edge as wide as an Input's border keeps its text where a
-  secondary button's sits.
+  secondary button's sits. The one exception to its height is the Landing
+  page's Get started, 48px tall in `body` with 24px at its sides.
 - **Secondary button.** `surface` fill, `text`, a `border-control` edge, 36px
   tall.
 - **Danger button.** `danger` fill, `surface` text, semibold, 36px tall, with
@@ -584,10 +585,11 @@ numerals.
   element set in the `h2` step, centred), the failure line when sign-in failed,
   centred, the Google sign-in button, and, where test sign-in is offered, the
   `Test sign-in` form below a dashed `border` rule with 20px above it.
-- **Language switch.** On `/sign-in` alone, centred 16px below the Sign in
-  card. It is a bare button 36px tall in `body-sm` and `text-muted`, `text` under the
+- **Language switch.** On `/sign-in`, centred 16px below the Sign in card, and
+  in its dark variant in the Landing page's header. It is a bare button 36px tall in `body-sm` and `text-muted`, `text` under the
   pointer: a 16px globe icon, never a flag, 6px before `Language` in the
-  page's Language, which is its accessible name. It opens a menu above it: a
+  page's Language, which is its accessible name. It opens a menu above it,
+  except in the dark variant, whose menu opens below it: a
   `surface` fill, a `border` edge and the `control` radius, at least 160px wide,
   with no shadow. The menu lists each Language in itself -- English, 한국어,
   日本語 -- in that order whatever the page's Language, each a row 36px tall in
@@ -596,7 +598,12 @@ numerals.
   the check's space empty, so the names line up. Opening the menu focuses the
   current Language; the arrow keys, Home and End move between them, Enter or a
   click chooses one, and Escape or a click outside closes it. Choosing writes
-  the browser's Language and renders the page again in it.
+  the browser's Language and renders the page again in it. Its dark variant
+  keeps the same button and menu, its text in `text-muted-on-dark`, and under
+  the pointer `text-on-dark` on a `ground-dark-hover` fill, with the
+  `focus-on-dark` ring, as the Quiet button on dark is. Its menu sits 4px
+  below the button, aligned to its right edge, since the header has no room
+  above it.
 - **Quiet button on dark.** No fill and no border: `text-muted-on-dark` text,
   and under the pointer `text-on-dark` on a `ground-dark-hover` fill, with the
   `control` radius and the `focus-on-dark` ring. It is Sign out in the Sidebar:
@@ -1193,8 +1200,8 @@ numerals.
   anything else in the Top bar, shows it at once. It hides and shows by sliding
   vertically past the top edge over 200ms, ease-out, both ways, without a fade,
   and instantly under `prefers-reduced-motion: reduce`. This, the Entry
-  expansion in the Entries list and the Line chart's dot pop are the design's
-  only motion, so none has a token. Focus starts on the drawer, and Tab
+  expansion in the Entries list, the Landing page's opening Entry and the Line
+  chart's dot pop are the design's only motion, so none has a token. Focus starts on the drawer, and Tab
   reaches `Entries` first. Escape, a click on the scrim or following a link
   closes it, and focus returns to `Menu`.
 - **Focus.** A 2px ring on every focusable element: `focus` on a light ground,
@@ -1222,8 +1229,6 @@ numerals.
   sheet, a wallet, sliders and an exit -- so each is named by its text alone; the
   magnifier is the Account picker's search icon and the wallet, for Assets and
   liabilities, the Assets Band's icon, each at 18px rather than 16px.
-- **Status.** `positive` for healthy, `warning` for degraded, `danger` for a
-  refusal or an error.
 
 ## Logo
 
@@ -1269,6 +1274,60 @@ served.
 The logo is one image named "Credebi" to assistive technology; its parts are
 hidden.
 
+## Landing page
+
+What `/` shows a visitor who is not signed in, as the approved prototype's
+variant B settled it. Every part of it sits in one column at most 1152px wide,
+`max-w-6xl`, with the page gutter: 16px below `wide`, 56px at the sides from
+`wide` up.
+
+- **Header.** On `ground-dark`, 16px above and below: the horizontal Lockup in
+  the reverse tone, 28px tall, at the left; at the right, 12px apart, the
+  Language switch's dark variant and `Log in`, a secondary button with the
+  `focus-on-dark` ring, linking to `/sign-in`.
+- **Hero.** On `ground-dark`, continuing the header. From `wide` up it is two
+  equal columns 48px apart. The left holds the headline, the page's one `h1`,
+  in `display` and `text-on-dark`, the value proposition in `body` and
+  `text-muted-on-dark`, and Get started, 20px apart; then the first highlight,
+  90px below them, its heading in `h2` and `text-on-dark` and its text in
+  `text-muted-on-dark`. The whole column is centred against the preview on the
+  right, which overlaps the hero's lower edge by 64px. Below `wide` the column
+  holds the headline, the value proposition and Get started, the preview
+  follows, overlapping the hero's lower edge by 32px, and the first highlight comes
+  after it on the `ground`, in `text` and `text-muted`.
+- **Highlights.** The other two follow, each in a row of its own: from `wide`
+  up its text takes two fifths and its preview three fifths, 48px apart, the
+  Assets and liabilities trend's preview on the left and the Income
+  statement's on the right, so text and preview alternate sides down the page.
+  Below `wide` the text stands above its preview. A highlight's heading is an
+  `h2` in the `h2` step.
+- **Previews.** Each sits in a `ground` frame with the `card` radius, padded
+  8px below `wide` and 12px from `wide` up. A preview is `inert`, so it takes
+  no focus and is skipped by assistive technology; the highlight's text carries
+  its meaning.
+- **Opening Entry.** In the Entries preview the first Entry with more than one
+  line on a Side opens once the page is scrolled 24px past a threshold and
+  closes once it is scrolled 24px back above it, so it never flickers there and
+  never moves on a timer. The threshold is where the Entry's top reaches the
+  middle of the viewport, and never less than 120px down the page, so the Entry
+  is closed at the top. The preview is as tall as it is with the Entry open
+  from the first paint, before any script runs, and in every Language, so
+  nothing beside or below it moves. The change takes 200ms, ease-out, both
+  ways, inside that Entry alone: each line moves from its old place to its
+  new one, what only the old state showed fades out over the new state, the
+  Entry's height eases between the two, and its date and Title stay still.
+  Under `prefers-reduced-motion: reduce` it is instant.
+- **Get started.** A primary button 48px tall in `body` with 24px at its
+  sides, the one primary button taller than 36px, linking to `/sign-in`. It stands in the hero
+  and again centred above the footer, 64px above and below it, 96px from `wide`
+  up.
+- **Footer.** A `border` hairline above it, 24px above and below, holding only
+  the GitHub mark, a 20px filled glyph in `text-muted`, `text` under the
+  pointer, linking to the source repository. The mark is hidden from assistive
+  technology and the link is named `View the source on GitHub` in the page's
+  Language. Like the Google G, it is a brand glyph, not a stroke icon.
+- **Width.** At 390px nothing scrolls sideways.
+
 ## Do's and Don'ts
 
 - Do use a semantic token for every colour; never a palette colour, a Tailwind
@@ -1279,7 +1338,7 @@ hidden.
 - Do set figures and dates in IBM Plex Mono with tabular numerals, and nothing
   else in it.
 - Don't round a corner by anything but the `control`, `panel` or `card`
-  radius; the status dot is the one circle.
+  radius.
 - Don't cast a shadow but `lift` on a panel, the Account picker, the
   Segmented control's strip and a Help tip's panel, and `lift-card` on the
   Sign in card.

@@ -35,7 +35,6 @@
   --color-border-control: #78948F;
   --color-danger: #B4400F;
   --color-warning: #A15C00;
-  --color-positive: #0B7A5E;
   --color-focus: #0B7A5E;
   --color-focus-on-dark: #2FD0A2;
   --color-debit: #2B63B8;
@@ -152,11 +151,16 @@
   }
 }
 
+:root {
+  --entry-expansion-duration: 200ms;
+  --entry-expansion-easing: ease-out;
+}
+
 ::view-transition-group(root),
 ::view-transition-group(.entry-expansion),
 ::view-transition-group(.entry-expansion-line) {
-  animation-duration: 200ms;
-  animation-timing-function: ease-out;
+  animation-duration: var(--entry-expansion-duration);
+  animation-timing-function: var(--entry-expansion-easing);
 }
 
 ::view-transition-old(.entry-expansion),

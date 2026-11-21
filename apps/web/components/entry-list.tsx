@@ -18,7 +18,7 @@ import { formatAmount } from './amount';
 import { DeleteEntry, type DeleteEntryAction } from './delete-entry';
 import { EditEntry, type EditEntryAction } from './edit-entry';
 import { BARE_ICON_BUTTON } from './control-classes';
-import { accountTypesIn, hasOneLinePerSide, linesOn, SIDES, type AccountTypes } from './entry-lines';
+import { accountTypesIn, entryExpansion, linesOn, SIDES, type AccountTypes, type HeldOpen } from './entry-lines';
 import { SIDE_TONE } from './side-classes';
 import { MUTED_TEXT } from './text-classes';
 import { CuedAccount, useCuedAccountName } from './type-band';
@@ -34,6 +34,8 @@ export type EntryControls = {
 export type EntryListProps = {
   readonly entries: readonly PostedEntry[];
   readonly controls: EntryControls;
+  readonly heldOpen?: HeldOpen;
+  readonly standIn?: boolean;
 };
 
 const CREDIT_DIVIDER = '@list:border-l @list:border-l-border';
@@ -62,12 +64,14 @@ const COMPACT_HIDDEN = '@max-list:sr-only';
 
 const SIDE_HEADING = `${typeClasses.label} leading-5`;
 
-const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+export const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
 const entryTransitionName = (entry: PostedEntry): string => `entry-${entry.id}`;
 
 const lineTransitionName = (entry: PostedEntry, side: Side, index: number): string =>
   `${entryTransitionName(entry)}-${side}-${String(index)}`;
+
+const markedAs = (marked: boolean, testId: string): string | undefined => (marked ? testId : undefined);
 
 const INTERACTIVE_DESCENDANTS = 'a, button, input, select, textarea, label, dialog, [role="dialog"]';
 
@@ -110,16 +114,18 @@ function SideLine({
   accountType,
   compact,
   transitionName,
+  marked,
 }: {
   readonly line: PostedLine;
   readonly accountType: AccountType | undefined;
   readonly compact: boolean;
   readonly transitionName: string;
+  readonly marked: boolean;
 }): ReactNode {
   const cuedName = useCuedAccountName();
   return (
     <li
-      data-testid="entry-line"
+      data-testid={markedAs(marked, 'entry-line')}
       aria-label={
         accountType === undefined ? undefined : cuedName(line.accountName, accountType, line.side)
       }
@@ -139,11 +145,13 @@ function SideLines({
   side,
   accountTypes,
   compact,
+  marked,
 }: {
   readonly entry: PostedEntry;
   readonly side: Side;
   readonly accountTypes: AccountTypes;
   readonly compact: boolean;
+  readonly marked: boolean;
 }): ReactNode {
   return (
     <div
@@ -158,6 +166,7 @@ function SideLines({
             accountType={accountTypes.get(line.account)}
             compact={compact}
             transitionName={lineTransitionName(entry, side, index)}
+            marked={marked}
           />
         ))}
       </ul>
@@ -177,14 +186,14 @@ function togglesOnClick(event: MouseEvent<HTMLElement>, chevron: HTMLButtonEleme
   );
 }
 
-type EntryExpansion = {
+type SelfToggle = {
   readonly expanded: boolean;
   readonly toggle: () => void;
   readonly chevron: RefObject<HTMLButtonElement | null>;
   readonly toggleOnBodyClick: (event: MouseEvent<HTMLElement>) => void;
 };
 
-function useEntryExpansion(): EntryExpansion {
+function useSelfToggle(): SelfToggle {
   const [expanded, setExpanded] = useState(false);
   const chevron = useRef<HTMLButtonElement>(null);
   const toggleAtOnce = (): void => {
@@ -214,20 +223,25 @@ function ListedEntry({
   headsColumns,
   controls,
   accountTypes,
+  held,
+  marked,
 }: {
   readonly entry: PostedEntry;
   readonly headsColumns: boolean;
   readonly controls: EntryControls;
   readonly accountTypes: AccountTypes;
+  readonly held: boolean | undefined;
+  readonly marked: boolean;
 }): ReactNode {
   const t = useTranslations();
-  const expandable = !hasOneLinePerSide(entry);
-  const { expanded, toggle, chevron, toggleOnBodyClick } = useEntryExpansion();
+  const selfToggle = useSelfToggle();
+  const { toggle, chevron, toggleOnBodyClick } = selfToggle;
+  const { open: expanded, toggles: expandable } = entryExpansion(entry, held, selfToggle.expanded);
   const compact = !expanded;
   return (
     <div
       role="rowgroup"
-      data-testid="entry"
+      data-testid={markedAs(marked, 'entry')}
       onClick={expandable ? toggleOnBodyClick : undefined}
       style={{ viewTransitionName: entryTransitionName(entry), viewTransitionClass: 'entry-expansion' }}
       className={`${PANEL_BLEED} relative grid grid-cols-1 @list:grid-cols-2 ${compact ? '@max-list:grid-cols-2' : ''} ${expandable ? '@max-list:cursor-pointer' : ''} border-t border-border py-4 first:border-t-0 first:pt-1 hover:bg-surface-hover ${typeClasses['body-dense']}`}
@@ -262,7 +276,7 @@ function ListedEntry({
             </span>{' '}
             <span className="col-start-2 row-start-2 shrink-0 self-baseline justify-self-end">
               <span className="sr-only">{t('entryList.total')} </span>
-              <span data-testid="entry-total" className={`${typeClasses.figure} font-medium`}>
+              <span data-testid={markedAs(marked, 'entry-total')} className={`${typeClasses.figure} font-medium`}>
                 {formatAmount(entry.total)}
               </span>
             </span>
@@ -288,6 +302,7 @@ function ListedEntry({
             side={side}
             accountTypes={accountTypes}
             compact={compact}
+            marked={marked}
           />
         ))}
       </div>
@@ -313,7 +328,7 @@ function ListedEntry({
 }
 
 
-export function EntryList({ entries, controls }: EntryListProps): ReactNode {
+export function EntryList({ entries, controls, heldOpen, standIn = false }: EntryListProps): ReactNode {
   const t = useTranslations();
   const accountTypes = accountTypesIn(controls.chart);
   return (
@@ -329,6 +344,8 @@ export function EntryList({ entries, controls }: EntryListProps): ReactNode {
               headsColumns={index === 0}
               controls={controls}
               accountTypes={accountTypes}
+              held={heldOpen?.get(entry.id)}
+              marked={!standIn}
             />
           ))}
         </div>

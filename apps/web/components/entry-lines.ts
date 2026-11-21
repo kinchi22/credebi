@@ -4,6 +4,7 @@ import {
   type AccountId,
   type AccountType,
   type ChartOutput,
+  type PostedEntry,
   type Side,
 } from '@repo/contracts';
 
@@ -24,6 +25,22 @@ export const linesOn = <Line extends SidedLine>(
 
 export const hasOneLinePerSide = (entry: WithLines<SidedLine>): boolean =>
   SIDES.every((side) => linesOn(entry, side).length === 1);
+
+export type HeldOpen = ReadonlyMap<PostedEntry['id'], boolean>;
+
+export type EntryExpansion = {
+  readonly open: boolean;
+  readonly toggles: boolean;
+};
+
+export const entryExpansion = (
+  entry: WithLines<SidedLine>,
+  held: boolean | undefined,
+  toggledOpen: boolean,
+): EntryExpansion =>
+  held === undefined
+    ? { open: toggledOpen, toggles: !hasOneLinePerSide(entry) }
+    : { open: held, toggles: false };
 
 export type AccountTypes = ReadonlyMap<AccountId, AccountType>;
 

@@ -17,6 +17,8 @@ export const ASSETS_AND_LIABILITIES_TREND_PATH = '/assets-and-liabilities/trend'
 
 export const SETTINGS_PATH = '/settings';
 
+export const SIGN_IN_PATH = '/sign-in';
+
 const PROBE = 'http://return-path.invalid';
 
 export function returnPath(requested: unknown): string {
@@ -36,7 +38,7 @@ export function returnPath(requested: unknown): string {
 }
 
 export function signInPath(from: string): string {
-  return `/sign-in?${new URLSearchParams({ returnTo: from }).toString()}`;
+  return `${SIGN_IN_PATH}?${new URLSearchParams({ returnTo: from }).toString()}`;
 }
 
 export const REQUESTED_PATH_HEADER = 'x-requested-path';

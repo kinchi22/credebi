@@ -19,6 +19,14 @@ export const scrollY = async (page: Page): Promise<number> => Number(await page.
 export const scrollEnd = async (page: Page): Promise<number> =>
   Number(await page.evaluate('document.documentElement.scrollHeight - window.innerHeight'));
 
+export async function scrollToEnd(page: Page): Promise<void> {
+  await page.evaluate('window.scrollTo(0, document.documentElement.scrollHeight)');
+}
+
+export async function scrollToTop(page: Page): Promise<void> {
+  await page.evaluate('window.scrollTo(0, 0)');
+}
+
 export async function expectWithinPhone(page: Page, locator: Locator): Promise<void> {
   const box = await locator.boundingBox();
   expect(box?.x ?? Number.NaN).toBeGreaterThanOrEqual(0);
