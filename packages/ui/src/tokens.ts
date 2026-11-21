@@ -68,7 +68,6 @@ export const semanticColors = {
   'border-control': 'steel',
   danger: 'rust',
   warning: 'ochre',
-  positive: 'mint-deep',
   focus: 'mint-deep',
   'focus-on-dark': 'mint',
   debit: 'cobalt',

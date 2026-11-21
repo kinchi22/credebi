@@ -165,9 +165,9 @@ in the job log, where GitHub masks the secret.
 A green smoke run proves the production database answered. The spec that calls
 `health.get` asserts the strict answer -- `healthy`, with `postgres` reachable
 -- so a deployment whose database is unreachable fails the smoke run instead of
-reporting a degraded status to nobody. That endpoint is the healthcheck and
-stays when the health panel goes; every component added later reports through
-it, and `healthy` means all of them answered. ADR-0020.
+reporting a degraded status to nobody. That endpoint is the healthcheck; every
+component added later reports through it, and `healthy` means all of them
+answered. ADR-0020.
 
 So a `DATABASE_URL` change needs no manual check: redeploy and read the smoke
 run. The probe issues `select 1`, so it says nothing about migrations, and the

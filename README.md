@@ -23,11 +23,12 @@ pnpm build
 pnpm dev                       # http://localhost:3000
 ```
 
-The health panel should report `postgres: reachable`.
+`/` shows the Landing page, and `/api/trpc/health.get` should report `postgres`
+reachable.
 
-The app also renders without a *reachable* database: the probe reports
+`health.get` answers without a *reachable* database too: the probe reports
 `postgres` as unreachable and the status degrades rather than erroring. That is
-deliberate: a page must not fail because a probe did.
+deliberate: a healthcheck must not fail because a probe did.
 
 The smoke run against Production says so out loud instead of accepting it. The
 spec that calls `health.get` asserts `healthy`, so a deployment whose database

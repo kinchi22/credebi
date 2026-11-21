@@ -81,23 +81,32 @@ export const ja = {
   notFoundPage: {
     title: 'ページが見つかりません',
   },
-  healthPanel: {
-    title: 'パイプラインの状態',
-    reachable: '接続可能',
-    unreachable: '接続不可',
-    checkedAt: '{instant}に確認',
-  },
-  refreshButton: {
-    idle: '再確認',
-    pending: '確認中...',
-  },
-  home: {
-    entriesLink: '仕訳',
-  },
   signInPage: {
     title: 'ログイン',
     google: 'Googleでログイン',
     failed: 'ログインできませんでした。もう一度お試しください。',
+  },
+  landingPage: {
+    headline: 'お金がどこから来て、どこへ行ったのか、ひと目で。',
+    valueProposition:
+      'すべての取引を二つの側で記録すれば残高はいつも合い、資産・負債・収入・支出がひとつの帳簿でつながります。',
+    getStarted: 'はじめる',
+    logIn: 'ログイン',
+    source: 'GitHubでソースを見る',
+    highlights: {
+      entries: {
+        title: 'すべての取引を両側から',
+        body: 'カードでコーヒーを買うと、食費が増え、カードへの支払い義務も増えます。Credebiは両方を記録するので、合計がずれることはありません。複式簿記の考え方はひとつだけ。お金は消えず、移るだけです。どこから来てどこへ行ったかを書けば、帳簿が自分で正しさを確かめます。',
+      },
+      trend: {
+        title: '純資産が育つ様子',
+        body: '毎月末の資産と負債、その差である純資産をグラフで見られます。記録するだけで、計算は自動です。',
+      },
+      statement: {
+        title: '今月いくら入って、いくら出たか',
+        body: '収入と支出を勘定科目ごとに集計し、今月残ったお金を示します。グループにまとめて大きな流れだけを見ることもできます。',
+      },
+    },
   },
   consentPage: {
     title: 'アプリケーションの接続',
