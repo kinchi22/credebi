@@ -307,6 +307,8 @@ const RADIUS_UTILITY = /^rounded(?:-(?:tl|tr|br|bl|ss|se|es|ee|t|r|b|l|s|e))?(?:
 
 const STATIC_RADII = ['none'];
 
+const DISJUNCTIVE_LIST_FORMAT = new Intl.ListFormat('en', { type: 'disjunction' });
+
 const SHADOW_UTILITY = /^shadow(?:-(.+))?$/u;
 
 const DEFAULT_SHADOW = /^(?:\d?xs|sm|md|lg|\d?xl|inner)$/u;
@@ -337,8 +339,8 @@ const noRawShape = {
     type: 'problem',
     docs: {
       description:
-        'Disallow corner radii and shadows outside the token set, which the stylesheet resets ' +
-        'so that they draw nothing.',
+        'Disallow corner radii and shadows outside the token set, which docs/DESIGN.md does ' +
+        'not allow.',
     },
     schema: [
       {
@@ -351,9 +353,9 @@ const noRawShape = {
     ],
     messages: {
       nonTokenRadius:
-        'Class {{text}} rounds a corner by a radius outside the token set, so it draws a square ' +
-        'corner. Use `rounded-control`, `rounded-panel` or `rounded-card`; ' +
-        'packages/ui/src/tokens.ts holds them and docs/DESIGN.md lists them.',
+        'Class {{text}} rounds a corner by a radius outside the token set, which docs/DESIGN.md ' +
+        'does not allow. Use {{allowed}}. `rounded-none` is always allowed, and ' +
+        'packages/ui/src/tokens.ts holds the rest.',
       nonTokenShadow:
         'Class {{text}} casts a shadow outside the token set, so it draws nothing. Use a shadow ' +
         'from packages/ui/src/tokens.ts, which docs/DESIGN.md lists.',
@@ -362,6 +364,12 @@ const noRawShape = {
   create(context) {
     const options = context.options[0] ?? {};
     const radii = new Set([...STATIC_RADII, ...(options.radii ?? [])]);
+    const allowed = DISJUNCTIVE_LIST_FORMAT.format(
+      [...radii].map((radius) => `\`rounded-${radius}\``),
+    );
+    const report = (node, messageId, className) => {
+      context.report({ node, messageId, data: { text: JSON.stringify(className), allowed } });
+    };
 
     const check = (node, text) => {
       if (!CLASS_LIST.test(text.trim())) return;
@@ -370,10 +378,10 @@ const noRawShape = {
         classNames.length === 1 || classNames.some((className) => UTILITY_SHAPED.test(className));
       for (const className of classNames) {
         if (namesANonTokenRadius(className, radii, amongUtilities)) {
-          context.report({ node, messageId: 'nonTokenRadius', data: { text: JSON.stringify(className) } });
+          report(node, 'nonTokenRadius', className);
         }
         if (namesANonTokenShadow(className, amongUtilities)) {
-          context.report({ node, messageId: 'nonTokenShadow', data: { text: JSON.stringify(className) } });
+          report(node, 'nonTokenShadow', className);
         }
       }
     };
