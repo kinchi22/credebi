@@ -1,58 +1,37 @@
-import { Panel, StatusDot } from '@repo/ui';
-import { typeClasses } from '@repo/ui/type-classes';
-import Link from 'next/link';
-import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 import { type ReactNode } from 'react';
-import { LINK, MUTED_TEXT } from '../../components/text-classes';
-import { RefreshButton } from '../../components/refresh-button';
+import { VariantA, VariantB, VariantC } from '../../components/landing-prototype-variants';
+import { PrototypeSwitcher } from '../../components/prototype-switcher';
 import { createContext } from '../../server/context';
 import { createCaller } from '../../server/root-router';
-import { recheckHealth } from './actions';
+import { chooseLanguage } from './sign-in/actions';
 
 export const dynamic = 'force-dynamic';
 
-export default async function HomePage(): Promise<ReactNode> {
+const VARIANTS = [
+  { key: 'A', name: 'Centered hero, alternating rows' },
+  { key: 'B', name: 'Dark split hero, Entries up front' },
+  { key: 'C', name: 'Editorial hero, tabbed showcase' },
+] as const;
+
+type HomePageProps = {
+  readonly searchParams: Promise<Readonly<Record<string, string | string[] | undefined>>>;
+};
+
+export default async function HomePage({ searchParams }: HomePageProps): Promise<ReactNode> {
   const caller = createCaller(await createContext());
   if (await caller.auth.signedIn().catch(() => false)) {
     redirect('/entries');
   }
-  const health = await caller.health.get();
-  const t = await getTranslations();
+  const requested = (await searchParams)['variant'];
+  const variant = VARIANTS.find((v) => v.key === requested)?.key ?? 'A';
 
   return (
-    <main className="mx-auto flex max-w-xl flex-col gap-4 p-4 wide:p-8">
-      <h1 className={typeClasses.h1}>{t('app.name')}</h1>
-      <nav>
-        <Link href="/entries" className={`${typeClasses['body-sm']} ${LINK}`}>
-          {t('home.entriesLink')}
-        </Link>
-      </nav>
-
-      <Panel title={t('healthPanel.title')}>
-        <div className="flex flex-col gap-2" data-testid="health">
-          <StatusDot
-            tone={health.status === 'healthy' ? 'positive' : 'negative'}
-            label={health.status}
-          />
-          <ul className={MUTED_TEXT}>
-            {health.components.map((component) => (
-              <li key={component.name} data-testid={`component-${component.name}`}>
-                {component.name}:{' '}
-                {component.reachable ? t('healthPanel.reachable') : t('healthPanel.unreachable')}
-              </li>
-            ))}
-          </ul>
-          <time
-            className={`${typeClasses.date} text-text-muted`}
-            dateTime={health.checkedAt}
-            data-testid="checked-at"
-          >
-            {t('healthPanel.checkedAt', { instant: health.checkedAt })}
-          </time>
-          <RefreshButton action={recheckHealth} />
-        </div>
-      </Panel>
-    </main>
+    <>
+      {variant === 'A' && <VariantA chooseLanguage={chooseLanguage} />}
+      {variant === 'B' && <VariantB chooseLanguage={chooseLanguage} />}
+      {variant === 'C' && <VariantC chooseLanguage={chooseLanguage} />}
+      <PrototypeSwitcher variants={VARIANTS} current={variant} />
+    </>
   );
 }
