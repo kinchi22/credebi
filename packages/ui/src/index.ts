@@ -18,6 +18,7 @@ export {
   FallingLineIcon,
   FolderIcon,
   GlobeIcon,
+  GitHubMark,
   GoogleMark,
   GripIcon,
   HelpIcon,

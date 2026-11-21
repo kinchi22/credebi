@@ -286,9 +286,9 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `ground`             | `mist`      | the page background                   |
 | `text`               | `ink`       | body text, headings                   |
 | `text-muted`         | `slate`     | labels, hints, dates                  |
-| `text-on-dark`       | `frost`     | text in the Sidebar                   |
-| `text-muted-on-dark` | `sage`      | links in the Sidebar                  |
-| `ground-dark`        | `ink`       | the Sidebar's ground                  |
+| `text-on-dark`       | `frost`     | text in the Sidebar and on the Landing page's dark band |
+| `text-muted-on-dark` | `sage`      | links in the Sidebar, the Landing page's value proposition |
+| `ground-dark`        | `ink`       | the Sidebar's ground, the Landing page's header and hero |
 | `ground-dark-raised` | `ink-raised` | the active Sidebar item              |
 | `ground-dark-hover`  | `ink-mid`    | an idle Sidebar item under the pointer |
 | `surface-hover`      | `mist-pale`  | an Entry in the Entries list, and a Title suggestion, under the pointer or reached by the arrow keys |
@@ -498,7 +498,8 @@ reach the panel's edges at every width.
 ## Elevation & Depth
 
 Hierarchy comes mainly from tonal layers: `surface` panels with a `border` edge
-sit on the `ground`, and the Sidebar is the one dark layer. Beside the layers,
+sit on the `ground`, and the Sidebar and the Landing page's header and hero are
+the dark layers. Beside the layers,
 two shadows tinted from `ink`, `shadows` in the tokens module and
 `--shadow-lift` and `--shadow-lift-card` in the stylesheet:
 
@@ -553,8 +554,8 @@ numerals.
 ## Components
 
 - **Primary button.** `accent` fill with `text`. White on mint reads 2.0:1 and
-  is never used. It is kept for a page's main action: the entry form's submit
-  and Entry search's submit. Every other button on a light ground is
+  is never used. It is kept for a page's main action: the entry form's submit,
+  Entry search's submit and the Landing page's Get started. Every other button on a light ground is
   secondary, except the Google sign-in button, the danger button and the bare
   icon buttons named below. It is 36px tall, as an Input is, so it stands as
   tall as the Input it sits beside: Entry search's submit beside the memo
@@ -584,8 +585,8 @@ numerals.
   element set in the `h2` step, centred), the failure line when sign-in failed,
   centred, the Google sign-in button, and, where test sign-in is offered, the
   `Test sign-in` form below a dashed `border` rule with 20px above it.
-- **Language switch.** On `/sign-in` alone, centred 16px below the Sign in
-  card. It is a bare button 36px tall in `body-sm` and `text-muted`, `text` under the
+- **Language switch.** On `/sign-in`, centred 16px below the Sign in card, and
+  in its dark variant in the Landing page's header. It is a bare button 36px tall in `body-sm` and `text-muted`, `text` under the
   pointer: a 16px globe icon, never a flag, 6px before `Language` in the
   page's Language, which is its accessible name. It opens a menu above it: a
   `surface` fill, a `border` edge and the `control` radius, at least 160px wide,
@@ -596,7 +597,12 @@ numerals.
   the check's space empty, so the names line up. Opening the menu focuses the
   current Language; the arrow keys, Home and End move between them, Enter or a
   click chooses one, and Escape or a click outside closes it. Choosing writes
-  the browser's Language and renders the page again in it.
+  the browser's Language and renders the page again in it. Its dark variant
+  keeps the same button and menu, its text in `text-muted-on-dark`, and under
+  the pointer `text-on-dark` on a `ground-dark-hover` fill, with the
+  `focus-on-dark` ring, as the Quiet button on dark is. Its menu opens
+  downwards, 4px below the button and aligned to its right edge, since the
+  header has no room above it.
 - **Quiet button on dark.** No fill and no border: `text-muted-on-dark` text,
   and under the pointer `text-on-dark` on a `ground-dark-hover` fill, with the
   `control` radius and the `focus-on-dark` ring. It is Sign out in the Sidebar:
@@ -1268,6 +1274,48 @@ served.
 
 The logo is one image named "Credebi" to assistive technology; its parts are
 hidden.
+
+## Landing page
+
+What `/` shows a visitor who is not signed in, as the approved prototype's
+variant B settled it. Every band sits in one column at most 1152px wide,
+`max-w-6xl`, with the page gutter: 16px below `wide`, 56px at the sides from
+`wide` up.
+
+- **Header.** On `ground-dark`, 16px above and below: the horizontal Lockup in
+  the reverse tone, 28px tall, at the left; at the right, 12px apart, the
+  Language switch's dark variant and `Log in`, a secondary button with the
+  `focus-on-dark` ring, linking to `/sign-in`.
+- **Hero.** On `ground-dark`, continuing the header. From `wide` up it is two
+  equal columns 48px apart. The left holds the headline, the page's one `h1`,
+  in `display` and `text-on-dark`, the value proposition in `body` and
+  `text-muted-on-dark`, and Get started, 20px apart; then the first highlight,
+  90px below them, its heading in `h2` and `text-on-dark` and its text in
+  `text-muted-on-dark`. The whole column is centred against the preview on the
+  right, which overlaps the band's lower edge by 64px. Below `wide` the column
+  holds the headline, the value proposition and Get started, the preview
+  follows, overlapping the band's edge by 32px, and the first highlight comes
+  after it on the `ground`, in `text` and `text-muted`.
+- **Highlights.** The other two follow, each in a row of its own: from `wide`
+  up its text takes two fifths and its preview three fifths, 48px apart, the
+  Assets and liabilities trend's preview on the left and the Income
+  statement's on the right, so text and preview alternate sides down the page.
+  Below `wide` the text stands above its preview. A highlight's heading is an
+  `h2` in the `h2` step.
+- **Previews.** Each sits in a `ground` frame with the `card` radius, padded
+  8px below `wide` and 12px from `wide` up. A preview is `inert`, so it takes
+  no focus and is skipped by assistive technology; the highlight's text carries
+  its meaning.
+- **Get started.** A primary button 48px tall with 24px at its sides, the one
+  primary button taller than 36px, linking to `/sign-in`. It stands in the hero
+  and again centred above the footer, 64px above and below it, 96px from `wide`
+  up.
+- **Footer.** A `border` hairline above it, 24px above and below, holding only
+  the GitHub mark, a 20px filled glyph in `text-muted`, `text` under the
+  pointer, linking to the source repository. The mark is hidden from assistive
+  technology and the link is named `View the source on GitHub` in the page's
+  Language. Like the Google G, it is a brand glyph, not a stroke icon.
+- **Width.** At 390px nothing scrolls sideways.
 
 ## Do's and Don'ts
 

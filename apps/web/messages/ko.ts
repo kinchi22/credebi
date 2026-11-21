@@ -80,23 +80,32 @@ export const ko = {
   notFoundPage: {
     title: '페이지를 찾을 수 없습니다',
   },
-  healthPanel: {
-    title: '파이프라인 상태',
-    reachable: '연결됨',
-    unreachable: '연결 안 됨',
-    checkedAt: '{instant}에 확인',
-  },
-  refreshButton: {
-    idle: '다시 확인',
-    pending: '확인 중...',
-  },
-  home: {
-    entriesLink: '거래 입력',
-  },
   signInPage: {
     title: '로그인',
     google: 'Google로 로그인',
     failed: '로그인하지 못했습니다. 다시 시도해 주세요.',
+  },
+  landingPage: {
+    headline: '내 돈이 어디서 와서 어디로 갔는지, 한눈에.',
+    valueProposition:
+      '모든 거래를 두 쪽으로 기록하면 잔액이 저절로 맞고, 자산·부채·수입·지출이 한 장부에서 이어집니다.',
+    getStarted: '시작하기',
+    logIn: '로그인',
+    source: 'GitHub에서 소스 보기',
+    highlights: {
+      entries: {
+        title: '모든 거래를 두 쪽으로',
+        body: '카드로 커피를 사면 식비가 늘고 카드 빚도 늘어납니다. Credebi는 두 쪽을 함께 기록해서 합계가 어긋나는 일이 없습니다. 복식부기는 "돈은 사라지지 않고 옮겨 갈 뿐"이라는 생각입니다. 어디서 왔는지와 어디로 갔는지를 함께 적으면, 장부가 스스로 맞는지 확인해 줍니다.',
+      },
+      trend: {
+        title: '순자산이 자라는 모습',
+        body: '매달 말 자산과 부채, 그 차이인 순자산을 그래프로 봅니다. 기록만 하면 계산은 알아서 됩니다.',
+      },
+      statement: {
+        title: '이번 달 얼마 벌고 얼마 썼나',
+        body: '수입과 지출을 계정별로 모아 이번 달 남은 돈을 보여 줍니다. 그룹으로 묶어 큰 흐름만 볼 수도 있습니다.',
+      },
+    },
   },
   consentPage: {
     title: '애플리케이션 연결',
