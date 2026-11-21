@@ -123,7 +123,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: ${{ matrix.suite == 'strict' && 1 || 0 }}
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6.1.0
       - uses: actions/setup-node@v5
         with:
           node-version: 24
@@ -179,7 +179,7 @@ jobs:
           GOOGLE_CLIENT_ID: e2e-build-placeholder
           GOOGLE_CLIENT_SECRET: e2e-build-placeholder
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6.0.0
         if: always() && matrix.suite == 'strict'
         with:
           name: playwright-report-build
@@ -190,7 +190,7 @@ jobs:
       # timed-out run wrote no complete report, and a skipped one wrote none.
       # The HTML report carries the traces of failed tests; the JSON report and
       # the traces themselves are beside it.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6.0.0
         if: >-
           always() && matrix.suite != 'strict'
           && (steps.advisory.outcome == 'success' || steps.advisory.outcome == 'failure')

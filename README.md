@@ -8,8 +8,8 @@ pipeline probe rather than a feature and should not be deleted.
 
 ## Requirements
 
-- Node 24+
-- pnpm 11 (`corepack enable`)
+- Node.js 24.22.3 or a newer 24.x release (`nvm install` uses the version in `.nvmrc`)
+- pnpm 11.28.13 (`corepack enable` uses the workspace pin)
 - Docker with Compose v2+ (local Postgres only; not needed to build or test)
 - `git`, `jq` and `openssl` with `-addext` (OpenSSL 1.1.1+ or LibreSSL 3.1+) on PATH, for `pnpm verify:gates`
 

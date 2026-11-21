@@ -19,12 +19,15 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6.1.0
 
       - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: pnpm
+
+      - name: Toolchain versions
+        run: node --version && pnpm --version
 
       - name: Install graphviz
         run: sudo apt-get update && sudo apt-get install -y graphviz
@@ -48,7 +51,7 @@ jobs:
         if: always()
         run: mkdir -p reports && pnpm dep-cruise:graph
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6.0.0
         if: always()
         with:
           name: dependency-graph
@@ -81,7 +84,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6.1.0
       - uses: actions/setup-node@v5
         with:
           node-version: 24
@@ -101,7 +104,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6.1.0
       - uses: actions/setup-node@v5
         with:
           node-version: 24
@@ -127,14 +130,14 @@ jobs:
         env:
           BASE_REF: ${{ github.base_ref }}
         run: node tools/change-score.ts "origin/$BASE_REF"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6.0.0
         if: always()
         with:
           name: mutation-report
           path: reports/mutation
           if-no-files-found: warn
       # The baseline later comparisons read: main's Stryker JSON report alone.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6.0.0
         if: always() && github.event_name == 'push'
         with:
           name: mutation-json
@@ -150,7 +153,7 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6.1.0
       - uses: actions/setup-node@v5
         with:
           node-version: 24
