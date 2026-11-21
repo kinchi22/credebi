@@ -3,6 +3,7 @@ import { monthAfter } from '@repo/core/entries';
 import { sumMoney } from '@repo/core/money';
 import { describe, expect, it } from 'vitest';
 import { CATALOGUES } from '../server/catalogues';
+import { fittedTicks } from './chart-axis';
 import { linesOn } from './entry-lines';
 import { sampleBooks, type SampleBooks } from './sample-books';
 
@@ -128,5 +129,16 @@ describe('sampleBooks', () => {
     const [before, during] = books.months.slice(-2);
     expect(during?.month).toBe(books.period.from.slice(0, 7));
     expect((during?.netWorth ?? 0) - (before?.netWorth ?? 0)).toBe(books.statement.netIncome);
+  });
+
+  it('reaches within half a step of the top tick of the trend axis', () => {
+    const values = byPath().months.flatMap(({ totalAssets, totalLiabilities, netWorth }) => [
+      totalAssets,
+      totalLiabilities,
+      netWorth,
+    ]);
+    const ticks = fittedTicks(values);
+    const [below, top] = ticks.slice(-2);
+    expect(Math.max(...values)).toBeGreaterThan((top ?? 0) - ((top ?? 0) - (below ?? 0)) / 2);
   });
 });
