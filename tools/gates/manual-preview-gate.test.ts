@@ -272,6 +272,12 @@ it('keeps approval and the token after resolution, uses the frozen checkout, and
   expect(workflow.match(/deployments: write/g)).toHaveLength(1);
   expect(deploy).toMatch(/permissions:\n {6}contents: read\n {6}deployments: write\n/);
   const steps = deploy.split(/\n {6}- /);
+  const cliInstall = steps.findIndex((step) => step.startsWith('name: Install reviewed Vercel CLI'));
+  const installStep = steps[cliInstall];
+  expect(installStep).toMatch(/^ {10}VERCEL_CLI_VERSION: \d+\.\d+\.\d+$/m);
+  expect(installStep?.split('\n').map((line) => line.trim())).toContain(
+    'npm install --global --omit=optional "vercel@$VERCEL_CLI_VERSION" "@vercel/vc-native-linux-x64@$VERCEL_CLI_VERSION"',
+  );
   const tokenSteps = steps.filter((step) => step.includes('VERCEL_TOKEN'));
   expect(tokenSteps).toHaveLength(1);
   expect(tokenSteps[0]).toContain('node tooling/tools/manual-preview.ts deploy');
@@ -279,6 +285,8 @@ it('keeps approval and the token after resolution, uses the frozen checkout, and
   const recordStart = steps.findIndex((step) => step.includes('manual-preview.ts record-start'));
   const vercel = steps.findIndex((step) => step.includes('manual-preview.ts deploy'));
   const recordFinish = steps.findIndex((step) => step.includes('manual-preview.ts record-finish'));
+  expect(cliInstall).toBeGreaterThan(0);
+  expect(cliInstall).toBeLessThan(vercel);
   expect(recordStart).toBeGreaterThan(0);
   expect(recordStart).toBeLessThan(vercel);
   expect(recordFinish).toBeGreaterThan(vercel);
