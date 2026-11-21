@@ -122,4 +122,11 @@ describe('sampleBooks', () => {
       expect(month.netWorth).toBe(month.totalAssets - month.totalLiabilities);
     }
   });
+
+  it('raises Net worth over the statement month by exactly the Net income of that month', () => {
+    const books = byPath();
+    const [before, during] = books.months.slice(-2);
+    expect(during?.month).toBe(books.period.from.slice(0, 7));
+    expect((during?.netWorth ?? 0) - (before?.netWorth ?? 0)).toBe(books.statement.netIncome);
+  });
 });
