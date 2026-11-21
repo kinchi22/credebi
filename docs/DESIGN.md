@@ -70,7 +70,6 @@ colors:
   border-control: "{colors.steel}"
   danger: "{colors.rust}"
   warning: "{colors.ochre}"
-  positive: "{colors.mint-deep}"
   focus: "{colors.mint-deep}"
   focus-on-dark: "{colors.mint}"
   debit: "{colors.cobalt}"
@@ -287,7 +286,7 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `text`               | `ink`       | body text, headings                   |
 | `text-muted`         | `slate`     | labels, hints, dates                  |
 | `text-on-dark`       | `frost`     | text in the Sidebar, the Landing page's header and hero |
-| `text-muted-on-dark` | `sage`      | links in the Sidebar, the Landing page's value proposition |
+| `text-muted-on-dark` | `sage`      | links in the Sidebar, muted text and the Language switch on the Landing page's header and hero |
 | `ground-dark`        | `ink`       | the Sidebar's ground, the Landing page's header and hero |
 | `ground-dark-raised` | `ink-raised` | the active Sidebar item              |
 | `ground-dark-hover`  | `ink-mid`    | an idle Sidebar item under the pointer |
@@ -310,8 +309,7 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `band-suggested`     | `mint-fog`  | the Suggested Band in the Account picker and the Account sheet |
 | `border-control`     | `steel`     | inputs, secondary buttons, tree connectors, and at 55% the Account picker's group rules |
 | `danger`             | `rust`      | refusals, errors                      |
-| `warning`            | `ochre`     | a degraded health status, a Difference not 0, a line not active on the day, a Title needing Multi-line mode |
-| `positive`           | `mint-deep` | a healthy status                      |
+| `warning`            | `ochre`     | a Difference not 0, a line not active on the day, a Title needing Multi-line mode |
 | `focus`              | `mint-deep` | the 2px focus ring on a light ground  |
 | `focus-on-dark`      | `mint`      | the 2px focus ring on a dark ground   |
 | `debit`              | `cobalt`    | a Debit amount or label               |
@@ -537,16 +535,16 @@ used:
 
 A surface fixed to a screen edge rounds only its free corners: the Account sheet
 its top ones with `rounded-t-panel`, the Sidebar drawer its right ones with
-`rounded-r-panel`. The 8px status dot is a circle, `rounded-full`, the one
-corner outside the three. The stylesheet resets `--radius-*` to `initial`, so a
+`rounded-r-panel`. The stylesheet resets `--radius-*` to `initial`, so a
 bare `rounded` or any of Tailwind's own radii would draw a square corner; the
 lint rule `repo/no-raw-shape` rejects one anywhere in `apps/web` or
 `packages/ui`, reading the radius names from the tokens module.
 
 Every input, select, secondary, primary and danger button and Icon button on a
-light ground is 36px tall, except the Landing page's Get started, a primary
-button 48px tall, `controlHeight` in the tokens module and
-`h-control` from `--height-control` in the stylesheet, at every width. Below
+light ground is 36px tall, `controlHeight` in the tokens module and
+`h-control` from `--height-control` in the stylesheet, at every width. The one
+exception is the Landing page's Get started, a primary button 48px tall
+wherever it stands, on the hero's `ground-dark` as on the `ground`. Below
 `wide`, a typed control's text is 16px, `controlFontSize` in the tokens module
 and `text-control` from `--text-control` in the stylesheet, so a phone does not
 zoom in on focus; a date or an amount keeps IBM Plex Mono and its tabular
@@ -1231,8 +1229,6 @@ numerals.
   sheet, a wallet, sliders and an exit -- so each is named by its text alone; the
   magnifier is the Account picker's search icon and the wallet, for Assets and
   liabilities, the Assets Band's icon, each at 18px rather than 16px.
-- **Status.** `positive` for healthy, `warning` for degraded, `danger` for a
-  refusal or an error.
 
 ## Logo
 
@@ -1330,7 +1326,7 @@ variant B settled it. Every part of it sits in one column at most 1152px wide,
 - Do set figures and dates in IBM Plex Mono with tabular numerals, and nothing
   else in it.
 - Don't round a corner by anything but the `control`, `panel` or `card`
-  radius; the status dot is the one circle.
+  radius.
 - Don't cast a shadow but `lift` on a panel, the Account picker, the
   Segmented control's strip and a Help tip's panel, and `lift-card` on the
   Sign in card.
