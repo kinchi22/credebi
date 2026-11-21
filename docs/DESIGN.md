@@ -204,6 +204,13 @@ stylesheet, `apps/web/app/globals.css`, declares the same values in Tailwind's
 colour pair falls below its contrast minimum. A value changes in the tokens
 module, the stylesheet and here, in one pull request.
 
+The Entry expansion's timing is the exception: the stylesheet alone holds it,
+as `--entry-expansion-duration` and `--entry-expansion-easing` on `:root`, and
+this file names those properties rather than their values. No utility is made
+from it, so it has no place among the tokens the module feeds to `@theme`; the
+view transitions of the Entries list read it in the stylesheet, and the Landing
+page's opening Entry reads it from the page's computed style.
+
 The stylesheet resets Tailwind's colours to `initial`, so the tokens are the
 only colour utilities that exist, and the lint rule `repo/no-raw-color` rejects
 a colour literal, or a class naming a colour that is not a semantic token,
@@ -1021,8 +1028,8 @@ numerals.
   Several Entries may be expanded at once. The state lives in the page for its
   lifetime alone: a width change keeps it, and a reload, a revisit or a new
   Entry search starts every Entry compact. The change moves, as a view
-  transition over 200ms, ease-out, both ways: each line glides to its new
-  place, the Side names and the line amounts fade in or out, and the Entries
+  transition over the Entry expansion's timing, both ways: each line glides
+  to its new place, the Side names and the line amounts fade in or out, and the Entries
   below slide rather than jump, every snapshot anchored at its top left and
   never stretched. Under `prefers-reduced-motion: reduce`, or where the browser
   has no view transitions, the change is instant. Lines are set in
@@ -1315,8 +1322,8 @@ variant B settled it. Every part of it sits in one column at most 1152px wide,
   middle of the viewport, and never less than 120px down the page, so the Entry
   is closed at the top. The preview is as tall as it is with the Entry open
   from the first paint, before any script runs, and in every Language, so
-  nothing beside or below it moves. The change takes 200ms, ease-out, both
-  ways, inside that Entry alone: each line moves from its old place to its
+  nothing beside or below it moves. The change takes the Entry expansion's
+  timing, both ways, inside that Entry alone: each line moves from its old place to its
   new one, what only the old state showed fades out over the new state, the
   Entry's height eases between the two, and its date and Title stay still.
   Under `prefers-reduced-motion: reduce` it is instant.
