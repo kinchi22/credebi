@@ -3,9 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@11.8.0",
+  "packageManager": "pnpm@11.28.13",
   "engines": {
-    "node": ">=24"
+    "node": "^24.22.3"
   },
   "scripts": {
     "dev": "node --env-file-if-exists=.env node_modules/turbo/bin/turbo run dev --filter @repo/web",
