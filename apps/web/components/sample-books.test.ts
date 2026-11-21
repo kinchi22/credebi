@@ -1,8 +1,24 @@
-import { accountsIn, languageSchema, type Money, type PostedEntry, type StatementRowOutput } from '@repo/contracts';
+import {
+  accountGroupIdSchema,
+  accountIdSchema,
+  accountsIn,
+  accountTypeSchema,
+  domainError,
+  err,
+  languageSchema,
+  ok,
+  userIdSchema,
+  type AccountType,
+  type ChartOutput,
+  type Money,
+  type PostedEntry,
+  type StatementRowOutput,
+} from '@repo/contracts';
+import { createTestSignIn, type SessionToken, type SessionTokenHash, type UserRepository } from '@repo/core/auth';
 import { monthAfter } from '@repo/core/entries';
 import { sumMoney } from '@repo/core/money';
 import { describe, expect, it } from 'vitest';
-import { CATALOGUES } from '../server/catalogues';
+import { CATALOGUES, startingChartCopy } from '../server/catalogues';
 import { fittedTicks } from './chart-axis';
 import { linesOn } from './entry-lines';
 import { sampleBooks, type SampleBooks } from './sample-books';
@@ -42,6 +58,93 @@ const namesIn = (books: SampleBooks): readonly string[] => [
   ...statementNames(books.statement.expense.rows),
 ];
 
+type StartingChart = Parameters<UserRepository['add']>[2];
+
+type OutlineAccount = { readonly accountType: AccountType; readonly name: string };
+
+type OutlineNode =
+  | ({ readonly kind: 'account' } & OutlineAccount)
+  | ({ readonly kind: 'group'; readonly accounts: readonly OutlineAccount[] } & OutlineAccount);
+
+const uuid = (variant: string, serial: number): string =>
+  `01900000-0000-7000-${variant}-${String(serial).padStart(12, '0')}`;
+
+const serials = (): (() => number) => {
+  let last = 0;
+  return () => (last += 1);
+};
+
+async function newUsersChart(): Promise<StartingChart> {
+  const added: StartingChart[] = [];
+  const unavailable = domainError('DEPENDENCY_UNAVAILABLE', 'No stored User is read here.');
+  const nextAccount = serials();
+  const nextGroup = serials();
+  const signIn = createTestSignIn({
+    users: {
+      findByIdentity: () => Promise.resolve(ok(undefined)),
+      add: (_user, _identity, chart) => {
+        added.push(chart);
+        return Promise.resolve(ok(undefined));
+      },
+      updateProfile: () => Promise.resolve(err(unavailable)),
+    },
+    sessions: {
+      add: () => Promise.resolve(ok(undefined)),
+      find: () => Promise.resolve(err(unavailable)),
+      renew: () => Promise.resolve(err(unavailable)),
+      remove: () => Promise.resolve(err(unavailable)),
+    },
+    settings: { read: () => Promise.resolve(err(unavailable)) },
+    startingChartCopy,
+    newUserId: () => userIdSchema.parse(uuid('b000', 1)),
+    newAccountId: () => accountIdSchema.parse(uuid('8000', nextAccount())),
+    newAccountGroupId: () => accountGroupIdSchema.parse(uuid('9000', nextGroup())),
+    newSessionToken: () => 'session' as SessionToken,
+    hashSessionToken: (token) => `hash of ${token}` as SessionTokenHash,
+    now: () => new Date('2026-10-01T09:00:00.000Z'),
+  });
+  const signedIn = await signIn('new-user', 'en');
+  const [chart] = added;
+  if (!signedIn.ok || chart === undefined) throw new Error('a new User is given the starting Chart of accounts');
+  return chart;
+}
+
+const byPosition = <Placed extends { readonly position: number }>(placed: readonly Placed[]): Placed[] =>
+  [...placed].sort((first, second) => first.position - second.position);
+
+function startingOutline({ accounts, groups }: StartingChart): readonly OutlineNode[] {
+  const outlined = ({ accountType, name }: OutlineAccount): OutlineAccount => ({ accountType, name });
+  return accountTypeSchema.options.flatMap((accountType) =>
+    byPosition([
+      ...groups
+        .filter((group) => group.accountType === accountType)
+        .map((group) => ({
+          position: group.position,
+          node: {
+            kind: 'group' as const,
+            ...outlined(group),
+            accounts: byPosition(accounts.filter(({ groupId }) => groupId === group.id)).map(outlined),
+          },
+        })),
+      ...accounts
+        .filter((account) => account.accountType === accountType && account.groupId === null)
+        .map((account) => ({ position: account.position, node: { kind: 'account' as const, ...outlined(account) } })),
+    ]).map(({ node }) => node),
+  );
+}
+
+const sampleOutline = (chart: ChartOutput): readonly OutlineNode[] =>
+  chart.map((node) =>
+    node.kind === 'account'
+      ? { kind: 'account', accountType: node.account.accountType, name: node.account.name }
+      : {
+          kind: 'group',
+          accountType: node.group.accountType,
+          name: node.group.name,
+          accounts: node.accounts.map(({ accountType, name }) => ({ accountType, name })),
+        },
+  );
+
 describe('sampleBooks', () => {
   it('holds four Entries, two of them with more than one line on a side', () => {
     const books = byPath();
@@ -71,6 +174,17 @@ describe('sampleBooks', () => {
     for (const line of books.entries.flatMap((entry) => entry.lines)) {
       expect(line.accountName).toBe(chartNames.get(line.account));
     }
+  });
+
+  it('lays out the starting Chart of accounts a new User is given, all but Opening balance equity', async () => {
+    const starting = startingOutline(await newUsersChart());
+    const openingBalanceEquity = CATALOGUES.en.startingChart.openingBalanceEquity.name;
+    const sample = sampleBooks({
+      name: (node) => CATALOGUES.en.startingChart[node].name,
+      title: (title) => CATALOGUES.en.landingPage.sampleTitles[title],
+    });
+    expect(starting.map(({ name }) => name)).toContain(openingBalanceEquity);
+    expect(sampleOutline(sample.chart)).toEqual(starting.filter(({ name }) => name !== openingBalanceEquity));
   });
 
   it('places each Account in a group under that group and every other Account under none, with no memo on any Entry', () => {
