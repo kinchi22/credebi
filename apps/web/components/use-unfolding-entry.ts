@@ -1,15 +1,20 @@
 import { type RefObject, useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { type PostedEntry } from '@repo/contracts';
-import { REDUCED_MOTION_QUERY, type HeldOpen } from './entry-list';
-import { hasOneLinePerSide } from './entry-lines';
-import { shiftFrom, spotWithin, unfoldedAfterScroll, unfoldLine, type Spot } from './entry-unfold';
+import { REDUCED_MOTION_QUERY } from './entry-list';
+import { type HeldOpen } from './entry-lines';
+import {
+  heldOpenAt,
+  millisecondsOf,
+  shiftFrom,
+  spotWithin,
+  unfoldedAfterScroll,
+  unfoldingIndex,
+  unfoldThreshold,
+  type Spot,
+} from './entry-unfold';
 
-const UNFOLD_MS = 200;
-
-const UNFOLD_EASING = 'ease-out';
-
-const GHOST_FADE_MS = UNFOLD_MS * 0.6;
+const GHOST_FADE_SHARE = 0.6;
 
 const TITLE_ROW = ':scope > [role="row"]:first-child';
 
@@ -21,7 +26,13 @@ const LINE = 'li';
 
 const LINE_AMOUNT = 'li > :last-child';
 
-const timing: KeyframeAnimationOptions = { duration: UNFOLD_MS, easing: UNFOLD_EASING };
+function expansionTiming(): KeyframeAnimationOptions {
+  const style = getComputedStyle(document.documentElement);
+  return {
+    duration: millisecondsOf(style.getPropertyValue('--entry-expansion-duration')),
+    easing: style.getPropertyValue('--entry-expansion-easing').trim(),
+  };
+}
 
 const all = (root: Element, selector: string): HTMLElement[] => [...root.querySelectorAll<HTMLElement>(selector)];
 
@@ -65,7 +76,7 @@ function ghostOf(entry: HTMLElement): HTMLElement {
   return ghost;
 }
 
-const fadeIn = (element: Element): void => {
+const fadeIn = (element: Element, timing: KeyframeAnimationOptions): void => {
   element.animate({ opacity: [0, 1] }, timing);
 };
 
@@ -77,6 +88,7 @@ function settle(entry: HTMLElement, ghosts: Set<HTMLElement>): void {
 
 function unfold(entry: HTMLElement, ghosts: Set<HTMLElement>, commit: () => void): void {
   settle(entry, ghosts);
+  const timing = expansionTiming();
   const origin = cornerOf(entry);
   const fromHeight = entry.getBoundingClientRect().height;
   const lines = all(entry, LINE);
@@ -95,7 +107,7 @@ function unfold(entry: HTMLElement, ghosts: Set<HTMLElement>, commit: () => void
     timing,
   );
   ghost
-    .animate({ opacity: [1, 0] }, { duration: GHOST_FADE_MS, easing: UNFOLD_EASING, fill: 'forwards' })
+    .animate({ opacity: [1, 0] }, { ...timing, duration: Number(timing.duration) * GHOST_FADE_SHARE, fill: 'forwards' })
     .finished.catch(() => undefined)
     .finally(() => {
       ghost.remove();
@@ -106,7 +118,7 @@ function unfold(entry: HTMLElement, ghosts: Set<HTMLElement>, commit: () => void
     if (before === undefined) return;
     line.animate({ transform: [shiftFrom(before, spotWithin(cornerOf(line), origin)), 'none'] }, timing);
   });
-  for (const shown of [...all(entry, SIDE_HEADINGS), ...all(entry, LINE_AMOUNT)]) fadeIn(shown);
+  for (const shown of [...all(entry, SIDE_HEADINGS), ...all(entry, LINE_AMOUNT)]) fadeIn(shown, timing);
   for (const cell of all(entry, SIDE_CELLS)) {
     const style = getComputedStyle(cell);
     cell.animate(
@@ -122,50 +134,14 @@ function unfold(entry: HTMLElement, ghosts: Set<HTMLElement>, commit: () => void
 export type UnfoldingEntry = {
   readonly list: RefObject<HTMLDivElement | null>;
   readonly heldOpen: HeldOpen;
-  readonly reserved: number | undefined;
 };
 
 export function useUnfoldingEntry(entries: readonly PostedEntry[]): UnfoldingEntry {
-  const index = entries.findIndex((entry) => !hasOneLinePerSide(entry));
-  const unfolding = entries[index];
+  const index = unfoldingIndex(entries);
   const list = useRef<HTMLDivElement>(null);
   const opened = useRef(false);
   const ghosts = useRef(new Set<HTMLElement>());
   const [open, setOpen] = useState(false);
-  const [measuring, setMeasuring] = useState(false);
-  const [reserved, setReserved] = useState<number | undefined>(undefined);
-
-  useEffect(() => {
-    const node = list.current;
-    if (node === null) return undefined;
-    let width: number | undefined;
-    let mounted = true;
-    const measure = (): void => {
-      const entry = entryIn(node, index);
-      if (entry !== null) settle(entry, ghosts.current);
-      flushSync(() => {
-        setMeasuring(true);
-      });
-      const height = node.offsetHeight;
-      flushSync(() => {
-        setReserved(height);
-        setMeasuring(false);
-      });
-    };
-    const observer = new ResizeObserver(() => {
-      if (node.offsetWidth === width) return;
-      width = node.offsetWidth;
-      measure();
-    });
-    observer.observe(node);
-    void document.fonts.ready.then(() => {
-      if (mounted) measure();
-    });
-    return () => {
-      mounted = false;
-      observer.disconnect();
-    };
-  }, [index]);
 
   useEffect(() => {
     let frame = 0;
@@ -173,11 +149,11 @@ export function useUnfoldingEntry(entries: readonly PostedEntry[]): UnfoldingEnt
       frame = 0;
       const entry = entryIn(list.current, index);
       if (entry === null) return;
-      const line = unfoldLine({
+      const threshold = unfoldThreshold({
         entryTop: entry.getBoundingClientRect().top + window.scrollY,
         viewportHeight: window.innerHeight,
       });
-      const next = unfoldedAfterScroll(opened.current, window.scrollY, line);
+      const next = unfoldedAfterScroll(opened.current, { y: window.scrollY, threshold });
       if (next === opened.current) return;
       opened.current = next;
       const commit = (): void => {
@@ -204,9 +180,5 @@ export function useUnfoldingEntry(entries: readonly PostedEntry[]): UnfoldingEnt
     };
   }, [index]);
 
-  return {
-    list,
-    heldOpen: new Map(unfolding === undefined ? [] : [[unfolding.id, open || measuring]]),
-    reserved: measuring ? undefined : reserved,
-  };
+  return { list, heldOpen: heldOpenAt(entries, open) };
 }

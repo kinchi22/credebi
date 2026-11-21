@@ -2,12 +2,13 @@
 
 import { trendLineSchema } from '@repo/contracts';
 import { PANEL } from '@repo/ui';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { type ReactNode } from 'react';
 import { AssetsAndLiabilitiesTrendChart } from './assets-and-liabilities-trend-chart';
 import { type EntryDeletion } from './delete-entry';
 import { type EntryFormState } from './entry-form';
 import { EntryList } from './entry-list';
+import { heldOpenAt } from './entry-unfold';
 import { IncomeStatementTables } from './income-statement-tables';
 import { sampleBooks, type SampleBooks } from './sample-books';
 import { useUnfoldingEntry } from './use-unfolding-entry';
@@ -27,22 +28,20 @@ function useSampleBooks(): SampleBooks {
   });
 }
 
-function UnfoldingEntries({ chart, entries }: Pick<SampleBooks, 'chart' | 'entries'>): ReactNode {
-  const { list, heldOpen, reserved } = useUnfoldingEntry(entries);
-  return (
-    <div ref={list} style={{ minHeight: reserved }} className="flex flex-col *:flex-1">
-      <EntryList
-        entries={entries}
-        heldOpen={heldOpen}
-        controls={{ chart, titles: [], entryFormMode: 'two-line', editEntry: editNothing, deleteEntry: deleteNothing }}
-      />
-    </div>
-  );
-}
-
 export function EntriesPreview(): ReactNode {
   const { chart, entries } = useSampleBooks();
-  return <UnfoldingEntries key={useLocale()} chart={chart} entries={entries} />;
+  const { list, heldOpen } = useUnfoldingEntry(entries);
+  const controls = { chart, titles: [], entryFormMode: 'two-line', editEntry: editNothing, deleteEntry: deleteNothing } as const;
+  return (
+    <div className="grid *:col-start-1 *:row-start-1">
+      <div inert aria-hidden className="invisible">
+        <EntryList entries={entries} controls={controls} heldOpen={heldOpenAt(entries, true)} standIn />
+      </div>
+      <div ref={list} className="flex flex-col *:flex-1">
+        <EntryList entries={entries} controls={controls} heldOpen={heldOpen} />
+      </div>
+    </div>
+  );
 }
 
 export function TrendPreview(): ReactNode {

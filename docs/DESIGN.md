@@ -1306,11 +1306,12 @@ variant B settled it. Every part of it sits in one column at most 1152px wide,
   no focus and is skipped by assistive technology; the highlight's text carries
   its meaning.
 - **Opening Entry.** In the Entries preview the first Entry with more than one
-  line on a Side opens once the page is scrolled 24px past a line and closes
-  once it is scrolled 24px back above it, so it never flickers at the line and
-  never moves on a timer. The line is where the Entry's top reaches the middle
-  of the viewport, and never less than 120px down the page, so the Entry is
-  closed at the top. The preview is as tall as it is with the Entry open, so
+  line on a Side opens once the page is scrolled 24px past a threshold and
+  closes once it is scrolled 24px back above it, so it never flickers there and
+  never moves on a timer. The threshold is where the Entry's top reaches the
+  middle of the viewport, and never less than 120px down the page, so the Entry
+  is closed at the top. The preview is as tall as it is with the Entry open
+  from the first paint, before any script runs, and in every Language, so
   nothing beside or below it moves. The change takes 200ms, ease-out, both
   ways, inside that Entry alone: each line moves from its old place to its
   new one, what only the old state showed fades out over the new state, the

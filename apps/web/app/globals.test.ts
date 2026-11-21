@@ -100,9 +100,13 @@ describe('the global stylesheet', () => {
   });
 
   it('runs the whole Entry expansion, the page behind it included, over 200ms ease-out', () => {
+    expect(ruleFor(':root')).toEqual({
+      '--entry-expansion-duration': '200ms',
+      '--entry-expansion-easing': 'ease-out',
+    });
     expect(ruleFor('::view-transition-group(root)')).toEqual({
-      'animation-duration': '200ms',
-      'animation-timing-function': 'ease-out',
+      'animation-duration': 'var(--entry-expansion-duration)',
+      'animation-timing-function': 'var(--entry-expansion-easing)',
     });
     expect(ruleFor('::view-transition-group(.entry-expansion)')).toEqual(ruleFor('::view-transition-group(root)'));
     expect(ruleFor('::view-transition-group(.entry-expansion-line)')).toEqual(
