@@ -8,8 +8,10 @@ import { AssetsAndLiabilitiesTrendChart } from './assets-and-liabilities-trend-c
 import { type EntryDeletion } from './delete-entry';
 import { type EntryFormState } from './entry-form';
 import { EntryList } from './entry-list';
+import { heldOpenAt } from './entry-unfold';
 import { IncomeStatementTables } from './income-statement-tables';
 import { sampleBooks, type SampleBooks } from './sample-books';
+import { useUnfoldingEntry } from './use-unfolding-entry';
 
 const keepNothing = (): Promise<void> => Promise.resolve();
 
@@ -28,11 +30,17 @@ function useSampleBooks(): SampleBooks {
 
 export function EntriesPreview(): ReactNode {
   const { chart, entries } = useSampleBooks();
+  const { list, heldOpen } = useUnfoldingEntry(entries);
+  const controls = { chart, titles: [], entryFormMode: 'two-line', editEntry: editNothing, deleteEntry: deleteNothing } as const;
   return (
-    <EntryList
-      entries={entries}
-      controls={{ chart, titles: [], entryFormMode: 'two-line', editEntry: editNothing, deleteEntry: deleteNothing }}
-    />
+    <div className="grid *:col-start-1 *:row-start-1">
+      <div inert aria-hidden className="invisible">
+        <EntryList entries={entries} controls={controls} heldOpen={heldOpenAt(entries, true)} standIn />
+      </div>
+      <div ref={list} className="flex flex-col *:flex-1">
+        <EntryList entries={entries} controls={controls} heldOpen={heldOpen} />
+      </div>
+    </div>
   );
 }
 

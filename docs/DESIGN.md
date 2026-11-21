@@ -1200,8 +1200,8 @@ numerals.
   anything else in the Top bar, shows it at once. It hides and shows by sliding
   vertically past the top edge over 200ms, ease-out, both ways, without a fade,
   and instantly under `prefers-reduced-motion: reduce`. This, the Entry
-  expansion in the Entries list and the Line chart's dot pop are the design's
-  only motion, so none has a token. Focus starts on the drawer, and Tab
+  expansion in the Entries list, the Landing page's opening Entry and the Line
+  chart's dot pop are the design's only motion, so none has a token. Focus starts on the drawer, and Tab
   reaches `Entries` first. Escape, a click on the scrim or following a link
   closes it, and focus returns to `Menu`.
 - **Focus.** A 2px ring on every focusable element: `focus` on a light ground,
@@ -1305,6 +1305,18 @@ variant B settled it. Every part of it sits in one column at most 1152px wide,
   8px below `wide` and 12px from `wide` up. A preview is `inert`, so it takes
   no focus and is skipped by assistive technology; the highlight's text carries
   its meaning.
+- **Opening Entry.** In the Entries preview the first Entry with more than one
+  line on a Side opens once the page is scrolled 24px past a threshold and
+  closes once it is scrolled 24px back above it, so it never flickers there and
+  never moves on a timer. The threshold is where the Entry's top reaches the
+  middle of the viewport, and never less than 120px down the page, so the Entry
+  is closed at the top. The preview is as tall as it is with the Entry open
+  from the first paint, before any script runs, and in every Language, so
+  nothing beside or below it moves. The change takes 200ms, ease-out, both
+  ways, inside that Entry alone: each line moves from its old place to its
+  new one, what only the old state showed fades out over the new state, the
+  Entry's height eases between the two, and its date and Title stay still.
+  Under `prefers-reduced-motion: reduce` it is instant.
 - **Get started.** A primary button 48px tall in `body` with 24px at its
   sides, the one primary button taller than 36px, linking to `/sign-in`. It stands in the hero
   and again centred above the footer, 64px above and below it, 96px from `wide`
