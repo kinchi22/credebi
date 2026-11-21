@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { type ReactNode } from 'react';
 import { BARE_ICON_BUTTON, BUTTON, LARGE_PRIMARY_BUTTON, ON_DARK_FOCUS } from './control-classes';
+import { EntriesPreview, IncomeStatementPreview, TrendPreview } from './landing-previews';
 import { LanguageSwitch } from './language-switch';
 import { SIGN_IN_PATH } from '../server/return-path';
 
@@ -44,8 +45,19 @@ function HighlightText({ highlight, onDark }: { readonly highlight: Highlight; r
   );
 }
 
-function PreviewSlot({ className = '' }: { readonly className?: string }): ReactNode {
-  return <div inert className={`min-h-80 min-w-0 rounded-card bg-ground p-2 text-text wide:p-3 ${className}`} />;
+const PREVIEWS: Readonly<Record<Highlight, () => ReactNode>> = {
+  entries: EntriesPreview,
+  trend: TrendPreview,
+  statement: IncomeStatementPreview,
+};
+
+function Preview({ highlight, className }: { readonly highlight: Highlight; readonly className: string }): ReactNode {
+  const Shown = PREVIEWS[highlight];
+  return (
+    <div inert className={`min-w-0 rounded-card bg-ground p-2 text-text wide:p-3 ${className}`}>
+      <Shown />
+    </div>
+  );
 }
 
 function Header({ chooseLanguage }: LandingPageProps): ReactNode {
@@ -81,7 +93,7 @@ function Hero(): ReactNode {
               <HighlightText highlight={HERO_HIGHLIGHT} onDark />
             </div>
           </div>
-          <PreviewSlot className="-mb-8 wide:-mb-40" />
+          <Preview highlight={HERO_HIGHLIGHT} className="-mb-8 wide:-mb-40" />
         </section>
       </div>
       <section className={`${SECTION} flex flex-col gap-2 pt-20 pb-6 wide:hidden`}>
@@ -98,7 +110,7 @@ function HighlightRow({ highlight, previewSide }: { readonly highlight: Highligh
       <div className={`flex flex-col gap-3 wide:col-span-2 ${previewSide === 'left' ? 'wide:order-2' : ''}`}>
         <HighlightText highlight={highlight} onDark={false} />
       </div>
-      <PreviewSlot className="wide:col-span-3" />
+      <Preview highlight={highlight} className="wide:col-span-3" />
     </section>
   );
 }

@@ -93,6 +93,12 @@ export const ja = {
     getStarted: 'はじめる',
     logIn: 'ログイン',
     source: 'GitHubでソースを見る',
+    sampleTitles: {
+      salary: '10月分の給与',
+      groceries: '週末の買い出し',
+      teamDinner: 'チームの食事会',
+      subwayFare: '地下鉄の運賃',
+    },
     highlights: {
       entries: {
         title: 'すべての取引を両側から',

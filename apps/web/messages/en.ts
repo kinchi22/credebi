@@ -75,6 +75,12 @@ export const en = {
     getStarted: 'Get started',
     logIn: 'Log in',
     source: 'View the source on GitHub',
+    sampleTitles: {
+      salary: 'October salary',
+      groceries: 'Weekend groceries',
+      teamDinner: 'Team dinner',
+      subwayFare: 'Subway fare',
+    },
     highlights: {
       entries: {
         title: 'Every transaction, both sides',

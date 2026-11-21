@@ -92,6 +92,12 @@ export const ko = {
     getStarted: '시작하기',
     logIn: '로그인',
     source: 'GitHub에서 소스 보기',
+    sampleTitles: {
+      salary: '10월 급여',
+      groceries: '주말 장보기',
+      teamDinner: '팀 회식',
+      subwayFare: '지하철 요금',
+    },
     highlights: {
       entries: {
         title: '모든 거래를 두 쪽으로',
