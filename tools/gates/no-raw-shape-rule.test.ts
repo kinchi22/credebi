@@ -59,7 +59,8 @@ tester.run('repo/no-raw-shape', rule, {
           message:
             'Class "rounded-full" rounds a corner by a radius outside the token set, which ' +
             'docs/DESIGN.md does not allow. Use `rounded-none`, `rounded-control`, or ' +
-            '`rounded-panel`; packages/ui/src/tokens.ts holds them.',
+            '`rounded-panel`. `rounded-none` is always allowed, and packages/ui/src/tokens.ts ' +
+            'holds the rest.',
         },
       ],
     },
@@ -70,8 +71,8 @@ tester.run('repo/no-raw-shape', rule, {
         {
           message:
             'Class "rounded-md" rounds a corner by a radius outside the token set, which ' +
-            'docs/DESIGN.md does not allow. Use `rounded-none` or `rounded-card`; ' +
-            'packages/ui/src/tokens.ts holds them.',
+            'docs/DESIGN.md does not allow. Use `rounded-none` or `rounded-card`. ' +
+            '`rounded-none` is always allowed, and packages/ui/src/tokens.ts holds the rest.',
         },
       ],
     },
