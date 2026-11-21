@@ -272,6 +272,9 @@ it('keeps approval and the token after resolution, uses the frozen checkout, and
   expect(workflow.match(/deployments: write/g)).toHaveLength(1);
   expect(deploy).toMatch(/permissions:\n {6}contents: read\n {6}deployments: write\n/);
   const steps = deploy.split(/\n {6}- /);
+  const cliInstall = steps.find((step) => step.startsWith('name: Install reviewed Vercel CLI'));
+  expect(cliInstall).toMatch(/^ {10}VERCEL_CLI_VERSION: \d+\.\d+\.\d+$/m);
+  expect(cliInstall).toContain('npm install --global --omit=optional "vercel@$VERCEL_CLI_VERSION" "@vercel/vc-native-linux-x64@$VERCEL_CLI_VERSION"');
   const tokenSteps = steps.filter((step) => step.includes('VERCEL_TOKEN'));
   expect(tokenSteps).toHaveLength(1);
   expect(tokenSteps[0]).toContain('node tooling/tools/manual-preview.ts deploy');

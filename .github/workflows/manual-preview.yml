@@ -62,10 +62,11 @@ jobs:
           package-manager-cache: false
       - name: Install reviewed Vercel CLI
         env:
-          VERCEL_CLI_VERSION: 63.1.2
+          VERCEL_CLI_VERSION: 66.6.0
         run: |
           node -e 'if (!/^\d+\.\d+\.\d+$/.test(process.env.VERCEL_CLI_VERSION ?? "")) process.exit(1)'
-          npm install --global "vercel@$VERCEL_CLI_VERSION"
+          npm install --global --omit=optional "vercel@$VERCEL_CLI_VERSION" "@vercel/vc-native-linux-x64@$VERCEL_CLI_VERSION"
+          vercel --version
       - name: Record approved commit in Preview
         id: record
         env:
