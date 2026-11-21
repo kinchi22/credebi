@@ -1,6 +1,6 @@
 import type { AccountGroupId, AccountId, AccountOutput, Side } from '@repo/contracts';
 import { describe, expect, it } from 'vitest';
-import { accountTypesIn, hasOneLinePerSide, linesOn } from './entry-lines';
+import { accountTypesIn, entryExpansion, hasOneLinePerSide, linesOn } from './entry-lines';
 
 const line = (side: Side, account: string) => ({ side, account });
 
@@ -35,6 +35,29 @@ describe('hasOneLinePerSide', () => {
 
   it('does not hold for an entry with no lines', () => {
     expect(hasOneLinePerSide({ lines: [] })).toBe(false);
+  });
+});
+
+describe('entryExpansion', () => {
+  const multiLine = { lines: [SALES_CREDIT, CASH_DEBIT, EXPENSES_DEBIT] };
+  const oneLinePerSide = { lines: [SALES_CREDIT, CASH_DEBIT] };
+
+  it('opens and closes a multi-line entry its caller does not hold as it is toggled, behind a toggle of its own', () => {
+    expect(entryExpansion(multiLine, undefined, false)).toEqual({ open: false, toggles: true });
+    expect(entryExpansion(multiLine, undefined, true)).toEqual({ open: true, toggles: true });
+  });
+
+  it('offers no toggle on an entry with one line per side that its caller does not hold', () => {
+    expect(entryExpansion(oneLinePerSide, undefined, false)).toEqual({ open: false, toggles: false });
+  });
+
+  it('keeps an entry its caller holds open, whatever its own toggle says, and offers no toggle', () => {
+    expect(entryExpansion(multiLine, true, false)).toEqual({ open: true, toggles: false });
+    expect(entryExpansion(oneLinePerSide, true, false)).toEqual({ open: true, toggles: false });
+  });
+
+  it('keeps an entry its caller holds closed, whatever its own toggle says, and offers no toggle', () => {
+    expect(entryExpansion(multiLine, false, true)).toEqual({ open: false, toggles: false });
   });
 });
 
