@@ -18,7 +18,7 @@ import { formatAmount } from './amount';
 import { DeleteEntry, type DeleteEntryAction } from './delete-entry';
 import { EditEntry, type EditEntryAction } from './edit-entry';
 import { BARE_ICON_BUTTON } from './control-classes';
-import { accountTypesIn, hasOneLinePerSide, linesOn, SIDES, type AccountTypes } from './entry-lines';
+import { accountTypesIn, entryExpansion, linesOn, SIDES, type AccountTypes } from './entry-lines';
 import { SIDE_TONE } from './side-classes';
 import { MUTED_TEXT } from './text-classes';
 import { CuedAccount, useCuedAccountName } from './type-band';
@@ -31,9 +31,12 @@ export type EntryControls = {
   readonly deleteEntry: DeleteEntryAction;
 };
 
+export type HeldOpen = ReadonlyMap<PostedEntry['id'], boolean>;
+
 export type EntryListProps = {
   readonly entries: readonly PostedEntry[];
   readonly controls: EntryControls;
+  readonly heldOpen?: HeldOpen;
 };
 
 const CREDIT_DIVIDER = '@list:border-l @list:border-l-border';
@@ -177,14 +180,14 @@ function togglesOnClick(event: MouseEvent<HTMLElement>, chevron: HTMLButtonEleme
   );
 }
 
-type EntryExpansion = {
+type SelfToggle = {
   readonly expanded: boolean;
   readonly toggle: () => void;
   readonly chevron: RefObject<HTMLButtonElement | null>;
   readonly toggleOnBodyClick: (event: MouseEvent<HTMLElement>) => void;
 };
 
-function useEntryExpansion(): EntryExpansion {
+function useSelfToggle(): SelfToggle {
   const [expanded, setExpanded] = useState(false);
   const chevron = useRef<HTMLButtonElement>(null);
   const toggleAtOnce = (): void => {
@@ -214,15 +217,18 @@ function ListedEntry({
   headsColumns,
   controls,
   accountTypes,
+  held,
 }: {
   readonly entry: PostedEntry;
   readonly headsColumns: boolean;
   readonly controls: EntryControls;
   readonly accountTypes: AccountTypes;
+  readonly held: boolean | undefined;
 }): ReactNode {
   const t = useTranslations();
-  const expandable = !hasOneLinePerSide(entry);
-  const { expanded, toggle, chevron, toggleOnBodyClick } = useEntryExpansion();
+  const selfToggle = useSelfToggle();
+  const { toggle, chevron, toggleOnBodyClick } = selfToggle;
+  const { open: expanded, toggles: expandable } = entryExpansion(entry, held, selfToggle.expanded);
   const compact = !expanded;
   return (
     <div
@@ -313,7 +319,7 @@ function ListedEntry({
 }
 
 
-export function EntryList({ entries, controls }: EntryListProps): ReactNode {
+export function EntryList({ entries, controls, heldOpen }: EntryListProps): ReactNode {
   const t = useTranslations();
   const accountTypes = accountTypesIn(controls.chart);
   return (
@@ -329,6 +335,7 @@ export function EntryList({ entries, controls }: EntryListProps): ReactNode {
               headsColumns={index === 0}
               controls={controls}
               accountTypes={accountTypes}
+              held={heldOpen?.get(entry.id)}
             />
           ))}
         </div>
