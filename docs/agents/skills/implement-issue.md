@@ -55,11 +55,21 @@ it serial.
    or wrong, send the findings back to the same Subagent and review again.
    Judgement calls are the Subagent's to take or leave, with a reason in the
    pull request. After a second review that still fails, stop.
-6. **Merge.** Wait for the required checks (`gh pr checks <pr> --watch
+6. **Ticket the leftovers.** Before merging, open an issue for each real
+   problem the reviews raised that the pull request leaves unfixed, whether a
+   judgement call the Subagent left or a finding outside the Task. A real
+   problem is behaviour that is wrong, a document that contradicts the code or
+   itself, a second source of truth that can drift, or a criterion nothing
+   checks. A naming or shape smell stays in the review comment. Open each one
+   without asking the owner: a defect as a Bug, anything else as a Feature with
+   its kind, and a choice only the owner can make written into its body as the
+   decision needed. Whether to act on it is decided later, from the issue.
+   Link each from the review comment.
+7. **Merge.** Wait for the required checks (`gh pr checks <pr> --watch
    --required`). Green, and with no owned path in the diff, merge it:
    `gh pr merge <pr> --squash --delete-branch`. An owned path, or a pull
    request into `main`, waits for the owner: that is a stop.
-7. **Read the milestone's two advisory checks**, on a Feature with a
+8. **Read the milestone's two advisory checks**, on a Feature with a
    milestone. A push to the milestone starts both, and `docs/ARCHITECTURE.md`,
    "How a criterion ships", says how they split the specs. Read each on its own;
    neither says anything about the other.
@@ -76,7 +86,7 @@ it serial.
    The log lists the spec files removed since the merge-base: none is tested.
    Each finished leg uploads its HTML report and traces under an artifact
    named after its group.
-8. **Next.** On a Feature, go back to 1.
+9. **Next.** On a Feature, go back to 1.
 
 ## Stops
 
