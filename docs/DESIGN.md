@@ -204,12 +204,15 @@ stylesheet, `apps/web/app/globals.css`, declares the same values in Tailwind's
 colour pair falls below its contrast minimum. A value changes in the tokens
 module, the stylesheet and here, in one pull request.
 
-The Entry expansion's timing is the exception: the stylesheet alone holds it,
-as `--entry-expansion-duration` and `--entry-expansion-easing` on `:root`, and
-this file names those properties rather than their values. No utility is made
-from it, so it has no place among the tokens the module feeds to `@theme`; the
-view transitions of the Entries list read it in the stylesheet, and the Landing
-page's opening Entry reads it from the page's computed style.
+Motion is not among those values, and the tokens module holds none of it. Each
+motion's timing lives in the code that runs it: the Top bar's in Tailwind's
+duration and easing utilities, the Line chart's dot pop's in the stylesheet's
+rule for it. The Entry expansion and the Landing page's opening Entry share
+one timing, which the stylesheet alone declares, as
+`--entry-expansion-duration` and `--entry-expansion-easing` on `:root`, and a
+unit test of the stylesheet holds; the view transitions of the Entries list
+read it there, and the opening Entry reads it from the page's computed style.
+This file names that timing rather than restating its values.
 
 The stylesheet resets Tailwind's colours to `initial`, so the tokens are the
 only colour utilities that exist, and the lint rule `repo/no-raw-color` rejects
@@ -1029,10 +1032,10 @@ numerals.
   lifetime alone: a width change keeps it, and a reload, a revisit or a new
   Entry search starts every Entry compact. The change moves, as a view
   transition over the Entry expansion's timing, both ways: each line glides
-  to its new place, the Side names and the line amounts fade in or out, and the Entries
-  below slide rather than jump, every snapshot anchored at its top left and
-  never stretched. Under `prefers-reduced-motion: reduce`, or where the browser
-  has no view transitions, the change is instant. Lines are set in
+  to its new place, the Side names and the line amounts fade in or out, and
+  the Entries below slide rather than jump, every snapshot anchored at its top
+  left and never stretched. Under `prefers-reduced-motion: reduce`, or where
+  the browser has no view transitions, the change is instant. Lines are set in
   `body-dense`. A detailed line is one row, the Account name on the left and its amount on the right in `figure` and the
   Side's colour, never wrapped or shrunk. The name is led by its
   Account type's Tile and followed by the line's Balance direction, the 14px
@@ -1209,11 +1212,10 @@ numerals.
   and instantly under `prefers-reduced-motion: reduce`. This, the Entry
   expansion in the Entries list, the Landing page's opening Entry and the Line
   chart's dot pop are the design's only motion. The Entry expansion and the
-  opening Entry share one timing, which `apps/web/app/globals.css` declares as
-  `--entry-expansion-duration` and `--entry-expansion-easing`; the Top bar and
-  the dot pop each state their own. Focus starts on the drawer, and Tab
-  reaches `Entries` first. Escape, a click on the scrim or following a link
-  closes it, and focus returns to `Menu`.
+  opening Entry share the Entry expansion's timing; the Top bar and the dot pop
+  each state their own. Focus starts on the drawer, and Tab reaches `Entries`
+  first. Escape, a click on the scrim or following a link closes it, and focus
+  returns to `Menu`.
 - **Focus.** A 2px ring on every focusable element: `focus` on a light ground,
   `focus-on-dark` on a dark one, 2px outside its edge. A focused Input adds a
   3px `accent` halo at 25%, `ring-3 ring-accent/25`, around its edge and under
@@ -1323,10 +1325,10 @@ variant B settled it. Every part of it sits in one column at most 1152px wide,
   is closed at the top. The preview is as tall as it is with the Entry open
   from the first paint, before any script runs, and in every Language, so
   nothing beside or below it moves. The change takes the Entry expansion's
-  timing, both ways, inside that Entry alone: each line moves from its old place to its
-  new one, what only the old state showed fades out over the new state, the
-  Entry's height eases between the two, and its date and Title stay still.
-  Under `prefers-reduced-motion: reduce` it is instant.
+  timing, both ways, inside that Entry alone: each line moves from its old
+  place to its new one, what only the old state showed fades out over the new
+  state, the Entry's height eases between the two, and its date and Title stay
+  still. Under `prefers-reduced-motion: reduce` it is instant.
 - **Get started.** A primary button 48px tall in `body` with 24px at its
   sides, the one primary button taller than 36px, linking to `/sign-in`. It stands in the hero
   and again centred above the footer, 64px above and below it, 96px from `wide`
