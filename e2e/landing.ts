@@ -86,7 +86,15 @@ async function filtered(all: readonly Locator[], keep: (each: Locator) => Promis
 const withRenderedBox = async (locator: Locator): Promise<readonly Locator[]> =>
   filtered(await locator.all(), hasRenderedBox);
 
-const anyRendered = async (locator: Locator): Promise<boolean> => (await withRenderedBox(locator)).length > 0;
+type Boxed = { readonly getBoundingClientRect: () => { readonly width: number; readonly height: number } };
+
+const anyRendered = async (locator: Locator): Promise<boolean> =>
+  locator.evaluateAll((elements: readonly Boxed[]) =>
+    elements.some((element) => {
+      const box = element.getBoundingClientRect();
+      return box.width > 1 && box.height > 1;
+    }),
+  );
 
 async function rendersBothSides(entry: Locator): Promise<boolean> {
   const sides = await Promise.all(SIDES.map((side) => anyRendered(entry.getByText(side, { exact: true }))));
