@@ -305,7 +305,7 @@ const noRawColor = {
 
 const RADIUS_UTILITY = /^rounded(?:-(?:tl|tr|br|bl|ss|se|es|ee|t|r|b|l|s|e))?(?:-(.+))?$/u;
 
-const STATIC_RADII = ['none', 'full'];
+const STATIC_RADII = ['none'];
 
 const SHADOW_UTILITY = /^shadow(?:-(.+))?$/u;
 
@@ -352,8 +352,8 @@ const noRawShape = {
     messages: {
       nonTokenRadius:
         'Class {{text}} rounds a corner by a radius outside the token set, so it draws a square ' +
-        'corner. Use `rounded-control`, `rounded-panel` or `rounded-card`, or `rounded-full` for ' +
-        'a circle; packages/ui/src/tokens.ts holds them and docs/DESIGN.md lists them.',
+        'corner. Use `rounded-control`, `rounded-panel` or `rounded-card`; ' +
+        'packages/ui/src/tokens.ts holds them and docs/DESIGN.md lists them.',
       nonTokenShadow:
         'Class {{text}} casts a shadow outside the token set, so it draws nothing. Use a shadow ' +
         'from packages/ui/src/tokens.ts, which docs/DESIGN.md lists.',
