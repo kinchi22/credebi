@@ -99,7 +99,7 @@ test('shows no health panel at /', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Re-check' })).toHaveCount(0);
 });
 
-test('opens the multi-line sample Entry in the preview of the Entries list, with its Debit and Credit headings and line amounts, once the visitor scrolls past it, and closes it at the top again', async ({ page }) => {
+test('opens the multi-line sample Entry in the preview of the Entries list, with its Debit and Credit headings and line amounts, once the visitor scrolls past it, and closes it at the top again', { tag: '@webkit' }, async ({ page }) => {
   await page.goto('/');
   await expect(sampleEntries(page).first()).toBeAttached();
   expect(await openSampleEntries(page), 'no sample Entry is open at the top').toHaveLength(0);
