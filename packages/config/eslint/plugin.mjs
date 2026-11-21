@@ -307,6 +307,8 @@ const RADIUS_UTILITY = /^rounded(?:-(?:tl|tr|br|bl|ss|se|es|ee|t|r|b|l|s|e))?(?:
 
 const STATIC_RADII = ['none'];
 
+const RADIUS_LIST = new Intl.ListFormat('en', { type: 'disjunction' });
+
 const SHADOW_UTILITY = /^shadow(?:-(.+))?$/u;
 
 const DEFAULT_SHADOW = /^(?:\d?xs|sm|md|lg|\d?xl|inner)$/u;
@@ -351,9 +353,8 @@ const noRawShape = {
     ],
     messages: {
       nonTokenRadius:
-        'Class {{text}} rounds a corner by a radius outside the token set, so it draws a square ' +
-        'corner. Use `rounded-control`, `rounded-panel` or `rounded-card`; ' +
-        'packages/ui/src/tokens.ts holds them and docs/DESIGN.md lists them.',
+        'Class {{text}} rounds a corner by a radius outside the token set, which docs/DESIGN.md ' +
+        'does not allow. Use {{allowed}}; packages/ui/src/tokens.ts holds them.',
       nonTokenShadow:
         'Class {{text}} casts a shadow outside the token set, so it draws nothing. Use a shadow ' +
         'from packages/ui/src/tokens.ts, which docs/DESIGN.md lists.',
@@ -362,6 +363,7 @@ const noRawShape = {
   create(context) {
     const options = context.options[0] ?? {};
     const radii = new Set([...STATIC_RADII, ...(options.radii ?? [])]);
+    const allowed = RADIUS_LIST.format([...radii].map((radius) => `\`rounded-${radius}\``));
 
     const check = (node, text) => {
       if (!CLASS_LIST.test(text.trim())) return;
@@ -370,7 +372,11 @@ const noRawShape = {
         classNames.length === 1 || classNames.some((className) => UTILITY_SHAPED.test(className));
       for (const className of classNames) {
         if (namesANonTokenRadius(className, radii, amongUtilities)) {
-          context.report({ node, messageId: 'nonTokenRadius', data: { text: JSON.stringify(className) } });
+          context.report({
+            node,
+            messageId: 'nonTokenRadius',
+            data: { text: JSON.stringify(className), allowed },
+          });
         }
         if (namesANonTokenShadow(className, amongUtilities)) {
           context.report({ node, messageId: 'nonTokenShadow', data: { text: JSON.stringify(className) } });

@@ -42,7 +42,6 @@ tester.run('repo/no-raw-shape', rule, {
     invalid('const classes = "wide:rounded-bl-lg";', ['nonTokenRadius']),
     invalid('const classes = "rounded-[3px]";', ['nonTokenRadius']),
     invalid('const classes = "rounded-card";', ['nonTokenRadius']),
-    invalid('const classes = "rounded-full";', ['nonTokenRadius']),
     invalid('const classes = "wide:rounded-tl-full";', ['nonTokenRadius']),
     invalid('const classes = "shadow";', ['nonTokenShadow']),
     invalid('const classes = "flex shadow p-2";', ['nonTokenShadow']),
@@ -52,5 +51,29 @@ tester.run('repo/no-raw-shape', rule, {
     invalid('const classes = "shadow-inner";', ['nonTokenShadow']),
     invalid('const classes = "shadow-[0_1px_2px_black]";', ['nonTokenShadow']),
     invalid('const classes = `p-2 ${"x"} rounded-sm shadow-xs`;', ['nonTokenRadius', 'nonTokenShadow']),
+    {
+      code: 'const classes = "rounded-full";',
+      options: [tokens],
+      errors: [
+        {
+          message:
+            'Class "rounded-full" rounds a corner by a radius outside the token set, which ' +
+            'docs/DESIGN.md does not allow. Use `rounded-none`, `rounded-control`, or ' +
+            '`rounded-panel`; packages/ui/src/tokens.ts holds them.',
+        },
+      ],
+    },
+    {
+      code: 'const classes = "rounded-md";',
+      options: [{ radii: ['card'] }],
+      errors: [
+        {
+          message:
+            'Class "rounded-md" rounds a corner by a radius outside the token set, which ' +
+            'docs/DESIGN.md does not allow. Use `rounded-none` or `rounded-card`; ' +
+            'packages/ui/src/tokens.ts holds them.',
+        },
+      ],
+    },
   ],
 });
