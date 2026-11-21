@@ -2,6 +2,8 @@ import { expect, type Locator, type Page } from '@playwright/test';
 import { SIDES } from './entries';
 import { type Language } from './language';
 
+export type LandingLanguage = Exclude<Language, 'ja'>;
+
 export type LandingText = {
   readonly headline: string;
   readonly valueProposition: string;
@@ -11,7 +13,7 @@ export type LandingText = {
   readonly source: string;
 };
 
-export const LANDING: Readonly<Record<Exclude<Language, 'ja'>, LandingText>> = {
+export const LANDING: Readonly<Record<LandingLanguage, LandingText>> = {
   en: {
     headline: 'See where your money came from, and where it went.',
     valueProposition:
@@ -38,28 +40,28 @@ export const LANDING: Readonly<Record<Exclude<Language, 'ja'>, LandingText>> = {
 
 export const SOURCE_REPOSITORY = /^https:\/\/github\.com\/[\w.-]+\/credebi\/?$/;
 
-export const headline = (page: Page, language: Exclude<Language, 'ja'>): Locator =>
+export const headline = (page: Page, language: LandingLanguage): Locator =>
   page.getByRole('heading', { level: 1, name: LANDING[language].headline, exact: true });
 
-export const valueProposition = (page: Page, language: Exclude<Language, 'ja'>): Locator =>
+export const valueProposition = (page: Page, language: LandingLanguage): Locator =>
   page.getByText(LANDING[language].valueProposition, { exact: true });
 
 export const highlight = (page: Page, name: string): Locator =>
   page.getByRole('heading', { name, exact: true });
 
-export const logIn = (page: Page, language: Exclude<Language, 'ja'>): Locator =>
+export const logIn = (page: Page, language: LandingLanguage): Locator =>
   page.getByRole('banner').getByRole('link', { name: LANDING[language].logIn, exact: true });
 
-export const getStarted = (page: Page, language: Exclude<Language, 'ja'>): Locator =>
+export const getStarted = (page: Page, language: LandingLanguage): Locator =>
   page.getByRole('link', { name: LANDING[language].getStarted, exact: true });
 
-export const sourceLink = (page: Page, language: Exclude<Language, 'ja'>): Locator =>
+export const sourceLink = (page: Page, language: LandingLanguage): Locator =>
   page.getByRole('contentinfo').getByRole('link', { name: LANDING[language].source, exact: true });
 
 export const logo = (page: Page): Locator =>
   page.getByRole('banner').getByRole('img', { name: 'Credebi', exact: true });
 
-export async function expectLandingPageIn(page: Page, language: Exclude<Language, 'ja'>): Promise<void> {
+export async function expectLandingPageIn(page: Page, language: LandingLanguage): Promise<void> {
   await expect(headline(page, language)).toBeVisible();
   await expect(valueProposition(page, language)).toBeVisible();
   for (const name of LANDING[language].highlights) {
@@ -71,42 +73,30 @@ export const sampleEntries = (page: Page): Locator => page.getByTestId('entry');
 
 const LINE_AMOUNT = /^\d{1,3}(?:,\d{3})*$/;
 
-async function isShown(locator: Locator): Promise<boolean> {
+async function hasRenderedBox(locator: Locator): Promise<boolean> {
   const box = await locator.boundingBox();
   return box !== null && box.width > 1 && box.height > 1;
 }
 
-async function anyShown(locator: Locator): Promise<boolean> {
-  const shown = await Promise.all((await locator.all()).map(isShown));
-  return shown.includes(true);
+async function filtered(all: readonly Locator[], keep: (each: Locator) => Promise<boolean>): Promise<readonly Locator[]> {
+  const kept = await Promise.all(all.map(keep));
+  return all.filter((_, index) => kept[index] === true);
 }
 
-async function showsBothSides(entry: Locator): Promise<boolean> {
-  const sides = await Promise.all(SIDES.map((side) => anyShown(entry.getByText(side, { exact: true }))));
+const withRenderedBox = async (locator: Locator): Promise<readonly Locator[]> =>
+  filtered(await locator.all(), hasRenderedBox);
+
+const anyRendered = async (locator: Locator): Promise<boolean> => (await withRenderedBox(locator)).length > 0;
+
+async function rendersBothSides(entry: Locator): Promise<boolean> {
+  const sides = await Promise.all(SIDES.map((side) => anyRendered(entry.getByText(side, { exact: true }))));
   return sides.every(Boolean);
 }
 
-export async function openSampleEntries(page: Page): Promise<readonly Locator[]> {
-  const listed = await sampleEntries(page).all();
-  const open = await Promise.all(listed.map(showsBothSides));
-  return listed.filter((_, index) => open[index] === true);
-}
+export const openSampleEntries = async (page: Page): Promise<readonly Locator[]> =>
+  filtered(await sampleEntries(page).all(), rendersBothSides);
 
-export async function shownLineAmounts(entry: Locator): Promise<readonly boolean[]> {
-  const lines = await entry.getByTestId('entry-line').all();
-  const shownLines = (await Promise.all(lines.map(async (line) => ((await isShown(line)) ? line : undefined)))).filter(
-    (line): line is Locator => line !== undefined,
-  );
-  return Promise.all(shownLines.map((line) => anyShown(line.getByText(LINE_AMOUNT))));
+export async function renderedLineAmounts(entry: Locator): Promise<readonly boolean[]> {
+  const lines = await withRenderedBox(entry.getByTestId('entry-line'));
+  return Promise.all(lines.map((line) => anyRendered(line.getByText(LINE_AMOUNT))));
 }
-
-export async function scrollToEnd(page: Page): Promise<void> {
-  await page.evaluate('window.scrollTo(0, document.documentElement.scrollHeight)');
-}
-
-export async function scrollToTop(page: Page): Promise<void> {
-  await page.evaluate('window.scrollTo(0, 0)');
-}
-
-export const scrollWidth = async (page: Page): Promise<number> =>
-  Number(await page.evaluate('document.documentElement.scrollWidth'));

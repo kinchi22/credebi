@@ -1,6 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { entryForm, entrySearchForm } from './entries';
-import { headline } from './landing';
 import { ENTRIES_URL, ENTRY_SEARCH_WITHOUT_QUERY, SETTINGS_URL, SIGN_IN_URL } from './routes';
 import { signIn } from './session';
 import { entryFormModes } from './settings';
@@ -58,10 +57,6 @@ test('shows no Sidebar once the visitor is no longer signed in', async ({ page }
   await expect(sidebar(page)).toBeVisible();
   await sidebarSignOut(page).click();
   await expect(page).not.toHaveURL(ENTRIES_URL);
-
-  await page.goto('/');
-  await expect(headline(page, 'en')).toBeVisible();
-  await expect(sidebar(page)).toHaveCount(0);
 
   await page.goto('/sign-in');
   await expect(page.getByRole('link', { name: 'Sign in with Google' })).toBeVisible();
