@@ -7,7 +7,7 @@ function memoryTracker(feature: number, firstNumber: number) {
   const issues = new Map<number, Issue>();
   const children = new Map<number, number[]>([[feature, []]]);
   const blockedBy = new Map<number, Set<number>>();
-  const ready = new Set<number>();
+  const statuses = new Map<number, string>();
   let next = firstNumber;
   const tracker: Tracker = {
     subIssues: (parent) =>
@@ -24,11 +24,12 @@ function memoryTracker(feature: number, firstNumber: number) {
     addBlocker: (task, blocker) => {
       blockedBy.set(task, new Set([...(blockedBy.get(task) ?? []), blocker]));
     },
+    status: (issue) => statuses.get(issue),
     setReady: (issue) => {
-      ready.add(issue);
+      statuses.set(issue, 'Ready');
     },
   };
-  return { tracker, issues, children, blockedBy, ready };
+  return { tracker, issues, children, blockedBy, statuses };
 }
 
 const task = (title: string, blockedBy: TaskPlan['blockedBy'] = [], assignee?: string): TaskPlan => ({
@@ -77,7 +78,7 @@ describe('publish', () => {
     const memory = memoryTracker(100, 200);
     publish(CHAIN, memory.tracker);
 
-    expect([...memory.ready].sort()).toEqual([100, 200, 201, 202, 203]);
+    expect([100, 200, 201, 202, 203].map((n) => memory.statuses.get(n))).toEqual(['Ready', 'Ready', 'Ready', 'Ready', 'Ready']);
   });
 
   it('keeps a Task already under the Feature by its title on a second run, creating nothing twice', () => {
@@ -93,6 +94,26 @@ describe('publish', () => {
       [203, true],
     ]);
     expect([...(memory.blockedBy.get(201) ?? [])]).toEqual([200]);
+  });
+
+  it.each(['Ready', 'In Progress', 'In Review', 'Done'])('leaves a kept Task and the Feature in %s as they are on a rerun', (status) => {
+    const memory = memoryTracker(100, 200);
+    publish(CHAIN, memory.tracker);
+    for (const issue of [100, 200, 201, 202, 203]) memory.statuses.set(issue, status);
+    publish(CHAIN, memory.tracker);
+
+    expect([100, 200, 201, 202, 203].map((n) => memory.statuses.get(n))).toEqual([status, status, status, status, status]);
+  });
+
+  it('sets a kept Task and the Feature in Backlog, and one not on the board, to Ready', () => {
+    const memory = memoryTracker(100, 200);
+    publish({ feature: 100, tasks: CHAIN.tasks.slice(0, 2) }, memory.tracker);
+    memory.statuses.set(100, 'Backlog');
+    memory.statuses.set(200, 'Backlog');
+    memory.statuses.delete(201);
+    publish(CHAIN, memory.tracker);
+
+    expect([100, 200, 201, 202, 203].map((n) => memory.statuses.get(n))).toEqual(['Ready', 'Ready', 'Ready', 'Ready', 'Ready']);
   });
 
   it('refuses a manifest whose blocker is not a Task listed before it, creating nothing', () => {
