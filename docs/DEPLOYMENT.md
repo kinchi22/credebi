@@ -6,6 +6,64 @@ why the release is built this way, and `docs/ARCHITECTURE.md`, "How a release
 reaches Production", describes the sequence and its checks; this file is how to
 set it up and operate it.
 
+## November 2026 toolchain verification
+
+A fresh checkout of [`1cdba2d`](https://github.com/kinchi22/credebi/commit/1cdba2df1661ad3c382f776fd833cc1e7f689275)
+passed `pnpm install --frozen-lockfile` with Node.js 24.22.3 and pnpm 11.28.13.
+The Gates job on `main` logged Node.js 24.22.3 and pnpm 11.28.13 and uploaded
+the dependency graph. The setup and upload actions declare the Node.js 24
+runtime. Vercel uses managed Node.js 24 and pnpm 11 releases.
+CI and E2E build passed on the verified commit. The main runs uploaded
+the dependency graph, mutation reports and Playwright report.
+[CI run](https://github.com/kinchi22/credebi/actions/runs/44969006690) · [E2E build](https://github.com/kinchi22/credebi/actions/runs/44969006704) · [Action upgrade](https://github.com/kinchi22/credebi/pull/787)
+
+The verified application lockfile resolves Next.js and its ESLint plugin at
+16.4.5, `sharp` at 0.35.5, PostCSS's `source-map-js` at 1.2.2, and Zod at 4.6.7
+through the app, Contracts and MCP. [Application update](https://github.com/kinchi22/credebi/pull/790) · [Test and lint tooling update](https://github.com/kinchi22/credebi/pull/798)
+
+### Dependency audits
+
+Scans on November 22, 2026 UTC compared the original
+[`9ebc366` workspace lockfile](https://github.com/kinchi22/credebi/commit/9ebc366e14cd5f3cb9f6273b7d2605c934fb255c)
+with the verified commit using pnpm 11.28.13 and the npm advisory registry.
+The separate CLI comparison used npm 11.19.1 on Linux x64. The baseline scanned
+`vercel@63.1.2` with optional dependencies. The updated scan covers the 66.6.0
+launcher and matching native npm package installed by Manual Preview.
+
+| Scan | Baseline Critical / High / Moderate / Low | Verified Critical / High / Moderate / Low |
+| --- | ---: | ---: |
+| `pnpm audit --json` | 7 / 23 / 41 / 8 | 0 / 0 / 8 / 0 |
+| `pnpm audit --prod --json` | 7 / 8 / 14 / 1 | 0 / 0 / 1 / 0 |
+| Preview CLI npm audit (affected package entries) | 1 / 20 / 15 / 0 | 0 / 0 / 0 / 0 |
+
+The update cleared 71 workspace advisory IDs and 29 production-dependency
+advisory IDs and introduced zero. The remaining findings are all Moderate.
+The production-dependency scan includes workspace tooling. Its single finding
+comes from the ESLint and TypeScript linting paths in `packages/config`.
+
+| Package | Affected workspace paths | Advisories |
+| --- | --- | --- |
+| `esbuild@0.18.20` | `packages/db → drizzle-kit → @esbuild-kit/esm-loader → @esbuild-kit/core-utils` | [GHSA-67mh-4wv8-2f99](https://github.com/advisories/GHSA-67mh-4wv8-2f99) |
+| `uuid@10.0.0` | `@testcontainers/postgresql → testcontainers → dockerode` | [GHSA-w5hq-g745-h8pq](https://github.com/advisories/GHSA-w5hq-g745-h8pq) |
+| `qs@6.15.1` | `@stryker-mutator/core → typed-rest-client`, including the Vitest runner's path through Stryker core | [GHSA-q8mj-m7cp-5q26](https://github.com/advisories/GHSA-q8mj-m7cp-5q26), [GHSA-x5fp-wj9c-mxmx](https://github.com/advisories/GHSA-x5fp-wj9c-mxmx), [GHSA-4mjr-xmp4-gh2g](https://github.com/advisories/GHSA-4mjr-xmp4-gh2g), [GHSA-6pq8-jhm2-2vcw](https://github.com/advisories/GHSA-6pq8-jhm2-2vcw) |
+| `glob@10.5.0` | Testcontainers via `archiver → archiver-utils`, including the path through `zip-stream` | [GHSA-3g3m-2fjr-6pw4](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4) |
+| `minimatch@9.0.9` and `minimatch@10.2.6` | Testcontainers' `archiver → archiver-utils → glob` paths, plus Stryker, ESLint, `@eslint/config-array` and `@typescript-eslint/typescript-estree` | [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249) |
+
+The Preview CLI's former optional JavaScript fallback included `tar@7.5.11`
+via `@vercel/container` and `@vercel/backends → @vercel/nft → @mapbox/node-pre-gyp`.
+The current install omits that fallback. The separate
+`npm audit --omit=dev --omit=optional --json` scan covers the installed npm
+packages. The native binary bundles its Rust dependencies separately.
+[CLI audit and install change](https://github.com/kinchi22/credebi/pull/788) · [GHSA-23hp-3jrh-7fpw](https://github.com/advisories/GHSA-23hp-3jrh-7fpw)
+
+### Owner-approved Preview
+
+On November 22, 2026 UTC, `kinchi22` approved the Preview job dispatched from
+`main` for `1cdba2df1661ad3c382f776fd833cc1e7f689275`. The job installed
+Vercel CLI 66.6.0 (native) and deployed the approved commit successfully.
+GitHub Preview deployment `7971962028` recorded `success` at 01:11:36 UTC.
+[Workflow run](https://github.com/kinchi22/credebi/actions/runs/44970126641) · [Deploy job](https://github.com/kinchi22/credebi/actions/runs/44970126641/job/137047911592) · [Deployment record](https://api.github.com/repos/kinchi22/credebi/deployments/7971962028/statuses) · [Preview URL](https://credebi-eyfwe4bz8-seulki-baes-projects.vercel.app)
+
 ## Connecting Vercel
 
 Set up once, in the Neon, Vercel and GitHub dashboards; none of it can be
@@ -331,6 +389,11 @@ Preview retention: an active record can outlive the Preview it links to.
 Each approved run requests a Preview deployment, including repeats and `main`,
 using Vercel's default build cache. This workflow provides no Production,
 Promotion or rollback path.
+
+The workflow installs `vercel@66.6.0` and
+`@vercel/vc-native-linux-x64@66.6.0` with `--omit=optional` and logs the CLI
+version before recording the deployment. Use the same version for both packages
+when updating the pin.
 
 The run summary shows the requested target, resolved SHA, status and successful
 Preview URL. Build/deployment failures fail the workflow; inspect them in Vercel.

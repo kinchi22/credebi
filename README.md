@@ -13,6 +13,11 @@ pipeline probe rather than a feature and should not be deleted.
 - Docker with Compose v2+ (local Postgres only; not needed to build or test)
 - `git`, `jq` and `openssl` with `-addext` (OpenSSL 1.1.1+ or LibreSSL 3.1+) on PATH, for `pnpm verify:gates`
 
+GitHub Actions also uses Node.js 24 and the workspace pnpm pin. The
+[November 2026 toolchain verification](docs/DEPLOYMENT.md#november-2026-toolchain-verification)
+records the versions observed in CI, the dependency audits and the Preview CLI
+used to deploy the tested commit.
+
 ## Getting started
 
 ```bash
