@@ -1,0 +1,35 @@
+name: Node.js security check
+
+on:
+  schedule:
+    - cron: '23 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: node-security-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Check the pinned Node.js version
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Check advisories and report issues
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node tools/node-security-check.ts
