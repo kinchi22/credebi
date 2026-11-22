@@ -1,14 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-
-export const PROJECT = {
-  number: '2',
-  owner: 'kinchi22',
-  id: 'PVT_kwHOAPo8ps4Bj5BZ',
-  statusField: 'PVTSSF_lAHOAPo8ps4Bj5BZzhirtAQ',
-  ready: '412e474e',
-} as const;
+import { processBoard, readStatus, setStatus } from './board';
 
 export type Blocker = string | number;
 
@@ -175,34 +168,9 @@ export const githubTracker: Tracker = {
       `issue_id=${databaseId(blocker)}`,
     ]);
   },
-  status: (issue) => {
-    const name = gh([
-      'api',
-      'graphql',
-      '-F',
-      `number=${String(issue)}`,
-      '-f',
-      'query=query($number: Int!) { repository(owner: "kinchi22", name: "credebi") { issue(number: $number) { projectItems(first: 20) { nodes { project { number } fieldValueByName(name: "Status") { ... on ProjectV2ItemFieldSingleSelectValue { name } } } } } } }',
-      '--jq',
-      `.data.repository.issue.projectItems.nodes[] | select(.project.number == ${PROJECT.number}) | .fieldValueByName.name // empty`,
-    ]);
-    return name === '' ? undefined : name;
-  },
+  status: (issue) => readStatus(issue, processBoard),
   setReady: (issue) => {
-    const url = gh(['issue', 'view', String(issue), '--json', 'url', '--jq', '.url']);
-    const item = gh(['project', 'item-add', PROJECT.number, '--owner', PROJECT.owner, '--url', url, '--format', 'json', '--jq', '.id']);
-    gh([
-      'project',
-      'item-edit',
-      '--project-id',
-      PROJECT.id,
-      '--id',
-      item,
-      '--field-id',
-      PROJECT.statusField,
-      '--single-select-option-id',
-      PROJECT.ready,
-    ]);
+    setStatus(issue, 'Ready', processBoard);
   },
 };
 

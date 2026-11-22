@@ -262,12 +262,18 @@ readiness is the board's `Status` field rather than a triage label -- see
 `docs/agents/issue-tracker.md`, which says the Status replaces the
 `ready-for-agent` label.
 
-Writes to the project board need a token of the owner's own, because a GitHub
-App can be granted an organisation's projects but not a user's: a classic
-personal access token with the `project` and `read:org` scopes and nothing else,
-so it cannot approve or merge. Without `read:org`, every `gh project` command
-fails with `unknown owner type`. The token expires; check both scopes when it is
+The project board is read and written only through `tools/board.ts`, which
+takes its token from `BOARD_TOKEN` and nothing else. The token is the owner's
+own, because a GitHub App can be granted an organisation's projects but not a
+user's: a classic personal access token with the `project` and `read:org` scopes
+and nothing else, so it cannot approve or merge. Without `read:org`, `gh` fails
+with `unknown owner type`. The token expires; check both scopes when it is
 reissued.
+
+Locally, export `BOARD_TOKEN` from the shell profile. In a cloud environment,
+add it as an environment secret. The board needs no `gh` wrapper: every other
+`gh` and `git` call keeps the environment's own authentication. How a session
+authenticates as the GitHub App is outside this repository.
 
 ## Documentation
 
