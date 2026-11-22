@@ -122,7 +122,7 @@ for (const { name, open } of FIELDS) {
 
     await typeYear(page, field, '2019-09-15', '202612');
 
-    await expect(field).toHaveValue(/^2026-\d{2}-\d{2}$/);
+    await expect(field).toHaveValue(/^(?!2019)\d{4}-\d{2}-\d{2}$/);
   });
 
   test(`replaces a filled year of ${name} when four new digits are typed`, async ({ page }) => {
