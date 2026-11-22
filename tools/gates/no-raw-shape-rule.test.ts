@@ -27,7 +27,7 @@ const invalid = (code: string, errors: readonly string[]): RuleTester.InvalidTes
 tester.run('repo/no-raw-shape', rule, {
   valid: [
     valid('const classes = "rounded-control wide:rounded-panel rounded-t-panel rounded-bl-control";'),
-    valid('const classes = "rounded-none before:rounded-control";'),
+    valid('const classes = "before:rounded-control";'),
     valid('const classes = "shadow-lift wide:shadow-lift shadow-none";'),
     valid('const classes = "shadow-accent shadow-accent/25 inset-shadow-sm drop-shadow-md";'),
     valid('const copy = "Rounded corners cast a shadow";'),
@@ -50,6 +50,7 @@ tester.run('repo/no-raw-shape', rule, {
     invalid('const classes = "hover:shadow-2xl";', ['nonTokenShadow']),
     invalid('const classes = "shadow-inner";', ['nonTokenShadow']),
     invalid('const classes = "shadow-[0_1px_2px_black]";', ['nonTokenShadow']),
+    invalid('const classes = "rounded-none";', ['nonTokenRadius']),
     invalid('const classes = `p-2 ${"x"} rounded-sm shadow-xs`;', ['nonTokenRadius', 'nonTokenShadow']),
     {
       code: 'const classes = "rounded-full";',
@@ -58,9 +59,8 @@ tester.run('repo/no-raw-shape', rule, {
         {
           message:
             'Class "rounded-full" rounds a corner by a radius outside the token set, which ' +
-            'docs/DESIGN.md does not allow. Use `rounded-none`, `rounded-control`, or ' +
-            '`rounded-panel`. `rounded-none` is always allowed, and packages/ui/src/tokens.ts ' +
-            'holds the rest.',
+            'docs/DESIGN.md does not allow. Use `rounded-control` or `rounded-panel`, ' +
+            'which packages/ui/src/tokens.ts holds.',
         },
       ],
     },
@@ -71,8 +71,8 @@ tester.run('repo/no-raw-shape', rule, {
         {
           message:
             'Class "rounded-md" rounds a corner by a radius outside the token set, which ' +
-            'docs/DESIGN.md does not allow. Use `rounded-none` or `rounded-card`. ' +
-            '`rounded-none` is always allowed, and packages/ui/src/tokens.ts holds the rest.',
+            'docs/DESIGN.md does not allow. Use `rounded-card`, which ' +
+            'packages/ui/src/tokens.ts holds.',
         },
       ],
     },

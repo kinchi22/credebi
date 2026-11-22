@@ -305,8 +305,6 @@ const noRawColor = {
 
 const RADIUS_UTILITY = /^rounded(?:-(?:tl|tr|br|bl|ss|se|es|ee|t|r|b|l|s|e))?(?:-(.+))?$/u;
 
-const STATIC_RADII = ['none'];
-
 const DISJUNCTIVE_LIST_FORMAT = new Intl.ListFormat('en', { type: 'disjunction' });
 
 const SHADOW_UTILITY = /^shadow(?:-(.+))?$/u;
@@ -354,8 +352,7 @@ const noRawShape = {
     messages: {
       nonTokenRadius:
         'Class {{text}} rounds a corner by a radius outside the token set, which docs/DESIGN.md ' +
-        'does not allow. Use {{allowed}}. `rounded-none` is always allowed, and ' +
-        'packages/ui/src/tokens.ts holds the rest.',
+        'does not allow. Use {{allowed}}, which packages/ui/src/tokens.ts holds.',
       nonTokenShadow:
         'Class {{text}} casts a shadow outside the token set, so it draws nothing. Use a shadow ' +
         'from packages/ui/src/tokens.ts, which docs/DESIGN.md lists.',
@@ -363,7 +360,7 @@ const noRawShape = {
   },
   create(context) {
     const options = context.options[0] ?? {};
-    const radii = new Set([...STATIC_RADII, ...(options.radii ?? [])]);
+    const radii = new Set(options.radii ?? []);
     const allowed = DISJUNCTIVE_LIST_FORMAT.format(
       [...radii].map((radius) => `\`rounded-${radius}\``),
     );

@@ -546,8 +546,10 @@ used:
 A surface fixed to a screen edge rounds only its free corners: the Account sheet
 its top ones with `rounded-t-panel`, the Sidebar drawer its right ones with
 `rounded-r-panel`. The stylesheet resets `--radius-*` to `initial`, so a
-bare `rounded` or any of Tailwind's own radii would draw a square corner; the
-lint rule `repo/no-raw-shape` rejects one anywhere in `apps/web` or
+bare `rounded` or a radius named after one of Tailwind's own sizes reads no
+variable and does not draw the corner the three radii do. The lint rule
+`repo/no-raw-shape` rejects any radius utility whose name is not one of the
+three, `rounded-none` and `rounded-full` included, anywhere in `apps/web` or
 `packages/ui`, reading the radius names from the tokens module.
 
 Every input, select, secondary, primary and danger button and Icon button on a
