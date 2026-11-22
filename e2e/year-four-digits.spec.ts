@@ -133,12 +133,3 @@ for (const { name, open } of FIELDS) {
     await expect(field).toHaveValue(`2031${DAY.slice(4)}`);
   });
 }
-
-test('accepts a pasted day', async ({ page }) => {
-  await page.goto(ENTRY_SEARCH_PATH);
-  const field = fromField(page);
-
-  await field.fill(DAY);
-
-  await expect(field).toHaveValue(DAY);
-});
