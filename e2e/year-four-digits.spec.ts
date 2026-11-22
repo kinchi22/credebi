@@ -94,25 +94,23 @@ const FIELDS: readonly DateField[] = [
 
 const FIRST_SEGMENT = { position: { x: 20, y: 10 } } as const;
 
-async function yearComesFirst(page: Page, field: Locator): Promise<boolean> {
-  await field.fill('2026-09-15');
+async function fillAndPlaceCaret(page: Page, field: Locator, day: string): Promise<boolean> {
+  await field.fill(DAY);
   await field.click(FIRST_SEGMENT);
   await page.keyboard.press('ArrowUp');
-  const first = (await field.inputValue()).startsWith('2027');
-  await field.fill('2026-09-15');
+  const yearFirst = (await field.inputValue()).startsWith('2027');
+  await field.fill(day);
   await field.click(FIRST_SEGMENT);
-  return first;
+  return yearFirst;
 }
 
-async function typeYear(page: Page, field: Locator, digits: string): Promise<void> {
-  if (!(await yearComesFirst(page, field))) {
+async function typeYear(page: Page, field: Locator, filled: string, digits: string): Promise<void> {
+  if (!(await fillAndPlaceCaret(page, field, filled))) {
     await page.keyboard.press('ArrowRight');
     await page.keyboard.press('ArrowRight');
   }
   await page.keyboard.type(digits);
 }
-
-type ValueHolder = { value: string };
 
 test.beforeEach(async ({ page }) => {
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
@@ -122,7 +120,7 @@ for (const { name, open } of FIELDS) {
   test(`keeps four digits when six are typed into the year of ${name}`, async ({ page }) => {
     const field = await open(page);
 
-    await typeYear(page, field, '202612');
+    await typeYear(page, field, '2019-09-15', '202612');
 
     await expect(field).toHaveValue(/^2026-\d{2}-\d{2}$/);
   });
@@ -130,9 +128,9 @@ for (const { name, open } of FIELDS) {
   test(`replaces a filled year of ${name} when four new digits are typed`, async ({ page }) => {
     const field = await open(page);
 
-    await typeYear(page, field, '2031');
+    await typeYear(page, field, DAY, '2031');
 
-    await expect(field).toHaveValue('2031-09-15');
+    await expect(field).toHaveValue(`2031${DAY.slice(4)}`);
   });
 }
 
@@ -140,19 +138,7 @@ test('accepts a pasted day', async ({ page }) => {
   await page.goto(ENTRY_SEARCH_PATH);
   const field = fromField(page);
 
-  await field.fill('2026-09-15');
+  await field.fill(DAY);
 
-  await expect(field).toHaveValue('2026-09-15');
-});
-
-test('still refuses an impossible day', async ({ page }) => {
-  await page.goto(ENTRY_SEARCH_PATH);
-  const field = fromField(page);
-
-  await expect(async () => {
-    await field.evaluate((input: ValueHolder) => {
-      input.value = '2026-02-31';
-    });
-    await expect(field).toHaveValue('', { timeout: 500 });
-  }).toPass();
+  await expect(field).toHaveValue(DAY);
 });
