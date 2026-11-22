@@ -8,6 +8,7 @@ import {
   addLine,
   entryForm,
   fillHeading,
+  lineAmount,
   lineGroups,
   listedEntry,
   openEntryForm,
@@ -18,6 +19,7 @@ import {
   titleField,
   twoLine,
 } from './entries';
+import { SETTINGS_URL } from './routes';
 import { BOOKS_OPEN, signIn } from './session';
 import { sidebar } from './sidebar';
 import { type EntryFormMode } from './settings';
@@ -122,7 +124,7 @@ test('starts the form on today after a saved post and a round trip through the S
   await expectDay(form, KEPT_DAY);
 
   await sidebar(page).getByRole('link', { name: 'Settings', exact: true }).click();
-  await expect(page).toHaveURL(/\/settings$/);
+  await expect(page).toHaveURL(SETTINGS_URL);
   await sidebar(page).getByRole('link', { name: 'Entries', exact: true }).click();
 
   await expect(entryForm(page)).toBeVisible();
@@ -145,8 +147,8 @@ test('keeps every input, the day included, when a post is refused', async ({ pag
   await fillHeading(form, { day: KEPT_DAY, title, memo });
   await accountTick(form, 'Debit', 'Food').check();
   await accountTick(form, 'Credit', 'Cash').check();
-  await form.getByRole('group', { name: /^Debit Food/ }).getByLabel('Amount').fill('12500');
-  await form.getByRole('group', { name: /^Credit Cash/ }).getByLabel('Amount').fill('12000');
+  await lineAmount(form, 'Debit', 'Food').fill('12500');
+  await lineAmount(form, 'Credit', 'Cash').fill('12000');
   await submit(form);
 
   await expect(form.getByRole('alert')).toContainText(/balance/i);
@@ -155,6 +157,6 @@ test('keeps every input, the day included, when a post is refused', async ({ pag
   await expect(form.getByLabel('Memo')).toHaveValue(memo);
   await expect(accountTick(form, 'Debit', 'Food')).toBeChecked();
   await expect(accountTick(form, 'Credit', 'Cash')).toBeChecked();
-  await expect(form.getByRole('group', { name: /^Debit Food/ }).getByLabel('Amount')).toHaveValue('12500');
-  await expect(form.getByRole('group', { name: /^Credit Cash/ }).getByLabel('Amount')).toHaveValue('12000');
+  await expect(lineAmount(form, 'Debit', 'Food')).toHaveValue('12500');
+  await expect(lineAmount(form, 'Credit', 'Cash')).toHaveValue('12000');
 });
