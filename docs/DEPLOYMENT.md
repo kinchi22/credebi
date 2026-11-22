@@ -332,6 +332,10 @@ Each approved run requests a Preview deployment, including repeats and `main`,
 using Vercel's default build cache. This workflow provides no Production,
 Promotion or rollback path.
 
+The workflow uses one exact `VERCEL_CLI_VERSION` for `vercel` and
+`@vercel/vc-native-linux-x64`. It installs both with `--omit=optional` and logs
+the CLI version before recording the deployment. [Workflow pin](../.github/workflows/manual-preview.yml)
+
 The run summary shows the requested target, resolved SHA, status and successful
 Preview URL. Build/deployment failures fail the workflow; inspect them in Vercel.
 For adoption, record the run, reviewer settings, target, approved SHA, deployment
