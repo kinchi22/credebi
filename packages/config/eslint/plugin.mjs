@@ -361,9 +361,10 @@ const noRawShape = {
   create(context) {
     const options = context.options[0] ?? {};
     const radii = new Set(options.radii ?? []);
-    const allowed = DISJUNCTIVE_LIST_FORMAT.format(
-      [...radii].map((radius) => `\`rounded-${radius}\``),
-    );
+    const allowed =
+      radii.size === 0
+        ? 'a radius token'
+        : DISJUNCTIVE_LIST_FORMAT.format([...radii].map((radius) => `\`rounded-${radius}\``));
     const report = (node, messageId, className) => {
       context.report({ node, messageId, data: { text: JSON.stringify(className), allowed } });
     };

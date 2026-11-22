@@ -65,6 +65,18 @@ tester.run('repo/no-raw-shape', rule, {
     },
     {
       code: 'const classes = "rounded-md";',
+      options: [],
+      errors: [
+        {
+          message:
+            'Class "rounded-md" rounds a corner by a radius outside the token set, which ' +
+            'docs/DESIGN.md does not allow. Use a radius token, which ' +
+            'packages/ui/src/tokens.ts holds.',
+        },
+      ],
+    },
+    {
+      code: 'const classes = "rounded-md";',
       options: [{ radii: ['card'] }],
       errors: [
         {
