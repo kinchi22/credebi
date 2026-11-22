@@ -102,7 +102,9 @@ it or the number of an existing issue:
 ```
 
 A Task already under the Feature by that title is kept, not opened again, so a
-run that stopped part-way is finished by running it again. It reads the Feature
+run that stopped part-way is finished by running it again. A rerun sets a Task
+or the Feature to Ready only while its Status is Backlog or it is not on the
+board, and leaves any other Status alone. It reads the Feature
 back at the end and fails naming any sub-issue or blocking edge it does not
 find.
 

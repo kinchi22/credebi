@@ -30,6 +30,7 @@ export type Tracker = {
   readonly addSubIssue: (feature: number, task: number) => void;
   readonly blockers: (task: number) => ReadonlySet<number>;
   readonly addBlocker: (task: number, blocker: number) => void;
+  readonly status: (issue: number) => string | undefined;
   readonly setReady: (issue: number) => void;
 };
 
@@ -63,6 +64,11 @@ function resolve(blocker: Blocker, numbers: ReadonlyMap<string, number>): number
   return found;
 }
 
+function setReadyFromBacklog(issue: number, tracker: Tracker): void {
+  const status = tracker.status(issue);
+  if (status === undefined || status === 'Backlog') tracker.setReady(issue);
+}
+
 export function publish(manifest: Manifest, tracker: Tracker): readonly Published[] {
   const problems = checkManifest(manifest);
   if (problems.length > 0) throw new Error(problems.join('\n'));
@@ -81,10 +87,10 @@ export function publish(manifest: Manifest, tracker: Tracker): readonly Publishe
     for (const blocker of wanted) {
       if (!present.has(blocker)) tracker.addBlocker(number, blocker);
     }
-    tracker.setReady(number);
+    setReadyFromBacklog(number, tracker);
     published.push({ title: task.title, number, created: found === undefined, blockedBy: wanted });
   }
-  tracker.setReady(manifest.feature);
+  setReadyFromBacklog(manifest.feature, tracker);
   return published;
 }
 
@@ -168,6 +174,21 @@ export const githubTracker: Tracker = {
       '-F',
       `issue_id=${databaseId(blocker)}`,
     ]);
+  },
+  status: (issue) => {
+    const url = gh(['issue', 'view', String(issue), '--json', 'url', '--jq', '.url']);
+    const item = gh(['project', 'item-add', PROJECT.number, '--owner', PROJECT.owner, '--url', url, '--format', 'json', '--jq', '.id']);
+    const name = gh([
+      'api',
+      'graphql',
+      '-f',
+      `id=${item}`,
+      '-f',
+      'query=query($id: ID!) { node(id: $id) { ... on ProjectV2Item { fieldValueByName(name: "Status") { ... on ProjectV2ItemFieldSingleSelectValue { name } } } } }',
+      '--jq',
+      '.data.node.fieldValueByName.name // empty',
+    ]);
+    return name === '' ? undefined : name;
   },
   setReady: (issue) => {
     const url = gh(['issue', 'view', String(issue), '--json', 'url', '--jq', '.url']);
