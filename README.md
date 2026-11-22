@@ -262,6 +262,13 @@ readiness is the board's `Status` field rather than a triage label -- see
 `docs/agents/issue-tracker.md`, which says the Status replaces the
 `ready-for-agent` label.
 
+Writes to the project board need a token of the owner's own, because a GitHub
+App can be granted an organisation's projects but not a user's: a classic
+personal access token with the `project` and `read:org` scopes and nothing else,
+so it cannot approve or merge. Without `read:org`, every `gh project` command
+fails with `unknown owner type`. The token expires; check both scopes when it is
+reissued.
+
 ## Documentation
 
 - `docs/ARCHITECTURE.md` -- dependency matrix, layer rules, fixed decisions
