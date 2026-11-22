@@ -39,7 +39,8 @@ each other's code. Whoever drives parallel Tasks coordinates that run, or keeps
 it serial.
 
 1. **Pick.** The first frontier Task, specs first. An empty frontier is a stop.
-2. **Build.** Dispatch an Implementer Subagent with the prompt: "Implement
+2. **Build.** Dispatch an Implementer Subagent from the `implementer` Agent
+   definition, so it runs on the Build tier, with the prompt: "Implement
    issue #<n>. Follow `docs/agents/skills/implement-issue-implementer.md`." Pass
    nothing else; the issue is the brief. It returns a pull request number, or a
    question.
