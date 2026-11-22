@@ -5,6 +5,8 @@ The work is tracked in this repository's GitHub Issues and on the project
 They are the durable state: requirements, decisions and progress are written
 there, so a session with no memory of an earlier one can pick the work up. Work
 found along the way that is not the current Task becomes an issue of its own.
+Everything written there -- titles, bodies, comments -- is in English, whatever
+language the session is held in.
 
 ## Work items
 
