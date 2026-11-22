@@ -1,6 +1,8 @@
 import {
+  accountIdSchema,
   chartSchema,
   incomeStatementSchema,
+  moneySchema,
   postedEntrySchema,
   trendMonthSchema,
   type AccountType,
@@ -11,7 +13,7 @@ import {
   type Side,
   type TrendMonthOutput,
 } from '@repo/contracts';
-import { calendarMonth, monthAfter } from '@repo/core/entries';
+import { calendarMonth, incomeStatement, monthAfter } from '@repo/core/entries';
 
 type SampleAccount =
   | 'cash'
@@ -124,15 +126,12 @@ const ENTRIES: readonly SampleEntry[] = [
   },
 ];
 
-const LIVING_EXPENSES: readonly (readonly [SampleAccount, number])[] = [
-  ['food', 412_300],
-  ['transportation', 68_500],
-  ['otherLivingExpenses', 523_000],
+const PERIOD_SUMS: readonly SampleLine[] = [
+  ['salary', 'credit', 3_200_000],
+  ['food', 'debit', 412_300],
+  ['transportation', 'debit', 68_500],
+  ['otherLivingExpenses', 'debit', 523_000],
 ];
-
-const SALARY = 3_200_000;
-const LIVING_EXPENSES_TOTAL = 1_003_800;
-const NET_INCOME = 2_196_200;
 
 const STATEMENT_DAY = '2026-10-01';
 
@@ -194,32 +193,28 @@ const entriesOf = (copy: SampleCopy): readonly PostedEntry[] =>
     }),
   );
 
-const statementOf = (copy: SampleCopy): IncomeStatementOutput =>
-  incomeStatementSchema.parse({
-    revenue: {
-      total: SALARY,
-      rows: [{ kind: 'account', account: ACCOUNTS.salary.id, name: copy.name('salary'), total: SALARY }],
+const statementOf = (copy: SampleCopy): IncomeStatementOutput => {
+  const chart = chartOf(copy);
+  const placedAccounts = chart.flatMap((node) =>
+    node.kind === 'account' ? [node.account] : node.accounts,
+  );
+  const statement = incomeStatement(
+    {
+      accounts: placedAccounts.map((account, position) => ({ ...account, position })),
+      groups: chart.flatMap((node, position) =>
+        node.kind === 'group' ? [{ ...node.group, position, collapsed: false }] : [],
+      ),
     },
-    expense: {
-      total: LIVING_EXPENSES_TOTAL,
-      rows: [
-        {
-          kind: 'group',
-          group: GROUPS.livingExpenses.id,
-          name: copy.name('livingExpenses'),
-          total: LIVING_EXPENSES_TOTAL,
-          collapsed: false,
-          accounts: LIVING_EXPENSES.map(([account, total]) => ({
-            kind: 'account',
-            account: ACCOUNTS[account].id,
-            name: copy.name(account),
-            total,
-          })),
-        },
-      ],
-    },
-    netIncome: NET_INCOME,
-  });
+    calendarMonth(STATEMENT_DAY),
+    PERIOD_SUMS.map(([key, side, amount]) => ({
+      account: accountIdSchema.parse(ACCOUNTS[key].id),
+      debit: moneySchema.parse(side === 'debit' ? amount : 0),
+      credit: moneySchema.parse(side === 'credit' ? amount : 0),
+    })),
+  );
+  if (!statement.ok) throw new Error('the sample Income statement is built from the sample chart');
+  return incomeStatementSchema.parse(statement.value);
+};
 
 const monthsOf = (): readonly TrendMonthOutput[] =>
   TREND.map(([totalAssets, totalLiabilities, netWorth], index) =>
