@@ -60,7 +60,7 @@ jobs:
           echo "sha=$PROMOTED_SHA" >> "$GITHUB_OUTPUT"
       # The identity check comes from main, so a promoted commit older than it
       # is still checked.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v5
         with:
           node-version: 24
@@ -77,7 +77,7 @@ jobs:
         run: |
           input=$(jq -nc --arg url "$PRODUCTION_URL" --arg commit "$PROMOTED_SHA" '{url: $url, commit: $commit}')
           node tools/production-release.ts verify "$input"
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ steps.promoted.outputs.sha }}
       - uses: pnpm/action-setup@v6.1.1

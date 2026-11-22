@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - uses: pnpm/action-setup@v6.1.1
 
@@ -83,7 +83,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6.1.1
       - uses: actions/setup-node@v5
         with:
@@ -101,7 +101,7 @@ jobs:
     steps:
       # Full history, so the change report can find the pull request's merge
       # base with its base branch.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: pnpm/action-setup@v6.1.1
@@ -152,7 +152,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6.1.1
       - uses: actions/setup-node@v5
         with:
@@ -204,7 +204,7 @@ jobs:
       contents: read
       pull-requests: read
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       # package-manager-cache defaults to true, and setup-node then reads
       # `packageManager` out of package.json and shells out to pnpm to find its
       # store. This job installs nothing, so pnpm is not on PATH and the step
@@ -265,7 +265,7 @@ jobs:
     needs: [gates, integration, mutation, release]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v5
         with:
           node-version: 24

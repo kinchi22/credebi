@@ -21,7 +21,7 @@ jobs:
     steps:
       # The reporter comes from main before checking out the event's SHA. An
       # older candidate may not contain it, but still needs a final status.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v5
         with:
           node-version: 24
@@ -66,7 +66,7 @@ jobs:
         run: |
           input=$(jq -nc --arg url "$CANDIDATE_URL" --arg commit "$CANDIDATE_SHA" '{url: $url, commit: $commit}')
           node "$RUNNER_TEMP/production-release.ts" verify "$input"
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ steps.pending.outputs.sha }}
       - uses: pnpm/action-setup@v6.1.1
