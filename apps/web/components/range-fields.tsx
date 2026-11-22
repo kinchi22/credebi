@@ -8,6 +8,7 @@ import { DATE_CONTROL, FIELD } from './control-classes';
 import { DatePresets, DatePresetsSheet, type Granularity } from './date-presets';
 import { MonthInput } from './month-input';
 import { monthText, shownMonth } from './month-text';
+import { DayInput } from './day-input';
 
 export type RangeFieldNames = {
   readonly from: string;
@@ -43,10 +44,9 @@ function keepingAValue(set: (value: string) => void): (event: ChangeEvent<HTMLIn
 
 function DayField({ id, name, value, onValue }: RangeFieldProps): ReactNode {
   return (
-    <input
+    <DayInput
       id={id}
       name={name}
-      type="date"
       value={value}
       onChange={keepingAValue(onValue)}
       required

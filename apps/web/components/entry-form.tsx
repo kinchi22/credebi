@@ -34,6 +34,7 @@ import {
 } from './control-classes';
 import { FORM_REFUSAL } from './text-classes';
 import { TitleCombobox } from './title-combobox';
+import { DayInput } from './day-input';
 
 export type EntryFormState =
   | { readonly outcome: 'idle' }
@@ -271,10 +272,9 @@ export function EntryFormShell({
       <div className="flex flex-wrap gap-3 wide:grid wide:grid-cols-[9.25rem_minmax(0,1fr)]">
         <div className={DENSE_FIELD}>
           <label htmlFor={`${id}-date`} className={FIELD_LABEL}>{t('entryForm.date')}</label>
-          <input
+          <DayInput
             id={`${id}-date`}
             name={ENTRY_FORM_FIELDS.entryDate}
-            type="date"
             defaultValue={variant.entryDate}
             onChange={(event) => {
               setDay(event.target.value);

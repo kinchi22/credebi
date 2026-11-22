@@ -5,6 +5,7 @@ import { useId, type ReactNode } from 'react';
 import { type ReportDay } from '../server/assets-and-liabilities';
 import { ASSETS_AND_LIABILITIES_PATH } from '../server/return-path';
 import { DATE_CONTROL, FIELD, PRIMARY_BUTTON } from './control-classes';
+import { DayInput } from './day-input';
 
 export type AssetsAndLiabilitiesFormProps = {
   readonly day: ReportDay;
@@ -27,10 +28,9 @@ export function AssetsAndLiabilitiesForm({ day }: AssetsAndLiabilitiesFormProps)
 
       <div className={FIELD}>
         <label htmlFor={`${id}-date`}>{t('date')}</label>
-        <input
+        <DayInput
           id={`${id}-date`}
           name={ASSETS_AND_LIABILITIES_FIELDS.date}
-          type="date"
           defaultValue={day.date ?? ''}
           required
           autoComplete="off"

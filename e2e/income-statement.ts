@@ -4,10 +4,10 @@ import { expectRows, namedTable, type ReportPanels, type ReportRow } from './rep
 export const periodForm = (page: Page): Locator =>
   page.getByRole('form', { name: 'Statement period', exact: true });
 
-const periodFrom = (page: Page): Locator =>
+export const periodFrom = (page: Page): Locator =>
   periodForm(page).getByLabel('From', { exact: true });
 
-const periodTo = (page: Page): Locator =>
+export const periodTo = (page: Page): Locator =>
   periodForm(page).getByLabel('To', { exact: true });
 
 const showButton = (page: Page): Locator =>
