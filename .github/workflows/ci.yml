@@ -51,7 +51,7 @@ jobs:
         if: always()
         run: mkdir -p reports && pnpm dep-cruise:graph
 
-      - uses: actions/upload-artifact@v6.0.0
+      - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
           name: dependency-graph
@@ -130,14 +130,14 @@ jobs:
         env:
           BASE_REF: ${{ github.base_ref }}
         run: node tools/change-score.ts "origin/$BASE_REF"
-      - uses: actions/upload-artifact@v6.0.0
+      - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
           name: mutation-report
           path: reports/mutation
           if-no-files-found: warn
       # The baseline later comparisons read: main's Stryker JSON report alone.
-      - uses: actions/upload-artifact@v6.0.0
+      - uses: actions/upload-artifact@v7.0.2
         if: always() && github.event_name == 'push'
         with:
           name: mutation-json
