@@ -84,9 +84,10 @@ type EntryFormShellProps = Omit<EntryFormProps, 'chart'> & {
 type ShellState = {
   readonly result: EntryFormState;
   readonly resetKey: number;
+  readonly keptDay: string | undefined;
 };
 
-const IDLE: ShellState = { result: { outcome: 'idle' }, resetKey: 0 };
+const IDLE: ShellState = { result: { outcome: 'idle' }, resetKey: 0, keptDay: undefined };
 
 type Translate = ReturnType<typeof useTranslations<never>>;
 
@@ -137,6 +138,7 @@ function variantFor(
   mode: EntryFormMode,
   editing: EditedEntry | undefined,
   today: string | undefined,
+  keptDay: string | undefined,
 ): FormVariant {
   if (editing === undefined) {
     return {
@@ -146,7 +148,7 @@ function variantFor(
       submit: t('entryForm.submit'),
       pending: t('entryForm.pending'),
       refusal: newEntryRefusal(t, mode),
-      entryDate: today,
+      entryDate: keptDay ?? today,
       onSaved: resetForm,
     };
   }
@@ -221,10 +223,18 @@ export function EntryFormShell({
   children,
 }: EntryFormShellProps): ReactNode {
   const t = useTranslations();
-  const [{ result: state, resetKey }, submitAction, pending] = useActionState(
+  const [{ result: state, resetKey, keptDay }, submitAction, pending] = useActionState(
     async (previous: ShellState, fields: FormData): Promise<ShellState> => {
       const result = await action(previous.result, fields);
-      return { result, resetKey: previous.resetKey + (result.outcome === 'saved' ? 1 : 0) };
+      if (result.outcome !== 'saved') {
+        return { ...previous, result };
+      }
+      const savedDay = fields.get(ENTRY_FORM_FIELDS.entryDate);
+      return {
+        result,
+        resetKey: previous.resetKey + 1,
+        keptDay: typeof savedDay === 'string' ? savedDay : previous.keptDay,
+      };
     },
     IDLE,
   );
@@ -232,7 +242,7 @@ export function EntryFormShell({
   const id = useId();
   const today = useBrowserToday();
 
-  const variant = variantFor(t, mode, editing, today);
+  const variant = variantFor(t, mode, editing, today, keptDay);
   const [day, setDay] = useUntilReset(resetKey, variant.entryDate);
   const [typedTitle, setTypedTitle] = useUntilReset(resetKey, variant.entry?.title ?? '');
   const matchedTitle = titleMatching(titles, typedTitle);
