@@ -200,22 +200,17 @@ pull request carries `Closes #<bug>`, and the owner approves it.
 
 ## Operations
 
-`gh` infers the repository inside a clone. Project writes need the token's
-`project` scope (`gh auth refresh -s project`).
-
-| Thing         | Id |
-| ------------- | -- |
-| Project       | `PVT_kwHOAPo8ps4Bj5BZ` (number 2, owner `kinchi22`) |
-| Status field  | `PVTSSF_lAHOAPo8ps4Bj5BZzhirtAQ` |
-| Backlog       | `f75ad846` |
-| Ready         | `412e474e` |
-| In Progress   | `47fc9ee4` |
-| In Review     | `02ce40ea` |
-| Done          | `98236657` |
+`gh` infers the repository inside a clone. Every board read and write goes
+through `tools/board.ts`, which hands `gh` the token in `BOARD_TOKEN` and holds
+the project, field and option ids. Nothing else runs a `gh project` command,
+queries `projectV2` or requests `projectItems`.
 
 ```bash
-# Read an issue, with its Status
-gh issue view <n> --comments --json number,title,body,labels,state,assignees,projectItems
+# Read an issue
+gh issue view <n> --comments --json number,title,body,labels,state,assignees
+
+# Read its Status, or "not on the board"
+node tools/board.ts status <n>
 
 # Open one; the project adds it as Backlog
 gh issue create --label type:task --title "..." --body "..."
@@ -223,10 +218,8 @@ gh issue create --label type:task --title "..." --body "..."
 # Open a Feature, with its kind
 gh issue create --label type:feature --label kind:<kind> --title "..." --body "..."
 
-# Set a Status: item-add returns the existing item when there is one
-item=$(gh project item-add 2 --owner kinchi22 --url <issue-url> --format json --jq .id)
-gh project item-edit --project-id PVT_kwHOAPo8ps4Bj5BZ --id "$item" \
-  --field-id PVTSSF_lAHOAPo8ps4Bj5BZzhirtAQ --single-select-option-id <option-id>
+# Set a Status by name (Backlog, Ready, In Progress, In Review, Done); adds the issue to the board when missing
+node tools/board.ts set <n> "In Progress"
 
 # The database id, which the two endpoints below take instead of the number
 gh api repos/{owner}/{repo}/issues/<n> --jq .id
