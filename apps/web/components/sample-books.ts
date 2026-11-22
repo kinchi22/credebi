@@ -124,15 +124,12 @@ const ENTRIES: readonly SampleEntry[] = [
   },
 ];
 
-const LIVING_EXPENSES: readonly (readonly [SampleAccount, number])[] = [
-  ['food', 412_300],
-  ['transportation', 68_500],
-  ['otherLivingExpenses', 523_000],
-];
-
-const SALARY = 3_200_000;
-const LIVING_EXPENSES_TOTAL = 1_003_800;
-const NET_INCOME = 2_196_200;
+const PERIOD_TOTALS: Readonly<Partial<Record<SampleAccount, number>>> = {
+  salary: 3_200_000,
+  food: 412_300,
+  transportation: 68_500,
+  otherLivingExpenses: 523_000,
+};
 
 const STATEMENT_DAY = '2026-10-01';
 
@@ -194,32 +191,44 @@ const entriesOf = (copy: SampleCopy): readonly PostedEntry[] =>
     }),
   );
 
-const statementOf = (copy: SampleCopy): IncomeStatementOutput =>
-  incomeStatementSchema.parse({
-    revenue: {
-      total: SALARY,
-      rows: [{ kind: 'account', account: ACCOUNTS.salary.id, name: copy.name('salary'), total: SALARY }],
-    },
-    expense: {
-      total: LIVING_EXPENSES_TOTAL,
-      rows: [
-        {
-          kind: 'group',
-          group: GROUPS.livingExpenses.id,
-          name: copy.name('livingExpenses'),
-          total: LIVING_EXPENSES_TOTAL,
-          collapsed: false,
-          accounts: LIVING_EXPENSES.map(([account, total]) => ({
-            kind: 'account',
-            account: ACCOUNTS[account].id,
-            name: copy.name(account),
-            total,
-          })),
-        },
-      ],
-    },
-    netIncome: NET_INCOME,
+type SampleRow = Readonly<Record<string, unknown>> & { readonly total: number };
+
+const totalOf = (key: SampleAccount): number => PERIOD_TOTALS[key] ?? 0;
+
+const sum = (totals: readonly number[]): number => totals.reduce((total, amount) => total + amount, 0);
+
+const statementOf = (copy: SampleCopy): IncomeStatementOutput => {
+  const row = (key: SampleAccount) => ({
+    kind: 'account' as const,
+    account: ACCOUNTS[key].id,
+    name: copy.name(key),
+    total: totalOf(key),
   });
+  const rowsOf = (accountType: 'revenue' | 'expense'): SampleRow[] =>
+    CHART.flatMap((node): SampleRow[] => {
+      if (node.kind === 'account') return ACCOUNTS[node.account].accountType === accountType ? [row(node.account)] : [];
+      if (GROUPS[node.group].accountType !== accountType) return [];
+      return [
+        {
+          kind: 'group' as const,
+          group: GROUPS[node.group].id,
+          name: copy.name(node.group),
+          total: sum(node.accounts.map(totalOf)),
+          collapsed: false,
+          accounts: node.accounts.map(row),
+        },
+      ];
+    });
+  const revenue = rowsOf('revenue');
+  const expense = rowsOf('expense');
+  const revenueTotal = sum(revenue.map(({ total }) => total));
+  const expenseTotal = sum(expense.map(({ total }) => total));
+  return incomeStatementSchema.parse({
+    revenue: { total: revenueTotal, rows: revenue },
+    expense: { total: expenseTotal, rows: expense },
+    netIncome: revenueTotal - expenseTotal,
+  });
+};
 
 const monthsOf = (): readonly TrendMonthOutput[] =>
   TREND.map(([totalAssets, totalLiabilities, netWorth], index) =>

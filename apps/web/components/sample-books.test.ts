@@ -216,6 +216,27 @@ describe('sampleBooks', () => {
     expect(netIncome).toBe(revenue.total - expense.total);
   });
 
+  it('lists in the Income statement every revenue and expense Account and group of the Chart of accounts, in its order', () => {
+    const books = byPath();
+    type Placed = { readonly id: string; readonly children: string[] };
+    const inChart = (...types: AccountType[]): Placed[] =>
+      books.chart.flatMap((node): Placed[] => {
+        if (node.kind === 'account')
+          return types.includes(node.account.accountType) ? [{ id: node.account.id, children: [] as string[] }] : [];
+        return types.includes(node.group.accountType)
+          ? [{ id: node.group.id, children: node.accounts.map(({ id }) => id) }]
+          : [];
+      });
+    const inStatement = (rows: readonly StatementRowOutput[]) =>
+      rows.map((row) =>
+        row.kind === 'account'
+          ? { id: row.account, children: [] as string[] }
+          : { id: row.group, children: row.accounts.map(({ account }) => account) },
+      );
+    expect(inStatement(books.statement.revenue.rows)).toEqual(inChart('revenue'));
+    expect(inStatement(books.statement.expense.rows)).toEqual(inChart('expense'));
+  });
+
   it('dates every Entry within the month the Income statement covers, the last month of the trend', () => {
     const books = byPath();
     const { from, to } = books.period;
