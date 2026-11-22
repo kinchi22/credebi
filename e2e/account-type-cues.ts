@@ -17,6 +17,14 @@ export const TYPE_TINT: Readonly<Record<AccountType, string>> = {
   Expenses: 'rgb(242, 224, 233)',
 };
 
+export const TYPE_COLOUR: Readonly<Record<AccountType, string>> = {
+  Assets: 'rgb(138, 90, 68)',
+  Liabilities: 'rgb(106, 79, 194)',
+  Equity: 'rgb(29, 120, 148)',
+  Revenue: 'rgb(94, 138, 18)',
+  Expenses: 'rgb(176, 60, 120)',
+};
+
 export const SUGGESTED_TINT = 'rgb(220, 240, 233)';
 
 export function typeOf(account: string): AccountType {

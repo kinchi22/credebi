@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
+import { drawnLines, expectDrawnLines, expectSwatches, type TrendLine, swatchIn } from './assets-and-liabilities-trend';
 import { SIDES } from './entries';
 import { type Language } from './language';
 
@@ -107,4 +108,16 @@ export const openSampleEntries = async (page: Page): Promise<readonly Locator[]>
 export async function renderedLineAmounts(entry: Locator): Promise<readonly boolean[]> {
   const lines = await withRenderedBox(entry.getByTestId('entry-line'));
   return Promise.all(lines.map((line) => anyRendered(line.getByText(LINE_AMOUNT))));
+}
+
+export const trendPreview = (page: Page): Locator =>
+  page.locator('[inert]').filter({ has: page.locator('.recharts-line-curve') });
+
+export const previewLegendItem = (page: Page, line: TrendLine): Locator =>
+  trendPreview(page).locator('button[aria-pressed]').filter({ hasText: line });
+
+export async function expectTrendPreviewColours(page: Page): Promise<void> {
+  await expect(trendPreview(page)).toHaveCount(1);
+  await expectDrawnLines(drawnLines(trendPreview(page)));
+  await expectSwatches((line) => swatchIn(previewLegendItem(page, line)), 'legend');
 }

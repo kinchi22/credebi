@@ -107,6 +107,8 @@ export const CONTROL_EDGE_MINIMUM = 3;
 
 export const ICON_MINIMUM = 3;
 
+export const GRAPHIC_MINIMUM = 3;
+
 export const DIFFERENCE_MINIMUM = 20;
 
 export const textPairs: readonly ColorPair[] = [
@@ -165,6 +167,10 @@ export const iconPairs: readonly ColorPair[] = Object.values(typeHues).flatMap(
     { foreground: color, background: tint },
     { foreground: color, background: 'mist-pale' },
   ],
+);
+
+export const graphicPairs: readonly ColorPair[] = Object.values(typeHues).map(
+  ({ color }): ColorPair => ({ foreground: color, background: 'white' }),
 );
 
 export type TypeStep = {
