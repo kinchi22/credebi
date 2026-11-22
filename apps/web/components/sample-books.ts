@@ -1,6 +1,8 @@
 import {
+  accountIdSchema,
   chartSchema,
   incomeStatementSchema,
+  moneySchema,
   postedEntrySchema,
   trendMonthSchema,
   type AccountType,
@@ -11,7 +13,7 @@ import {
   type Side,
   type TrendMonthOutput,
 } from '@repo/contracts';
-import { calendarMonth, monthAfter } from '@repo/core/entries';
+import { calendarMonth, incomeStatement, monthAfter } from '@repo/core/entries';
 
 type SampleAccount =
   | 'cash'
@@ -124,12 +126,12 @@ const ENTRIES: readonly SampleEntry[] = [
   },
 ];
 
-const PERIOD_TOTALS: Readonly<Partial<Record<SampleAccount, number>>> = {
-  salary: 3_200_000,
-  food: 412_300,
-  transportation: 68_500,
-  otherLivingExpenses: 523_000,
-};
+const PERIOD_SUMS: readonly SampleLine[] = [
+  ['salary', 'credit', 3_200_000],
+  ['food', 'debit', 412_300],
+  ['transportation', 'debit', 68_500],
+  ['otherLivingExpenses', 'debit', 523_000],
+];
 
 const STATEMENT_DAY = '2026-10-01';
 
@@ -191,43 +193,27 @@ const entriesOf = (copy: SampleCopy): readonly PostedEntry[] =>
     }),
   );
 
-type SampleRow = Readonly<Record<string, unknown>> & { readonly total: number };
-
-const totalOf = (key: SampleAccount): number => PERIOD_TOTALS[key] ?? 0;
-
-const sum = (totals: readonly number[]): number => totals.reduce((total, amount) => total + amount, 0);
-
 const statementOf = (copy: SampleCopy): IncomeStatementOutput => {
-  const row = (key: SampleAccount) => ({
-    kind: 'account' as const,
-    account: ACCOUNTS[key].id,
-    name: copy.name(key),
-    total: totalOf(key),
-  });
-  const rowsOf = (accountType: 'revenue' | 'expense'): SampleRow[] =>
-    CHART.flatMap((node): SampleRow[] => {
-      if (node.kind === 'account') return ACCOUNTS[node.account].accountType === accountType ? [row(node.account)] : [];
-      if (GROUPS[node.group].accountType !== accountType) return [];
-      return [
-        {
-          kind: 'group' as const,
-          group: GROUPS[node.group].id,
-          name: copy.name(node.group),
-          total: sum(node.accounts.map(totalOf)),
-          collapsed: false,
-          accounts: node.accounts.map(row),
-        },
-      ];
-    });
-  const revenue = rowsOf('revenue');
-  const expense = rowsOf('expense');
-  const revenueTotal = sum(revenue.map(({ total }) => total));
-  const expenseTotal = sum(expense.map(({ total }) => total));
-  return incomeStatementSchema.parse({
-    revenue: { total: revenueTotal, rows: revenue },
-    expense: { total: expenseTotal, rows: expense },
-    netIncome: revenueTotal - expenseTotal,
-  });
+  const chart = chartOf(copy);
+  const placedAccounts = chart.flatMap((node) =>
+    node.kind === 'account' ? [node.account] : node.accounts,
+  );
+  const statement = incomeStatement(
+    {
+      accounts: placedAccounts.map((account, position) => ({ ...account, position })),
+      groups: chart.flatMap((node, position) =>
+        node.kind === 'group' ? [{ ...node.group, position, collapsed: false }] : [],
+      ),
+    },
+    calendarMonth(STATEMENT_DAY),
+    PERIOD_SUMS.map(([key, side, amount]) => ({
+      account: accountIdSchema.parse(ACCOUNTS[key].id),
+      debit: moneySchema.parse(side === 'debit' ? amount : 0),
+      credit: moneySchema.parse(side === 'credit' ? amount : 0),
+    })),
+  );
+  if (!statement.ok) throw new Error('the sample Income statement is built from the sample chart');
+  return incomeStatementSchema.parse(statement.value);
 };
 
 const monthsOf = (): readonly TrendMonthOutput[] =>
