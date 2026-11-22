@@ -36,8 +36,8 @@ launcher and matching native npm package installed by Manual Preview.
 | `pnpm audit --prod --json` | 7 / 8 / 14 / 1 | 0 / 0 / 1 / 0 |
 | Preview CLI npm audit (affected package entries) | 1 / 20 / 15 / 0 | 0 / 0 / 0 / 0 |
 
-The update cleared 71 workspace advisory IDs and 29 production-dependency
-advisory IDs and introduced zero. The remaining findings are all Moderate.
+The update cleared 71 workspace advisory entries and 29 production-dependency
+advisory entries and introduced zero. The remaining findings are all Moderate.
 The production-dependency scan includes workspace tooling. Its single finding
 comes from the ESLint and TypeScript linting paths in `packages/config`.
 
@@ -49,9 +49,10 @@ comes from the ESLint and TypeScript linting paths in `packages/config`.
 | `glob@10.5.0` | Testcontainers via `archiver → archiver-utils`, including the path through `zip-stream` | [GHSA-3g3m-2fjr-6pw4](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4) |
 | `minimatch@9.0.9` and `minimatch@10.2.6` | Testcontainers' `archiver → archiver-utils → glob` paths, plus Stryker, ESLint, `@eslint/config-array` and `@typescript-eslint/typescript-estree` | [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249) |
 
-The Preview CLI's former optional JavaScript fallback included `tar@7.5.11`
-via `@vercel/container` and `@vercel/backends → @vercel/nft → @mapbox/node-pre-gyp`.
-The current install omits that fallback. The separate
+The Vercel CLI 63.1.2 audit found `tar@7.5.11` in the JavaScript dependency
+graph via `@vercel/container` and
+`@vercel/backends → @vercel/nft → @mapbox/node-pre-gyp`.
+The 66.6.0 install omits its optional JavaScript fallback. The separate
 `npm audit --omit=dev --omit=optional --json` scan covers the installed npm
 packages. The native binary bundles its Rust dependencies separately.
 [CLI audit and install change](https://github.com/kinchi22/credebi/pull/788) · [GHSA-23hp-3jrh-7fpw](https://github.com/advisories/GHSA-23hp-3jrh-7fpw)
@@ -62,6 +63,8 @@ On November 22, 2026 UTC, `kinchi22` approved the Preview job dispatched from
 `main` for `1cdba2df1661ad3c382f776fd833cc1e7f689275`. The job installed
 Vercel CLI 66.6.0 (native) and deployed the approved commit successfully.
 GitHub Preview deployment `7971962028` recorded `success` at 01:11:36 UTC.
+Vercel reported deployment `dpl_6SxEoC9B7bR53Xs9FdSXMH59Gq1i` as `READY`
+with `githubCommitSha` matching the approved SHA.
 [Workflow run](https://github.com/kinchi22/credebi/actions/runs/44970126641) · [Deploy job](https://github.com/kinchi22/credebi/actions/runs/44970126641/job/137047911592) · [Deployment record](https://api.github.com/repos/kinchi22/credebi/deployments/7971962028/statuses) · [Preview URL](https://credebi-eyfwe4bz8-seulki-baes-projects.vercel.app)
 
 ## Connecting Vercel
@@ -390,10 +393,9 @@ Each approved run requests a Preview deployment, including repeats and `main`,
 using Vercel's default build cache. This workflow provides no Production,
 Promotion or rollback path.
 
-The workflow installs `vercel@66.6.0` and
-`@vercel/vc-native-linux-x64@66.6.0` with `--omit=optional` and logs the CLI
-version before recording the deployment. Use the same version for both packages
-when updating the pin.
+The workflow uses one exact `VERCEL_CLI_VERSION` for `vercel` and
+`@vercel/vc-native-linux-x64`. It installs both with `--omit=optional` and logs
+the CLI version before recording the deployment. [Workflow pin](../.github/workflows/manual-preview.yml)
 
 The run summary shows the requested target, resolved SHA, status and successful
 Preview URL. Build/deployment failures fail the workflow; inspect them in Vercel.
