@@ -306,9 +306,9 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `accent-text`        | `mint-deep` | links, accent text on a light ground  |
 | `accent-text-hover`  | `mint-deeper` | a link under the pointer            |
 | `border`             | `fog`       | dividers, panel edges                 |
-| `type-asset`         | `brown`     | the asset icon's stroke on its Band and Tile |
+| `type-asset`         | `brown`     | the asset icon's stroke on its Band and Tile, and the total assets line |
 | `type-asset-tint`    | `brown-pale` | the Assets Band's and its Tiles' fill |
-| `type-liability`     | `violet`    | the liability icon's stroke on its Band and Tile |
+| `type-liability`     | `violet`    | the liability icon's stroke on its Band and Tile, and the total liabilities line |
 | `type-liability-tint` | `violet-pale` | the Liabilities Band's and its Tiles' fill |
 | `type-equity`        | `teal`      | the equity icon's stroke on its Band and Tile |
 | `type-equity-tint`   | `teal-pale` | the Equity Band's and its Tiles' fill |
@@ -341,8 +341,8 @@ on `ground`.
 Each Account type has a colour of its own, which means only "which Account
 type": the asset `brown`, the liability `violet`, the equity `teal`, the revenue
 `lime`, a yellow-green, and the expense `magenta`. Each tint is its colour mixed
-16% into `white`. A type colour is an icon's stroke and a tint is a fill; a type
-colour is never text. None is green or red, so no type reads as gain or loss,
+16% into `white`. A type colour is an icon's stroke, and also a chart line's stroke and its
+swatch, and a tint is a fill; a type colour is never text. None is green or red, so no type reads as gain or loss,
 and each stays at least ΔE76 20 from every text colour -- `ink`, `slate`,
 `mint-deep`, `mint-deeper`, `rust`, `ochre`, `cobalt` and `gold` -- and from
 each other, so a type never reads as a Side, a warning or a danger. The closest
@@ -381,6 +381,9 @@ unit test checks every one:
   icon on its Band and on a row under the pointer: `brown` 4.65:1 and 5.50:1,
   `violet` 4.76:1 and 5.68:1, `teal` 4.06:1 and 4.79:1, `lime` 3.39:1 and
   3.90:1, `magenta` 4.41:1 and 5.30:1.
+- **Graphics, 3:1.** Each type colour on `white`, its line in a Line chart on
+  the chart's panel: `brown` 5.79:1, `violet` 5.98:1, `teal` 5.04:1, `lime`
+  4.10:1 and `magenta` 5.58:1.
 
 `ink-mid` is `ink-raised` mixed 60% into `ink`, so a Sidebar item under the
 pointer reads between the idle ground and the active item. `mist-pale` is
@@ -1102,9 +1105,11 @@ numerals.
   of its stroke and its label in `body-dense` and `text`. The button toggles
   its line and states it with `aria-pressed`; a hidden line's button is
   `text-muted` at 50% opacity, its swatch in `border-control`. The y axis fits
-  the lines shown, and with none shown it keeps the last fit. Lines never differ by colour alone. In the Assets
-  and liabilities trend, Net worth is `accent-text` and 3px wide, total assets
-  `debit` and total liabilities `danger` dashed, both 2px.
+  the lines shown, and with none shown it keeps the last fit. Lines never differ by colour alone. A line standing
+  for one Account type takes that type's colour, and a line mixing types takes
+  a colour that is no type's. In the Assets and liabilities trend, Net worth is
+  `accent-text` 3px, total assets `type-asset` and total liabilities
+  `type-liability` dashed, both 2px.
 - **Entry row actions.** At the end of each Entry's first row, after its
   total, `Edit` and then `Delete` are bare icon buttons, drawn as the Remove
   button: a stroke icon in `text-muted`, `text` under the pointer, no fill and

@@ -10,6 +10,8 @@ import {
   DIFFERENCE_MINIMUM,
   fontDeclarations,
   fontFaces,
+  GRAPHIC_MINIMUM,
+  graphicPairs,
   ICON_MINIMUM,
   iconPairs,
   palette,
@@ -49,6 +51,20 @@ describe('the declared pairs', () => {
       expect(ratio(foreground, background)).toBeGreaterThanOrEqual(ICON_MINIMUM);
     },
   );
+
+  it.each(graphicPairs.map((pair) => [pair.foreground, pair.background] as const))(
+    'draws a %s graphic on %s at 3:1 or better',
+    (foreground, background) => {
+      expect(ratio(foreground, background)).toBeGreaterThanOrEqual(GRAPHIC_MINIMUM);
+    },
+  );
+
+  it('declares each type colour as a graphic on white', () => {
+    expect(graphicPairs).toEqual(
+      Object.values(typeHues).map(({ color }) => ({ foreground: color, background: 'white' })),
+    );
+    expect(GRAPHIC_MINIMUM).toBe(3);
+  });
 
   it('holds text to 4.5:1 and a control edge and an icon to 3:1, the AA thresholds', () => {
     expect(TEXT_MINIMUM).toBe(4.5);

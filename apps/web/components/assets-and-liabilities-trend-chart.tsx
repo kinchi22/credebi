@@ -40,8 +40,8 @@ type TrendSeries = 'netWorth' | 'totalAssets' | 'totalLiabilities';
 
 const SERIES: readonly { readonly key: TrendSeries; readonly id: TrendLine; readonly look: ChartSeriesLook }[] = [
   { key: 'netWorth', id: 'net-worth', look: { color: 'var(--color-accent-text)', emphasised: true } },
-  { key: 'totalAssets', id: 'total-assets', look: { color: 'var(--color-debit)' } },
-  { key: 'totalLiabilities', id: 'total-liabilities', look: { color: 'var(--color-danger)', dash: '6 4' } },
+  { key: 'totalAssets', id: 'total-assets', look: { color: 'var(--color-type-asset)' } },
+  { key: 'totalLiabilities', id: 'total-liabilities', look: { color: 'var(--color-type-liability)', dash: '6 4' } },
 ];
 
 const ALL_SERIES: readonly TrendSeries[] = SERIES.map(({ key }) => key);
