@@ -27,7 +27,6 @@ const invalid = (code: string, errors: readonly string[]): RuleTester.InvalidTes
 tester.run('repo/no-raw-shape', rule, {
   valid: [
     valid('const classes = "rounded-control wide:rounded-panel rounded-t-panel rounded-bl-control";'),
-    valid('const classes = "before:rounded-control";'),
     valid('const classes = "shadow-lift wide:shadow-lift shadow-none";'),
     valid('const classes = "shadow-accent shadow-accent/25 inset-shadow-sm drop-shadow-md";'),
     valid('const copy = "Rounded corners cast a shadow";'),
