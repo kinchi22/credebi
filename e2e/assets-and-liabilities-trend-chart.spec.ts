@@ -2,10 +2,14 @@ import { randomUUID } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
 import { BOOKS_OPEN, bottom, boxOf } from './accounts';
 import {
+  drawnLines,
+  expectDrawnLines,
   expectMonths,
+  expectSwatches,
   expectTooltip,
   fromMonth,
   legendItem,
+  swatchIn,
   topTick,
   TREND_LINES,
   type TrendLine,
@@ -204,4 +208,37 @@ test('keeps a line as pressed when saving the choice fails, showing no error, an
 
   await expectMonths(page, juneAndJuly);
   await expectShown(page, TREND_LINES);
+});
+
+test('draws total assets in the asset colour, total liabilities in the liability colour and dashed, and Net worth in accent-text', async ({ page }) => {
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
+  await postEntries(page, [
+    intoCash(IN_JUNE, `Paid in ${randomUUID()}`, '3000'),
+    entryOn('2026-07-15', `Charged ${randomUUID()}`, 'Food', 'Credit card payable', '5000'),
+  ]);
+  await page.goto(`${TREND}?from=2026-06&to=2026-07`);
+  await expectMonths(page, [
+    ['2026-06', '3,000', '0', '3,000'],
+    ['2026-07', '3,000', '5,000', '-2,000'],
+  ]);
+
+  await expectDrawnLines(drawnLines(trendChart(page)));
+});
+
+test("matches each legend item's swatch and each tooltip row's swatch to its line's colour", async ({ page }) => {
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
+  await postEntries(page, [
+    intoCash(IN_JUNE, `Paid in ${randomUUID()}`, '3000'),
+    entryOn('2026-07-15', `Charged ${randomUUID()}`, 'Food', 'Credit card payable', '5000'),
+  ]);
+  await page.goto(`${TREND}?from=2026-06&to=2026-07`);
+  const june: TrendMonth = ['2026-06', '3,000', '0', '3,000'];
+  await expectMonths(page, [june, ['2026-07', '3,000', '5,000', '-2,000']]);
+
+  await expectSwatches((line) => swatchIn(legendItem(page, line)), 'legend');
+
+  await expect(fromMonth(page)).toBeVisible();
+  await tabTo(page, trendChart(page));
+  await expectTooltip(page, june);
+  await expectSwatches((line) => swatchIn(trendTooltip(page).getByText(line, { exact: true })), 'tooltip');
 });
