@@ -33,6 +33,7 @@ import { CloseButton } from './close-button';
 import { DiscardChanges } from './discard-changes';
 import { type ModalDialog } from './use-modal-dialog';
 import { MUTED_TEXT, DANGER_TEXT } from './text-classes';
+import { DayInput } from './day-input';
 
 export type ChartChange =
   | { readonly outcome: 'saved' }
@@ -157,8 +158,7 @@ function AccountFields({
       <div className="flex flex-wrap gap-3">
         <label className={`${FIELD} min-w-0 flex-1`}>
           {t('accountDialog.activeFrom')}
-          <input
-            type="date"
+          <DayInput
             name={ACCOUNT_FORM_FIELDS.activeFrom}
             required
             defaultValue={defaults.activeFrom}
@@ -167,8 +167,7 @@ function AccountFields({
         </label>
         <label className={`${FIELD} min-w-0 flex-1`}>
           {t('accountDialog.activeUntil')}
-          <input
-            type="date"
+          <DayInput
             name={ACCOUNT_FORM_FIELDS.activeUntil}
             defaultValue={defaults.activeUntil}
             className={DATE_CONTROL}

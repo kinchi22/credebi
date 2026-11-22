@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { type ReactNode } from 'react';
 import { typeClasses } from '@repo/ui/type-classes';
 import { BUTTON, CONTROL } from './control-classes';
+import { DayInput } from './day-input';
 
 export type TestSignInFormProps = {
   readonly returnTo: string;
@@ -21,7 +22,7 @@ export async function TestSignInForm({ returnTo, action }: TestSignInFormProps):
       </label>
       <label className={`flex flex-col gap-1 ${typeClasses['body-sm']}`}>
         {t('accountsStartOn')}
-        <input type="date" name={TEST_SIGN_IN_FIELDS.accountsStartOn} className={CONTROL} />
+        <DayInput name={TEST_SIGN_IN_FIELDS.accountsStartOn} className={CONTROL} />
       </label>
       <button type="submit" className={`self-start ${BUTTON}`}>
         {t('submit')}
