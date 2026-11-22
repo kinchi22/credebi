@@ -81,8 +81,9 @@ For a Feature whose every criterion the app already meets, the section reads
 
 **Publishing tickets** opens each Task labelled `type:task`, adds it as a
 sub-issue of the Feature, records every blocking edge as a native dependency,
-and sets its Status to Ready. The Status replaces the `ready-for-agent` label.
-Then the Feature's Status goes to Ready.
+and sets its Status to Ready, unless it already has a Status past Backlog. The
+Status replaces the `ready-for-agent` label. Then the Feature's Status goes to
+Ready on the same condition.
 
 `node tools/publish-tasks.ts <manifest.json>` does all of it, and is how
 tickets are published: a loop written by hand in the shell has given Tasks each
@@ -104,9 +105,8 @@ it or the number of an existing issue:
 A Task already under the Feature by that title is kept, not opened again, so a
 run that stopped part-way is finished by running it again. A rerun sets a Task
 or the Feature to Ready only while its Status is Backlog or it is not on the
-board, and leaves any other Status alone. It reads the Feature
-back at the end and fails naming any sub-issue or blocking edge it does not
-find.
+board, and leaves any other Status alone. It reads the Feature back at the
+end and fails naming any sub-issue or blocking edge it does not find.
 
 Every Feature gets these Tasks beside its vertical slices:
 

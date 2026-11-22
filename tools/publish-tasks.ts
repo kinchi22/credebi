@@ -64,7 +64,7 @@ function resolve(blocker: Blocker, numbers: ReadonlyMap<string, number>): number
   return found;
 }
 
-function setReadyFromBacklog(issue: number, tracker: Tracker): void {
+function setReadyUnlessStarted(issue: number, tracker: Tracker): void {
   const status = tracker.status(issue);
   if (status === undefined || status === 'Backlog') tracker.setReady(issue);
 }
@@ -87,10 +87,10 @@ export function publish(manifest: Manifest, tracker: Tracker): readonly Publishe
     for (const blocker of wanted) {
       if (!present.has(blocker)) tracker.addBlocker(number, blocker);
     }
-    setReadyFromBacklog(number, tracker);
+    setReadyUnlessStarted(number, tracker);
     published.push({ title: task.title, number, created: found === undefined, blockedBy: wanted });
   }
-  setReadyFromBacklog(manifest.feature, tracker);
+  setReadyUnlessStarted(manifest.feature, tracker);
   return published;
 }
 
@@ -176,17 +176,15 @@ export const githubTracker: Tracker = {
     ]);
   },
   status: (issue) => {
-    const url = gh(['issue', 'view', String(issue), '--json', 'url', '--jq', '.url']);
-    const item = gh(['project', 'item-add', PROJECT.number, '--owner', PROJECT.owner, '--url', url, '--format', 'json', '--jq', '.id']);
     const name = gh([
       'api',
       'graphql',
+      '-F',
+      `number=${String(issue)}`,
       '-f',
-      `id=${item}`,
-      '-f',
-      'query=query($id: ID!) { node(id: $id) { ... on ProjectV2Item { fieldValueByName(name: "Status") { ... on ProjectV2ItemFieldSingleSelectValue { name } } } } }',
+      'query=query($number: Int!) { repository(owner: "kinchi22", name: "credebi") { issue(number: $number) { projectItems(first: 20) { nodes { project { number } fieldValueByName(name: "Status") { ... on ProjectV2ItemFieldSingleSelectValue { name } } } } } } }',
       '--jq',
-      '.data.node.fieldValueByName.name // empty',
+      `.data.repository.issue.projectItems.nodes[] | select(.project.number == ${PROJECT.number}) | .fieldValueByName.name // empty`,
     ]);
     return name === '' ? undefined : name;
   },

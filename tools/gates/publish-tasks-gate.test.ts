@@ -7,7 +7,6 @@ function memoryTracker(feature: number, firstNumber: number) {
   const issues = new Map<number, Issue>();
   const children = new Map<number, number[]>([[feature, []]]);
   const blockedBy = new Map<number, Set<number>>();
-  const ready = new Set<number>();
   const statuses = new Map<number, string>();
   let next = firstNumber;
   const tracker: Tracker = {
@@ -27,11 +26,10 @@ function memoryTracker(feature: number, firstNumber: number) {
     },
     status: (issue) => statuses.get(issue),
     setReady: (issue) => {
-      ready.add(issue);
       statuses.set(issue, 'Ready');
     },
   };
-  return { tracker, issues, children, blockedBy, ready, statuses };
+  return { tracker, issues, children, blockedBy, statuses };
 }
 
 const task = (title: string, blockedBy: TaskPlan['blockedBy'] = [], assignee?: string): TaskPlan => ({
@@ -80,7 +78,7 @@ describe('publish', () => {
     const memory = memoryTracker(100, 200);
     publish(CHAIN, memory.tracker);
 
-    expect([...memory.ready].sort()).toEqual([100, 200, 201, 202, 203]);
+    expect([100, 200, 201, 202, 203].map((n) => memory.statuses.get(n))).toEqual(['Ready', 'Ready', 'Ready', 'Ready', 'Ready']);
   });
 
   it('keeps a Task already under the Feature by its title on a second run, creating nothing twice', () => {
@@ -104,7 +102,7 @@ describe('publish', () => {
     for (const issue of [100, 200, 201, 202, 203]) memory.statuses.set(issue, status);
     publish(CHAIN, memory.tracker);
 
-    expect([...memory.statuses.values()]).toEqual([status, status, status, status, status]);
+    expect([100, 200, 201, 202, 203].map((n) => memory.statuses.get(n))).toEqual([status, status, status, status, status]);
   });
 
   it('sets a kept Task and the Feature in Backlog, and one not on the board, to Ready', () => {
