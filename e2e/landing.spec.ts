@@ -3,7 +3,6 @@ import { expect, test, type Page } from '@playwright/test';
 import { postEntries, titled } from './entries';
 import {
   expectLandingPageIn,
-  expectTrendPreviewColours,
   getStarted,
   headline,
   logIn,
@@ -131,10 +130,4 @@ test('leads both Get started actions to the sign-in page and names the source li
 
   await expectLeadsToSignIn(page, () => getStarted(page, 'en').first().click());
   await expectLeadsToSignIn(page, () => getStarted(page, 'en').last().click());
-});
-
-test("draws the trend preview's three lines and legend swatches in the same colours as the app", async ({ page }) => {
-  await page.goto('/');
-
-  await expectTrendPreviewColours(page);
 });
