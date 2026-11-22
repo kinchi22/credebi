@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
+import { TYPE_COLOUR } from './account-type-cues';
 import { escaped } from './entries';
 import { reportRow, reportTables } from './report-tables';
 import { TREND_PATH } from './routes';
@@ -148,4 +149,42 @@ const valueOfTick = (tick: string): number => Number(tick.slice(0, -1)) * (SCALE
 export async function topTick(page: Page): Promise<number> {
   const ticks = await trendChart(page).getByText(COMPACT_TICK).allTextContents();
   return ticks.length === 0 ? Number.NaN : Math.max(...ticks.map((tick) => valueOfTick(tick.trim())));
+}
+
+export const ACCENT_TEXT = 'rgb(11, 122, 94)';
+
+export const LINE_COLOUR: Readonly<Record<TrendLine, string>> = {
+  'Net worth': ACCENT_TEXT,
+  'Total assets': TYPE_COLOUR.Assets,
+  'Total liabilities': TYPE_COLOUR.Liabilities,
+};
+
+export const DASHED: Readonly<Record<TrendLine, boolean>> = {
+  'Net worth': false,
+  'Total assets': false,
+  'Total liabilities': true,
+};
+
+export const drawnLines = (scope: Locator): Locator => scope.locator('.recharts-line-curve');
+
+export const swatchIn = (scope: Locator): Locator => scope.locator('svg line');
+
+export async function expectDrawnLines(lines: Locator): Promise<void> {
+  await expect(lines).toHaveCount(TREND_LINES.length);
+  for (const [index, line] of TREND_LINES.entries()) {
+    await expect(lines.nth(index), `the ${line} line's stroke`).toHaveCSS('stroke', LINE_COLOUR[line]);
+    if (DASHED[line]) {
+      await expect(lines.nth(index), `the ${line} line is dashed`).not.toHaveCSS('stroke-dasharray', 'none');
+      await expect(lines.nth(index), `the ${line} line is dashed`).not.toHaveCSS('stroke-dasharray', '0px');
+    } else {
+      await expect(lines.nth(index), `the ${line} line is solid`).toHaveCSS('stroke-dasharray', /^(none|0px?)$/);
+    }
+  }
+}
+
+export async function expectSwatches(swatches: (line: TrendLine) => Locator, what: string): Promise<void> {
+  for (const line of TREND_LINES) {
+    await expect(swatches(line), `the ${what} swatch of ${line}`).toHaveCount(1);
+    await expect(swatches(line), `the ${what} swatch of ${line}`).toHaveCSS('stroke', LINE_COLOUR[line]);
+  }
 }
