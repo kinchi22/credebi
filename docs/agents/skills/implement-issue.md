@@ -24,34 +24,47 @@ In Progress.
 
 ## The loop
 
-Take one Task at a time in the repository's working tree: two agents editing
-the same tree collide whatever they are building. The gates do not force that on
-their own. `pnpm test:integration` starts a throwaway Postgres of its own
-through testcontainers, on a port it picks (`tools/integration/postgres-container.ts`);
-the container in `docker-compose.yml` is the development database and no gate
-touches it. `db:drift` and `db:check` read files and never connect. So a Task
-can be built in parallel in an Agent worktree of its own, which costs a cold
-`pnpm install` there.
+Take one Task at a time, each in an Agent worktree of its own, made as
+`docs/agents/harnesses.md` says, whether or not any other session is using the
+repository's primary tree: isolation never depends on your judging whether it is
+busy. The loop stays serial. The gates share nothing but port 3000, which is why
+a worktree is enough: `pnpm test:integration` starts a throwaway Postgres of its
+own through testcontainers, on a port it picks
+(`tools/integration/postgres-container.ts`); the container in
+`docker-compose.yml` is the development database and no gate touches it.
+`db:drift` and `db:check` read files and never connect.
 
-One thing is genuinely shared. `playwright.config.ts` binds `127.0.0.1:3000` and
-reuses a server already listening, so two local e2e runs at once silently test
-each other's code. Whoever drives parallel Tasks coordinates that run, or keeps
-it serial.
+`playwright.config.ts` binds `127.0.0.1:3000` and reuses a server already
+listening, so a server another session started silently answers a local e2e run.
+The Implementer returns to you when the port is busy before one.
+
+Each Agent worktree is removed once its pull request has merged. When a loop
+resumes, list the worktrees with `git worktree list` and consider only those
+under the two directories `docs/agents/harnesses.md` names for an Agent
+worktree: never the primary tree, never one made by other tooling. Map each to
+its pull request through the branch checked out there (`gh pr list --head
+<branch> --state merged`), and remove those whose pull request has merged, as
+that file says.
 
 1. **Pick.** The first frontier Task, specs first. An empty frontier is a stop.
-2. **Build.** Dispatch an Implementer Subagent from the `implementer` Agent
-   definition, with the prompt: "Implement
+2. **Build.** Dispatch an Implementer Subagent into a new Agent worktree, from
+   the `implementer` Agent definition, with the prompt: "Implement
    issue #<n>. Follow `docs/agents/skills/implement-issue-implementer.md`." Pass
-   nothing else; the issue is the brief. It returns a pull request number, or a
-   question.
+   nothing else; the issue is the brief, and the worktree is how it is
+   dispatched, not something the prompt carries. It returns a pull request
+   number, or a question, and `docs/agents/harnesses.md` says how you learn the
+   worktree's path.
 3. **Answer questions.** A question means the Task left a decision open. Put it
    to the owner, write the answer into the issue as a comment, and send the same
    Subagent on. When the answer changes the Task's scope, edit the issue body
-   too.
-4. **Review.** Check out the pull request's branch and invoke the `code-review`
-   Skill with the pull request's base branch as the fixed point. The spec is the
-   Task, and its Feature's body for context. Post the report on the pull request
-   as a comment.
+   too. When the Subagent's worktree is gone by now, dispatch a fresh
+   Implementer into a new Agent worktree instead: the answer is already on the
+   issue.
+4. **Review.** Inside the Implementer's worktree, run `git fetch origin` and
+   invoke the `code-review` Skill with `origin/<base>`, the pull request's base
+   branch, as the fixed point. The review changes no files, and never checks a
+   branch out in the primary tree. The spec is the Task, and its Feature's body
+   for context. Post the report on the pull request as a comment.
 5. **Fix.** When either axis reports a hard violation, or a requirement missing
    or wrong, send the findings back to the same Subagent and review again.
    Judgement calls are the Subagent's to take or leave, with a reason in the
@@ -76,8 +89,10 @@ it serial.
    Link each from the review comment.
 7. **Merge.** Wait for the required checks (`gh pr checks <pr> --watch
    --required`). Green, and with no owned path in the diff, merge it:
-   `gh pr merge <pr> --squash --delete-branch`. An owned path, or a pull
-   request into `main`, waits for the owner: that is a stop.
+   `gh pr merge <pr> --squash`. Only once the merge has succeeded, remove the
+   Agent worktree and its local branches as `docs/agents/harnesses.md` says; a
+   failed merge leaves the worktree for step 5. An owned path, or a pull request
+   into `main`, waits for the owner: that is a stop.
 8. **Read the milestone's two advisory checks**, on a Feature with a
    milestone. A push to the milestone starts both, and `docs/ARCHITECTURE.md`,
    "How a criterion ships", says how they split the specs. Read each on its own;
@@ -99,7 +114,8 @@ it serial.
 
 ## Stops
 
-Stop the loop and report where the Feature stands when:
+Stop the loop and report where the Feature stands when, leaving any Agent
+worktree in place and naming its path in the report:
 
 - **A pull request needs the owner**: the specs, a spec correction, a
   migration, or anything into `main`. Name it and what they are approving.
