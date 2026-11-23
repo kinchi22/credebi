@@ -27,6 +27,7 @@ function posted(): Entry {
   const made = makeEntry(FIRST_POST, {
     id: '01920000-0000-7000-8000-000000000001' as EntryId,
     createdAt: new Date('2026-09-15T00:30:00.000Z'),
+    enteredAt: new Date('2026-09-15T00:30:00.000Z'),
   }, NAMES);
   expect(isOk(made), 'test setup built an entry that breaks a rule').toBe(true);
   return isOk(made) ? made.value : ({} as Entry);

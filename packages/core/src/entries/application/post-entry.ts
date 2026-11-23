@@ -38,7 +38,12 @@ export function createPostEntry({
     if (!chart.ok) {
       return chart;
     }
-    return makePostedEntry(draft, { id: newEntryId(), createdAt: now() }, chart.value.accounts);
+    const stamped = now();
+    return makePostedEntry(
+      draft,
+      { id: newEntryId(), createdAt: stamped, enteredAt: stamped },
+      chart.value.accounts,
+    );
   };
 
   const postedOnce = (

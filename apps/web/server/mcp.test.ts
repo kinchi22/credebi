@@ -108,6 +108,7 @@ function entryOn(day: number): Entry {
     ],
     total: won(9000),
     createdAt: new Date(`${entryDate}T03:04:05.678Z`),
+    enteredAt: new Date(`${entryDate}T03:04:05.678Z`),
   };
 }
 

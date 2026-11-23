@@ -62,6 +62,7 @@ function entry(entryDate: string, debit: Account, credit: Account, amount: numbe
     {
       id: `01920000-0000-7000-8000-${String(sequence).padStart(12, '0')}` as EntryId,
       createdAt: new Date('2026-10-01T00:00:00.000Z'),
+      enteredAt: new Date('2026-10-01T00:00:00.000Z'),
     },
     accountNames(CHART),
   );
@@ -141,6 +142,7 @@ describe('createGetAssetsAndLiabilities', () => {
       makeReversal(deleted, {
         id: '01920000-0000-7000-8000-0000000000ff' as EntryId,
         createdAt: new Date('2026-10-02T00:00:00.000Z'),
+        enteredAt: new Date('2026-10-02T00:00:00.000Z'),
       }),
     );
     const getAssetsAndLiabilities = createGetAssetsAndLiabilities({ entries: stored.entries, accounts });
@@ -160,6 +162,7 @@ describe('createGetAssetsAndLiabilities', () => {
       makeReversal(corrected, {
         id: '01920000-0000-7000-8000-0000000000fe' as EntryId,
         createdAt: new Date('2026-10-02T00:00:00.000Z'),
+        enteredAt: new Date('2026-10-02T00:00:00.000Z'),
       }),
     );
     await stored.entries.save(ADA, entry('2026-06-15', EXPENSES, CASH, 3000));

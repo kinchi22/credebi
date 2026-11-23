@@ -20,6 +20,7 @@ export type EntryRepository = {
     userId: UserId,
     criteria: SearchCriteria,
   ) => Promise<Result<readonly Entry[], DomainError>>;
+  readonly entryLog: (userId: UserId) => Promise<Result<readonly Entry[], DomainError>>;
   readonly accountTotals: (
     userId: UserId,
     range: OpenDayRange,

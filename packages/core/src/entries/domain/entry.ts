@@ -38,6 +38,7 @@ export type Entry = {
   readonly lines: readonly EntryLine[];
   readonly total: Money;
   readonly createdAt: Date;
+  readonly enteredAt: Date;
 };
 
 export type EntryDraft = {
@@ -59,6 +60,7 @@ export type FoundEntry = {
 export type EntryStamp = {
   readonly id: EntryId;
   readonly createdAt: Date;
+  readonly enteredAt: Date;
 };
 
 const invalid = (message: string): Err<DomainError> =>
@@ -110,6 +112,7 @@ export function makeEntry(
     lines: lines.value,
     total: total.value,
     createdAt: stamp.createdAt,
+    enteredAt: stamp.enteredAt,
   });
 }
 

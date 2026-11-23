@@ -104,6 +104,7 @@ function entryOf(userId: UserId): Entry {
     {
       id: `01920000-0000-7000-8000-${sequence.toString().padStart(12, '0')}` as EntryId,
       createdAt: new Date('2026-09-15T00:30:00.000Z'),
+      enteredAt: new Date('2026-09-15T00:30:00.000Z'),
     },
     NAMES,
   );

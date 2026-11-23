@@ -30,7 +30,12 @@ export function createDeleteEntry({
       return reversedAlready(id);
     }
 
-    const reversal = makeReversal(found.value.entry, { id: newEntryId(), createdAt: now() });
+    const stamped = now();
+    const reversal = makeReversal(found.value.entry, {
+      id: newEntryId(),
+      createdAt: stamped,
+      enteredAt: stamped,
+    });
     return entries.saveReversal(userId.value, reversal);
   };
 }
