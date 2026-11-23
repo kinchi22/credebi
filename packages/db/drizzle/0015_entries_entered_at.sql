@@ -1,11 +1,10 @@
-ALTER TABLE "entries" ADD COLUMN "entered_at" timestamp with time zone;--> statement-breakpoint
--- Hand-written: drizzle-kit generates the column as NOT NULL, which no row of an
--- existing table can satisfy, so it is added nullable above, filled below, and
--- made NOT NULL last. Entered at starts as created at on every row. A
--- Correction's replacement then takes the Entered at of the Entry it replaces:
--- the replacement shares its User and created at with the Reversal that reverses
--- the original and is not itself a Reversal. A chain of Corrections resolves to
--- the first original. Where one User has more than one Reversal or more than one
+ALTER TABLE "entries" ADD COLUMN "entered_at" timestamp with time zone DEFAULT now() NOT NULL;
+--> statement-breakpoint
+-- Hand-written: Entered at starts as created at on every row. A Correction's
+-- replacement then takes the Entered at of the Entry it replaces (ADR-0016): the
+-- replacement shares its User and created at with the Reversal that reverses the
+-- original and is not itself a Reversal. A chain of Corrections resolves to the
+-- first original. Where one User has more than one Reversal or more than one
 -- non-Reversal at that instant the pairing is ambiguous and created at stays.
 UPDATE "entries" SET "entered_at" = "created_at";--> statement-breakpoint
 WITH RECURSIVE "pairs" AS (
@@ -36,5 +35,4 @@ WITH RECURSIVE "pairs" AS (
 UPDATE "entries" SET "entered_at" = "root"."created_at"
 FROM "chain"
 JOIN "entries" AS "root" ON "root"."id" = "chain"."root_id"
-WHERE "entries"."id" = "chain"."id";--> statement-breakpoint
-ALTER TABLE "entries" ALTER COLUMN "entered_at" SET NOT NULL;
+WHERE "entries"."id" = "chain"."id";

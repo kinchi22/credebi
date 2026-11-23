@@ -59,7 +59,7 @@ export const entries = pgTable(
     memo: text('memo').notNull(),
     title: text('title').notNull().default(''),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
-    enteredAt: timestamp('entered_at', { withTimezone: true }).notNull(),
+    enteredAt: timestamp('entered_at', { withTimezone: true }).notNull().defaultNow(),
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),

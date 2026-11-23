@@ -730,7 +730,7 @@ describe('createPostgresEntryRepository', () => {
 
   it('cannot hold an entry with no User (ADR-0021)', async () => {
     const refused = database.execute(
-      sql`insert into entries (id, entry_date, memo, created_at, entered_at) values ('01920000-0000-7000-8000-0000000000ff', '2026-09-15', 'Ownerless', now(), now())`,
+      sql`insert into entries (id, entry_date, memo, created_at) values ('01920000-0000-7000-8000-0000000000ff', '2026-09-15', 'Ownerless', now())`,
     );
 
     await expect(refused).rejects.toMatchObject({ cause: { code: '23502' } });
@@ -808,7 +808,7 @@ describe('createPostgresEntryRepository', () => {
     await repository.saveReversal(ADA, reversalOf(saved));
 
     const refused = database.execute(
-      sql`insert into entries (id, user_id, entry_date, memo, created_at, entered_at, reverses_entry_id) values ('01920000-0000-7000-8000-0000000000fe', ${ADA}, '2026-09-15', 'Again', now(), now(), ${saved.id})`,
+      sql`insert into entries (id, user_id, entry_date, memo, created_at, reverses_entry_id) values ('01920000-0000-7000-8000-0000000000fe', ${ADA}, '2026-09-15', 'Again', now(), ${saved.id})`,
     );
 
     await expect(refused).rejects.toMatchObject({ cause: { code: '23505' } });

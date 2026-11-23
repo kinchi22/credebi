@@ -1,5 +1,5 @@
 {
-  "id": "021d6591-700a-4d2c-8828-fa1932bb2f61",
+  "id": "31b142bc-3198-437a-8f63-c6afaa127470",
   "prevId": "a00f2c7a-ffd5-48dd-8557-99ee2ce557fe",
   "version": "7",
   "dialect": "postgresql",
@@ -554,7 +554,8 @@
           "name": "entered_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": "now()"
         },
         "user_id": {
           "name": "user_id",
