@@ -158,7 +158,8 @@ const nameOf = (suite: string): Value =>
   interpolate(required(field(job, 'name'), 'the job name'), { matrix: { suite } });
 
 const runs = (step: string, suite: string, outcome?: string): boolean => {
-  const condition = field(step, 'if');
+  const raw = field(step, 'if');
+  const condition = raw?.replace(/^\$\{\{\s*([\s\S]*?)\s*\}\}$/, '$1');
   if (condition === undefined) return outcome === undefined || outcome === 'success';
   const status = outcome === undefined || outcome === 'success' ? 'success' : outcome;
   const always = condition.includes('always()');

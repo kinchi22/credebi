@@ -27,7 +27,7 @@ const MARKDOWN_ONLY =
 
 const heavyCondition = `if: \${{ !cancelled() && ${MARKDOWN_ONLY} }}\n`;
 
-const skipsOnMarkdownOnly = (block: string): boolean => block.includes(`if: ${MARKDOWN_ONLY}\n`);
+const skipsOnMarkdownOnly = (block: string): boolean => block.includes(`if: \${{ ${MARKDOWN_ONLY} }}\n`);
 
 describe('the Markdown-only rule', () => {
   it('holds for a list of Markdown files alone', () => {
@@ -77,6 +77,10 @@ describe('the Markdown-only rule', () => {
     expect(answer('README.md\ndocs/a.md\n', '3')).toBe('markdown_only=false');
     expect(answer('README.md\ndocs/a.md\n', '')).toBe('markdown_only=false');
   });
+});
+
+it.each(['ci.yml', 'e2e-build.yml'])('never starts an if with a YAML indicator in %s', (file) => {
+  expect(workflow(file)).not.toMatch(/\n\s+if: [!*&]/);
 });
 
 describe('the shared classification', () => {
