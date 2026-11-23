@@ -14,7 +14,7 @@
     "db:reset": "docker compose down -v && docker compose up -d --wait",
     "db:check": "pnpm --filter @repo/db db:check",
     "db:drift": "node tools/check-migration-drift.mjs",
-    "typecheck": "turbo run typecheck && tsc -p tsconfig.json && tsc -p tsconfig.node.json",
+    "typecheck": "turbo run typecheck && tsc -p tsconfig.json && tsc -p tsconfig.node-scripts.json",
     "lint": "eslint .",
     "dep-cruise": "depcruise packages apps e2e tools --config .dependency-cruiser.cjs",
     "dep-cruise:graph": "depcruise packages apps --config .dependency-cruiser.cjs --output-type dot | dot -T svg > reports/dependency-graph.svg",

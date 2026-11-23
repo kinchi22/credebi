@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.node-scripts.json",
+  "include": ["tools/extensionless-relative-import.ts"],
+  "exclude": []
+}

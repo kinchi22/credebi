@@ -1,6 +1,0 @@
-{
-  "extends": "./tsconfig.json",
-  "compilerOptions": { "module": "nodenext", "moduleResolution": "nodenext" },
-  "include": ["tools/*.ts"],
-  "exclude": ["node_modules", "fixtures", "packages", "apps"]
-}
