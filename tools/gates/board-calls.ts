@@ -51,11 +51,7 @@ export function findBoardCallProblems(allFiles: readonly DocFile[]): readonly st
 
     let content = file.content;
     if (file.path === ISSUE_TRACKER_GUIDE) {
-      const missingSentence = (reason: string): string =>
-  `${ISSUE_TRACKER_GUIDE}: needs the rule sentence '${BOARD_RULE_SENTENCE}', which the board ` +
-  `calls gate pins (${reason})`;
-
-const collapsed = collapse(file.content);
+      const collapsed = collapse(file.content);
       if (!collapsed.includes(BOARD_RULE_SENTENCE)) {
         problems.push(missingSentence(`${file.path} does not hold it`));
       }
