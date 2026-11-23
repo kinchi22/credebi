@@ -39,12 +39,34 @@ listening, so a server another session started silently answers a local e2e run.
 The Implementer returns to you when the port is busy before one.
 
 Each Agent worktree is removed once its pull request has merged. When a loop
-resumes, list the worktrees with `git worktree list` and consider only those
-under the two directories `docs/agents/harnesses.md` names for an Agent
-worktree: never the primary tree, never one made by other tooling. Map each to
-its pull request through the branch checked out there (`gh pr list --head
-<branch> --state merged`), and remove those whose pull request has merged, as
-that file says.
+resumes, list the worktrees with `git worktree list --porcelain` and consider
+only those under the two directories `docs/agents/harnesses.md` names for an
+Agent worktree: never the primary tree, never one made by other tooling. Map
+each to its pull request through the branch checked out there (`gh pr list
+--head <branch> --state merged`, then `--state open`, then `--state closed`,
+in that order, since `closed` includes merged), and classify it:
+
+- A merged pull request: remove it, with no liveness check. Its work is on
+  `main`, and no branch of another tool maps to a merged pull request of this
+  loop.
+- An open pull request: keep it. The review of that pull request happens inside
+  it.
+- No Task branch (a detached Codex worktree has none to look up), a Task
+  branch with no pull request, or a pull request closed without merging: remove it unless it is live. An Implementer that stopped on
+  a question or failed part-way leaves such a worktree, and no Subagent of an
+  earlier session can continue in it, since a resumed loop runs in a new
+  session, where none of them survives. A worktree is live while another session's
+  Implementer may still be running in it, and until that Implementer branches it
+  looks exactly like an abandoned one, so removing a live worktree deletes a
+  build mid-run. `docs/agents/harnesses.md` says what live means on each
+  Harness and which worktrees are candidates. On Codex nothing marks a worktree
+  live, so one clone runs at most one Codex Driver at a time and every Codex
+  Agent worktree counts as not live.
+
+An abandoned worktree is removed with the same command as a merged one, and its
+local branches are deleted as that file says. Uncommitted changes and unpushed
+commits go with it, without asking, as an Agent worktree is defined in
+`docs/agents/harnesses.md`.
 
 1. **Pick.** The first frontier Task, specs first. An empty frontier is a stop.
 2. **Build.** Dispatch an Implementer Subagent into a new Agent worktree, from
