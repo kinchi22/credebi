@@ -1,7 +1,7 @@
-import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { ghFailure, processBoard, readStatus, setStatus } from './board';
+import { runGh } from './gh.ts';
+import { processBoard, readStatus, setStatus } from './board.ts';
 
 export type Blocker = string | number;
 
@@ -105,10 +105,11 @@ export function verify(manifest: Manifest, published: readonly Published[], trac
 }
 
 function gh(args: readonly string[]): string {
-  const result = spawnSync('gh', [...args], { encoding: 'utf8', shell: false });
-  const failure = ghFailure(result);
-  if (failure !== undefined) throw new Error(`gh ${args.join(' ')}\n${failure}`);
-  return result.stdout.trim();
+  try {
+    return runGh(args, process.env);
+  } catch (error) {
+    throw new Error(`gh ${args.join(' ')}\n${error instanceof Error ? error.message : String(error)}`, { cause: error });
+  }
 }
 
 const databaseId = (issue: number): string => gh(['api', `repos/{owner}/{repo}/issues/${String(issue)}`, '--jq', '.id']);
