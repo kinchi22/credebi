@@ -41,7 +41,7 @@
     "@repo/ui": "workspace:*",
     "@stryker-mutator/core": "^10.0.0",
     "@stryker-mutator/vitest-runner": "^10.0.0",
-    "@testcontainers/postgresql": "^11.14.0",
+    "@testcontainers/postgresql": "^12.2.1",
     "@types/node": "^26.0.0",
     "dependency-cruiser": "^18.0.0",
     "eslint": "^10.0.0",
