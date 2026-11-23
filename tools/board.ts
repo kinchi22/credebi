@@ -1,4 +1,4 @@
-import { spawnSync } from 'node:child_process';
+import { spawnSync, type SpawnSyncReturns } from 'node:child_process';
 
 const PROJECT = {
   number: '2',
@@ -85,9 +85,17 @@ export function setStatus(issue: number, status: StatusName, deps: BoardDeps): v
   );
 }
 
+export function ghFailure(result: SpawnSyncReturns<string>): string | undefined {
+  if (result.error) return `gh could not be started: ${result.error.message}`;
+  if (result.signal) return `gh was killed by ${result.signal}\n${result.stderr}`;
+  if (result.status !== 0) return result.stderr;
+  return undefined;
+}
+
 export const spawnGh: GhRunner = (args, env) => {
   const result = spawnSync('gh', [...args], { encoding: 'utf8', shell: false, env: { ...env } });
-  if (result.status !== 0) throw new Error(result.stderr);
+  const failure = ghFailure(result);
+  if (failure !== undefined) throw new Error(failure);
   return result.stdout.trim();
 };
 

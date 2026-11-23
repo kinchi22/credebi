@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { processBoard, readStatus, setStatus } from './board';
+import { ghFailure, processBoard, readStatus, setStatus } from './board';
 
 export type Blocker = string | number;
 
@@ -106,7 +106,8 @@ export function verify(manifest: Manifest, published: readonly Published[], trac
 
 function gh(args: readonly string[]): string {
   const result = spawnSync('gh', [...args], { encoding: 'utf8', shell: false });
-  if (result.status !== 0) throw new Error(`gh ${args.join(' ')}\n${result.stderr}`);
+  const failure = ghFailure(result);
+  if (failure !== undefined) throw new Error(`gh ${args.join(' ')}\n${failure}`);
   return result.stdout.trim();
 }
 
