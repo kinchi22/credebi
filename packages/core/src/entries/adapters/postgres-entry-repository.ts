@@ -93,6 +93,7 @@ export function postgresEntriesOn(database: PostgresExecutor, logger: Logger): E
       title: entry.title,
       memo: entry.memo,
       createdAt: entry.createdAt,
+      enteredAt: entry.createdAt,
       reversesEntryId: reverses,
     });
     await transaction.insert(schema.entryLines).values(
