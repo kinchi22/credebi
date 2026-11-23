@@ -303,8 +303,8 @@ describe('createPostgresUserRepository', () => {
     );
     await repository.add(ADA, GOOGLE_ADA, existing, DEFAULT_SETTINGS);
     await database.execute(
-      sql`insert into entries (id, entry_date, memo, created_at, user_id)
-          values ('01920000-0000-7000-8000-00000000f001', '2026-09-18', '', now(), ${ADA.id})`,
+      sql`insert into entries (id, entry_date, memo, created_at, entered_at, user_id)
+          values ('01920000-0000-7000-8000-00000000f001', '2026-09-18', '', now(), now(), ${ADA.id})`,
     );
     await database.execute(
       sql`insert into entry_lines (entry_id, line_number, account_id, side, amount) values

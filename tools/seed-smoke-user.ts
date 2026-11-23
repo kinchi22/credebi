@@ -32,8 +32,8 @@ insert into users (id, email, name, created_at)
 values ('${SMOKE_USER_ID}', 'smoke@test.invalid', 'Smoke User', now())
 on conflict (id) do nothing;
 
-insert into entries (id, entry_date, memo, created_at, user_id)
-values ('${SMOKE_ENTRY_ID}', '2026-09-18', 'Smoke run', now(), '${SMOKE_USER_ID}')
+insert into entries (id, entry_date, memo, created_at, entered_at, user_id)
+values ('${SMOKE_ENTRY_ID}', '2026-09-18', 'Smoke run', now(), now(), '${SMOKE_USER_ID}')
 on conflict (id) do nothing;
 
 delete from entry_lines

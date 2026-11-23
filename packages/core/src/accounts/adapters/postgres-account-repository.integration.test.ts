@@ -91,8 +91,8 @@ async function storeEntry(
 ): Promise<string> {
   const id = `01920000-0000-7000-8000-${String(n).padStart(12, '0')}`;
   await database.execute(
-    sql`insert into entries (id, user_id, entry_date, memo, created_at, reverses_entry_id)
-        values (${id}, ${userId}, ${day}, ${`Entry ${String(n)}`}, now(), ${reverses})`,
+    sql`insert into entries (id, user_id, entry_date, memo, created_at, entered_at, reverses_entry_id)
+        values (${id}, ${userId}, ${day}, ${`Entry ${String(n)}`}, now(), now(), ${reverses})`,
   );
   for (const [index, named] of lines.entries()) {
     await database.execute(
@@ -580,8 +580,8 @@ describe('createPostgresAccountRepository', () => {
 
     await writer.database.transaction(async (transaction) => {
       await transaction.execute(
-        sql`insert into entries (id, user_id, entry_date, memo, created_at)
-            values ('01920000-0000-7000-8000-000000000102', ${ADA}, '2026-09-15', 'Racing', now())`,
+        sql`insert into entries (id, user_id, entry_date, memo, created_at, entered_at)
+            values ('01920000-0000-7000-8000-000000000102', ${ADA}, '2026-09-15', 'Racing', now(), now())`,
       );
       await transaction.execute(
         sql`insert into entry_lines (entry_id, line_number, account_id, side, amount)

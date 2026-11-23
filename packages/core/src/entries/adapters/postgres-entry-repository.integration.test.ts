@@ -193,6 +193,20 @@ describe('createPostgresEntryRepository', () => {
     expect(logged).toEqual([]);
   });
 
+  it('writes Entered at equal to created at for an Entry and for a Reversal', async () => {
+    const saved = entry({ createdAt: new Date('2026-09-15T09:30:00.123+09:00') });
+    const reversal = reversalOf(saved);
+    await repository.save(ADA, saved);
+    await repository.saveReversal(ADA, reversal);
+
+    const rows = await database.execute<{ same: boolean }>(
+      sql`select entered_at = created_at as same from entries order by id`,
+    );
+
+    expect(rows.rows).toHaveLength(2);
+    expect(rows.rows.every((row) => row.same)).toBe(true);
+  });
+
   it("writes each line's Account", async () => {
     const saved = entry({
       lines: ADAS_CHART.map(([account], index) => ({
@@ -716,7 +730,7 @@ describe('createPostgresEntryRepository', () => {
 
   it('cannot hold an entry with no User (ADR-0021)', async () => {
     const refused = database.execute(
-      sql`insert into entries (id, entry_date, memo, created_at) values ('01920000-0000-7000-8000-0000000000ff', '2026-09-15', 'Ownerless', now())`,
+      sql`insert into entries (id, entry_date, memo, created_at, entered_at) values ('01920000-0000-7000-8000-0000000000ff', '2026-09-15', 'Ownerless', now(), now())`,
     );
 
     await expect(refused).rejects.toMatchObject({ cause: { code: '23502' } });
@@ -794,7 +808,7 @@ describe('createPostgresEntryRepository', () => {
     await repository.saveReversal(ADA, reversalOf(saved));
 
     const refused = database.execute(
-      sql`insert into entries (id, user_id, entry_date, memo, created_at, reverses_entry_id) values ('01920000-0000-7000-8000-0000000000fe', ${ADA}, '2026-09-15', 'Again', now(), ${saved.id})`,
+      sql`insert into entries (id, user_id, entry_date, memo, created_at, entered_at, reverses_entry_id) values ('01920000-0000-7000-8000-0000000000fe', ${ADA}, '2026-09-15', 'Again', now(), now(), ${saved.id})`,
     );
 
     await expect(refused).rejects.toMatchObject({ cause: { code: '23505' } });
