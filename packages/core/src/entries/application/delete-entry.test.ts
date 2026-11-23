@@ -139,6 +139,7 @@ describe('createDeleteEntry', () => {
         memo: doomed.memo,
         total: doomed.total,
         createdAt: NOW,
+        enteredAt: NOW,
         lines: [
           { account: EXPENSES, accountName: 'Expenses', side: 'credit', amount: 12500 },
           { account: CASH, accountName: 'Cash', side: 'debit', amount: 12500 },

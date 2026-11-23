@@ -112,6 +112,16 @@ function repositoryOver(rows: StoredEntry[]): EntryRepository {
       );
     },
     search: (userId) => Promise.resolve(ok(shownOf(userId))),
+    entryLog: (userId) =>
+      Promise.resolve(
+        ok(
+          shownOf(userId).toSorted(
+            (first, second) =>
+              second.enteredAt.getTime() - first.enteredAt.getTime() ||
+              second.id.localeCompare(first.id),
+          ),
+        ),
+      ),
     accountTotals: (userId, range): Promise<Result<readonly AccountSums[], DomainError>> => {
       const totals = new Map<AccountId, AccountSums>();
       for (const entry of shownOf(userId)) {

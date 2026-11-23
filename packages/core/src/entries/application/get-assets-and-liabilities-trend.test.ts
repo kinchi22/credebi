@@ -62,6 +62,7 @@ function entry(entryDate: string, debit: Account, credit: Account, amount: numbe
     {
       id: `01920000-0000-7000-8000-${String(sequence).padStart(12, '0')}` as EntryId,
       createdAt: new Date('2026-10-01T00:00:00.000Z'),
+      enteredAt: new Date('2026-10-01T00:00:00.000Z'),
     },
     accountNames(CHART),
   );
@@ -141,6 +142,7 @@ describe('createGetAssetsAndLiabilitiesTrend', () => {
         makeReversal(reversed, {
           id: `01920000-0000-7000-8000-0000000000${n}` as EntryId,
           createdAt: new Date('2026-10-02T00:00:00.000Z'),
+          enteredAt: new Date('2026-10-02T00:00:00.000Z'),
         }),
       );
     }

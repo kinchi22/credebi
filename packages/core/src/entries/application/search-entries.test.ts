@@ -62,6 +62,7 @@ const made = makeEntry(
   {
     id: '01920000-0000-7000-8000-000000000001' as EntryId,
     createdAt: new Date('2026-09-15T00:30:00.000Z'),
+    enteredAt: new Date('2026-09-15T00:30:00.000Z'),
   },
   accountNames(ADAS_CHART),
 );
@@ -71,6 +72,7 @@ const holding = (searched: EntryRepository['search']): EntryRepository => ({
   saveReversal: () => Promise.resolve(ok(undefined)),
   find: () => Promise.resolve(err(domainError('NOT_FOUND', 'Not read here.'))),
   search: searched,
+  entryLog: () => Promise.resolve(err(domainError('NOT_FOUND', 'Not read here.'))),
   accountTotals: () => Promise.resolve(err(domainError('NOT_FOUND', 'Not read here.'))),
   monthlyAccountTotals: () => Promise.resolve(err(domainError('NOT_FOUND', 'Not read here.'))),
   titledEntries: () => Promise.resolve(err(domainError('NOT_FOUND', 'Not read here.'))),

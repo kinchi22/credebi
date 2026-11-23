@@ -44,6 +44,7 @@ import {
   createResolveAccessToken,
   createResolveSession,
   createRevokeConnection,
+  createGetEntryLog,
   createSearchEntries,
   createSignOut,
   createTestSignIn,
@@ -81,6 +82,7 @@ import {
   type ResolveAccessToken,
   type ResolveSession,
   type RevokeConnection,
+  type GetEntryLog,
   type SearchEntries,
   type SignOut,
   type TestSignIn,
@@ -118,6 +120,7 @@ export type Container = {
   readonly getHealth: GetHealth;
   readonly postEntry: PostEntry;
   readonly searchEntries: SearchEntries;
+  readonly getEntryLog: GetEntryLog;
   readonly getIncomeStatement: GetIncomeStatement;
   readonly getAssetsAndLiabilities: GetAssetsAndLiabilities;
   readonly getAssetsAndLiabilitiesTrend: GetAssetsAndLiabilitiesTrend;
@@ -200,6 +203,7 @@ export function createContainer({ databaseUrl, google, testSignIn, deployment }:
       now: () => new Date(),
     }),
     searchEntries: createSearchEntries({ entries, accounts }),
+    getEntryLog: createGetEntryLog({ entries }),
     getIncomeStatement: createGetIncomeStatement({ entries, accounts }),
     getAssetsAndLiabilities: createGetAssetsAndLiabilities({ entries, accounts }),
     getAssetsAndLiabilitiesTrend: createGetAssetsAndLiabilitiesTrend({ entries, accounts }),

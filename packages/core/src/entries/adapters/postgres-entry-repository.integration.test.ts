@@ -94,9 +94,13 @@ beforeEach(async () => {
 
 let sequence = 0;
 
-function entry(overrides: Partial<EntryDraft> & { readonly createdAt?: Date } = {}): Entry {
+function entry(overrides: Partial<EntryDraft> & {
+    readonly createdAt?: Date;
+    readonly enteredAt?: Date;
+  } = {}): Entry {
   sequence += 1;
-  const { createdAt = new Date('2026-09-15T00:30:00.000Z'), ...draft } = overrides;
+  const { createdAt = new Date('2026-09-15T00:30:00.000Z'), enteredAt = createdAt, ...draft } =
+    overrides;
   const made = makeEntry(
     {
       entryDate: '2026-09-15',
@@ -111,6 +115,7 @@ function entry(overrides: Partial<EntryDraft> & { readonly createdAt?: Date } = 
     {
       id: `01920000-0000-7000-8000-${sequence.toString().padStart(12, '0')}` as EntryId,
       createdAt,
+      enteredAt,
     },
     NAMES,
   );
@@ -123,6 +128,7 @@ function reversalOf(original: Entry): Reversal {
   return makeReversal(original, {
     id: `01920000-0000-7000-8000-${sequence.toString().padStart(12, '0')}` as EntryId,
     createdAt: new Date('2026-10-04T09:00:00.000Z'),
+    enteredAt: new Date('2026-10-04T09:00:00.000Z'),
   });
 }
 
@@ -268,6 +274,98 @@ describe('createPostgresEntryRepository', () => {
       lateDayEarly.id,
       earlyDayLate.id,
     ]);
+  });
+
+  describe('entryLog', () => {
+    const entered = (enteredAt: string, overrides: Partial<EntryDraft> = {}): Entry =>
+      entry({ ...overrides, enteredAt: new Date(enteredAt) });
+    const logIds = async (userId: UserId = ADA): Promise<readonly string[]> => {
+      const log = await repository.entryLog(userId);
+      expect(isOk(log)).toBe(true);
+      return isOk(log) ? log.value.map((logged) => logged.id) : [];
+    };
+
+    it('answers with the latest Entered at first, whatever the calendar day', async () => {
+      const oldest = entered('2026-09-10T00:00:00Z', { entryDate: '2126-01-01' });
+      const newest = entered('2026-09-12T00:00:00Z', { entryDate: '2026-01-01' });
+      const middle = entered('2026-09-11T00:00:00Z', { entryDate: '2026-09-30' });
+      for (const saved of [oldest, newest, middle]) {
+        await repository.save(ADA, saved);
+      }
+
+      expect(await logIds()).toEqual([newest.id, middle.id, oldest.id]);
+    });
+
+    it('breaks a tie in Entered at by id, descending', async () => {
+      const first = entered('2026-09-10T00:00:00Z');
+      const second = entered('2026-09-10T00:00:00Z');
+      const third = entered('2026-09-10T00:00:00Z');
+      for (const saved of [second, first, third]) {
+        await repository.save(ADA, saved);
+      }
+
+      expect(await logIds()).toEqual([third.id, second.id, first.id]);
+    });
+
+    it('leaves out Reversals and the Entries they reverse', async () => {
+      const kept = entered('2026-09-10T00:00:00Z');
+      const doomed = entered('2026-09-11T00:00:00Z');
+      await repository.save(ADA, kept);
+      await repository.save(ADA, doomed);
+      await repository.saveReversal(ADA, reversalOf(doomed));
+
+      expect(await logIds()).toEqual([kept.id]);
+    });
+
+    it("leaves out another User's Entries", async () => {
+      const adas = entered('2026-09-10T00:00:00Z');
+      const graces = entered('2026-09-11T00:00:00Z');
+      await repository.save(ADA, adas);
+      await repository.save(GRACE, graces);
+
+      expect(await logIds(ADA)).toEqual([adas.id]);
+      expect(await logIds(GRACE)).toEqual([graces.id]);
+    });
+
+    it('keeps the replacement of a Correction where the Entry it replaced was', async () => {
+      const original = entered('2026-09-10T00:00:00Z');
+      const later = entered('2026-09-11T00:00:00Z');
+      const replacement = entry({
+        memo: 'Corrected',
+        createdAt: new Date('2026-09-12T00:00:00Z'),
+        enteredAt: original.enteredAt,
+      });
+      await repository.save(ADA, original);
+      await repository.save(ADA, later);
+      await repository.saveReversal(ADA, reversalOf(original));
+      await repository.save(ADA, replacement);
+
+      expect(await logIds()).toEqual([later.id, replacement.id]);
+      const rows = await database.execute<{ same: boolean }>(
+        sql`select entered_at = ${original.enteredAt.toISOString()}::timestamptz as same
+            from entries where id = ${replacement.id}`,
+      );
+      expect(rows.rows).toEqual([{ same: true }]);
+    });
+
+    it('does not change the order of search', async () => {
+      const backdatedLate = entry({
+        entryDate: '2026-09-01',
+        createdAt: new Date('2026-09-20T00:00:00Z'),
+      });
+      const recentEarly = entry({
+        entryDate: '2026-09-15',
+        createdAt: new Date('2026-09-10T00:00:00Z'),
+      });
+      await repository.save(ADA, backdatedLate);
+      await repository.save(ADA, recentEarly);
+
+      expect(await logIds()).toEqual([backdatedLate.id, recentEarly.id]);
+      expect((await found()).map((searched) => searched.id)).toEqual([
+        recentEarly.id,
+        backdatedLate.id,
+      ]);
+    });
   });
 
   it('answers with nothing when nothing was saved', async () => {

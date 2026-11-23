@@ -59,6 +59,9 @@ export type { EditEntry, EditEntryDependencies } from './application/edit-entry'
 export { createSearchEntries } from './application/search-entries';
 export type { SearchEntries, SearchEntriesDependencies } from './application/search-entries';
 
+export { createGetEntryLog } from './application/get-entry-log';
+export type { GetEntryLog, GetEntryLogDependencies } from './application/get-entry-log';
+
 export { createGetIncomeStatement } from './application/get-income-statement';
 export type {
   GetIncomeStatement,

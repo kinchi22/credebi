@@ -93,7 +93,7 @@ export function postgresEntriesOn(database: PostgresExecutor, logger: Logger): E
       title: entry.title,
       memo: entry.memo,
       createdAt: entry.createdAt,
-      enteredAt: entry.createdAt,
+      enteredAt: entry.enteredAt,
       reversesEntryId: reverses,
     });
     await transaction.insert(schema.entryLines).values(
@@ -146,6 +146,52 @@ export function postgresEntriesOn(database: PostgresExecutor, logger: Logger): E
       );
     }
     return entry;
+  };
+
+  const readEntries = async (
+    matching: SQL | undefined,
+    order: readonly SQL[],
+    failedEvent: string,
+  ): Promise<Result<readonly Entry[], DomainError>> => {
+    let entryRows: EntryRow[];
+    let lineRows: LineRow[];
+    try {
+      entryRows = await database
+        .select()
+        .from(schema.entries)
+        .where(matching)
+        .orderBy(...order);
+      lineRows = await database
+        .select(LINE_COLUMNS)
+        .from(schema.entryLines)
+        .innerJoin(schema.entries, eq(schema.entries.id, schema.entryLines.entryId))
+        .innerJoin(schema.accounts, eq(schema.accounts.id, schema.entryLines.accountId))
+        .where(matching)
+        .orderBy(asc(schema.entryLines.entryId), asc(schema.entryLines.lineNumber));
+    } catch (error) {
+      logger.error(
+        { event: failedEvent, error: describeError(error) },
+        'The entries could not be read.',
+      );
+      return unavailable('The entries could not be read.');
+    }
+
+    const linesByEntry = new Map<string, LineRow[]>();
+    for (const line of lineRows) {
+      const lines = linesByEntry.get(line.entryId) ?? [];
+      lines.push(line);
+      linesByEntry.set(line.entryId, lines);
+    }
+
+    const entries: Entry[] = [];
+    for (const row of entryRows) {
+      const entry = restoreOrReport(row, linesByEntry.get(row.id) ?? []);
+      if (!entry.ok) {
+        return entry;
+      }
+      entries.push(entry.value);
+    }
+    return ok(entries);
   };
 
   return {
@@ -225,55 +271,19 @@ export function postgresEntriesOn(database: PostgresExecutor, logger: Logger): E
       return ok({ entry: entry.value, reversed: row.reversed });
     },
 
-    search: async (
-      userId: UserId,
-      criteria: SearchCriteria,
-    ): Promise<Result<readonly Entry[], DomainError>> => {
-      const matching = matches(userId, criteria);
-      let entryRows: EntryRow[];
-      let lineRows: LineRow[];
-      try {
-        entryRows = await database
-          .select()
-          .from(schema.entries)
-          .where(matching)
-          .orderBy(
-            desc(schema.entries.entryDate),
-            desc(schema.entries.createdAt),
-            desc(schema.entries.id),
-          );
-        lineRows = await database
-          .select(LINE_COLUMNS)
-          .from(schema.entryLines)
-          .innerJoin(schema.entries, eq(schema.entries.id, schema.entryLines.entryId))
-          .innerJoin(schema.accounts, eq(schema.accounts.id, schema.entryLines.accountId))
-          .where(matching)
-          .orderBy(asc(schema.entryLines.entryId), asc(schema.entryLines.lineNumber));
-      } catch (error) {
-        logger.error(
-          { event: 'entries.search_failed', error: describeError(error) },
-          'The entries could not be read.',
-        );
-        return unavailable('The entries could not be read.');
-      }
+    search: (userId: UserId, criteria: SearchCriteria): Promise<Result<readonly Entry[], DomainError>> =>
+      readEntries(
+        matches(userId, criteria),
+        [desc(schema.entries.entryDate), desc(schema.entries.createdAt), desc(schema.entries.id)],
+        'entries.search_failed',
+      ),
 
-      const linesByEntry = new Map<string, LineRow[]>();
-      for (const line of lineRows) {
-        const lines = linesByEntry.get(line.entryId) ?? [];
-        lines.push(line);
-        linesByEntry.set(line.entryId, lines);
-      }
-
-      const entries: Entry[] = [];
-      for (const row of entryRows) {
-        const entry = restoreOrReport(row, linesByEntry.get(row.id) ?? []);
-        if (!entry.ok) {
-          return entry;
-        }
-        entries.push(entry.value);
-      }
-      return ok(entries);
-    },
+    entryLog: (userId: UserId): Promise<Result<readonly Entry[], DomainError>> =>
+      readEntries(
+        and(eq(schema.entries.userId, userId), shownEntry()),
+        [desc(schema.entries.enteredAt), desc(schema.entries.id)],
+        'entries.entry_log_failed',
+      ),
 
     accountTotals: async (
       userId: UserId,
@@ -528,7 +538,7 @@ function restore(row: EntryRow, lineRows: readonly LineRow[]): Result<Entry, Dom
 
   const entry = makeEntry(
     { entryDate: row.entryDate, title: row.title, memo: row.memo, lines },
-    { id: row.id as EntryId, createdAt: row.createdAt },
+    { id: row.id as EntryId, createdAt: row.createdAt, enteredAt: row.enteredAt },
     names,
   );
   return entry.ok

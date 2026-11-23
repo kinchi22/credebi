@@ -44,6 +44,7 @@ const line = (account: AccountId, side: Side, minorUnits: number): EntryDraft['l
 const STAMP = {
   id: '01920000-0000-7000-8000-000000000001' as EntryId,
   createdAt: new Date('2026-09-15T00:30:00.000Z'),
+  enteredAt: new Date('2026-09-15T00:30:00.000Z'),
 };
 
 const OFFICE_SUPPLIES: EntryDraft = {
@@ -85,6 +86,7 @@ describe('makeEntry', () => {
       ],
       total: 12500,
       createdAt: STAMP.createdAt,
+      enteredAt: STAMP.enteredAt,
     });
   });
 

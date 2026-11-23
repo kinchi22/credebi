@@ -36,6 +36,7 @@ function inMemoryEntries(): EntryRepository {
     },
     saveReversal: () => Promise.resolve(err(domainError('CONFLICT', 'Not posted here.'))),
     find: () => Promise.resolve(err(domainError('NOT_FOUND', 'Not read here.'))),
+    entryLog: () => Promise.resolve(err(domainError('NOT_FOUND', 'Not read here.'))),
     search: (userId: UserId): Promise<Result<readonly Entry[], DomainError>> =>
       Promise.resolve(
         ok(stored.filter((row) => row.userId === userId).map((row) => row.entry)),
@@ -82,6 +83,7 @@ const unavailableEntries: EntryRepository = {
   saveReversal: () => Promise.resolve(err(domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.'))),
   find: () => Promise.resolve(err(domainError('DEPENDENCY_UNAVAILABLE', 'The database is down.'))),
   search: () => Promise.resolve(ok([])),
+  entryLog: () => Promise.resolve(ok([])),
   accountTotals: () => Promise.resolve(ok([])),
   monthlyAccountTotals: () => Promise.resolve(ok({ opening: [], months: [] })),
   titledEntries: () => Promise.resolve(ok([])),

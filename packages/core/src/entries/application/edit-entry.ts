@@ -54,14 +54,14 @@ export function createEditEntry({
     const createdAt = now();
     const replacement = makePostedEntry(
       draft,
-      { id: newEntryId(), createdAt },
+      { id: newEntryId(), createdAt, enteredAt: entry.enteredAt },
       chart.value.accounts,
     );
     if (!replacement.ok) {
       return replacement;
     }
 
-    const reversal = makeReversal(entry, { id: newEntryId(), createdAt });
+    const reversal = makeReversal(entry, { id: newEntryId(), createdAt, enteredAt: createdAt });
     return unitOfWork.run(async (transactional) => {
       const reversing = await transactional.saveReversal(userId.value, reversal);
       if (!reversing.ok) {
