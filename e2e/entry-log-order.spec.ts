@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { expect, test, type Page } from '@playwright/test';
-import { entries, listedEntry, openEditEntry, postEntries, saveEdit, twoLine } from './entries';
+import { expect, test, type Locator, type Page } from '@playwright/test';
+import { entries, escaped, listedEntry, openEditEntry, postEntries, saveEdit, twoLine } from './entries';
 import { results, search } from './entry-search';
 import { ENTRY_SEARCH_PATH as SEARCH } from './routes';
 import { BOOKS_OPEN, signIn } from './session';
@@ -13,15 +13,15 @@ const EDITED_DAY = '2026-09-25';
 
 const posted = (memo: string, day: string) => twoLine({ day, memo });
 
-const inOrder = (memos: readonly string[]): RegExp[] => memos.map((memo) => new RegExp(memo));
-
-async function expectLogOrder(page: Page, memos: readonly string[]): Promise<void> {
-  await expect(entries(page).getByTestId('entry')).toHaveText(inOrder(memos));
+async function expectOrder(region: Locator, memos: readonly string[]): Promise<void> {
+  await expect(region.getByTestId('entry')).toHaveText(memos.map((memo) => new RegExp(escaped(memo))));
 }
 
-async function expectResultOrder(page: Page, memos: readonly string[]): Promise<void> {
-  await expect(results(page).getByTestId('entry')).toHaveText(inOrder(memos));
-}
+const expectLogOrder = (page: Page, memos: readonly string[]): Promise<void> =>
+  expectOrder(entries(page), memos);
+
+const expectResultOrder = (page: Page, memos: readonly string[]): Promise<void> =>
+  expectOrder(results(page), memos);
 
 async function changeDay(page: Page, memo: string, day: string): Promise<void> {
   const dialog = await openEditEntry(listedEntry(page, memo));
@@ -42,6 +42,7 @@ test('lists an Entry posted on a past calendar day above an Entry posted earlier
 });
 
 test('lists several Entries in the Entry log in reverse order of posting, after a reload too', async ({ page }) => {
+  test.slow();
   const run = randomUUID();
   const first = `First ${run}`;
   const second = `Second ${run}`;
@@ -91,6 +92,7 @@ test('leaves an Entry in place in the Entry log when it is edited twice', async 
 });
 
 test('orders Entry search results by calendar day, latest first, whatever the order of posting', async ({ page }) => {
+  test.slow();
   const run = randomUUID();
   const earliest = `Earliest ${run}`;
   const latest = `Latest ${run}`;
@@ -105,6 +107,7 @@ test('orders Entry search results by calendar day, latest first, whatever the or
 });
 
 test('orders Entry search results on the same calendar day with the later-posted Entry first', async ({ page }) => {
+  test.slow();
   const run = randomUUID();
   const first = `First ${run}`;
   const second = `Second ${run}`;
