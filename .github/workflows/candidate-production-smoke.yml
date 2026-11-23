@@ -22,7 +22,7 @@ jobs:
       # The reporter comes from main before checking out the event's SHA. An
       # older candidate may not contain it, but still needs a final status.
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           package-manager-cache: false
@@ -70,7 +70,7 @@ jobs:
         with:
           ref: ${{ steps.pending.outputs.sha }}
       - uses: pnpm/action-setup@v6.1.1
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
