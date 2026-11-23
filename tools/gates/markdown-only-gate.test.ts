@@ -22,9 +22,11 @@ const stepBlock = (job: string, name: string): string => {
   return next === -1 ? job.slice(start) : job.slice(start, start + 1 + next);
 };
 
-const SKIPPED_WHEN_MARKDOWN_ONLY = "needs.classify.outputs.markdown_only != 'true'";
+const MARKDOWN_ONLY = "needs.classify.outputs.markdown_only != 'true'";
 
-const skipsOnMarkdownOnly = (block: string): boolean => block.includes(`if: ${SKIPPED_WHEN_MARKDOWN_ONLY}\n`);
+const heavyCondition = `if: \${{ !cancelled() && ${MARKDOWN_ONLY} }}\n`;
+
+const skipsOnMarkdownOnly = (block: string): boolean => block.includes(`if: ${MARKDOWN_ONLY}\n`);
 
 describe('the Markdown-only rule', () => {
   it('holds for a list of Markdown files alone', () => {
@@ -58,17 +60,17 @@ describe('the Markdown-only rule', () => {
   });
 });
 
-describe.each([
-  ['ci.yml', 'Classify changed files (CI)'],
-  ['e2e-build.yml', 'Classify changed files (E2E build)'],
-])('the classification in %s', (file, name) => {
-  const text = workflow(file);
+describe('the shared classification', () => {
+  const text = workflow('classify-changed-files.yml');
   const classify = jobBlock(text, 'classify');
 
-  it('is a job of its own that reads the changed files of a pull request through the one function', () => {
-    expect(classify).toContain(`name: ${name}\n`);
+  it('reads the changed files of a pull request, renames included, through the one function', () => {
     expect(classify).toContain('| node tools/markdown-only.ts >> "$GITHUB_OUTPUT"');
     expect(classify).toContain("--jq '.[] | .filename, (.previous_filename // empty)'");
+  });
+
+  it('runs the classifier from the base branch, never the pull request own copy', () => {
+    expect(classify).toContain('ref: ${{ github.event.pull_request.base.sha || github.sha }}\n');
   });
 
   it('classifies a pull request and never a push', () => {
@@ -77,6 +79,14 @@ describe.each([
     expect(step).toContain('id: classify\n');
     expect(step).toContain("if: github.event_name == 'pull_request'\n");
     expect(classify).toContain("markdown_only: ${{ steps.classify.outputs.markdown_only || 'false' }}\n");
+  });
+
+  it('is called by ci.yml and e2e-build.yml as the job classify', () => {
+    for (const file of ['ci.yml', 'e2e-build.yml']) {
+      expect(jobBlock(workflow(file), 'classify')).toContain(
+        'uses: ./.github/workflows/classify-changed-files.yml\n',
+      );
+    }
   });
 });
 
@@ -92,14 +102,14 @@ describe('what a Markdown-only pull request skips in ci.yml', () => {
 
     expect(job).toContain(`name: ${name}\n`);
     expect(job).toContain('needs: classify\n');
-    expect(skipsOnMarkdownOnly(job)).toBe(true);
+    expect(job).toContain(heavyCondition);
   });
 
   it('keeps Gate liveness running and its shape gates unconditional', () => {
     const job = jobBlock(ci, 'gate-liveness');
 
     expect(job).toContain('needs: classify\n');
-    expect(job).not.toMatch(/\n {4}if:/);
+    expect(job).toContain('if: ${{ !cancelled() }}\n');
     expect(stepBlock(job, 'Fixture and shape gates')).not.toContain('if:');
     expect(stepBlock(job, 'Fixture and shape gates')).toContain('run: pnpm verify:gates\n');
   });
@@ -129,11 +139,14 @@ describe('what a Markdown-only pull request skips in ci.yml', () => {
 });
 
 describe('what a Markdown-only pull request skips in e2e-build.yml', () => {
-  it('skips the E2E build by if, under its required name', () => {
-    const job = jobBlock(workflow('e2e-build.yml'), 'e2e-build');
+  const job = jobBlock(workflow('e2e-build.yml'), 'e2e-build');
+  const steps = job.slice(job.indexOf('\n    steps:\n')).split(/\n {6}- /).slice(1);
 
+  it('runs the job, so it resolves its own name, and skips every step', () => {
     expect(job).toContain('needs: classify\n');
-    expect(skipsOnMarkdownOnly(job)).toBe(true);
+    expect(job).toContain('if: ${{ !cancelled() }}\n');
     expect(job).toContain("|| 'E2E build' }}");
+    expect(steps.length).toBeGreaterThan(0);
+    for (const step of steps) expect(step).toMatch(/needs\.classify\.outputs\.markdown_only != 'true'/);
   });
 });

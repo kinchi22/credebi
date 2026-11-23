@@ -10,44 +10,21 @@ env:
   TURBO_TELEMETRY_DISABLED: '1'
 
 jobs:
-  # A pull request whose changed files all end in `.md` skips the checks that
-  # read no Markdown. A job skipped by `if:` still reports success under its
-  # name, so a required check is satisfied; a workflow filtered out by `paths`
-  # reports nothing and would block. Push events are never classified, so every
-  # push runs everything.
+  # See classify-changed-files.yml. Each heavy job below skips on a
+  # Markdown-only pull request, and !cancelled() lets it run when the
+  # classification itself failed.
   classify:
-    name: Classify changed files (CI)
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
+    uses: ./.github/workflows/classify-changed-files.yml
     permissions:
       contents: read
       pull-requests: read
-    outputs:
-      markdown_only: ${{ steps.classify.outputs.markdown_only || 'false' }}
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          package-manager-cache: false
-      - name: Markdown-only pull request
-        id: classify
-        if: github.event_name == 'pull_request'
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh api --paginate \
-            "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" \
-            --jq '.[] | .filename, (.previous_filename // empty)' \
-            | node tools/markdown-only.ts >> "$GITHUB_OUTPUT"
 
   # Section 6, gates 1-4, 6 and 8, in the order the brief specifies. Any failure
   # blocks the merge.
   gates:
     name: Gates
     needs: classify
-    if: needs.classify.outputs.markdown_only != 'true'
+    if: ${{ !cancelled() && needs.classify.outputs.markdown_only != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -115,7 +92,7 @@ jobs:
   integration:
     name: Integration
     needs: classify
-    if: needs.classify.outputs.markdown_only != 'true'
+    if: ${{ !cancelled() && needs.classify.outputs.markdown_only != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -133,7 +110,7 @@ jobs:
   mutation:
     name: Mutation testing
     needs: classify
-    if: needs.classify.outputs.markdown_only != 'true'
+    if: ${{ !cancelled() && needs.classify.outputs.markdown_only != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -188,6 +165,7 @@ jobs:
   gate-liveness:
     name: Gate liveness
     needs: classify
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:

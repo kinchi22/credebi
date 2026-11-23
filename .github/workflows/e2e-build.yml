@@ -41,6 +41,14 @@ name: E2E build
 # and a push to `main` is not `refs/heads/milestone/`. The legs come from the
 # matrix rather than from jobs behind `if:`, because a job skipped by `if:`
 # still reports, as a success, under its name.
+#
+# A pull request whose changed files all end in `.md` runs nothing here, and the
+# skip is on the steps, not on the job. A job-level `if:` is evaluated before the
+# matrix expands, and `name:` is an expression over `matrix.suite`, so a job
+# skipped that way has no `matrix` to name itself from. The job runs, resolves
+# `E2E build` as it always does, and every step is skipped. `classify` decides
+# it, through `classify-changed-files.yml`; a failed `classify` skips nothing.
+#
 # https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches
 # https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks
 #
@@ -76,35 +84,14 @@ env:
 
 jobs:
   classify:
-    name: Classify changed files (E2E build)
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
+    uses: ./.github/workflows/classify-changed-files.yml
     permissions:
       contents: read
       pull-requests: read
-    outputs:
-      markdown_only: ${{ steps.classify.outputs.markdown_only || 'false' }}
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          package-manager-cache: false
-      - name: Markdown-only pull request
-        id: classify
-        if: github.event_name == 'pull_request'
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh api --paginate \
-            "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" \
-            --jq '.[] | .filename, (.previous_filename // empty)' \
-            | node tools/markdown-only.ts >> "$GITHUB_OUTPUT"
 
   e2e-build:
     needs: classify
-    if: needs.classify.outputs.markdown_only != 'true'
+    if: ${{ !cancelled() }}
     name: ${{ matrix.suite == 'existing'
       && 'E2E build (advisory, existing specs)'
       || matrix.suite == 'feature'
@@ -150,29 +137,36 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+        if: needs.classify.outputs.markdown_only != 'true'
         with:
           fetch-depth: ${{ matrix.suite == 'strict' && 1 || 0 }}
       - uses: pnpm/action-setup@v6.1.1
+        if: needs.classify.outputs.markdown_only != 'true'
       - uses: actions/setup-node@v7
+        if: needs.classify.outputs.markdown_only != 'true'
         with:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+        if: needs.classify.outputs.markdown_only != 'true'
 
       # Before the build, so a broken migration fails the job in seconds rather
       # than after it. The specs then run on the schema this commit carries,
       # which is the point: a milestone's behaviour is judged against its own
       # tables, not against whatever `main` last applied.
       - name: Migrate the CI database
+        if: needs.classify.outputs.markdown_only != 'true'
         run: pnpm --filter @repo/db db:migrate
         env:
           DATABASE_URL: postgres://e2e:e2e@127.0.0.1:5432/e2e
 
       - run: pnpm exec playwright install --with-deps chromium webkit
+        if: needs.classify.outputs.markdown_only != 'true'
 
       # No DATABASE_URL here, as in `Gates`: the build must not need it
       # (ADR-0005), and turbo hashes it into the build task.
       - name: 6. build
+        if: needs.classify.outputs.markdown_only != 'true'
         run: pnpm build
 
       # playwright.config.ts starts `next start` itself when E2E_BASE_URL is
@@ -187,7 +181,7 @@ jobs:
       # first use, and no spec follows the Google link. So these are
       # placeholders, not secrets.
       - name: 7. test:e2e
-        if: matrix.suite == 'strict'
+        if: needs.classify.outputs.markdown_only != 'true' && matrix.suite == 'strict'
         run: pnpm test:e2e
         env:
           DATABASE_URL: postgres://e2e:e2e@127.0.0.1:5432/e2e
@@ -199,7 +193,7 @@ jobs:
       # that selects the group, runs it once per test and judges its report.
       - name: 7. test:e2e:advisory
         id: advisory
-        if: matrix.suite != 'strict'
+        if: needs.classify.outputs.markdown_only != 'true' && matrix.suite != 'strict'
         run: pnpm test:e2e:advisory "$SUITE" --base origin/main
         env:
           SUITE: ${{ matrix.suite }}
@@ -209,7 +203,7 @@ jobs:
           GOOGLE_CLIENT_SECRET: e2e-build-placeholder
 
       - uses: actions/upload-artifact@v7.0.2
-        if: always() && matrix.suite == 'strict'
+        if: needs.classify.outputs.markdown_only != 'true' && always() && matrix.suite == 'strict'
         with:
           name: playwright-report-build
           path: playwright-report
@@ -221,6 +215,7 @@ jobs:
       # the traces themselves are beside it.
       - uses: actions/upload-artifact@v7.0.2
         if: >-
+          needs.classify.outputs.markdown_only != 'true' &&
           always() && matrix.suite != 'strict'
           && (steps.advisory.outcome == 'success' || steps.advisory.outcome == 'failure')
         with:

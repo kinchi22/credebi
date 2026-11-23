@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readStdinLines } from './stdin-lines.ts';
 
 export const SPEC_ROOT = 'e2e/';
 
@@ -47,10 +47,7 @@ export function findIsolationProblems(pr: PullRequest): readonly string[] {
 if (import.meta.main) {
   const [head = '', base = ''] = process.argv.slice(2);
 
-  const files = readFileSync(0, 'utf8')
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line !== '');
+  const files = readStdinLines();
 
   const problems = findIsolationProblems({ head, base, files });
   if (problems.length > 0) {
