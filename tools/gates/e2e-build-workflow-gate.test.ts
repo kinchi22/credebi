@@ -199,8 +199,8 @@ describe('the E2E build workflow', () => {
   it('gives each leg its own 20-minute budget, preparation included, and lets neither cancel the other', () => {
     expect(job).toMatch(/\n {4}timeout-minutes: 20\n/);
     expect(job).toMatch(/\n {4}strategy:\n {6}fail-fast: false\n/);
-    expect(job).not.toMatch(/\n {4}(needs|continue-on-error):/);
-    expect(workflow.match(/\n {2}[\w-]+:\n {4}(name|runs-on):/g)).toHaveLength(1);
+    expect(job).not.toMatch(/\n {4}continue-on-error:/);
+    expect(workflow.match(/\n {2}[\w-]+:\n {4}(name|runs-on|needs):/g)).toHaveLength(2);
   });
 
   it('fetches the whole history, main included, for a group and keeps the strict checkout shallow', () => {

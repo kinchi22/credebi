@@ -75,7 +75,36 @@ env:
   TURBO_TELEMETRY_DISABLED: '1'
 
 jobs:
+  classify:
+    name: Classify changed files (E2E build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      markdown_only: ${{ steps.classify.outputs.markdown_only || 'false' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Markdown-only pull request
+        id: classify
+        if: github.event_name == 'pull_request'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api --paginate \
+            "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" \
+            --jq '.[] | .filename, (.previous_filename // empty)' \
+            | node tools/markdown-only.ts >> "$GITHUB_OUTPUT"
+
   e2e-build:
+    needs: classify
+    if: needs.classify.outputs.markdown_only != 'true'
     name: ${{ matrix.suite == 'existing'
       && 'E2E build (advisory, existing specs)'
       || matrix.suite == 'feature'
