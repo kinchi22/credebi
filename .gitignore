@@ -39,8 +39,8 @@ apps/web/app/(app)/server-only-probe/
 # under `.claude/worktrees/` when Claude Code makes it,
 # under `.agents/worktrees/` when it is made by hand. It holds a full checkout
 # and its own node_modules, it is removed once the Task's pull request has merged,
-# and nothing in it is ever the source of a change: the branch is on the remote
-# before the worktree goes.
+# and nothing in it is ever the source of a change: the pull request's branch is
+# on GitHub, and the worktree goes only once that pull request has merged.
 .agents/worktrees/
 .claude/worktrees/
 

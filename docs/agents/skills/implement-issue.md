@@ -39,10 +39,12 @@ listening, so a server another session started silently answers a local e2e run.
 The Implementer returns to you when the port is busy before one.
 
 Each Agent worktree is removed once its pull request has merged. When a loop
-resumes, list them with `git worktree list`, map each to its pull request
-through the branch checked out there (`gh pr list --head <branch> --state
-merged`), and remove those whose pull request has merged, as
-`docs/agents/harnesses.md` says.
+resumes, list the worktrees with `git worktree list` and consider only those
+under the two directories `docs/agents/harnesses.md` names for an Agent
+worktree: never the primary tree, never one made by other tooling. Map each to
+its pull request through the branch checked out there (`gh pr list --head
+<branch> --state merged`), and remove those whose pull request has merged, as
+that file says.
 
 1. **Pick.** The first frontier Task, specs first. An empty frontier is a stop.
 2. **Build.** Dispatch an Implementer Subagent into a new Agent worktree, from
@@ -59,10 +61,10 @@ merged`), and remove those whose pull request has merged, as
    Implementer into a new Agent worktree instead: the answer is already on the
    issue.
 4. **Review.** Inside the Implementer's worktree, run `git fetch origin` and
-   invoke the `code-review` Skill with the pull request's base branch as the
-   fixed point. The review changes no files, and never checks a branch out in
-   the primary tree. The spec is the Task, and its Feature's body for context.
-   Post the report on the pull request as a comment.
+   invoke the `code-review` Skill with `origin/<base>`, the pull request's base
+   branch, as the fixed point. The review changes no files, and never checks a
+   branch out in the primary tree. The spec is the Task, and its Feature's body
+   for context. Post the report on the pull request as a comment.
 5. **Fix.** When either axis reports a hard violation, or a requirement missing
    or wrong, send the findings back to the same Subagent and review again.
    Judgement calls are the Subagent's to take or leave, with a reason in the
