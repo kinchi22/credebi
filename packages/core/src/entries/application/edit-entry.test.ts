@@ -22,6 +22,8 @@ import { createPostEntry } from './post-entry';
 import { createSearchEntries } from './search-entries';
 
 const NOW = new Date('2026-10-04T09:00:00.000Z');
+const LATER = new Date('2026-10-05T09:00:00.000Z');
+const LATEST = new Date('2026-10-06T09:00:00.000Z');
 
 const ADA_ID = '01920000-0000-7000-8000-0000000000a1' as UserId;
 const GRACE_ID = '01920000-0000-7000-8000-0000000000a2' as UserId;
@@ -83,13 +85,15 @@ function useCases(books: InMemoryEntries = inMemoryEntries()): {
   readonly editEntry: ReturnType<typeof createEditEntry>;
   readonly deleteEntry: ReturnType<typeof createDeleteEntry>;
   readonly visible: (auth: AuthContext) => Promise<readonly Entry[]>;
+  readonly setClock: (instant: Date) => void;
 } {
   let sequence = 0;
   const newEntryId = (): EntryId => {
     sequence += 1;
     return `01920000-0000-7000-8000-${sequence.toString().padStart(12, '0')}` as EntryId;
   };
-  const now = (): Date => NOW;
+  let clock = NOW;
+  const now = (): Date => clock;
   const { accounts, hold } = inMemoryAccounts();
   hold(ADA_ID, [
     account(CASH, 'asset', 'Cash'),
@@ -111,6 +115,9 @@ function useCases(books: InMemoryEntries = inMemoryEntries()): {
     },
     editEntry: createEditEntry({ ...books, accounts, newEntryId, now }),
     deleteEntry: createDeleteEntry({ entries: books.entries, newEntryId, now }),
+    setClock: (instant) => {
+      clock = instant;
+    },
     visible: async (auth) => {
       const found = await searchEntries(auth, NO_CRITERIA);
       return isOk(found) ? found.value : [];
@@ -141,11 +148,40 @@ describe('createEditEntry', () => {
       ],
       total: 8000,
       createdAt: NOW,
+      enteredAt: NOW,
     });
     expect(await visible(ADA)).toEqual([
       expect.objectContaining({ memo: 'Kept' }),
       edited.value,
     ]);
+  });
+
+  it("a correction's replacement keeps the entered-at of the entry it replaces", async () => {
+    const { post, editEntry, setClock } = useCases();
+    const original = await post(ADA, 'Office supplies');
+
+    setClock(LATER);
+    const first = await editEntry(ADA, original.id, REWRITTEN);
+    expect(isOk(first)).toBe(true);
+    if (!isOk(first)) return;
+    expect(first.value.enteredAt).toEqual(NOW);
+    expect(first.value.createdAt).toEqual(LATER);
+
+    setClock(LATEST);
+    const second = await editEntry(ADA, first.value.id, { ...REWRITTEN, memo: 'Again' });
+
+    expect(isOk(second) && second.value.enteredAt).toEqual(NOW);
+    expect(isOk(second) && second.value.createdAt).toEqual(LATEST);
+  });
+
+  it('gives the Reversal of a correction its own created-at as its entered-at', async () => {
+    const { rows, post, editEntry, setClock } = useCases();
+    const original = await post(ADA, 'Office supplies');
+
+    setClock(LATER);
+    await editEntry(ADA, original.id, REWRITTEN);
+
+    expect(rows[1]?.entry.enteredAt).toEqual(LATER);
   });
 
   it('posts a Reversal of the Entry and the replacement, and nothing else', async () => {
@@ -166,6 +202,7 @@ describe('createEditEntry', () => {
           memo: original.memo,
           total: original.total,
           createdAt: NOW,
+          enteredAt: NOW,
           lines: [
             { account: EXPENSES, accountName: 'Expenses', side: 'credit', amount: 12500 },
             { account: CASH, accountName: 'Cash', side: 'debit', amount: 12500 },

@@ -17,6 +17,7 @@ const ORIGINAL_ID = '01920000-0000-7000-8000-000000000001' as EntryId;
 const REVERSAL_STAMP = {
   id: '01920000-0000-7000-8000-000000000002' as EntryId,
   createdAt: new Date('2026-10-04T09:00:00.000Z'),
+  enteredAt: new Date('2026-10-04T09:00:00.000Z'),
 };
 
 function original(): Entry {
@@ -31,7 +32,11 @@ function original(): Entry {
         { account: PAYABLE, side: 'credit', amount: 30000 as Money },
       ],
     },
-    { id: ORIGINAL_ID, createdAt: new Date('2026-09-15T00:30:00.000Z') },
+    {
+      id: ORIGINAL_ID,
+      createdAt: new Date('2026-09-15T00:30:00.000Z'),
+      enteredAt: new Date('2026-09-15T00:30:00.000Z'),
+    },
     NAMES,
   );
   expect(isOk(made), 'test setup built an entry that breaks a rule').toBe(true);
@@ -52,6 +57,7 @@ describe('makeReversal', () => {
       ],
       total: 70000,
       createdAt: REVERSAL_STAMP.createdAt,
+      enteredAt: REVERSAL_STAMP.enteredAt,
       reverses: ORIGINAL_ID,
     });
   });

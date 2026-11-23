@@ -32,6 +32,14 @@ export const entriesRouter = router({
       return result.value.map((entry) => toPostedEntry(entry));
     }),
 
+  log: sessionProcedure.output(z.array(postedEntrySchema)).query(async ({ ctx }) => {
+    const result = await ctx.container.getEntryLog(ctx.auth);
+    if (!result.ok) {
+      throw toTrpcError(result.error);
+    }
+    return result.value.map((entry) => toPostedEntry(entry));
+  }),
+
   incomeStatement: sessionProcedure
     .input(incomeStatementQuerySchema)
     .output(incomeStatementSchema)

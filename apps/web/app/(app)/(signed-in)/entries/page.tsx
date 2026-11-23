@@ -1,5 +1,4 @@
 import { type EntryFormMode } from '@repo/contracts';
-import { NO_CRITERIA } from '@repo/core';
 import { type Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { type ReactNode } from 'react';
@@ -33,7 +32,7 @@ export default async function EntriesPage(): Promise<ReactNode> {
     orSignIn(caller.settings.read(), SIGNED_IN_HOME),
     orSignIn(caller.accounts.chart(), SIGNED_IN_HOME),
     orSignIn(caller.entries.titles(), SIGNED_IN_HOME),
-    orSignIn(caller.entries.search(NO_CRITERIA), SIGNED_IN_HOME),
+    orSignIn(caller.entries.log(), SIGNED_IN_HOME),
   ]);
   const EntryForm = FORM_BY_MODE[settings.entryFormMode];
 

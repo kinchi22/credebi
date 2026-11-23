@@ -27,6 +27,7 @@ export function makeReversal(entry: Entry, stamp: EntryStamp): Reversal {
     lines: entry.lines.map((line) => ({ ...line, side: OPPOSITE[line.side] })),
     total: entry.total,
     createdAt: stamp.createdAt,
+    enteredAt: stamp.enteredAt,
     reverses: entry.id,
   };
 }
