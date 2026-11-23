@@ -85,6 +85,18 @@ they made stale. `/api/trpc` exists for clients outside this app; nothing in
 Contracts are JSON-safe: an instant crosses as an ISO 8601 string and becomes a
 `Date` only inside `core`. See "Dates on the wire" in `docs/ARCHITECTURE.md`.
 
+## Dependency updates
+
+Enable the dependency graph, Dependabot alerts and Dependabot security updates in
+GitHub's Advanced Security settings. The root pnpm workspace receives security
+update pull requests. GitHub Actions receive individual weekly version updates.
+A person reviews and merges each update after the required checks pass. Changes
+to workflows require code-owner approval.
+
+The frozen install keeps the seven-day release-age policy and version-specific
+build-script approvals in force. For a security update, check that the lockfile
+diff changes the vulnerable dependency path reported in the advisory.
+
 ## Gates
 
 Run in this order; any failure blocks a merge.
