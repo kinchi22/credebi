@@ -30,6 +30,7 @@ jobs:
         run: |
           cp tools/candidate-smoke-status.ts "$RUNNER_TEMP/candidate-smoke-status.ts"
           cp tools/production-release.ts "$RUNNER_TEMP/production-release.ts"
+          cp tools/gh.ts "$RUNNER_TEMP/gh.ts"
       - name: Publish pending status
         id: pending
         env:

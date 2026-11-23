@@ -1,5 +1,6 @@
 import { appendFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { runGh } from './gh.ts';
 
 export const MIGRATIONS_ROOT = 'packages/db/drizzle/';
 
@@ -57,9 +58,17 @@ export function decide(
   };
 }
 
-function run(command: string, args: readonly string[]): string | undefined {
-  const result = spawnSync(command, [...args], { encoding: 'utf8', shell: false });
+function git(args: readonly string[]): string | undefined {
+  const result = spawnSync('git', [...args], { encoding: 'utf8', shell: false });
   return result.status === 0 ? result.stdout.trim() : undefined;
+}
+
+function gh(args: readonly string[]): string | undefined {
+  try {
+    return runGh(args, process.env);
+  } catch {
+    return undefined;
+  }
 }
 
 const lines = (text: string): readonly string[] =>
@@ -69,7 +78,7 @@ const lines = (text: string): readonly string[] =>
     .filter((line) => line !== '');
 
 function* deploymentsOf(repository: string): Generator<Deployment> {
-  const listed = run('gh', [
+  const listed = gh([
     'api',
     `repos/${repository}/deployments?environment=${ENVIRONMENT}&per_page=100`,
     '--jq',
@@ -82,7 +91,7 @@ function* deploymentsOf(repository: string): Generator<Deployment> {
 
   for (const line of lines(listed)) {
     const [id = '', sha = ''] = line.split(' ');
-    const state = run('gh', [
+    const state = gh([
       'api',
       `repos/${repository}/deployments/${id}/statuses?per_page=1`,
       '--jq',
@@ -96,7 +105,7 @@ if (import.meta.main) {
   const repository = process.env['GITHUB_REPOSITORY'] ?? '';
   const appliedSha = lastAppliedSha(deploymentsOf(repository));
   const diff =
-    appliedSha === undefined ? undefined : run('git', ['diff', '--name-only', appliedSha, 'HEAD']);
+    appliedSha === undefined ? undefined : git(['diff', '--name-only', appliedSha, 'HEAD']);
   const verdict = decide(appliedSha, diff === undefined ? undefined : lines(diff));
 
   console.log(verdict.reason);

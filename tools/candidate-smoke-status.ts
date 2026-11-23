@@ -1,5 +1,5 @@
-import { spawnSync } from 'node:child_process';
 import { appendFileSync } from 'node:fs';
+import { runGh } from './gh.ts';
 
 const CONTEXT = 'Candidate Production smoke';
 
@@ -26,8 +26,11 @@ function publish(sha: string, state: string, description: string): void {
     '-f', `state=${state}`, '-f', `context=${CONTEXT}`, '-f', `description=${description}`,
   ];
   if (runId !== undefined) args.push('-f', `target_url=https://github.com/${repository}/actions/runs/${runId}`);
-  const result = spawnSync('gh', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
-  if (result.status !== 0) throw new Error(`Failed to publish ${state} candidate status: ${result.stderr}`);
+  try {
+    runGh(args, process.env);
+  } catch (error) {
+    throw new Error(`Failed to publish ${state} candidate status: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
+  }
 }
 
 function main(): void {

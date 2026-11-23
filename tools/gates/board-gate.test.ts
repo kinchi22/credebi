@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { readStatus, setStatus, STATUS_NAMES, type BoardEnv, type StatusName } from '../board';
+import type { GhEnv } from '../gh.ts';
+import { readStatus, setStatus, STATUS_NAMES, type StatusName } from '../board';
 
-type Call = { readonly args: readonly string[]; readonly env: BoardEnv };
+type Call = { readonly args: readonly string[]; readonly env: GhEnv };
 
 function fakeGh(outputs: readonly string[] = []) {
   const calls: Call[] = [];
-  const gh = (args: readonly string[], env: BoardEnv): string => {
+  const gh = (args: readonly string[], env: GhEnv): string => {
     calls.push({ args, env });
     return outputs[calls.length - 1] ?? '';
   };
@@ -35,7 +36,7 @@ describe('board token', () => {
     },
   );
 
-  it('surfaces the stderr of a failing gh unchanged', () => {
+  it('surfaces the message a failing gh runner throws', () => {
     const gh = (): string => {
       throw new Error('unknown owner type');
     };
