@@ -1,0 +1,49 @@
+name: Classify changed files
+
+# One place for the Markdown-only decision, called by ci.yml and e2e-build.yml.
+# A pull request whose changed files all end in `.md` skips the checks that read
+# no Markdown. The classifier is the base branch's own copy, checked out at the
+# base SHA, so a pull request cannot rewrite the rule that judges it. A push is
+# never classified: the output stays 'false' and every check runs. A caller
+# skips only when this workflow succeeded and said 'true': a step that failed
+# after writing its output leaves that output behind, so the result is read too.
+# A listing shorter than the pull request's changed_files, or at the API's cap of
+# 3000 files, is never Markdown-only.
+
+on:
+  workflow_call:
+    outputs:
+      markdown_only:
+        description: "'true' when every changed file of a pull request ends in .md"
+        value: ${{ jobs.classify.outputs.markdown_only }}
+
+jobs:
+  classify:
+    name: Classify changed files
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      markdown_only: ${{ steps.classify.outputs.markdown_only || 'false' }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Markdown-only pull request
+        id: classify
+        if: github.event_name == 'pull_request'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CHANGED_FILES: ${{ github.event.pull_request.changed_files }}
+        run: |
+          gh api --paginate \
+            "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" \
+            --jq '.[] | .filename, (.previous_filename // empty)' \
+            | node tools/markdown-only.ts "$CHANGED_FILES" >> "$GITHUB_OUTPUT"
