@@ -468,6 +468,25 @@ describe('Production release workflow invariants', () => {
   });
 });
 
+describe('Candidate smoke status reporter', () => {
+  it('runs from a copy that holds every tool it imports', () => {
+    const candidate = readFileSync(
+      path.join(REPO_ROOT, '.github/workflows/candidate-production-smoke.yml'), 'utf8',
+    );
+    const copied = new Set<string>();
+    const queue = ['candidate-smoke-status.ts', 'production-release.ts'];
+    for (const name of queue) {
+      if (copied.has(name)) continue;
+      copied.add(name);
+      const source = readFileSync(path.join(REPO_ROOT, 'tools', name), 'utf8');
+      for (const match of source.matchAll(/from '\.\/([^']+)'/g)) queue.push(match[1] ?? '');
+    }
+    for (const name of copied) {
+      expect(candidate, name).toContain(`cp tools/${name} "$RUNNER_TEMP/${name}"`);
+    }
+  });
+});
+
 describe('Post-Promotion smoke workflow', () => {
   const workflows = path.join(REPO_ROOT, '.github/workflows');
   const promoted = readFileSync(path.join(workflows, 'promoted-production-smoke.yml'), 'utf8');

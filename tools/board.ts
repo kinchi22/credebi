@@ -1,4 +1,4 @@
-import { runGh } from './gh.ts';
+import { runGh, type GhEnv, type GhRunner } from './gh.ts';
 
 const PROJECT = {
   number: '2',
@@ -21,12 +21,8 @@ export type StatusName = keyof typeof STATUS_OPTIONS;
 
 export const STATUS_NAMES = Object.keys(STATUS_OPTIONS) as readonly StatusName[];
 
-export type BoardEnv = Readonly<Record<string, string | undefined>>;
-
-export type GhRunner = (args: readonly string[], env: BoardEnv) => string;
-
 export type BoardDeps = {
-  readonly env: BoardEnv;
+  readonly env: GhEnv;
   readonly gh: GhRunner;
 };
 
@@ -34,7 +30,7 @@ export function isStatusName(value: string): value is StatusName {
   return Object.hasOwn(STATUS_OPTIONS, value);
 }
 
-function boardEnv(env: BoardEnv): BoardEnv {
+function boardEnv(env: GhEnv): GhEnv {
   const token = env['BOARD_TOKEN'];
   if (token === undefined || token === '') {
     throw new Error('BOARD_TOKEN is not set. Board operations need a personal access token with the project and read:org scopes.');
@@ -85,9 +81,7 @@ export function setStatus(issue: number, status: StatusName, deps: BoardDeps): v
   );
 }
 
-export const spawnGh: GhRunner = runGh;
-
-export const processBoard: BoardDeps = { env: process.env, gh: spawnGh };
+export const processBoard: BoardDeps = { env: process.env, gh: runGh };
 
 function usage(): never {
   console.error(`Usage: node tools/board.ts status <issue>\n       node tools/board.ts set <issue> <${STATUS_NAMES.join(' | ')}>`);
