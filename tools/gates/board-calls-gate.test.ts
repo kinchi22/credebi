@@ -6,28 +6,25 @@ import {
   BOARD_RULE_SENTENCE,
   findBoardCallProblems,
   ISSUE_TRACKER_GUIDE,
-  type RepoFile,
 } from './board-calls';
+import type { DocFile } from './agents-shape';
 import { REPO_ROOT, runGate } from './run-gate';
 
-const file = (filePath: string, content: string): RepoFile => ({ path: filePath, content });
+const file = (filePath: string, content: string): DocFile => ({ path: filePath, content });
 
-const trackedTextFiles = (): readonly RepoFile[] => {
+const guide = file(ISSUE_TRACKER_GUIDE, BOARD_RULE_SENTENCE);
+
+const scan = (...files: readonly DocFile[]): readonly string[] =>
+  findBoardCallProblems([guide, ...files]);
+
+const trackedTextFiles = (): readonly DocFile[] => {
   const run = runGate('git', ['ls-files', '-z'], REPO_ROOT);
   expect(run.status, `git ls-files must succeed\n${run.stderr}`).toBe(0);
 
   return run.stdout
     .split('\0')
     .filter((name) => name !== '')
-    .flatMap((name) => {
-      let content: string;
-      try {
-        content = readFileSync(path.join(REPO_ROOT, name), 'utf8');
-      } catch {
-        return [];
-      }
-      return content.includes('\0') ? [] : [file(name, content)];
-    });
+    .map((name) => file(name, readFileSync(path.join(REPO_ROOT, name), 'utf8')));
 };
 
 describe('the board calls', () => {
@@ -39,28 +36,58 @@ describe('the board calls', () => {
     ["'project',", "execFile('gh', ['project', 'list'])"],
     ['"project",', 'exec("gh", ["project", "list"])'],
   ])('reports %s outside the allowed places, naming the file', (name, content) => {
-    const problems = findBoardCallProblems([file('scripts/other.ts', content)]);
+    const problems = scan(file('scripts/other.ts', content));
 
     expect(problems).toHaveLength(1);
     expect(problems[0]).toContain('scripts/other.ts');
     expect(problems[0]).toContain(`'${name}'`);
   });
 
-  it('ignores case', () => {
-    const problems = findBoardCallProblems([
-      file('a.ts', 'ProjectV2ItemFieldSingleSelectValue and GH PROJECT'),
-    ]);
+  it.each([
+    ['gh project', 'GH PROJECT'],
+    ['gh project', 'Gh Project'],
+    ['projectV2', 'PROJECTV2'],
+    ['projectV2', 'ProjectV2ItemFieldSingleSelectValue'],
+    ['projectItems', 'PROJECTITEMS'],
+    ['projectItems', 'ProjectItems'],
+    ["'project',", "['PROJECT', 'x']"],
+    ["'project',", "['Project',"],
+    ['"project",', '["PROJECT",'],
+    ['"project",', '["Project",'],
+  ])('reports %s in the form %s', (name, content) => {
+    const problems = scan(file('a.ts', content));
 
-    expect(problems).toHaveLength(2);
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain(`'${name}'`);
+  });
+
+  it('skips a file that is not text', () => {
+    expect(
+      scan(file('logo.png', 'gh project\0projectV2')),
+    ).toEqual([]);
+  });
+
+  it('reports a scan holding only files that are not text as broken', () => {
+    expect(findBoardCallProblems([file('logo.png', '\0gh project')])[0]).toContain(
+      'scan is broken',
+    );
+  });
+
+  it('reports the rule sentence missing when the guide is not in the file list', () => {
+    const problems = findBoardCallProblems([file('a.ts', 'ok')]);
+
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain(BOARD_RULE_SENTENCE);
+    expect(problems[0]).toContain('was not found');
   });
 
   it('does not report a word that merely contains project', () => {
-    expect(findBoardCallProblems([file('a.ts', 'the project, a projection')])).toEqual([]);
+    expect(scan(file('a.ts', 'the project, a projection'))).toEqual([]);
   });
 
   it.each(BOARD_CALLS_ALLOWED_IN)('does not report %s', (allowed) => {
     expect(
-      findBoardCallProblems([file(allowed, "gh project projectV2 projectItems 'project',")]),
+      scan(file(allowed, "gh project projectV2 projectItems 'project',")),
     ).toEqual([]);
   });
 
