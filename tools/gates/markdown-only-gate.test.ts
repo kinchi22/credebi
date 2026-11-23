@@ -22,7 +22,8 @@ const stepBlock = (job: string, name: string): string => {
   return next === -1 ? job.slice(start) : job.slice(start, start + 1 + next);
 };
 
-const MARKDOWN_ONLY = "needs.classify.outputs.markdown_only != 'true'";
+const MARKDOWN_ONLY =
+  "!(needs.classify.result == 'success' && needs.classify.outputs.markdown_only == 'true')";
 
 const heavyCondition = `if: \${{ !cancelled() && ${MARKDOWN_ONLY} }}\n`;
 
@@ -30,26 +31,42 @@ const skipsOnMarkdownOnly = (block: string): boolean => block.includes(`if: ${MA
 
 describe('the Markdown-only rule', () => {
   it('holds for a list of Markdown files alone', () => {
-    expect(isMarkdownOnly(['README.md', 'docs/adr/0001-x.md'])).toBe(true);
+    expect(isMarkdownOnly(['README.md', 'docs/adr/0001-x.md'], 2)).toBe(true);
   });
 
   it('fails for a Markdown file beside any other file', () => {
-    expect(isMarkdownOnly(['README.md', 'apps/web/app/page.tsx'])).toBe(false);
+    expect(isMarkdownOnly(['README.md', 'apps/web/app/page.tsx'], 2)).toBe(false);
   });
 
   it('fails for no files', () => {
-    expect(isMarkdownOnly([])).toBe(false);
+    expect(isMarkdownOnly([], 0)).toBe(false);
   });
 
   it('fails for a name that only looks like Markdown', () => {
-    expect(isMarkdownOnly(['docs/guide.mdx'])).toBe(false);
-    expect(isMarkdownOnly(['docs/guide.md.bak'])).toBe(false);
-    expect(isMarkdownOnly(['md'])).toBe(false);
+    expect(isMarkdownOnly(['docs/guide.mdx'], 1)).toBe(false);
+    expect(isMarkdownOnly(['docs/guide.md.bak'], 1)).toBe(false);
+    expect(isMarkdownOnly(['md'], 1)).toBe(false);
+  });
+
+  it('fails for a listing shorter than the pull request changed files', () => {
+    expect(isMarkdownOnly(['README.md'], 2)).toBe(false);
+    expect(isMarkdownOnly(['README.md'], Number.NaN)).toBe(false);
+  });
+
+  it('holds when renames make the listing longer than the changed files', () => {
+    expect(isMarkdownOnly(['new.md', 'old.md'], 1)).toBe(true);
+  });
+
+  it('fails for a listing at the cap of 3000 files', () => {
+    const files = (count: number): readonly string[] => Array.from({ length: count }, (_, i) => `docs/${String(i)}.md`);
+
+    expect(isMarkdownOnly(files(2999), 2999)).toBe(true);
+    expect(isMarkdownOnly(files(3000), 3000)).toBe(false);
   });
 
   it('answers on the command line from the files on standard input', () => {
-    const answer = (input: string): string =>
-      spawnSync(process.execPath, [path.join(REPO_ROOT, 'tools', 'markdown-only.ts')], {
+    const answer = (input: string, count = '2'): string =>
+      spawnSync(process.execPath, [path.join(REPO_ROOT, 'tools', 'markdown-only.ts'), count], {
         input,
         encoding: 'utf8',
       }).stdout.trim();
@@ -57,6 +74,8 @@ describe('the Markdown-only rule', () => {
     expect(answer('README.md\ndocs/a.md\n')).toBe('markdown_only=true');
     expect(answer('README.md\nsrc/a.ts\n')).toBe('markdown_only=false');
     expect(answer('')).toBe('markdown_only=false');
+    expect(answer('README.md\ndocs/a.md\n', '3')).toBe('markdown_only=false');
+    expect(answer('README.md\ndocs/a.md\n', '')).toBe('markdown_only=false');
   });
 });
 
@@ -65,11 +84,12 @@ describe('the shared classification', () => {
   const classify = jobBlock(text, 'classify');
 
   it('reads the changed files of a pull request, renames included, through the one function', () => {
-    expect(classify).toContain('| node tools/markdown-only.ts >> "$GITHUB_OUTPUT"');
+    expect(classify).toContain('| node tools/markdown-only.ts "$CHANGED_FILES" >> "$GITHUB_OUTPUT"');
+    expect(classify).toContain('CHANGED_FILES: ${{ github.event.pull_request.changed_files }}\n');
     expect(classify).toContain("--jq '.[] | .filename, (.previous_filename // empty)'");
   });
 
-  it('runs the classifier from the base branch, never the pull request own copy', () => {
+  it("runs the classifier from the base branch, never the pull request's own copy", () => {
     expect(classify).toContain('ref: ${{ github.event.pull_request.base.sha || github.sha }}\n');
   });
 
@@ -147,6 +167,6 @@ describe('what a Markdown-only pull request skips in e2e-build.yml', () => {
     expect(job).toContain('if: ${{ !cancelled() }}\n');
     expect(job).toContain("|| 'E2E build' }}");
     expect(steps.length).toBeGreaterThan(0);
-    for (const step of steps) expect(step).toMatch(/needs\.classify\.outputs\.markdown_only != 'true'/);
+    for (const step of steps) expect(step).toContain(MARKDOWN_ONLY);
   });
 });

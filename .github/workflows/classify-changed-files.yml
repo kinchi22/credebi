@@ -5,8 +5,10 @@ name: Classify changed files
 # no Markdown. The classifier is the base branch's own copy, checked out at the
 # base SHA, so a pull request cannot rewrite the rule that judges it. A push is
 # never classified: the output stays 'false' and every check runs. A caller
-# skips on 'true' alone, so a classification that failed or never ran skips
-# nothing.
+# skips only when this workflow succeeded and said 'true': a step that failed
+# after writing its output leaves that output behind, so the result is read too.
+# A listing shorter than the pull request's changed_files, or at the API's cap of
+# 3000 files, is never Markdown-only.
 
 on:
   workflow_call:
@@ -39,8 +41,9 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          CHANGED_FILES: ${{ github.event.pull_request.changed_files }}
         run: |
           gh api --paginate \
             "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" \
             --jq '.[] | .filename, (.previous_filename // empty)' \
-            | node tools/markdown-only.ts >> "$GITHUB_OUTPUT"
+            | node tools/markdown-only.ts "$CHANGED_FILES" >> "$GITHUB_OUTPUT"

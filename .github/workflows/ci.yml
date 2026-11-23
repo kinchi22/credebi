@@ -24,7 +24,7 @@ jobs:
   gates:
     name: Gates
     needs: classify
-    if: ${{ !cancelled() && needs.classify.outputs.markdown_only != 'true' }}
+    if: ${{ !cancelled() && !(needs.classify.result == 'success' && needs.classify.outputs.markdown_only == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -92,7 +92,7 @@ jobs:
   integration:
     name: Integration
     needs: classify
-    if: ${{ !cancelled() && needs.classify.outputs.markdown_only != 'true' }}
+    if: ${{ !cancelled() && !(needs.classify.result == 'success' && needs.classify.outputs.markdown_only == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -110,7 +110,7 @@ jobs:
   mutation:
     name: Mutation testing
     needs: classify
-    if: ${{ !cancelled() && needs.classify.outputs.markdown_only != 'true' }}
+    if: ${{ !cancelled() && !(needs.classify.result == 'success' && needs.classify.outputs.markdown_only == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -185,16 +185,16 @@ jobs:
         run: pnpm verify:gates
 
       - name: server-only build fixture
-        if: needs.classify.outputs.markdown_only != 'true'
+        if: !(needs.classify.result == 'success' && needs.classify.outputs.markdown_only == 'true')
         run: pnpm verify:gates:build
 
       # Stryker, so the same flood as `5. test:mutation`; see there.
       - name: Mutation threshold fixture
-        if: needs.classify.outputs.markdown_only != 'true'
+        if: !(needs.classify.result == 'success' && needs.classify.outputs.markdown_only == 'true')
         run: env -u GITHUB_STEP_SUMMARY pnpm verify:gates:mutation
 
       - name: Migration drift fixture
-        if: needs.classify.outputs.markdown_only != 'true'
+        if: !(needs.classify.result == 'success' && needs.classify.outputs.markdown_only == 'true')
         run: pnpm verify:gates:migration
 
       # ADR-0006. The specs against an empty page, where every one of them must
@@ -204,11 +204,11 @@ jobs:
       # after a milestone has been built on it. It needs no build and no server
       # beyond the one the script starts.
       - name: Install Playwright browsers
-        if: needs.classify.outputs.markdown_only != 'true'
+        if: !(needs.classify.result == 'success' && needs.classify.outputs.markdown_only == 'true')
         run: pnpm exec playwright install --with-deps chromium webkit
 
       - name: E2E specs fail against an empty page
-        if: needs.classify.outputs.markdown_only != 'true'
+        if: !(needs.classify.result == 'success' && needs.classify.outputs.markdown_only == 'true')
         run: pnpm verify:gates:e2e
 
   # ADR-0002. The specs are the requirements and they land first, so a change
