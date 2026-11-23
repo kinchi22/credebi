@@ -56,15 +56,23 @@ it serial.
    or wrong, send the findings back to the same Subagent and review again.
    Judgement calls are the Subagent's to take or leave, with a reason in the
    pull request. After a second review that still fails, stop.
-6. **Ticket the leftovers.** Before merging, open an issue for each real
-   problem the reviews raised that the pull request leaves unfixed, whether a
-   judgement call the Subagent left or a finding outside the Task. A real
-   problem is behaviour that is wrong, a document that contradicts the code or
-   itself, a second source of truth that can drift, or a criterion nothing
-   checks. A naming or shape smell stays in the review comment. Open each one
-   without asking the owner: a defect as a Bug, anything else as a Feature with
-   its kind, and a choice only the owner can make written into its body as the
-   decision needed. Whether to act on it is decided later, from the issue.
+6. **Fold in, then ticket the leftovers.** A real problem is behaviour that is
+   wrong, a document that contradicts the code or itself, a second source of
+   truth that can drift, or a criterion nothing checks. A naming or shape smell
+   is not one, and stays in the review comment.
+   A real problem the reviews raised goes back to the same Subagent, as in step
+   5, when the fix that closes the Task reaches it: it sits in code the diff
+   touches, it is the same defect copied into a sibling, or it is a duplicate
+   the fix would merge into one implementation. Add it to the issue body as
+   scope, and it is no longer the Subagent's to leave. It stays out when it
+   needs the owner's decision, touches an owned path, changes another issue's
+   criteria, is a different defect, or would take the pull request past one
+   session.
+   Before merging, open an issue for each real problem that stays out, whether
+   a judgement call the Subagent left or a finding outside the Task. Open each
+   one without asking the owner: a defect as a Bug, anything else as a Feature
+   with its kind, and a choice only the owner can make written into its body as
+   the decision needed. Whether to act on it is decided later, from the issue.
    Link each from the review comment.
 7. **Merge.** Wait for the required checks (`gh pr checks <pr> --watch
    --required`). Green, and with no owned path in the diff, merge it:
