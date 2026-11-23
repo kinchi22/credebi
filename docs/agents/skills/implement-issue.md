@@ -28,34 +28,36 @@ Take one Task at a time, each in an Agent worktree of its own, made as
 `docs/agents/harnesses.md` says, whether or not any other session is using the
 repository's primary tree: isolation never depends on your judging whether it is
 busy. The loop stays serial. The gates share nothing but port 3000, which is why
-a worktree is enough. `pnpm test:integration` starts a throwaway Postgres of its
+a worktree is enough: `pnpm test:integration` starts a throwaway Postgres of its
 own through testcontainers, on a port it picks
 (`tools/integration/postgres-container.ts`); the container in
 `docker-compose.yml` is the development database and no gate touches it.
-`db:drift` and `db:check` read files and never connect. A worktree costs a cold
-`pnpm install`, which the Implementer runs.
+`db:drift` and `db:check` read files and never connect.
 
-One thing is genuinely shared. `playwright.config.ts` binds `127.0.0.1:3000` and
-reuses a server already listening, so a server another session started silently
-answers a local e2e run. The Implementer checks that the port is free before
-such a run and returns to you when it is not; that holds for any number of
-worktrees, since one from another session counts the same as the primary tree.
+`playwright.config.ts` binds `127.0.0.1:3000` and reuses a server already
+listening, so a server another session started silently answers a local e2e run.
+The Implementer returns to you when the port is busy before one.
+
+Each Agent worktree is removed once its pull request has merged. When a loop
+resumes, first remove every Agent worktree whose pull request has merged, as
+`docs/agents/harnesses.md` says.
 
 1. **Pick.** The first frontier Task, specs first. An empty frontier is a stop.
 2. **Build.** Dispatch an Implementer Subagent into a new Agent worktree, from
    the `implementer` Agent definition, with the prompt: "Implement
    issue #<n>. Follow `docs/agents/skills/implement-issue-implementer.md`." Pass
    nothing else; the issue is the brief, and the worktree is how it is
-   dispatched, not something the prompt carries. It returns a pull request number, or a
-   question.
+   dispatched, not something the prompt carries. It returns a pull request
+   number, or a question, and `docs/agents/harnesses.md` says how you learn the
+   worktree's path.
 3. **Answer questions.** A question means the Task left a decision open. Put it
    to the owner, write the answer into the issue as a comment, and send the same
    Subagent on. When the answer changes the Task's scope, edit the issue body
    too.
-4. **Review.** Inside the Implementer's worktree, read-only, invoke the
-   `code-review` Skill with the pull request's base branch as the fixed point.
-   Never check a branch out in the primary tree. The spec is the
-   Task, and its Feature's body for context. Post the report on the pull request
+4. **Review.** Inside the Implementer's worktree, read-only, run
+   `git fetch origin` and invoke the `code-review` Skill with the pull request's
+   base branch as the fixed point. Never check a branch out in the primary tree.
+   The spec is the Task, and its Feature's body for context. Post the report on the pull request
    as a comment.
 5. **Fix.** When either axis reports a hard violation, or a requirement missing
    or wrong, send the findings back to the same Subagent and review again.
@@ -80,10 +82,12 @@ worktrees, since one from another session counts the same as the primary tree.
    the decision needed. Whether to act on it is decided later, from the issue.
    Link each from the review comment.
 7. **Merge.** Wait for the required checks (`gh pr checks <pr> --watch
-   --required`). Green, and with no owned path in the diff, merge it:
-   `gh pr merge <pr> --squash --delete-branch`, then remove the Agent worktree:
-   nothing in it is lost, everything that matters is on GitHub. An owned path, or a pull
-   request into `main`, waits for the owner: that is a stop, and the worktree stays.
+   --required`). Green, and with no owned path in the diff, remove the Agent
+   worktree first, so `gh pr merge`'s local branch delete is not refused by a
+   branch checked out there, then merge it:
+   `gh pr merge <pr> --squash --delete-branch`. Nothing in the worktree is lost:
+   everything that matters is on GitHub. An owned path, or a pull request into
+   `main`, waits for the owner: that is a stop.
 8. **Read the milestone's two advisory checks**, on a Feature with a
    milestone. A push to the milestone starts both, and `docs/ARCHITECTURE.md`,
    "How a criterion ships", says how they split the specs. Read each on its own;

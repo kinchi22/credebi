@@ -1,12 +1,12 @@
 # Implementing one Task
 
 This is the Implementer's brief. `docs/agents/harnesses.md` defines the words
-used here -- Driver, Implementer, Subagent, Skill -- and maps each to the
+used here -- Driver, Implementer, Subagent, Skill, Agent worktree -- and maps each to the
 mechanism your harness gives you.
 
 You are dispatched into an Agent worktree of your own and build there, never in
-the primary tree. You build one Task and open its pull request. The Driver that dispatched you
-reviews and merges it. `docs/agents/issue-tracker.md` holds the Status values,
+the primary tree. You build one Task and open its pull request. The Driver that
+dispatched you reviews and merges it. `docs/agents/issue-tracker.md` holds the Status values,
 the base branch for your Task and the `gh` commands.
 
 1. **Read.** `gh issue view <n> --comments`, its Feature's body, and the ADRs
@@ -32,10 +32,7 @@ the base branch for your Task and the `gh` commands.
    and `git branch --show-current` is your Task's branch. On a mismatch change
    nothing and return it to the Driver.
 6. **Gate.** `pnpm gates` passes. A specs Task passes
-   `pnpm verify:gates:e2e` too: every spec fails against an empty page. Before
-   a local e2e run, check that `127.0.0.1:3000` is free
-   (`lsof -nP -iTCP:3000 -sTCP:LISTEN` prints nothing); when it is not, return
-   to the Driver and stop.
+   `pnpm verify:gates:e2e` too: every spec fails against an empty page.
 7. **Open.** Push and open the pull request into the base branch. The title is
    the change in the imperative, as the log reads. Write the body with the `pr`
    Skill. Its Merge Danger names every owned path in the diff and why the owner
@@ -47,6 +44,10 @@ the base branch for your Task and the `gh` commands.
    `gh pr checks <n> --watch --required` is the one wait, and it ends by itself.
    Every server, database and process you started is stopped first, so the
    next Task finds port 3000 free.
+
+Before every local e2e run, in any step, check that `127.0.0.1:3000` is free
+(`lsof -nP -iTCP:3000 -sTCP:LISTEN` prints nothing). When it is not, change
+nothing and return to the Driver.
 
 When the Driver sends review findings, fix them on the same branch, run the
 gates again, push, and return the number again, the same way.
