@@ -111,6 +111,7 @@ Run in this order; any failure blocks a merge.
 | 4 | `pnpm test:unit`             | Vitest over `packages` and `apps`, no IO               |
 | 4b| `pnpm test:integration`      | Adapters against a real Postgres (Docker required)     |
 | 5 | `pnpm test:mutation`         | Stryker over domain, application, contracts and the testable half of `apps/web/server`; break threshold 90. The only coverage gate. |
+| 5b| `pnpm test:mutation:changed [--base <ref>]` | Not a gate: the advisory Change score of local work against the merge base with `origin/main` (or `<ref>`), committed or not, over the changed files only; written to `reports/mutation-changed/`, never fails on a score (ADR-0033) |
 | 6 | `pnpm build`                 | Next build, including the `server-only` RSC boundary   |
 | 7 | `pnpm test:e2e`              | Playwright against a production build; in CI, `E2E build` on every pull request into `main`, where the ruleset requires it |
 | 8 | `pnpm jscpd`                 | Duplication threshold                                  |

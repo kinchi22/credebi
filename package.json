@@ -21,6 +21,7 @@
     "test:unit": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:mutation": "stryker run stryker.config.ts",
+    "test:mutation:changed": "node tools/change-score-local.ts",
     "build": "turbo run build",
     "test:e2e": "playwright test",
     "test:e2e:advisory": "node tools/run-advisory-specs.ts",

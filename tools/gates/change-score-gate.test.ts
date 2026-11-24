@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import stryker from '../../stryker.config';
 import {
   buildChangeReport,
+  parseLocalArguments,
+  planLocalRun,
   renderChangeReport,
   type ChangeReport,
 } from '../change-score';
@@ -136,8 +138,8 @@ describe('the Change score', () => {
     );
 
     expect(report.change).toMatchObject({ mutants: 10, score: 0 });
-    expect(report.surface.score).toBeGreaterThanOrEqual(90);
-    expect(report.surface.mutants).toBe(210);
+    expect(report.surface?.score).toBeGreaterThanOrEqual(90);
+    expect(report.surface?.mutants).toBe(210);
   });
 
   it('counts every mutant of a file the pull request creates, beyond the lines of its hunks', () => {
@@ -603,5 +605,117 @@ describe('the Stryker configuration', () => {
 
   it('keeps the floor of 90', () => {
     expect(stryker.thresholds).toEqual({ high: 95, low: 90, break: 90 });
+  });
+});
+
+describe('the Change score of local work', () => {
+  const local = (files: Record<string, readonly Mutant[]>, diff: string): ChangeReport =>
+    buildChangeReport({ scope: 'local', report: strykerReport(files), diff, mutate: MUTATE, elapsedMs: 1 });
+
+  const report = local({ [NEW]: [...many(19, 'Killed'), mutant('Survived', 2)] }, created(NEW, 2));
+
+  it('knows no whole-surface score, and renders none', () => {
+    expect(complete(report).surface).toBeUndefined();
+    expect(renderChangeReport(report)).not.toContain('Whole-surface');
+    expect(JSON.stringify(report)).not.toContain('surface');
+  });
+
+  it('still states the Change score against its target and lists each unkilled mutant', () => {
+    const markdown = renderChangeReport(report);
+    expect(markdown).toContain('**Change score:** 95.00% of 20 Changed mutants, against a target of 95%');
+    expect(markdown).toContain(`- \`${NEW}:2:3\` ConditionalExpression, Survived`);
+  });
+
+  it('names a change, not a pull request, when it is not applicable', () => {
+    const markdown = renderChangeReport(local({ [OLD]: many(1, 'Killed', 40) }, modified(ROUTER, [1, 1])));
+    expect(markdown).toContain('no mutant overlaps a line this change adds or modifies');
+  });
+
+  it('counts the Changed mutants as a pull request does, a block beyond the changed line included', () => {
+    const block = mutant('Survived', 1, { endLine: 30 });
+    const both = (scope: 'local' | 'pull-request'): number =>
+      complete(
+        buildChangeReport({
+          scope,
+          report: strykerReport({ [OLD]: [block] }),
+          diff: modified(OLD, [10, 1]),
+          mutate: MUTATE,
+          elapsedMs: 1,
+        }),
+      ).change.mutants;
+    expect(both('local')).toBe(1);
+    expect(both('local')).toBe(both('pull-request'));
+  });
+
+  it('leaves the pull request report with its whole-surface score', () => {
+    expect(complete(buildChangeReport({ report: strykerReport({ [OLD]: many(2, 'Killed') }), diff: modified(OLD, [1, 1]), mutate: MUTATE, elapsedMs: 1 })).surface?.mutants).toBe(2);
+  });
+});
+
+describe('the arguments of the local run', () => {
+  it('takes origin/main as the base by default', () => {
+    expect(parseLocalArguments([])).toEqual({ ok: true, base: 'origin/main' });
+  });
+
+  it('takes the base named by --base', () => {
+    expect(parseLocalArguments(['--base', 'milestone/x'])).toEqual({ ok: true, base: 'milestone/x' });
+  });
+
+  it('refuses --base with no ref', () => {
+    expect(parseLocalArguments(['--base']).ok).toBe(false);
+    expect(parseLocalArguments(['--base', '--other']).ok).toBe(false);
+  });
+
+  it('refuses an argument it does not know', () => {
+    expect(parseLocalArguments(['--file', OLD])).toEqual({ ok: false, problem: 'unknown argument --file' });
+  });
+});
+
+describe('the plan of the local run', () => {
+  it('hands Stryker each changed file inside the mutate patterns, whole, in path order', () => {
+    const diff = [modified(OLD, [3, 1]), created(NEW, 2)].join('\n');
+    expect(planLocalRun({ diff, untracked: [], mutate: MUTATE }).measured).toEqual([NEW, OLD]);
+  });
+
+  it('hands over a file renamed with edits and a file only moved, for the report to tell apart', () => {
+    const diff = [renamed(OLD, NEW, [3, 1]), renamed('packages/core/src/ledger/domain/a.ts', MOVED)].join('\n');
+    expect(planLocalRun({ diff, untracked: [], mutate: MUTATE }).measured).toEqual([NEW, MOVED]);
+  });
+
+  it('hands over no deleted file and no file outside the mutate patterns', () => {
+    const diff = [deleted(OLD, 3), modified(ROUTER, [1, 1]), modified('docs/GLOSSARY.md', [1, 1])].join('\n');
+    expect(planLocalRun({ diff, untracked: [], mutate: MUTATE }).measured).toEqual([]);
+  });
+
+  it('counts an untracked file as created, every mutant of it a Changed mutant', () => {
+    const plan = planLocalRun({ diff: '', untracked: [NEW, 'notes.txt'], mutate: MUTATE });
+    expect(plan.measured).toEqual([NEW]);
+    const report = complete(
+      buildChangeReport({
+        scope: 'local',
+        report: strykerReport({ [NEW]: [mutant('Killed', 40), mutant('Survived', 90)] }),
+        diff: plan.diff,
+        mutate: MUTATE,
+        elapsedMs: 1,
+      }),
+    );
+    expect(report.change.mutants).toBe(2);
+    expect(report.files.map((file) => file.kind)).toEqual(['created']);
+    expect(report.unmeasured.map((file) => file.path)).toEqual(['notes.txt']);
+  });
+
+  it('plans a change with no measured file, which reports not applicable with an empty Stryker report', () => {
+    const plan = planLocalRun({ diff: deleted(OLD, 3), untracked: [], mutate: MUTATE });
+    expect(plan.measured).toEqual([]);
+    const report = complete(
+      buildChangeReport({ scope: 'local', report: JSON.stringify({ files: {} }), diff: plan.diff, mutate: MUTATE, elapsedMs: 1 }),
+    );
+    expect(report.change.mutants).toBe(0);
+    expect(report.unmeasured.map((file) => file.reason)).toEqual(['deleted']);
+  });
+
+  it('counts a file once when git lists it both changed and untracked', () => {
+    const plan = planLocalRun({ diff: modified(OLD, [3, 1]), untracked: [OLD], mutate: MUTATE });
+    expect(plan.measured).toEqual([OLD]);
   });
 });
