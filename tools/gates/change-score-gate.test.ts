@@ -846,6 +846,14 @@ describe('the File score', () => {
     expect(markdown).not.toContain('Whole-surface');
   });
 
+  it('lists a named file as measured whole, never as created', () => {
+    const markdown = renderChangeReport(
+      fileReport({ [OLD]: [...many(19, 'Killed'), mutant('Survived', 2)] }, [OLD]),
+    );
+    expect(markdown).toContain(`| \`${OLD}\` | whole | 19 | 1 | 0 | 0 | 0 | 0 | 95.00% |`);
+    expect(markdown).not.toContain('created');
+  });
+
   it('shows raw counts and the rule of zero below 20 scored mutants', () => {
     const markdown = renderChangeReport(fileReport({ [OLD]: [...many(3, 'Killed'), mutant('Survived', 2)] }, [OLD]));
     expect(markdown).toContain('**File score:** 4 scored of 4 mutants, fewer than 20 scored');
@@ -855,7 +863,7 @@ describe('the File score', () => {
   it('lists a named file holding no mutant as not measured', () => {
     const markdown = renderChangeReport(fileReport({ [OLD]: [] }, [OLD]));
     expect(markdown).toContain('**File score:** N/A: the named files hold no mutant.');
-    expect(markdown).toContain(`- \`${OLD}\`, created: non-mutatable`);
+    expect(markdown).toContain(`- \`${OLD}\`, whole: non-mutatable`);
   });
 
   it('is incomplete as a File score, never a Change score, and mentions no whole-surface score', () => {

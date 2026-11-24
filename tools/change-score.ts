@@ -45,7 +45,7 @@ export type Unkilled = Position & {
   readonly status: 'Survived' | 'NoCoverage';
 };
 
-type MeasurableKind = 'created' | 'modified' | 'renamed';
+type MeasurableKind = 'created' | 'modified' | 'renamed' | 'whole';
 
 type FileChange<Kind> = {
   readonly path: string;
@@ -313,7 +313,7 @@ export function buildChangeReport(input: ChangeReportInput): ChangeReport {
   const unmeasured: UnmeasuredFile[] = [];
   const changedMutants: Mutant[] = [];
   for (const changed of parseDiff(input.diff)) {
-    const kind = measurableKindOf(changed);
+    const kind = input.scope === 'file' ? 'whole' : measurableKindOf(changed);
     const from = changed.from === undefined ? {} : { from: changed.from };
     const all = parsed.value.get(changed.path) ?? [];
     const reason = unmeasuredReason(changed, all, input.mutate, parsed.value.has(changed.path));
@@ -447,7 +447,7 @@ export function renderChangeReport(report: ChangeReport): string {
     '',
     changeLine,
     '',
-    ...(surface === undefined ? [] : [surfaceLine(surface), '']),
+    ...(report.measuresSurface && surface !== undefined ? [surfaceLine(surface), ''] : []),
     `The ${name} is advisory: a low one fails nothing.`,
     '',
   ];
