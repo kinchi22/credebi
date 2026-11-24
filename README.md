@@ -121,11 +121,13 @@ fails. Both need browsers (`pnpm exec playwright install chromium webkit`): a
 spec tagged `@webkit` runs in mobile WebKit as well as Chromium (ADR-0029). CI
 runs them in `E2E build` and `Gate liveness`. ADR-0006.
 
-`pnpm test:mutation:changed [--base <ref>]` is not a gate and blocks nothing: it
+`pnpm test:mutation:changed [--base <ref> | --file <path>...]` is not a gate and blocks nothing: it
 prints the advisory Change score of local work, committed or not, against the
 merge base with `origin/main` (or `<ref>`), running Stryker over the changed
 files only and writing `reports/mutation-changed/`. It exits non-zero only when
-the run is incomplete or fails, never on a score. ADR-0033.
+the run is incomplete or fails, never on a score. `--file <path>`, repeatable
+and never with `--base`, measures the named source files whole and prints their
+File score instead, for a change to tests alone. ADR-0033.
 
 CI runs one more check that has no local form. `Spec isolation` fails a pull
 request that changes `e2e/` and anything else in the same change: the specs are

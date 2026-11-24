@@ -669,11 +669,15 @@ describe('the Change score of a change with no whole-surface measure', () => {
 
 describe('the arguments of the local run', () => {
   it('takes origin/main as the base by default', () => {
-    expect(parseLocalArguments([])).toEqual({ ok: true, base: 'origin/main' });
+    expect(parseLocalArguments([])).toEqual({ ok: true, mode: 'change', base: 'origin/main' });
   });
 
   it('takes the base named by --base', () => {
-    expect(parseLocalArguments(['--base', 'milestone/x'])).toEqual({ ok: true, base: 'milestone/x' });
+    expect(parseLocalArguments(['--base', 'milestone/x'])).toEqual({
+      ok: true,
+      mode: 'change',
+      base: 'milestone/x',
+    });
   });
 
   it('refuses --base with no ref', () => {
@@ -684,29 +688,47 @@ describe('the arguments of the local run', () => {
   it('refuses an argument it does not know', () => {
     expect(parseLocalArguments(['--other'])).toEqual({ ok: false, problem: 'unknown argument --other' });
   });
+
+  it('takes every path named by a repeated --file', () => {
+    expect(parseLocalArguments(['--file', OLD, '--file', NEW])).toEqual({
+      ok: true,
+      mode: 'file',
+      files: [OLD, NEW],
+    });
+  });
+
+  it('refuses --file with no path', () => {
+    expect(parseLocalArguments(['--file']).ok).toBe(false);
+    expect(parseLocalArguments(['--file', '--base', 'x']).ok).toBe(false);
+  });
+
+  it('refuses --file combined with --base, in either order', () => {
+    expect(parseLocalArguments(['--file', OLD, '--base', 'x']).ok).toBe(false);
+    expect(parseLocalArguments(['--base', 'x', '--file', OLD]).ok).toBe(false);
+  });
 });
 
 describe('the plan of the local run', () => {
   const plan = (diff: string, args: readonly string[] = []) =>
-    planLocalRun({ args, mutate: MUTATE, readDiff: () => ({ ok: true, diff }) });
+    planLocalRun({ args, mutate: MUTATE, readDiff: () => ({ ok: true, diff }), exists: () => true });
 
   it('hands Stryker each changed file inside the mutate patterns, in path order', () => {
     const diff = [modified(OLD, [3, 1]), created(NEW, 2)].join('\n');
-    expect(plan(diff)).toEqual({ kind: 'run', diff, mutate: [NEW, OLD] });
+    expect(plan(diff)).toEqual({ kind: 'run', scope: 'change', diff, mutate: [NEW, OLD] });
   });
 
   it('hands over a file renamed with edits and never a file only moved', () => {
     const diff = [renamed(OLD, NEW, [3, 1]), renamed('packages/core/src/ledger/domain/a.ts', MOVED)].join('\n');
-    expect(plan(diff)).toEqual({ kind: 'run', diff, mutate: [NEW] });
+    expect(plan(diff)).toEqual({ kind: 'run', scope: 'change', diff, mutate: [NEW] });
   });
 
   it('plans no run for a change of deleted, excluded and only moved files, keeping the diff for the report', () => {
     const diff = [deleted(OLD, 3), modified(ROUTER, [1, 1]), renamed('packages/core/src/ledger/domain/a.ts', MOVED)].join('\n');
-    expect(plan(diff)).toEqual({ kind: 'none', diff });
+    expect(plan(diff)).toEqual({ kind: 'none', scope: 'change', diff });
   });
 
   it('plans no run for an empty change', () => {
-    expect(plan('')).toEqual({ kind: 'none', diff: '' });
+    expect(plan('')).toEqual({ kind: 'none', scope: 'change', diff: '' });
   });
 
   it('reports not applicable, with the files not measured, when no run is planned', () => {
@@ -731,7 +753,7 @@ describe('the plan of the local run', () => {
       read = true;
       return { ok: true, diff: '' };
     };
-    const planned = planLocalRun({ args: ['--nope'], mutate: MUTATE, readDiff });
+    const planned = planLocalRun({ args: ['--nope'], mutate: MUTATE, readDiff, exists: () => true });
     expect(planned).toEqual({ kind: 'error', problem: 'unknown argument --nope' });
     expect(read).toBe(false);
   });
@@ -741,6 +763,7 @@ describe('the plan of the local run', () => {
     planLocalRun({
       args: ['--base', 'milestone/x'],
       mutate: MUTATE,
+      exists: () => true,
       readDiff: (base) => {
         bases.push(base);
         return { ok: true, diff: '' };
@@ -753,8 +776,154 @@ describe('the plan of the local run', () => {
     const planned = planLocalRun({
       args: [],
       mutate: MUTATE,
+      exists: () => true,
       readDiff: () => ({ ok: false, problem: 'no base' }),
     });
     expect(planned).toEqual({ kind: 'error', problem: 'no base' });
+  });
+});
+
+describe('the File score', () => {
+  const planned = (args: readonly string[], exists: (file: string) => boolean = () => true) => {
+    let read = false;
+    const result = planLocalRun({
+      args,
+      mutate: MUTATE,
+      exists,
+      readDiff: () => {
+        read = true;
+        return { ok: true, diff: '' };
+      },
+    });
+    return { result, read };
+  };
+
+  const fileReport = (files: Record<string, readonly Mutant[]>, named: readonly string[]) => {
+    const { result } = planned(named.flatMap((file) => ['--file', file]));
+    if (result.kind !== 'run') throw new Error('expected a run');
+    return buildChangeReport({
+      scope: result.scope,
+      measureSurface: false,
+      report: strykerReport(files),
+      diff: result.diff,
+      mutate: MUTATE,
+      elapsedMs: 1,
+    });
+  };
+
+  it('plans a run over the named files whole, in path order and once each', () => {
+    const { result, read } = planned(['--file', OLD, '--file', NEW, '--file', OLD]);
+    expect(result).toMatchObject({ kind: 'run', scope: 'file', mutate: [NEW, OLD] });
+    expect(read).toBe(false);
+  });
+
+  it('counts every mutant of a named file, whatever the lines', () => {
+    const report = complete(fileReport({ [OLD]: [...many(18, 'Killed', 400), mutant('Survived', 900)] }, [OLD]));
+    expect(report.scope).toBe('file');
+    expect(report.change.mutants).toBe(19);
+    expect(report.files[0]?.unkilled).toEqual([
+      { line: 900, column: 3, mutator: 'ConditionalExpression', status: 'Survived' },
+    ]);
+  });
+
+  it('counts the way a Change score counts, small sample included', () => {
+    const killed = [...many(3, 'Killed'), mutant('Timeout', 4), mutant('CompileError', 5)];
+    const file = complete(fileReport({ [OLD]: killed }, [OLD]));
+    const change = build({ [OLD]: killed }, created(OLD, 5));
+    expect(file.change).toEqual(change.change);
+    expect(file.smallSample).toBe(true);
+  });
+
+  it('says File score and never Change score, with no whole-surface score', () => {
+    const markdown = renderChangeReport(
+      fileReport({ [OLD]: [...many(19, 'Killed'), mutant('Survived', 2)] }, [OLD]),
+    );
+    expect(markdown).toContain('## File score');
+    expect(markdown).toContain('**File score:** 95.00% of 20 mutants, against a target of 95%');
+    expect(markdown).toContain(`- \`${OLD}:2:3\` ConditionalExpression, Survived`);
+    expect(markdown).toContain('The File score is advisory');
+    expect(markdown).not.toContain('Change score');
+    expect(markdown).not.toContain('Whole-surface');
+  });
+
+  it('shows raw counts and the rule of zero below 20 scored mutants', () => {
+    const markdown = renderChangeReport(fileReport({ [OLD]: [...many(3, 'Killed'), mutant('Survived', 2)] }, [OLD]));
+    expect(markdown).toContain('**File score:** 4 scored of 4 mutants, fewer than 20 scored');
+    expect(markdown).toContain('The target is zero survived or no-coverage mutants, and 1 remains.');
+  });
+
+  it('lists a named file holding no mutant as not measured', () => {
+    const markdown = renderChangeReport(fileReport({ [OLD]: [] }, [OLD]));
+    expect(markdown).toContain('**File score:** N/A: the named files hold no mutant.');
+    expect(markdown).toContain(`- \`${OLD}\`, created: non-mutatable`);
+  });
+
+  it('is incomplete as a File score, never a Change score, and mentions no whole-surface score', () => {
+    const { result } = planned(['--file', OLD]);
+    if (result.kind !== 'run') throw new Error('expected a run');
+    const markdown = renderChangeReport(
+      buildChangeReport({
+        scope: 'file',
+        measureSurface: false,
+        report: undefined,
+        diff: result.diff,
+        mutate: MUTATE,
+        elapsedMs: 1,
+      }),
+    );
+    expect(markdown).toContain('There is no File score for this run.');
+    expect(markdown).not.toContain('Change score');
+    expect(markdown).not.toContain('whole-surface');
+  });
+
+  it('refuses a named file outside the mutate patterns, naming it', () => {
+    expect(planned(['--file', ROUTER]).result).toEqual({
+      kind: 'error',
+      problem: `${ROUTER} is outside the mutate patterns`,
+    });
+  });
+
+  it('refuses a named file that does not exist, naming it', () => {
+    expect(planned(['--file', OLD], () => false).result).toEqual({
+      kind: 'error',
+      problem: `${OLD} does not exist`,
+    });
+  });
+
+  it('refuses every unmeasurable file at once, so none starts a run', () => {
+    const { result } = planned(['--file', OLD, '--file', ROUTER], (file) => file !== OLD);
+    expect(result).toEqual({
+      kind: 'error',
+      problem: `${ROUTER} is outside the mutate patterns; ${OLD} does not exist`,
+    });
+  });
+
+  it('reads a path written with a leading ./ as the same file', () => {
+    expect(planned(['--file', `./${OLD}`]).result).toMatchObject({ mutate: [OLD] });
+  });
+
+  it('refuses --file with --base before reading any diff', () => {
+    const { result, read } = planned(['--file', OLD, '--base', 'x']);
+    expect(result.kind).toBe('error');
+    expect(read).toBe(false);
+  });
+});
+
+describe('the wording of an incomplete change report', () => {
+  const diff = created(NEW, 1);
+
+  it('mentions the whole-surface score of a pull request report', () => {
+    const markdown = renderChangeReport(
+      buildChangeReport({ report: undefined, diff, mutate: MUTATE, elapsedMs: 1 }),
+    );
+    expect(markdown).toContain('There is no Change score and no whole-surface score for this run.');
+  });
+
+  it('mentions no whole-surface score for a local run', () => {
+    const markdown = renderChangeReport(
+      buildChangeReport({ measureSurface: false, report: undefined, diff, mutate: MUTATE, elapsedMs: 1 }),
+    );
+    expect(markdown).toContain('There is no Change score for this run.');
+    expect(markdown).not.toContain('whole-surface');
   });
 });
