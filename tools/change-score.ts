@@ -129,7 +129,6 @@ export type ChangeReportInput = {
   readonly measureSurface?: boolean;
   readonly report: string | undefined;
   readonly register: string | undefined;
-  readonly runDay: string;
   readonly diff: string;
   readonly mutate: readonly string[];
   readonly elapsedMs: number | undefined;
@@ -163,14 +162,15 @@ const parseMutant = (value: unknown, file: string, source: string): Mutant | 'pe
   const { status, mutatorName, location, replacement } = value;
   if (status === 'Pending') return 'pending';
   if (!FINISHED.some((finished) => finished === status)) return undefined;
-  if (typeof mutatorName !== 'string' || !isRecord(location)) return undefined;
+  if (typeof mutatorName !== 'string' || typeof replacement !== 'string') return undefined;
+  if (!isRecord(location)) return undefined;
   const { start, end } = location;
   if (!isPosition(start) || !isPosition(end)) return undefined;
   return {
     status: status as Finished,
     file,
     mutator: mutatorName,
-    replacement: typeof replacement === 'string' ? replacement : '',
+    replacement,
     original: textAt(source, start, end),
     start,
     end,
@@ -199,7 +199,10 @@ const parseStrykerReport = (
       return { ok: false, reason: `the Stryker JSON report holds no mutants for ${name}` };
     }
     const mutants: Mutant[] = [];
-    const source = typeof file['source'] === 'string' ? file['source'] : '';
+    const source = file['source'];
+    if (typeof source !== 'string') {
+      return { ok: false, reason: `the Stryker JSON report holds no source for ${name}` };
+    }
     for (const raw of file['mutants'] as readonly unknown[]) {
       const parsed = parseMutant(raw, name, source);
       if (parsed === 'pending') {
@@ -256,6 +259,7 @@ const checkEntry = (value: unknown, position: number): string | undefined => {
   if (extra !== undefined) return `${where} has an unknown field \`${extra}\``;
 
   const entry = value as ToleratedEntry;
+  if (entry.original === '') return `${where} has an empty \`original\``;
   if (entry.reason.trim() === '') return `${where} has an empty \`reason\``;
   for (const field of ['recorded', 'revisitBy'] as const) {
     if (parseDay(entry[field]) === undefined) {
@@ -803,7 +807,6 @@ if (import.meta.main) {
   const report = buildChangeReport({
     report: existsSync(STRYKER_JSON) ? readFileSync(STRYKER_JSON, 'utf8') : undefined,
     register: existsSync(TOLERATED_REGISTER) ? readFileSync(TOLERATED_REGISTER, 'utf8') : undefined,
-    runDay: new Date().toISOString().slice(0, 10),
     diff: diff.stdout,
     mutate: stryker.mutate,
     elapsedMs: Number.isFinite(startedAt) && startedAt > 0 ? Date.now() - startedAt * 1000 : undefined,

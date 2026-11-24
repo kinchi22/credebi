@@ -107,7 +107,6 @@ const measure = (): ChangeReport => {
     measureSurface: false,
     report: strykerReport,
     register: existsSync(TOLERATED_REGISTER) ? readFileSync(TOLERATED_REGISTER, 'utf8') : undefined,
-    runDay: new Date().toISOString().slice(0, 10),
     diff: plan.diff,
     mutate: stryker.mutate,
     elapsedMs: elapsedMs(),

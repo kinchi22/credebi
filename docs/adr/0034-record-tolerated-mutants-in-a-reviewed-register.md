@@ -23,7 +23,7 @@ review surface table, so no entry is added, changed or removed without the
 owner's review. That review is the approval; the entry carries no approver.
 
 Every entry has exactly these fields, all required: `file`, `mutator`,
-`original` (the source text at the mutant's location), `replacement`, `reason`
+`original` (the source text at the mutant's location, non-empty), `replacement`, `reason`
 (non-empty), `recorded` and `revisitBy`, both `YYYY-MM-DD`. `revisitBy` is on or
 after `recorded` and at most six calendar months after it, so no judgement
 outlives the code it was written against.
@@ -43,16 +43,19 @@ matches exactly one mutant of the report and that mutant is Survived.
 A tolerated mutant still counts as survived in the Change score, the File score
 and the whole-surface score: the register never raises a number. The report
 lists it apart from the untriaged ones, the survived and no-coverage mutants no
-entry tolerates, with its reason and revisit day. The small-sample view counts
-only untriaged mutants against its target of zero.
+entry tolerates, with its reason and revisit day. The small-sample view, below
+20 scored Changed mutants, counts untriaged survived and no-coverage mutants
+against its target of zero, in place of the "zero survived or no-coverage
+mutants" that ADR-0033 states.
 
 An invalid register fails the step. Missing, not JSON, not an array, an entry
 off the shape above, or two entries matching one mutant: `buildChangeReport`
 returns an `invalid` report with the reason, and the command exits non-zero, as
 it does for a crash. A low Change score still never fails it. `buildChangeReport`
-takes the register's raw text, or nothing when the file is absent, and the run
-day as a UTC date, and `pnpm test:mutation:changed`, with or without `--file`,
-applies the register the same way.
+takes the register's raw text, or nothing when the file is absent, and
+`pnpm test:mutation:changed`, with or without `--file`, applies the register the
+same way. A Stryker report whose mutant has no replacement, or whose file has no
+source, is incomplete, because identity cannot be read from it.
 
 Whether an entry is stale or expired is advisory, never a failure, and is
 reported by later work on this register.

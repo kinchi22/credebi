@@ -34,8 +34,7 @@ type Mutant = {
 };
 
 const MUTATE = stryker.mutate;
-const RUN_DAY = '2026-11-25';
-const NO_TOLERANCE = { register: '[]', runDay: RUN_DAY };
+const NO_TOLERANCE = { register: '[]' };
 
 const mutant = (status: Status, line: number, rest: Partial<Mutant> = {}): Mutant => ({
   status,
@@ -995,7 +994,6 @@ const toleranceReport = (
   buildChangeReport({
     report: strykerReport(files),
     register: JSON.stringify(entries),
-    runDay: RUN_DAY,
     diff,
     mutate: MUTATE,
     elapsedMs: 1,
@@ -1171,6 +1169,10 @@ describe('an invalid register', () => {
     expect(invalidEntries(entry({ approver: 'me' }))).toContain('`approver`');
   });
 
+  it('is reported for an empty original', () => {
+    expect(invalidEntries(entry({ original: '' }))).toContain('empty `original`');
+  });
+
   it('is reported for an empty or blank reason', () => {
     expect(invalidEntries(entry({ reason: '' }))).toContain('empty `reason`');
     expect(invalidEntries(entry({ reason: '   ' }))).toContain('empty `reason`');
@@ -1249,6 +1251,37 @@ describe('an invalid register', () => {
     const report = toleranceReport(files, diff, [], { report: undefined, register: undefined });
 
     expect(report.state).toBe('incomplete');
+  });
+});
+
+describe('a Stryker report that cannot give a mutant its identity', () => {
+  const diff = created(NEW, 1);
+  const withMutant = (change: (m: Record<string, unknown>) => void, source: unknown = 'x'): string => {
+    const mutantResult: Record<string, unknown> = {
+      id: '0',
+      mutatorName: 'StringLiteral',
+      replacement: '""',
+      status: 'Survived',
+      location: { start: { line: 1, column: 1 }, end: { line: 1, column: 2 } },
+    };
+    change(mutantResult);
+    return JSON.stringify({ files: { [NEW]: { source, mutants: [mutantResult] } } });
+  };
+  const stateOf = (report: string): string =>
+    buildChangeReport({ ...NO_TOLERANCE, report, diff, mutate: MUTATE, elapsedMs: 1 }).state;
+
+  it('is complete when every mutant has its replacement and every file its source', () => {
+    expect(stateOf(withMutant(() => undefined))).toBe('complete');
+  });
+
+  it('is incomplete when a mutant has no replacement', () => {
+    expect(stateOf(withMutant((m) => delete m['replacement']))).toBe('incomplete');
+    expect(stateOf(withMutant((m) => (m['replacement'] = 3)))).toBe('incomplete');
+  });
+
+  it('is incomplete when a file has no source', () => {
+    expect(stateOf(withMutant(() => undefined, null))).toBe('incomplete');
+    expect(stateOf(withMutant(() => undefined, 3))).toBe('incomplete');
   });
 });
 
