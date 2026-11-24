@@ -3,7 +3,7 @@
 **Status:** Accepted
 **Date:** 2026-11-20
 **Amended:** 2026-11-21, PR #760, amended rather than superseded by the owner's choice
-**Amended:** 2026-11-24, PR #888
+**Amended:** 2026-11-24, PR #888, amended rather than superseded by the owner's choice
 
 ## Problem
 
@@ -69,11 +69,10 @@ base with `origin/main`, up to the working tree, so committed, staged and
 unstaged edits count and an untracked file counts as created. It hands Stryker
 every measured file whole, never a line range, because Stryker keeps only a
 mutant inside a range and a Changed mutant need only overlap a changed line;
-`buildChangeReport` then keeps the Changed mutants. With `--file`, it measures
-the named files whole and reports their File score (`docs/GLOSSARY.md`) instead,
-for a change to tests alone; a named file outside the `mutate` patterns stops
-the command without a run. A change with no measured file is not applicable
-without starting Stryker. The local run writes beside the CI report, never over
+`buildChangeReport` then keeps the Changed mutants. A file moved in the working
+tree without `git mv` is found as moved by diffing against a temporary index,
+never the person's. A file only moved is not handed to Stryker, and a change
+with no measured file is not applicable without starting Stryker. The local run writes beside the CI report, never over
 it, reports no whole-surface score, which a narrowed run cannot know, and turns
 off the break threshold, so it exits non-zero only when the run is incomplete
 or fails, never on a score.

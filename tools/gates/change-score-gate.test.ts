@@ -4,6 +4,7 @@ import {
   buildChangeReport,
   parseLocalArguments,
   planLocalRun,
+  type DiffReader,
   renderChangeReport,
   type ChangeReport,
 } from '../change-score';
@@ -608,16 +609,21 @@ describe('the Stryker configuration', () => {
   });
 });
 
-describe('the Change score of local work', () => {
+describe('the Change score of a change with no whole-surface measure', () => {
   const local = (files: Record<string, readonly Mutant[]>, diff: string): ChangeReport =>
-    buildChangeReport({ scope: 'local', report: strykerReport(files), diff, mutate: MUTATE, elapsedMs: 1 });
+    buildChangeReport({
+      measureSurface: false,
+      report: strykerReport(files),
+      diff,
+      mutate: MUTATE,
+      elapsedMs: 1,
+    });
 
   const report = local({ [NEW]: [...many(19, 'Killed'), mutant('Survived', 2)] }, created(NEW, 2));
 
   it('knows no whole-surface score, and renders none', () => {
     expect(complete(report).surface).toBeUndefined();
     expect(renderChangeReport(report)).not.toContain('Whole-surface');
-    expect(JSON.stringify(report)).not.toContain('surface');
   });
 
   it('still states the Change score against its target and lists each unkilled mutant', () => {
@@ -631,24 +637,33 @@ describe('the Change score of local work', () => {
     expect(markdown).toContain('no mutant overlaps a line this change adds or modifies');
   });
 
-  it('counts the Changed mutants as a pull request does, a block beyond the changed line included', () => {
-    const block = mutant('Survived', 1, { endLine: 30 });
-    const both = (scope: 'local' | 'pull-request'): number =>
-      complete(
-        buildChangeReport({
-          scope,
-          report: strykerReport({ [OLD]: [block] }),
-          diff: modified(OLD, [10, 1]),
-          mutate: MUTATE,
-          elapsedMs: 1,
-        }),
-      ).change.mutants;
-    expect(both('local')).toBe(1);
-    expect(both('local')).toBe(both('pull-request'));
+  it('counts a block that extends beyond the changed line as a Changed mutant, as the pull request report does', () => {
+    const input = {
+      report: strykerReport({ [OLD]: [mutant('Survived', 1, { endLine: 30 })] }),
+      diff: modified(OLD, [10, 1]),
+      mutate: MUTATE,
+      elapsedMs: 1,
+    };
+    expect(complete(buildChangeReport({ ...input, measureSurface: false })).change.mutants).toBe(1);
+    expect(complete(buildChangeReport(input)).change.mutants).toBe(1);
   });
 
-  it('leaves the pull request report with its whole-surface score', () => {
-    expect(complete(buildChangeReport({ report: strykerReport({ [OLD]: many(2, 'Killed') }), diff: modified(OLD, [1, 1]), mutate: MUTATE, elapsedMs: 1 })).surface?.mutants).toBe(2);
+  it('leaves the pull request report with its whole-surface score and the change scope', () => {
+    const full = complete(
+      buildChangeReport({
+        report: strykerReport({ [OLD]: many(2, 'Killed') }),
+        diff: modified(OLD, [1, 1]),
+        mutate: MUTATE,
+        elapsedMs: 1,
+      }),
+    );
+    expect(full.surface?.mutants).toBe(2);
+    expect(full.scope).toBe('change');
+  });
+
+  it('lists a file only moved, absent from the report, as moved', () => {
+    const markdown = renderChangeReport(local({}, renamed(OLD, MOVED)));
+    expect(markdown).toContain(`- \`${MOVED}\`, renamed from \`${OLD}\`: moved with no edited line`);
   });
 });
 
@@ -667,55 +682,79 @@ describe('the arguments of the local run', () => {
   });
 
   it('refuses an argument it does not know', () => {
-    expect(parseLocalArguments(['--file', OLD])).toEqual({ ok: false, problem: 'unknown argument --file' });
+    expect(parseLocalArguments(['--other'])).toEqual({ ok: false, problem: 'unknown argument --other' });
   });
 });
 
 describe('the plan of the local run', () => {
-  it('hands Stryker each changed file inside the mutate patterns, whole, in path order', () => {
+  const plan = (diff: string, args: readonly string[] = []) =>
+    planLocalRun({ args, mutate: MUTATE, readDiff: () => ({ ok: true, diff }) });
+
+  it('hands Stryker each changed file inside the mutate patterns, in path order', () => {
     const diff = [modified(OLD, [3, 1]), created(NEW, 2)].join('\n');
-    expect(planLocalRun({ diff, untracked: [], mutate: MUTATE }).measured).toEqual([NEW, OLD]);
+    expect(plan(diff)).toEqual({ kind: 'run', diff, mutate: [NEW, OLD] });
   });
 
-  it('hands over a file renamed with edits and a file only moved, for the report to tell apart', () => {
+  it('hands over a file renamed with edits and never a file only moved', () => {
     const diff = [renamed(OLD, NEW, [3, 1]), renamed('packages/core/src/ledger/domain/a.ts', MOVED)].join('\n');
-    expect(planLocalRun({ diff, untracked: [], mutate: MUTATE }).measured).toEqual([NEW, MOVED]);
+    expect(plan(diff)).toEqual({ kind: 'run', diff, mutate: [NEW] });
   });
 
-  it('hands over no deleted file and no file outside the mutate patterns', () => {
-    const diff = [deleted(OLD, 3), modified(ROUTER, [1, 1]), modified('docs/GLOSSARY.md', [1, 1])].join('\n');
-    expect(planLocalRun({ diff, untracked: [], mutate: MUTATE }).measured).toEqual([]);
+  it('plans no run for a change of deleted, excluded and only moved files, keeping the diff for the report', () => {
+    const diff = [deleted(OLD, 3), modified(ROUTER, [1, 1]), renamed('packages/core/src/ledger/domain/a.ts', MOVED)].join('\n');
+    expect(plan(diff)).toEqual({ kind: 'none', diff });
   });
 
-  it('counts an untracked file as created, every mutant of it a Changed mutant', () => {
-    const plan = planLocalRun({ diff: '', untracked: [NEW, 'notes.txt'], mutate: MUTATE });
-    expect(plan.measured).toEqual([NEW]);
+  it('plans no run for an empty change', () => {
+    expect(plan('')).toEqual({ kind: 'none', diff: '' });
+  });
+
+  it('reports not applicable, with the files not measured, when no run is planned', () => {
+    const planned = plan(deleted(OLD, 3));
+    if (planned.kind !== 'none') throw new Error('expected no run');
     const report = complete(
       buildChangeReport({
-        scope: 'local',
-        report: strykerReport({ [NEW]: [mutant('Killed', 40), mutant('Survived', 90)] }),
-        diff: plan.diff,
+        measureSurface: false,
+        report: JSON.stringify({ files: {} }),
+        diff: planned.diff,
         mutate: MUTATE,
         elapsedMs: 1,
       }),
-    );
-    expect(report.change.mutants).toBe(2);
-    expect(report.files.map((file) => file.kind)).toEqual(['created']);
-    expect(report.unmeasured.map((file) => file.path)).toEqual(['notes.txt']);
-  });
-
-  it('plans a change with no measured file, which reports not applicable with an empty Stryker report', () => {
-    const plan = planLocalRun({ diff: deleted(OLD, 3), untracked: [], mutate: MUTATE });
-    expect(plan.measured).toEqual([]);
-    const report = complete(
-      buildChangeReport({ scope: 'local', report: JSON.stringify({ files: {} }), diff: plan.diff, mutate: MUTATE, elapsedMs: 1 }),
     );
     expect(report.change.mutants).toBe(0);
     expect(report.unmeasured.map((file) => file.reason)).toEqual(['deleted']);
   });
 
-  it('counts a file once when git lists it both changed and untracked', () => {
-    const plan = planLocalRun({ diff: modified(OLD, [3, 1]), untracked: [OLD], mutate: MUTATE });
-    expect(plan.measured).toEqual([OLD]);
+  it('returns an argument error without reading the diff', () => {
+    let read = false;
+    const readDiff: DiffReader = () => {
+      read = true;
+      return { ok: true, diff: '' };
+    };
+    const planned = planLocalRun({ args: ['--nope'], mutate: MUTATE, readDiff });
+    expect(planned).toEqual({ kind: 'error', problem: 'unknown argument --nope' });
+    expect(read).toBe(false);
+  });
+
+  it('reads the diff against the base the arguments name', () => {
+    const bases: string[] = [];
+    planLocalRun({
+      args: ['--base', 'milestone/x'],
+      mutate: MUTATE,
+      readDiff: (base) => {
+        bases.push(base);
+        return { ok: true, diff: '' };
+      },
+    });
+    expect(bases).toEqual(['milestone/x']);
+  });
+
+  it('returns the reason a diff could not be read', () => {
+    const planned = planLocalRun({
+      args: [],
+      mutate: MUTATE,
+      readDiff: () => ({ ok: false, problem: 'no base' }),
+    });
+    expect(planned).toEqual({ kind: 'error', problem: 'no base' });
   });
 });

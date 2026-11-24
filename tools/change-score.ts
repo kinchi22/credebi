@@ -74,7 +74,7 @@ export type ChangeReport =
       readonly state: 'complete';
       readonly target: number;
       readonly change: Measure;
-      readonly scope?: 'local';
+      readonly scope: ChangeScope;
       readonly surface?: Measure;
       readonly smallSample: boolean;
       readonly files: readonly ChangedFile[];
@@ -87,10 +87,11 @@ export type ChangeReport =
       readonly elapsedMs: number | undefined;
     };
 
-export type ChangeScope = 'pull-request' | 'local';
+export type ChangeScope = 'change' | 'file';
 
 export type ChangeReportInput = {
   readonly scope?: ChangeScope;
+  readonly measureSurface?: boolean;
   readonly report: string | undefined;
   readonly diff: string;
   readonly mutate: readonly string[];
@@ -160,6 +161,16 @@ const parseStrykerReport = (
   }
   return { ok: true, value: files };
 };
+
+export const DIFF_ARGUMENTS = [
+  '-c',
+  'core.quotePath=false',
+  'diff',
+  '--no-color',
+  '--no-ext-diff',
+  '-U0',
+  '-M',
+] as const;
 
 const HUNK = /^@@ -\d+(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/;
 const DIFF_HEADER = /^diff --git a\/.* b\/(.*)$/;
@@ -262,15 +273,20 @@ const measurableKindOf = (changed: DiffFile): MeasurableKind => {
   return changed.from === undefined ? 'modified' : 'renamed';
 };
 
+const isOnlyMoved = (changed: DiffFile): boolean =>
+  changed.from !== undefined && changed.lines.size === 0;
+
 const unmeasuredReason = (
   changed: DiffFile,
   mutants: readonly Mutant[],
   mutate: readonly string[],
+  reported: boolean,
 ): UnmeasuredFile['reason'] | undefined => {
   if (changed.deleted) return 'deleted';
   if (!inSurface(changed.path, mutate)) return 'excluded';
+  if (!reported && isOnlyMoved(changed)) return 'moved';
   if (mutants.length === 0) return 'non-mutatable';
-  if (changed.from !== undefined && changed.lines.size === 0) return 'moved';
+  if (isOnlyMoved(changed)) return 'moved';
   return undefined;
 };
 
@@ -293,7 +309,7 @@ export function buildChangeReport(input: ChangeReportInput): ChangeReport {
     const kind = measurableKindOf(changed);
     const from = changed.from === undefined ? {} : { from: changed.from };
     const all = parsed.value.get(changed.path) ?? [];
-    const reason = unmeasuredReason(changed, all, input.mutate);
+    const reason = unmeasuredReason(changed, all, input.mutate, parsed.value.has(changed.path));
     const mutants = all.filter((mutant) => changed.created || overlaps(mutant, changed.lines));
     if (reason !== undefined || mutants.length === 0) {
       unmeasured.push({
@@ -327,12 +343,12 @@ export function buildChangeReport(input: ChangeReportInput): ChangeReport {
   unmeasured.sort((a, b) => a.path.localeCompare(b.path));
 
   const change = measure(changedMutants);
-  const local = input.scope === 'local';
   return {
     state: 'complete',
     target: CHANGE_TARGET,
     change,
-    ...(local ? { scope: 'local' as const } : { surface: measure([...parsed.value.values()].flat()) }),
+    scope: input.scope ?? 'change',
+    ...(input.measureSurface === false ? {} : { surface: measure([...parsed.value.values()].flat()) }),
     smallSample: change.mutants > 0 && scoredOf(change.counts) < SMALL_SAMPLE,
     files,
     unmeasured,
@@ -381,7 +397,7 @@ const changeScoreLine = (
 ): string => {
   const { change, target, smallSample } = report;
   if (change.mutants === 0) {
-    return `**Change score:** N/A: no mutant overlaps a line this ${report.scope === 'local' ? 'change' : 'pull request'} adds or modifies. Target ${String(target)}%.`;
+    return `**Change score:** N/A: no mutant overlaps a line this ${report.surface === undefined ? 'change' : 'pull request'} adds or modifies. Target ${String(target)}%.`;
   }
   if (smallSample || change.score === null) {
     return `**Change score:** ${String(scoredOf(change.counts))} scored of ${String(change.mutants)} Changed mutants, fewer than ${String(SMALL_SAMPLE)} scored: ${rawCounts(change.counts)}. The target is zero survived or no-coverage mutants, and ${remaining(change.counts.survived + change.counts.noCoverage)}.`;
@@ -481,25 +497,32 @@ export function parseLocalArguments(args: readonly string[]): LocalArguments {
   return { ok: true, base };
 }
 
-export type LocalPlan = {
-  readonly diff: string;
-  readonly measured: readonly string[];
-};
+export type LocalPlan =
+  | { readonly kind: 'error'; readonly problem: string }
+  | { readonly kind: 'none'; readonly diff: string }
+  | { readonly kind: 'run'; readonly diff: string; readonly mutate: readonly string[] };
+
+export type DiffReader = (
+  base: string,
+) => { readonly ok: true; readonly diff: string } | { readonly ok: false; readonly problem: string };
 
 export function planLocalRun(input: {
-  readonly diff: string;
-  readonly untracked: readonly string[];
+  readonly args: readonly string[];
   readonly mutate: readonly string[];
+  readonly readDiff: DiffReader;
 }): LocalPlan {
-  const tracked = parseDiff(input.diff);
-  const known = new Set(tracked.map((file) => file.path));
-  const added = input.untracked.filter((file) => !known.has(file));
-  const created = added.map((file) => `diff --git a/${file} b/${file}\nnew file mode 100644\n`);
-  const measured = [...tracked.filter((file) => !file.deleted).map((file) => file.path), ...added]
-    .filter((file) => inSurface(file, input.mutate))
+  const args = parseLocalArguments(input.args);
+  if (!args.ok) return { kind: 'error', problem: args.problem };
+  const read = input.readDiff(args.base);
+  if (!read.ok) return { kind: 'error', problem: read.problem };
+
+  const mutate = parseDiff(read.diff)
+    .filter((file) => !file.deleted && !isOnlyMoved(file) && inSurface(file.path, input.mutate))
+    .map((file) => file.path)
     .sort((a, b) => a.localeCompare(b));
-  const diff = [input.diff, ...created].filter((part) => part !== '').join('\n');
-  return { diff, measured };
+  return mutate.length === 0
+    ? { kind: 'none', diff: read.diff }
+    : { kind: 'run', diff: read.diff, mutate };
 }
 
 if (import.meta.main) {
@@ -511,13 +534,7 @@ if (import.meta.main) {
   const found = findMergeBase(process.cwd(), base);
   if (!found.ok) throw new Error(found.problem);
   const diff = git(process.cwd(), [
-    '-c',
-    'core.quotePath=false',
-    'diff',
-    '--no-color',
-    '--no-ext-diff',
-    '-U0',
-    '-M',
+    ...DIFF_ARGUMENTS,
     found.mergeBase,
     found.head,
   ]);

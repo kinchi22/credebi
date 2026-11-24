@@ -63,9 +63,14 @@ export function classifySpecFiles(
 
 export type GitResult = { readonly ok: true; readonly stdout: string } | { readonly ok: false; readonly problem: string };
 
-export function git(cwd: string, args: readonly string[]): GitResult {
+export function git(
+  cwd: string,
+  args: readonly string[],
+  env: NodeJS.ProcessEnv = process.env,
+): GitResult {
   const result = spawnSync('git', [...args], {
     cwd,
+    env,
     encoding: 'utf8',
     shell: false,
     maxBuffer: 64 * 1024 * 1024,
