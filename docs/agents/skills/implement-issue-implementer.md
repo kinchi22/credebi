@@ -40,7 +40,8 @@ the base branch for your Task and the `gh` commands.
    cover, and read the File score. Below the target, add or strengthen tests
    until it is met. A survived or no-coverage mutant you leave needs a reason:
    an equivalent mutant no test can kill, or behaviour outside the Task. Not
-   applicable passes. Nothing blocks on the score, and CI is unchanged.
+   applicable passes. Nothing blocks on the score. When this step changes any
+   file, run `pnpm gates` again before opening.
 8. **Open.** Push and open the pull request into the base branch. The title is
    the change in the imperative, as the log reads. Write the body with the `pr`
    Skill. Its Merge Danger names every owned path in the diff and why the owner
