@@ -135,11 +135,12 @@ jobs:
       # the annotations go, never reaches the log anyway.
       - name: 5. test:mutation
         run: env -u GITHUB_STEP_SUMMARY pnpm test:mutation
-      # ADR-0033. The Change score, beside the whole-surface score, in the job
-      # summary and the artifact. Advisory: a low score passes, and only the
-      # reporter itself failing fails this step. It runs when Stryker failed
-      # too, so a broken or partial run reads as incomplete rather than as
-      # nothing.
+      # ADR-0033, ADR-0034. The Change score, beside the whole-surface score, in
+      # the job summary and the artifact. Advisory: a low score passes, and so
+      # does a stale or expired tolerated-mutant entry. Only the reporter itself
+      # failing, or an invalid tolerated-mutant register, fails this step. It
+      # runs when Stryker failed too, so a broken or partial run reads as
+      # incomplete rather than as nothing.
       - name: Change score
         if: always() && github.event_name == 'pull_request'
         env:
