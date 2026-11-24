@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, statSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import stryker from '../stryker.config.ts';
@@ -51,8 +51,19 @@ const readDiff: DiffReader = (base) => {
   }
 };
 
-const plan = planLocalRun({ args: process.argv.slice(2), mutate: stryker.mutate, readDiff });
-if (plan.kind === 'error') stop(`${plan.problem}. Usage: pnpm test:mutation:changed [--base <ref>]`);
+const isFile = (file: string): boolean => existsSync(file) && statSync(file).isFile();
+
+const plan = planLocalRun({
+  args: process.argv.slice(2),
+  mutate: stryker.mutate,
+  readDiff,
+  exists: isFile,
+});
+if (plan.kind === 'error') {
+  stop(
+    `${plan.problem}. Usage: pnpm test:mutation:changed [--base <ref>] | pnpm test:mutation:changed --file <path> [--file <path> ...]`,
+  );
+}
 
 rmSync(LOCAL_REPORT_DIR, { recursive: true, force: true });
 mkdirSync(LOCAL_REPORT_DIR, { recursive: true });
@@ -82,6 +93,8 @@ const measure = (): ChangeReport => {
     if (run.status !== 0) {
       return {
         state: 'incomplete',
+        scope: plan.scope,
+        measuresSurface: false,
         reason: `Stryker failed with exit status ${String(run.status)}`,
         elapsedMs: elapsedMs(),
       };
@@ -89,6 +102,7 @@ const measure = (): ChangeReport => {
     strykerReport = existsSync(LOCAL_STRYKER_JSON) ? readFileSync(LOCAL_STRYKER_JSON, 'utf8') : undefined;
   }
   return buildChangeReport({
+    scope: plan.scope,
     measureSurface: false,
     report: strykerReport,
     diff: plan.diff,

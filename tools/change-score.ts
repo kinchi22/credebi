@@ -45,7 +45,7 @@ export type Unkilled = Position & {
   readonly status: 'Survived' | 'NoCoverage';
 };
 
-type MeasurableKind = 'created' | 'modified' | 'renamed';
+type MeasurableKind = 'created' | 'modified' | 'renamed' | 'whole';
 
 type FileChange<Kind> = {
   readonly path: string;
@@ -75,6 +75,7 @@ export type ChangeReport =
       readonly target: number;
       readonly change: Measure;
       readonly scope: ChangeScope;
+      readonly measuresSurface: boolean;
       readonly surface?: Measure;
       readonly smallSample: boolean;
       readonly files: readonly ChangedFile[];
@@ -83,6 +84,8 @@ export type ChangeReport =
     }
   | {
       readonly state: 'incomplete';
+      readonly scope: ChangeScope;
+      readonly measuresSurface: boolean;
       readonly reason: string;
       readonly elapsedMs: number | undefined;
     };
@@ -299,14 +302,18 @@ const byPosition = (a: Unkilled, b: Unkilled): number => a.line - b.line || a.co
 
 export function buildChangeReport(input: ChangeReportInput): ChangeReport {
   const { elapsedMs } = input;
+  const scope = input.scope ?? 'change';
+  const measuresSurface = input.measureSurface !== false;
   const parsed = parseStrykerReport(input.report);
-  if (!parsed.ok) return { state: 'incomplete', reason: parsed.reason, elapsedMs };
+  if (!parsed.ok) {
+    return { state: 'incomplete', scope, measuresSurface, reason: parsed.reason, elapsedMs };
+  }
 
   const files: ChangedFile[] = [];
   const unmeasured: UnmeasuredFile[] = [];
   const changedMutants: Mutant[] = [];
   for (const changed of parseDiff(input.diff)) {
-    const kind = measurableKindOf(changed);
+    const kind = input.scope === 'file' ? 'whole' : measurableKindOf(changed);
     const from = changed.from === undefined ? {} : { from: changed.from };
     const all = parsed.value.get(changed.path) ?? [];
     const reason = unmeasuredReason(changed, all, input.mutate, parsed.value.has(changed.path));
@@ -347,8 +354,9 @@ export function buildChangeReport(input: ChangeReportInput): ChangeReport {
     state: 'complete',
     target: CHANGE_TARGET,
     change,
-    scope: input.scope ?? 'change',
-    ...(input.measureSurface === false ? {} : { surface: measure([...parsed.value.values()].flat()) }),
+    scope,
+    measuresSurface,
+    ...(measuresSurface ? { surface: measure([...parsed.value.values()].flat()) } : {}),
     smallSample: change.mutants > 0 && scoredOf(change.counts) < SMALL_SAMPLE,
     files,
     unmeasured,
@@ -392,28 +400,35 @@ const remaining = (unkilled: number): string => {
   return unkilled === 1 ? '1 remains' : `${String(unkilled)} remain`;
 };
 
-const changeScoreLine = (
-  report: Extract<ChangeReport, { state: 'complete' }>,
-): string => {
-  const { change, target, smallSample } = report;
+const SCORE_NAME: Record<ChangeScope, string> = { change: 'Change score', file: 'File score' };
+
+const changeScoreLine = (report: Extract<ChangeReport, { state: 'complete' }>): string => {
+  const { change, target, smallSample, scope, measuresSurface } = report;
+  const name = SCORE_NAME[scope];
+  const mutants = scope === 'file' ? 'mutants' : 'Changed mutants';
   if (change.mutants === 0) {
-    return `**Change score:** N/A: no mutant overlaps a line this ${report.surface === undefined ? 'change' : 'pull request'} adds or modifies. Target ${String(target)}%.`;
+    const why =
+      scope === 'file'
+        ? 'the named files hold no mutant'
+        : `no mutant overlaps a line this ${measuresSurface ? 'pull request' : 'change'} adds or modifies`;
+    return `**${name}:** N/A: ${why}. Target ${String(target)}%.`;
   }
   if (smallSample || change.score === null) {
-    return `**Change score:** ${String(scoredOf(change.counts))} scored of ${String(change.mutants)} Changed mutants, fewer than ${String(SMALL_SAMPLE)} scored: ${rawCounts(change.counts)}. The target is zero survived or no-coverage mutants, and ${remaining(change.counts.survived + change.counts.noCoverage)}.`;
+    return `**${name}:** ${String(scoredOf(change.counts))} scored of ${String(change.mutants)} ${mutants}, fewer than ${String(SMALL_SAMPLE)} scored: ${rawCounts(change.counts)}. The target is zero survived or no-coverage mutants, and ${remaining(change.counts.survived + change.counts.noCoverage)}.`;
   }
-  return `**Change score:** ${percent(change.score)} of ${String(change.mutants)} Changed mutants, against a target of ${String(target)}%.`;
+  return `**${name}:** ${percent(change.score)} of ${String(change.mutants)} ${mutants}, against a target of ${String(target)}%.`;
 };
 
 export function renderChangeReport(report: ChangeReport): string {
-  const heading = '## Change score';
+  const name = SCORE_NAME[report.scope];
+  const heading = `## ${name}`;
   const elapsed = `Elapsed: ${formatElapsed(report.elapsedMs)}.`;
 
   if (report.state === 'incomplete') {
     return [
       heading,
       '',
-      `**Incomplete:** ${report.reason}. There is no Change score and no whole-surface score for this run.`,
+      `**Incomplete:** ${report.reason}. There is no ${name}${report.measuresSurface ? ' and no whole-surface score' : ''} for this run.`,
       '',
       elapsed,
       '',
@@ -432,8 +447,8 @@ export function renderChangeReport(report: ChangeReport): string {
     '',
     changeLine,
     '',
-    ...(surface === undefined ? [] : [surfaceLine(surface), '']),
-    'The Change score is advisory: a low one fails nothing.',
+    ...(report.measuresSurface && surface !== undefined ? [surfaceLine(surface), ''] : []),
+    `The ${name} is advisory: a low one fails nothing.`,
     '',
   ];
 
@@ -479,40 +494,88 @@ export const LOCAL_CHANGE_REPORT_MARKDOWN = `${LOCAL_REPORT_DIR}/change-report.m
 export const LOCAL_CHANGE_REPORT_JSON = `${LOCAL_REPORT_DIR}/change-report.json`;
 
 export type LocalArguments =
-  | { readonly ok: true; readonly base: string }
+  | { readonly ok: true; readonly mode: 'change'; readonly base: string }
+  | { readonly ok: true; readonly mode: 'file'; readonly files: readonly string[] }
   | { readonly ok: false; readonly problem: string };
 
+const flagValue = (args: readonly string[], index: number): string | undefined => {
+  const value = args[index + 1];
+  return value === undefined || value === '' || value.startsWith('-') ? undefined : value;
+};
+
 export function parseLocalArguments(args: readonly string[]): LocalArguments {
-  let base = LOCAL_BASE;
+  let base: string | undefined;
+  const files: string[] = [];
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index] ?? '';
-    if (arg !== '--base') return { ok: false, problem: `unknown argument ${arg}` };
-    const value = args[index + 1];
-    if (value === undefined || value === '' || value.startsWith('-')) {
-      return { ok: false, problem: '--base needs a ref' };
+    if (arg !== '--base' && arg !== '--file') return { ok: false, problem: `unknown argument ${arg}` };
+    const value = flagValue(args, index);
+    if (value === undefined) {
+      return { ok: false, problem: arg === '--base' ? '--base needs a ref' : '--file needs a path' };
     }
-    base = value;
+    if (arg === '--base') base = value;
+    else files.push(value);
     index += 1;
   }
-  return { ok: true, base };
+  if (files.length === 0) return { ok: true, mode: 'change', base: base ?? LOCAL_BASE };
+  if (base !== undefined) {
+    return { ok: false, problem: '--file measures named files whole and cannot be combined with --base' };
+  }
+  return { ok: true, mode: 'file', files };
 }
 
 export type LocalPlan =
   | { readonly kind: 'error'; readonly problem: string }
-  | { readonly kind: 'none'; readonly diff: string }
-  | { readonly kind: 'run'; readonly diff: string; readonly mutate: readonly string[] };
+  | { readonly kind: 'none'; readonly scope: ChangeScope; readonly diff: string }
+  | {
+      readonly kind: 'run';
+      readonly scope: ChangeScope;
+      readonly diff: string;
+      readonly mutate: readonly string[];
+    };
 
 export type DiffReader = (
   base: string,
 ) => { readonly ok: true; readonly diff: string } | { readonly ok: false; readonly problem: string };
 
+const createdDiff = (file: string): string =>
+  [
+    `diff --git a/${file} b/${file}`,
+    'new file mode 100644',
+    '--- /dev/null',
+    `+++ b/${file}`,
+    '@@ -0,0 +1 @@',
+    '+',
+  ].join('\n');
+
+function planFiles(input: {
+  readonly files: readonly string[];
+  readonly mutate: readonly string[];
+  readonly exists: (file: string) => boolean;
+}): LocalPlan {
+  const named = [...new Set(input.files.map((file) => path.posix.normalize(file)))].sort((a, b) =>
+    a.localeCompare(b),
+  );
+  const refusals = named.flatMap((file) => {
+    if (!input.exists(file)) return [`${file} does not exist`];
+    if (!inSurface(file, input.mutate)) return [`${file} is outside the mutate patterns`];
+    return [];
+  });
+  if (refusals.length > 0) return { kind: 'error', problem: refusals.join('; ') };
+  return { kind: 'run', scope: 'file', diff: named.map(createdDiff).join('\n'), mutate: named };
+}
+
 export function planLocalRun(input: {
   readonly args: readonly string[];
   readonly mutate: readonly string[];
   readonly readDiff: DiffReader;
+  readonly exists: (file: string) => boolean;
 }): LocalPlan {
   const args = parseLocalArguments(input.args);
   if (!args.ok) return { kind: 'error', problem: args.problem };
+  if (args.mode === 'file') {
+    return planFiles({ files: args.files, mutate: input.mutate, exists: input.exists });
+  }
   const read = input.readDiff(args.base);
   if (!read.ok) return { kind: 'error', problem: read.problem };
 
@@ -521,8 +584,8 @@ export function planLocalRun(input: {
     .map((file) => file.path)
     .sort((a, b) => a.localeCompare(b));
   return mutate.length === 0
-    ? { kind: 'none', diff: read.diff }
-    : { kind: 'run', diff: read.diff, mutate };
+    ? { kind: 'none', scope: 'change', diff: read.diff }
+    : { kind: 'run', scope: 'change', diff: read.diff, mutate };
 }
 
 if (import.meta.main) {
