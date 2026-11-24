@@ -64,7 +64,7 @@ export type RegisterEntry = Pick<
 export type StaleEntry = RegisterEntry & { readonly why: StaleReason };
 
 export type RegisterSummary = {
-  readonly live: number;
+  readonly tolerating: number;
   readonly unjudged: number;
   readonly stale: readonly StaleEntry[];
   readonly expired: readonly RegisterEntry[];
@@ -370,7 +370,7 @@ const judgeRegister = (
     if (why !== undefined) stale.push({ ...identityOf(entry), why });
     else if (only !== undefined) tolerated.set(only, entry);
   }
-  return { ok: true, value: { tolerated, summary: { live: tolerated.size, unjudged, stale, expired } } };
+  return { ok: true, value: { tolerated, summary: { tolerating: tolerated.size, unjudged, stale, expired } } };
 };
 
 export const DIFF_ARGUMENTS = [
@@ -672,10 +672,10 @@ const describeEntry = (entry: RegisterEntry): string =>
 const plural = (amount: number, one: string, many: string): string =>
   `${String(amount)} ${amount === 1 ? one : many}`;
 
-const renderRegister = ({ live, unjudged, stale, expired }: RegisterSummary): readonly string[] => [
+const renderRegister = ({ tolerating, unjudged, stale, expired }: RegisterSummary): readonly string[] => [
   '### Register of tolerated mutants',
   '',
-  `${plural(live, 'live entry tolerates', 'live entries tolerate')} a mutant. A stale or expired entry fails nothing.`,
+  `${plural(tolerating, 'entry tolerates', 'entries tolerate')} a mutant. A stale or expired entry fails nothing.`,
   '',
   ...(unjudged > 0
     ? [

@@ -2,6 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-11-25
+**Amended:** 2026-11-25, PR #897
 
 ## Problem
 
@@ -66,7 +67,7 @@ it matches a mutant that is not Survived. An expired entry is reported as
 expired and never also as stale.
 
 Every complete report carries a register summary across the whole surface, not
-only the changed files: the count of live entries, which tolerate a mutant, and
+only the changed files: the count of entries that tolerate a mutant, and
 each stale and expired entry with why. A stale or expired entry is advisory and
 never fails the step; an invalid register still does. A narrowed local run,
 `pnpm test:mutation:changed` with or without `--file`, judges only the entries

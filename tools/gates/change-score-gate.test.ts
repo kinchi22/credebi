@@ -1145,13 +1145,13 @@ describe('the register summary', () => {
   const staleOf = (entries: readonly Record<string, unknown>[], reported = files) =>
     summary(entries, {}, reported).stale.map(({ why }) => why);
 
-  it('counts an entry live on its revisit day and expired the day after', () => {
+  it('keeps an entry out of expired on its revisit day and expired the day after', () => {
     expect(summary([entry({ revisitBy: '2026-11-25' })], { runDay: '2026-11-25' })).toMatchObject({
-      live: 1,
+      tolerating: 1,
       expired: [],
     });
     expect(summary([entry({ revisitBy: '2026-11-25' })], { runDay: '2026-11-26' })).toMatchObject({
-      live: 0,
+      tolerating: 0,
       expired: [{ file: OLD, revisitBy: '2026-11-25' }],
     });
   });
@@ -1192,17 +1192,17 @@ describe('the register summary', () => {
     expect(staleOf([entry({ file: 'docs/outside.ts' })])).toEqual(['outside-mutate']);
   });
 
-  it('counts only the entries that tolerate a mutant as live', () => {
+  it('counts only the entries that tolerate a mutant', () => {
     const report = summary([entry(), entry({ original: 'gone' })]);
 
-    expect(report.live).toBe(1);
+    expect(report.tolerating).toBe(1);
     expect(report.stale).toHaveLength(1);
   });
 
   it('covers the whole surface, whatever files the change touched', () => {
     const elsewhere = { ...files, [NEW]: [survivor(3, { original: "'x'" })] };
 
-    expect(summary([entry({ file: NEW, original: "'x'" })], {}, elsewhere).live).toBe(1);
+    expect(summary([entry({ file: NEW, original: "'x'" })], {}, elsewhere).tolerating).toBe(1);
     expect(staleOf([entry({ file: NEW })])).toEqual(['no-match']);
   });
 
@@ -1216,7 +1216,7 @@ describe('the register summary', () => {
       { measureSurface: false, runDay: '2026-11-26' },
     );
 
-    expect(report).toMatchObject({ live: 0, unjudged: 3, stale: [], expired: [] });
+    expect(report).toMatchObject({ tolerating: 0, unjudged: 3, stale: [], expired: [] });
   });
 
   it('judges entries of measured files on a narrowed run', () => {
@@ -1224,19 +1224,19 @@ describe('the register summary', () => {
       measureSurface: false,
     });
 
-    expect(report).toMatchObject({ live: 1, unjudged: 1 });
+    expect(report).toMatchObject({ tolerating: 1, unjudged: 1 });
     expect(report.stale.map(({ why }) => why)).toEqual(['no-match']);
   });
 
   it('judges the entries of the named files of a File score run', () => {
     const report = summary([entry(), entry({ file: NEW })], { scope: 'file', measureSurface: false });
 
-    expect(report).toMatchObject({ live: 1, unjudged: 1, stale: [] });
+    expect(report).toMatchObject({ tolerating: 1, unjudged: 1, stale: [] });
   });
 
   it('judges nothing of a narrowed run that measured no file', () => {
     expect(summary([entry()], { measureSurface: false }, {})).toMatchObject({
-      live: 0,
+      tolerating: 0,
       unjudged: 1,
       stale: [],
       expired: [],
@@ -1249,16 +1249,16 @@ describe('the register summary', () => {
     expect(report.state).toBe('invalid');
   });
 
-  it('renders the live count, with no list when nothing is stale or expired', () => {
+  it('renders the tolerating count, with no list when nothing is stale or expired', () => {
     const markdown = renderChangeReport(toleranceReport(files, diff, [entry()]));
 
     expect(markdown).toContain('### Register of tolerated mutants');
-    expect(markdown).toContain('1 live entry tolerates a mutant. A stale or expired entry fails nothing.');
+    expect(markdown).toContain('1 entry tolerates a mutant. A stale or expired entry fails nothing.');
     expect(markdown).not.toContain('#### Stale');
     expect(markdown).not.toContain('#### Expired');
     expect(markdown).not.toContain('unjudged');
     expect(renderChangeReport(toleranceReport(files, diff, []))).toContain(
-      '0 live entries tolerate a mutant.',
+      '0 entries tolerate a mutant.',
     );
   });
 
