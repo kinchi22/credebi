@@ -69,6 +69,7 @@ status in the ADR itself.
 | [ADR-0031: Authorize MCP clients with our own OAuth server](adr/0031-authorize-mcp-clients-with-our-own-oauth-server.md) | Accepted |
 | [ADR-0032: Identify a retried post by its Request key](adr/0032-identify-a-retried-post-by-its-request-key.md) | Accepted |
 | [ADR-0033: Report the Change score beside the floor](adr/0033-report-the-change-score-beside-the-floor.md) | Accepted |
+| [ADR-0034: Record tolerated mutants in a reviewed register](adr/0034-record-tolerated-mutants-in-a-reviewed-register.md) | Accepted |
 
 ## Package layout
 
@@ -305,7 +306,7 @@ Every pull request into `main` needs one approval. An agent cannot land anything
 there alone -- a document, a gate, a dependency bump included -- and the place it
 works unattended is a milestone branch.
 
-Four paths are owned on top of that:
+Five paths are owned on top of that:
 
 | Path                     | Why                                                                                                                    |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
@@ -313,8 +314,9 @@ Four paths are owned on top of that:
 | `packages/db/drizzle/**` | An applied migration is the one change a later fix cannot undo.                                                        |
 | `.github/**`             | The gates, and the ownership list itself: how everything else on this page stops being a promise.                      |
 | `stryker.config.ts`      | The coverage floor. One `!` line takes a file out of the only gate that requires it to be tested, and on a milestone branch nothing else would review that. ADR-0004. |
+| `tolerated-mutants.json` | The Tolerated-mutant register. An entry excuses a survived mutant from being killed, and on a milestone branch nothing else would review that judgement. ADR-0034. |
 
-`.github/CODEOWNERS` declares exactly these four: this table and that file are
+`.github/CODEOWNERS` declares exactly these five: this table and that file are
 the same list said twice, and `tools/gates/review-surface-gate.test.ts` fails
 when they stop agreeing. They disagreed until ADR-0002, and what fell through
 the gap was `e2e/`.

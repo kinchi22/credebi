@@ -1,11 +1,15 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import stryker from '../../stryker.config';
+import { REPO_ROOT } from './run-gate';
 import {
   buildChangeReport,
   parseLocalArguments,
   planLocalRun,
   type DiffReader,
   renderChangeReport,
+  TOLERATED_REGISTER,
   type ChangeReport,
 } from '../change-score';
 
@@ -25,9 +29,13 @@ type Mutant = {
   readonly endLine?: number;
   readonly endColumn?: number;
   readonly mutator?: string;
+  readonly original?: string;
+  readonly replacement?: string;
 };
 
 const MUTATE = stryker.mutate;
+const RUN_DAY = '2026-11-25';
+const NO_TOLERANCE = { register: '[]', runDay: RUN_DAY };
 
 const mutant = (status: Status, line: number, rest: Partial<Mutant> = {}): Mutant => ({
   status,
@@ -38,6 +46,16 @@ const mutant = (status: Status, line: number, rest: Partial<Mutant> = {}): Mutan
 const many = (count: number, status: Status, line = 1): readonly Mutant[] =>
   Array.from({ length: count }, () => mutant(status, line));
 
+const sourceOf = (mutants: readonly Mutant[]): string => {
+  const lines: string[] = [];
+  for (const m of mutants) {
+    if (m.original === undefined) continue;
+    while (lines.length < m.line) lines.push('');
+    lines[m.line - 1] = `  ${m.original}`;
+  }
+  return lines.join('\n');
+};
+
 const strykerReport = (files: Record<string, readonly Mutant[]>): string =>
   JSON.stringify({
     schemaVersion: '1.0',
@@ -47,14 +65,18 @@ const strykerReport = (files: Record<string, readonly Mutant[]>): string =>
         name,
         {
           language: 'typescript',
-          source: '',
+          source: sourceOf(mutants),
           mutants: mutants.map((m, index) => ({
             id: `${name}#${String(index)}`,
             mutatorName: m.mutator ?? 'ConditionalExpression',
+            replacement: m.replacement ?? 'true',
             status: m.status,
             location: {
               start: { line: m.line, column: 3 },
-              end: { line: m.endLine ?? m.line, column: m.endColumn ?? 9 },
+              end: {
+                line: m.endLine ?? m.line,
+                column: m.endColumn ?? (m.original === undefined ? 9 : 3 + m.original.length),
+              },
             },
           })),
         },
@@ -118,7 +140,7 @@ const build = (
   files: Record<string, readonly Mutant[]>,
   diff: string,
 ): Extract<ChangeReport, { state: 'complete' }> =>
-  complete(buildChangeReport({ report: strykerReport(files), diff, mutate: MUTATE, elapsedMs: 1 }));
+  complete(buildChangeReport({ ...NO_TOLERANCE, report: strykerReport(files), diff, mutate: MUTATE, elapsedMs: 1 }));
 
 const changeScoreLine = (report: ChangeReport): string | undefined =>
   renderChangeReport(report)
@@ -316,6 +338,7 @@ describe('the Change score', () => {
           { line: 2, column: 3, mutator: 'EqualityOperator', status: 'Survived' },
           { line: 3, column: 3, mutator: 'StringLiteral', status: 'NoCoverage' },
         ],
+        tolerated: [],
       },
       {
         path: OLD,
@@ -323,6 +346,7 @@ describe('the Change score', () => {
         counts: { killed: 0, survived: 1, noCoverage: 0, timeout: 0, errors: 0, ignored: 0 },
         score: 0,
         unkilled: [{ line: 4, column: 3, mutator: 'BlockStatement', status: 'Survived' }],
+        tolerated: [],
       },
     ]);
   });
@@ -437,7 +461,7 @@ describe('a small change', () => {
 
     expect(report.smallSample).toBe(true);
     expect(changeScoreLine(report)).toBe(
-      '**Change score:** 0 scored of 2 Changed mutants, fewer than 20 scored: 0 killed, 0 timeout, 0 survived, 0 no coverage, 1 error, 1 ignored. The target is zero survived or no-coverage mutants, and none remain.',
+      '**Change score:** 0 scored of 2 Changed mutants, fewer than 20 scored: 0 killed, 0 timeout, 0 survived, 0 no coverage, 1 error, 1 ignored. The target is zero untriaged survived or no-coverage mutants, and none remain.',
     );
   });
 
@@ -457,12 +481,12 @@ describe('a small change', () => {
       created(NEW, 1),
     );
     expect(changeScoreLine(report)).toBe(
-      '**Change score:** 5 scored of 7 Changed mutants, fewer than 20 scored: 2 killed, 1 timeout, 1 survived, 1 no coverage, 1 error, 1 ignored. The target is zero survived or no-coverage mutants, and 2 remain.',
+      '**Change score:** 5 scored of 7 Changed mutants, fewer than 20 scored: 2 killed, 1 timeout, 1 survived, 1 no coverage, 1 error, 1 ignored. The target is zero untriaged survived or no-coverage mutants, and 2 remain.',
     );
   });
 
   it('meets its target with no survived or no-coverage mutant', () => {
-    expect(changeScoreLine(build({ [NEW]: many(3, 'Killed') }, created(NEW, 1)))).toContain('The target is zero survived or no-coverage mutants, and none remain.');
+    expect(changeScoreLine(build({ [NEW]: many(3, 'Killed') }, created(NEW, 1)))).toContain('The target is zero untriaged survived or no-coverage mutants, and none remain.');
   });
 });
 
@@ -470,7 +494,7 @@ describe('an incomplete run', () => {
   const diff = created(NEW, 1);
 
   it('is incomplete, never a score, when the report is missing', () => {
-    const report = buildChangeReport({ report: undefined, diff, mutate: MUTATE, elapsedMs: 1 });
+    const report = buildChangeReport({ ...NO_TOLERANCE, report: undefined, diff, mutate: MUTATE, elapsedMs: 1 });
 
     expect(report.state).toBe('incomplete');
     expect(renderChangeReport(report)).toContain('Incomplete');
@@ -479,20 +503,20 @@ describe('an incomplete run', () => {
 
   it('is incomplete when the report is not JSON', () => {
     expect(
-      buildChangeReport({ report: '{"files": {', diff, mutate: MUTATE, elapsedMs: 1 }).state,
+      buildChangeReport({ ...NO_TOLERANCE, report: '{"files": {', diff, mutate: MUTATE, elapsedMs: 1 }).state,
     ).toBe('incomplete');
   });
 
   it('is incomplete when the report is not a Stryker report', () => {
     expect(
-      buildChangeReport({ report: '{"files": 3}', diff, mutate: MUTATE, elapsedMs: 1 }).state,
+      buildChangeReport({ ...NO_TOLERANCE, report: '{"files": 3}', diff, mutate: MUTATE, elapsedMs: 1 }).state,
     ).toBe('incomplete');
   });
 
   it('is incomplete when a mutant in the report was never run', () => {
     const report = strykerReport({ [OLD]: many(50, 'Killed'), [NEW]: [mutant('Pending', 1)] });
 
-    expect(buildChangeReport({ report, diff, mutate: MUTATE, elapsedMs: 1 }).state).toBe(
+    expect(buildChangeReport({ ...NO_TOLERANCE, report, diff, mutate: MUTATE, elapsedMs: 1 }).state).toBe(
       'incomplete',
     );
   });
@@ -500,7 +524,7 @@ describe('an incomplete run', () => {
   it('is incomplete when a pending mutant lies outside the change', () => {
     const report = strykerReport({ [OLD]: [mutant('Pending', 1)], [NEW]: many(2, 'Killed') });
 
-    expect(buildChangeReport({ report, diff, mutate: MUTATE, elapsedMs: 1 }).state).toBe(
+    expect(buildChangeReport({ ...NO_TOLERANCE, report, diff, mutate: MUTATE, elapsedMs: 1 }).state).toBe(
       'incomplete',
     );
   });
@@ -611,7 +635,7 @@ describe('the Stryker configuration', () => {
 
 describe('the Change score of a change with no whole-surface measure', () => {
   const local = (files: Record<string, readonly Mutant[]>, diff: string): ChangeReport =>
-    buildChangeReport({
+    buildChangeReport({ ...NO_TOLERANCE,
       measureSurface: false,
       report: strykerReport(files),
       diff,
@@ -639,6 +663,7 @@ describe('the Change score of a change with no whole-surface measure', () => {
 
   it('counts a block that extends beyond the changed line as a Changed mutant, as the pull request report does', () => {
     const input = {
+      ...NO_TOLERANCE,
       report: strykerReport({ [OLD]: [mutant('Survived', 1, { endLine: 30 })] }),
       diff: modified(OLD, [10, 1]),
       mutate: MUTATE,
@@ -650,7 +675,7 @@ describe('the Change score of a change with no whole-surface measure', () => {
 
   it('leaves the pull request report with its whole-surface score and the change scope', () => {
     const full = complete(
-      buildChangeReport({
+      buildChangeReport({ ...NO_TOLERANCE,
         report: strykerReport({ [OLD]: many(2, 'Killed') }),
         diff: modified(OLD, [1, 1]),
         mutate: MUTATE,
@@ -735,7 +760,7 @@ describe('the plan of the local run', () => {
     const planned = plan(deleted(OLD, 3));
     if (planned.kind !== 'none') throw new Error('expected no run');
     const report = complete(
-      buildChangeReport({
+      buildChangeReport({ ...NO_TOLERANCE,
         measureSurface: false,
         report: JSON.stringify({ files: {} }),
         diff: planned.diff,
@@ -801,7 +826,7 @@ describe('the File score', () => {
   const fileReport = (files: Record<string, readonly Mutant[]>, named: readonly string[]) => {
     const { result } = planned(named.flatMap((file) => ['--file', file]));
     if (result.kind !== 'run') throw new Error('expected a run');
-    return buildChangeReport({
+    return buildChangeReport({ ...NO_TOLERANCE,
       scope: result.scope,
       measureSurface: false,
       report: strykerReport(files),
@@ -857,7 +882,7 @@ describe('the File score', () => {
   it('shows raw counts and the rule of zero below 20 scored mutants', () => {
     const markdown = renderChangeReport(fileReport({ [OLD]: [...many(3, 'Killed'), mutant('Survived', 2)] }, [OLD]));
     expect(markdown).toContain('**File score:** 4 scored of 4 mutants, fewer than 20 scored');
-    expect(markdown).toContain('The target is zero survived or no-coverage mutants, and 1 remains.');
+    expect(markdown).toContain('The target is zero untriaged survived or no-coverage mutants, and 1 remains.');
   });
 
   it('lists a named file holding no mutant as not measured', () => {
@@ -870,7 +895,7 @@ describe('the File score', () => {
     const { result } = planned(['--file', OLD]);
     if (result.kind !== 'run') throw new Error('expected a run');
     const markdown = renderChangeReport(
-      buildChangeReport({
+      buildChangeReport({ ...NO_TOLERANCE,
         scope: 'file',
         measureSurface: false,
         report: undefined,
@@ -922,16 +947,324 @@ describe('the wording of an incomplete change report', () => {
 
   it('mentions the whole-surface score of a pull request report', () => {
     const markdown = renderChangeReport(
-      buildChangeReport({ report: undefined, diff, mutate: MUTATE, elapsedMs: 1 }),
+      buildChangeReport({ ...NO_TOLERANCE, report: undefined, diff, mutate: MUTATE, elapsedMs: 1 }),
     );
     expect(markdown).toContain('There is no Change score and no whole-surface score for this run.');
   });
 
   it('mentions no whole-surface score for a local run', () => {
     const markdown = renderChangeReport(
-      buildChangeReport({ measureSurface: false, report: undefined, diff, mutate: MUTATE, elapsedMs: 1 }),
+      buildChangeReport({ ...NO_TOLERANCE, measureSurface: false, report: undefined, diff, mutate: MUTATE, elapsedMs: 1 }),
     );
     expect(markdown).toContain('There is no Change score for this run.');
     expect(markdown).not.toContain('whole-surface');
+  });
+});
+
+const TEXT = "'a message'";
+const BLANK = '""';
+
+const entry = (rest: Record<string, unknown> = {}): Record<string, unknown> => ({
+  file: OLD,
+  mutator: 'StringLiteral',
+  original: TEXT,
+  replacement: BLANK,
+  reason: 'Nothing branches on the message.',
+  recorded: '2026-11-24',
+  revisitBy: '2027-05-24',
+  ...rest,
+});
+
+const without = (field: string): Record<string, unknown> =>
+  Object.fromEntries(Object.entries(entry()).filter(([key]) => key !== field));
+
+const survivor = (line: number, rest: Partial<Mutant> = {}): Mutant =>
+  mutant('Survived', line, {
+    mutator: 'StringLiteral',
+    original: TEXT,
+    replacement: BLANK,
+    ...rest,
+  });
+
+const toleranceReport = (
+  files: Record<string, readonly Mutant[]>,
+  diff: string,
+  entries: readonly Record<string, unknown>[],
+  extra: Partial<Parameters<typeof buildChangeReport>[0]> = {},
+): ChangeReport =>
+  buildChangeReport({
+    report: strykerReport(files),
+    register: JSON.stringify(entries),
+    runDay: RUN_DAY,
+    diff,
+    mutate: MUTATE,
+    elapsedMs: 1,
+    ...extra,
+  });
+
+const invalidReason = (report: ChangeReport): string => {
+  if (report.state !== 'invalid') throw new Error(`expected an invalid report, got ${report.state}`);
+  return report.reason;
+};
+
+describe('a tolerated mutant', () => {
+  const files = { [OLD]: [survivor(5), mutant('Killed', 6)] };
+  const diff = modified(OLD, [5, 2]);
+
+  it('is listed apart, with its reason and revisit day, instead of among the untriaged', () => {
+    const [file] = complete(toleranceReport(files, diff, [entry()])).files;
+
+    expect(file?.unkilled).toEqual([]);
+    expect(file?.tolerated).toEqual([
+      {
+        line: 5,
+        column: 3,
+        mutator: 'StringLiteral',
+        reason: 'Nothing branches on the message.',
+        revisitBy: '2027-05-24',
+      },
+    ]);
+  });
+
+  it('leaves every count and score as if the register were empty', () => {
+    const tolerated = complete(toleranceReport(files, diff, [entry()]));
+    const untouched = complete(toleranceReport(files, diff, []));
+
+    expect(tolerated.change).toEqual(untouched.change);
+    expect(tolerated.surface).toEqual(untouched.surface);
+    expect(tolerated.change.counts.survived).toBe(1);
+    expect(tolerated.change.score).toBe(50);
+  });
+
+  it('is still tolerated when its lines have moved', () => {
+    const moved = { [OLD]: [survivor(40), mutant('Killed', 41)] };
+    const [file] = complete(toleranceReport(moved, modified(OLD, [40, 2]), [entry()])).files;
+
+    expect(file?.tolerated.map(({ line }) => line)).toEqual([40]);
+  });
+
+  it('is told apart from a survivor of the same mutator with other text', () => {
+    const other = { [OLD]: [survivor(5), survivor(6, { original: "'other'" })] };
+    const [file] = complete(toleranceReport(other, modified(OLD, [5, 2]), [entry()])).files;
+
+    expect(file?.tolerated.map(({ line }) => line)).toEqual([5]);
+    expect(file?.unkilled.map(({ line }) => line)).toEqual([6]);
+  });
+
+  it('is not tolerated when the replacement, the mutator or the file differs', () => {
+    for (const other of [{ replacement: '"x"' }, { mutator: 'Other' }, { file: NEW }]) {
+      const [file] = complete(toleranceReport(files, diff, [entry(other)])).files;
+      expect(file?.tolerated).toEqual([]);
+      expect(file?.unkilled).toHaveLength(1);
+    }
+  });
+
+  it('is never a no-coverage mutant', () => {
+    const uncovered = { [OLD]: [survivor(5, { status: 'NoCoverage' })] };
+    const [file] = complete(toleranceReport(uncovered, diff, [entry()])).files;
+
+    expect(file?.tolerated).toEqual([]);
+    expect(file?.unkilled).toEqual([
+      { line: 5, column: 3, mutator: 'StringLiteral', status: 'NoCoverage' },
+    ]);
+  });
+
+  it('is not tolerated when the entry matches a second mutant of the file', () => {
+    const twice = { [OLD]: [survivor(5), survivor(6)] };
+    const [file] = complete(toleranceReport(twice, modified(OLD, [5, 2]), [entry()])).files;
+
+    expect(file?.tolerated).toEqual([]);
+    expect(file?.unkilled).toHaveLength(2);
+  });
+
+  it('is counted by the small sample against a target of zero untriaged mutants only', () => {
+    const tolerated = complete(toleranceReport(files, diff, [entry()]));
+    const untriaged = complete(toleranceReport(files, diff, []));
+
+    expect(tolerated.smallSample).toBe(true);
+    expect(tolerated.untriaged).toBe(0);
+    expect(untriaged.untriaged).toBe(1);
+    expect(changeScoreLine(tolerated)).toContain('and none remain.');
+    expect(changeScoreLine(untriaged)).toContain('and 1 remains.');
+  });
+
+  it('counts a no-coverage mutant beside a tolerated survivor as untriaged', () => {
+    const both = { [OLD]: [survivor(5), mutant('NoCoverage', 6)] };
+    const report = complete(toleranceReport(both, modified(OLD, [5, 2]), [entry()]));
+
+    expect(report.untriaged).toBe(1);
+    expect(changeScoreLine(report)).toContain('and 1 remains.');
+  });
+
+  it('is rendered in its own section, with its reason and revisit day', () => {
+    const markdown = renderChangeReport(toleranceReport(files, diff, [entry()]));
+
+    expect(markdown).toContain('### Tolerated');
+    expect(markdown).toContain(
+      `- \`${OLD}:5:3\` StringLiteral, tolerated: Nothing branches on the message. Revisit by 2027-05-24.`,
+    );
+    expect(markdown).not.toContain('### Survived and no coverage');
+  });
+
+  it('keeps an untriaged survivor in its own section beside the tolerated one', () => {
+    const both = { [OLD]: [survivor(5), mutant('Survived', 6)] };
+    const markdown = renderChangeReport(toleranceReport(both, modified(OLD, [5, 2]), [entry()]));
+
+    expect(markdown).toContain(`- \`${OLD}:6:3\` ConditionalExpression, Survived`);
+    expect(markdown).toContain('### Tolerated');
+  });
+
+  it('shows no section when nothing is tolerated', () => {
+    expect(renderChangeReport(toleranceReport(files, diff, []))).not.toContain('### Tolerated');
+  });
+
+  it('applies to the File score the same way', () => {
+    const report = complete(
+      toleranceReport({ [OLD]: [survivor(5)] }, created(OLD, 1), [entry()], {
+        scope: 'file',
+        measureSurface: false,
+      }),
+    );
+
+    expect(report.files[0]?.tolerated).toHaveLength(1);
+    expect(report.change.score).toBe(0);
+    expect(report.untriaged).toBe(0);
+  });
+});
+
+describe('an invalid register', () => {
+  const files = { [OLD]: [survivor(5)] };
+  const diff = modified(OLD, [5, 1]);
+  const invalid = (register: string | undefined): string =>
+    invalidReason(toleranceReport(files, diff, [], { register }));
+  const invalidEntries = (...entries: readonly Record<string, unknown>[]): string =>
+    invalidReason(toleranceReport(files, diff, entries));
+
+  it('is reported when the file is missing', () => {
+    expect(invalid(undefined)).toContain('is missing');
+  });
+
+  it('is reported when the file is not JSON', () => {
+    expect(invalid('[{')).toContain('is not valid JSON');
+  });
+
+  it('is reported when the file is not an array of entries', () => {
+    expect(invalid('{"entries": []}')).toContain('is not an array');
+    expect(invalid('null')).toContain('is not an array');
+  });
+
+  it('is reported for an entry that is not an object', () => {
+    expect(invalid('["x"]')).toContain('entry 1');
+  });
+
+  it('is reported for each missing field, naming it', () => {
+    for (const field of ['file', 'mutator', 'original', 'replacement', 'reason', 'recorded', 'revisitBy']) {
+      expect(invalidEntries(without(field))).toContain(`\`${field}\``);
+    }
+  });
+
+  it('is reported for a field that is not a string', () => {
+    expect(invalidEntries(entry({ file: 3 }))).toContain('`file`');
+  });
+
+  it('is reported for a field beyond the seven', () => {
+    expect(invalidEntries(entry({ approver: 'me' }))).toContain('`approver`');
+  });
+
+  it('is reported for an empty or blank reason', () => {
+    expect(invalidEntries(entry({ reason: '' }))).toContain('empty `reason`');
+    expect(invalidEntries(entry({ reason: '   ' }))).toContain('empty `reason`');
+  });
+
+  it('is reported for a malformed or impossible date', () => {
+    for (const bad of ['2026-1-24', '24-11-2026', '2026-13-01', '2026-02-30', 'tomorrow']) {
+      expect(invalidEntries(entry({ recorded: bad }))).toContain('`recorded`');
+      expect(invalidEntries(entry({ revisitBy: bad }))).toContain('`revisitBy`');
+    }
+  });
+
+  it('is reported for a revisit day before the recorded day', () => {
+    expect(invalidEntries(entry({ revisitBy: '2026-11-23' }))).toContain('before');
+  });
+
+  it('accepts a revisit day on the recorded day and on the last day of six months', () => {
+    expect(complete(toleranceReport(files, diff, [entry({ revisitBy: '2026-11-24' })])).files).toHaveLength(1);
+    expect(complete(toleranceReport(files, diff, [entry({ revisitBy: '2027-05-24' })])).files).toHaveLength(1);
+  });
+
+  it('is reported for a revisit day more than six months after the recorded day', () => {
+    expect(invalidEntries(entry({ revisitBy: '2027-05-25' }))).toContain('more than six months');
+  });
+
+  it('measures six calendar months, clamping a short month and crossing a year', () => {
+    const clamped = entry({ recorded: '2026-08-31', revisitBy: '2027-02-28' });
+    const past = entry({ recorded: '2026-08-31', revisitBy: '2027-03-01' });
+    const crossing = entry({ recorded: '2026-12-31', revisitBy: '2027-06-30' });
+    const over = entry({ recorded: '2026-12-31', revisitBy: '2027-07-01' });
+
+    expect(complete(toleranceReport(files, diff, [clamped])).files).toHaveLength(1);
+    expect(invalidEntries(past)).toContain('more than six months');
+    expect(complete(toleranceReport(files, diff, [crossing])).files).toHaveLength(1);
+    expect(invalidEntries(over)).toContain('more than six months');
+  });
+
+  it('is reported when two entries match the same mutant', () => {
+    expect(invalidEntries(entry(), entry({ reason: 'Another reason.' }))).toContain(
+      'two entries of the register match the same mutant',
+    );
+  });
+
+  it('is not reported for two entries that match different mutants', () => {
+    const two = { [OLD]: [survivor(5), survivor(6, { original: "'other'" })] };
+    const report = toleranceReport(two, modified(OLD, [5, 2]), [entry(), entry({ original: "'other'" })]);
+
+    expect(complete(report).files[0]?.tolerated).toHaveLength(2);
+  });
+
+  it('is reported even when the doubly matched mutant lies outside the change', () => {
+    const far = { [OLD]: [survivor(50)] };
+
+    expect(toleranceReport(far, diff, [entry(), entry()]).state).toBe('invalid');
+  });
+
+  it('names the cause in the rendered report, with no score, and says the step fails', () => {
+    const markdown = renderChangeReport(toleranceReport(files, diff, [], { register: undefined }));
+
+    expect(markdown).toContain('## Change score');
+    expect(markdown).toContain('**Invalid:** the register tolerated-mutants.json is missing.');
+    expect(markdown).toContain('the step fails');
+    expect(markdown).not.toContain('**Change score:**');
+  });
+
+  it('says File score for a File score run', () => {
+    const markdown = renderChangeReport(
+      toleranceReport(files, diff, [], { register: undefined, scope: 'file', measureSurface: false }),
+    );
+
+    expect(markdown).toContain('## File score');
+    expect(markdown).not.toContain('whole-surface');
+  });
+
+  it('reports an incomplete Stryker run before a register it cannot check', () => {
+    const report = toleranceReport(files, diff, [], { report: undefined, register: undefined });
+
+    expect(report.state).toBe('incomplete');
+  });
+});
+
+describe('the register of the repository', () => {
+  const register = readFileSync(path.join(REPO_ROOT, TOLERATED_REGISTER), 'utf8');
+
+  it('is valid, whatever the mutants', () => {
+    expect(toleranceReport({}, '', [], { register }).state).toBe('complete');
+  });
+
+  it('tolerates the two message survivors of the health domain', () => {
+    const entries = JSON.parse(register) as readonly { file: string }[];
+
+    expect(entries.map(({ file }) => file)).toEqual([
+      'packages/core/src/health/domain/status.ts',
+      'packages/core/src/health/domain/status.ts',
+    ]);
   });
 });
