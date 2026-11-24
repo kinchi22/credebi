@@ -10,6 +10,7 @@ export const REPORT_DIR = 'reports/mutation';
 export const STRYKER_JSON = `${REPORT_DIR}/mutation.json`;
 export const CHANGE_REPORT_MARKDOWN = `${REPORT_DIR}/change-report.md`;
 export const CHANGE_REPORT_JSON = `${REPORT_DIR}/change-report.json`;
+export const TOLERATED_REGISTER = 'tolerated-mutants.json';
 
 const FINISHED = [
   'Killed',
@@ -24,11 +25,33 @@ type Finished = (typeof FINISHED)[number];
 
 type Position = { readonly line: number; readonly column: number };
 
-type Mutant = {
-  readonly status: Finished;
+export type MutantIdentity = {
+  readonly file: string;
   readonly mutator: string;
+  readonly replacement: string;
+  readonly original: string;
+};
+
+type Mutant = MutantIdentity & {
+  readonly status: Finished;
   readonly start: Position;
   readonly end: Position;
+};
+
+export type ToleratedEntry = {
+  readonly file: string;
+  readonly mutator: string;
+  readonly original: string;
+  readonly replacement: string;
+  readonly reason: string;
+  readonly recorded: string;
+  readonly revisitBy: string;
+};
+
+export type Tolerated = Position & {
+  readonly mutator: string;
+  readonly reason: string;
+  readonly revisitBy: string;
 };
 
 export type Counts = {
@@ -57,6 +80,7 @@ export type ChangedFile = FileChange<MeasurableKind> & {
   readonly counts: Counts;
   readonly score: number | null;
   readonly unkilled: readonly Unkilled[];
+  readonly tolerated: readonly Tolerated[];
 };
 
 export type UnmeasuredFile = FileChange<MeasurableKind | 'deleted'> & {
@@ -78,8 +102,16 @@ export type ChangeReport =
       readonly measuresSurface: boolean;
       readonly surface?: Measure;
       readonly smallSample: boolean;
+      readonly untriaged: number;
       readonly files: readonly ChangedFile[];
       readonly unmeasured: readonly UnmeasuredFile[];
+      readonly elapsedMs: number | undefined;
+    }
+  | {
+      readonly state: 'invalid';
+      readonly scope: ChangeScope;
+      readonly measuresSurface: boolean;
+      readonly reason: string;
       readonly elapsedMs: number | undefined;
     }
   | {
@@ -96,6 +128,7 @@ export type ChangeReportInput = {
   readonly scope?: ChangeScope;
   readonly measureSurface?: boolean;
   readonly report: string | undefined;
+  readonly register: string | undefined;
   readonly diff: string;
   readonly mutate: readonly string[];
   readonly elapsedMs: number | undefined;
@@ -117,15 +150,31 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isPosition = (value: unknown): value is Position =>
   isRecord(value) && typeof value['line'] === 'number' && typeof value['column'] === 'number';
 
-const parseMutant = (value: unknown): Mutant | 'pending' | undefined => {
+const textAt = (source: string, start: Position, end: Position): string => {
+  const lines = source.split('\n');
+  const offsetOf = ({ line, column }: Position): number =>
+    lines.slice(0, line - 1).reduce((total, text) => total + text.length + 1, 0) + column - 1;
+  return source.slice(offsetOf(start), offsetOf(end));
+};
+
+const parseMutant = (value: unknown, file: string, source: string): Mutant | 'pending' | undefined => {
   if (!isRecord(value)) return undefined;
-  const { status, mutatorName, location } = value;
+  const { status, mutatorName, location, replacement } = value;
   if (status === 'Pending') return 'pending';
   if (!FINISHED.some((finished) => finished === status)) return undefined;
-  if (typeof mutatorName !== 'string' || !isRecord(location)) return undefined;
+  if (typeof mutatorName !== 'string' || typeof replacement !== 'string') return undefined;
+  if (!isRecord(location)) return undefined;
   const { start, end } = location;
   if (!isPosition(start) || !isPosition(end)) return undefined;
-  return { status: status as Finished, mutator: mutatorName, start, end };
+  return {
+    status: status as Finished,
+    file,
+    mutator: mutatorName,
+    replacement,
+    original: textAt(source, start, end),
+    start,
+    end,
+  };
 };
 
 const parseStrykerReport = (
@@ -150,8 +199,12 @@ const parseStrykerReport = (
       return { ok: false, reason: `the Stryker JSON report holds no mutants for ${name}` };
     }
     const mutants: Mutant[] = [];
+    const source = file['source'];
+    if (typeof source !== 'string') {
+      return { ok: false, reason: `the Stryker JSON report holds no source for ${name}` };
+    }
     for (const raw of file['mutants'] as readonly unknown[]) {
-      const parsed = parseMutant(raw);
+      const parsed = parseMutant(raw, name, source);
       if (parsed === 'pending') {
         return { ok: false, reason: `a mutant of ${name} was never run` };
       }
@@ -163,6 +216,107 @@ const parseStrykerReport = (
     files.set(name, mutants);
   }
   return { ok: true, value: files };
+};
+
+const ENTRY_FIELDS = [
+  'file',
+  'mutator',
+  'original',
+  'replacement',
+  'reason',
+  'recorded',
+  'revisitBy',
+] as const;
+
+const DAY = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+const daysIn = (year: number, month: number): number => new Date(Date.UTC(year, month, 0)).getUTCDate();
+
+const parseDay = (text: string): { year: number; month: number; day: number } | undefined => {
+  const match = DAY.exec(text);
+  if (match === null) return undefined;
+  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
+  if (month < 1 || month > 12 || day < 1 || day > daysIn(year, month)) return undefined;
+  return { year, month, day };
+};
+
+const sixMonthsAfter = (recorded: string): string => {
+  const { year, month, day } = parseDay(recorded) ?? { year: 0, month: 1, day: 1 };
+  const index = year * 12 + (month - 1) + 6;
+  const lateYear = Math.floor(index / 12);
+  const lateMonth = (index % 12) + 1;
+  const lateDay = Math.min(day, daysIn(lateYear, lateMonth));
+  return [lateYear, lateMonth, lateDay].map((part, at) => String(part).padStart(at === 0 ? 4 : 2, '0')).join('-');
+};
+
+const checkEntry = (value: unknown, position: number): string | undefined => {
+  const where = `entry ${String(position)} of the register`;
+  if (!isRecord(value)) return `${where} is not an object`;
+  for (const field of ENTRY_FIELDS) {
+    if (typeof value[field] !== 'string') return `${where} has no string \`${field}\``;
+  }
+  const extra = Object.keys(value).find((key) => !ENTRY_FIELDS.some((field) => field === key));
+  if (extra !== undefined) return `${where} has an unknown field \`${extra}\``;
+
+  const entry = value as ToleratedEntry;
+  if (entry.original === '') return `${where} has an empty \`original\``;
+  if (entry.reason.trim() === '') return `${where} has an empty \`reason\``;
+  for (const field of ['recorded', 'revisitBy'] as const) {
+    if (parseDay(entry[field]) === undefined) {
+      return `${where} has a \`${field}\` that is not a YYYY-MM-DD date`;
+    }
+  }
+  if (entry.revisitBy < entry.recorded) return `${where} has a \`revisitBy\` before its \`recorded\``;
+  if (entry.revisitBy > sixMonthsAfter(entry.recorded)) {
+    return `${where} has a \`revisitBy\` more than six months after its \`recorded\``;
+  }
+  return undefined;
+};
+
+const parseRegister = (text: string | undefined): Parsed<readonly ToleratedEntry[]> => {
+  if (text === undefined) return { ok: false, reason: `the register ${TOLERATED_REGISTER} is missing` };
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    return { ok: false, reason: `the register ${TOLERATED_REGISTER} is not valid JSON` };
+  }
+  if (!Array.isArray(json)) {
+    return { ok: false, reason: `the register ${TOLERATED_REGISTER} is not an array of entries` };
+  }
+  const entries = json as readonly unknown[];
+  for (const [index, entry] of entries.entries()) {
+    const problem = checkEntry(entry, index + 1);
+    if (problem !== undefined) return { ok: false, reason: problem };
+  }
+  return { ok: true, value: entries as readonly ToleratedEntry[] };
+};
+
+export const matchesEntry = (entry: ToleratedEntry, mutant: MutantIdentity): boolean =>
+  entry.file === mutant.file &&
+  entry.mutator === mutant.mutator &&
+  entry.replacement === mutant.replacement &&
+  entry.original === mutant.original;
+
+const toleratingEntries = (
+  entries: readonly ToleratedEntry[],
+  mutants: readonly Mutant[],
+): Parsed<ReadonlyMap<Mutant, ToleratedEntry>> => {
+  for (const mutant of mutants) {
+    if (entries.filter((entry) => matchesEntry(entry, mutant)).length > 1) {
+      return {
+        ok: false,
+        reason: `two entries of the register match the same mutant: ${mutant.mutator} of \`${mutant.file}\` replacing \`${mutant.original}\` with \`${mutant.replacement}\``,
+      };
+    }
+  }
+  const tolerated = new Map<Mutant, ToleratedEntry>();
+  for (const entry of entries) {
+    const matched = mutants.filter((mutant) => matchesEntry(entry, mutant));
+    const [only] = matched;
+    if (matched.length === 1 && only?.status === 'Survived') tolerated.set(only, entry);
+  }
+  return { ok: true, value: tolerated };
 };
 
 export const DIFF_ARGUMENTS = [
@@ -298,7 +452,7 @@ const isUnkilled = (
 ): mutant is Mutant & { readonly status: 'Survived' | 'NoCoverage' } =>
   mutant.status === 'Survived' || mutant.status === 'NoCoverage';
 
-const byPosition = (a: Unkilled, b: Unkilled): number => a.line - b.line || a.column - b.column;
+const byPosition = (a: Position, b: Position): number => a.line - b.line || a.column - b.column;
 
 export function buildChangeReport(input: ChangeReportInput): ChangeReport {
   const { elapsedMs } = input;
@@ -307,6 +461,15 @@ export function buildChangeReport(input: ChangeReportInput): ChangeReport {
   const parsed = parseStrykerReport(input.report);
   if (!parsed.ok) {
     return { state: 'incomplete', scope, measuresSurface, reason: parsed.reason, elapsedMs };
+  }
+
+  const register = parseRegister(input.register);
+  if (!register.ok) {
+    return { state: 'invalid', scope, measuresSurface, reason: register.reason, elapsedMs };
+  }
+  const tolerating = toleratingEntries(register.value, [...parsed.value.values()].flat());
+  if (!tolerating.ok) {
+    return { state: 'invalid', scope, measuresSurface, reason: tolerating.reason, elapsedMs };
   }
 
   const files: ChangedFile[] = [];
@@ -337,12 +500,29 @@ export function buildChangeReport(input: ChangeReportInput): ChangeReport {
       score: scoreOf(counts),
       unkilled: mutants
         .filter(isUnkilled)
+        .filter((mutant) => !tolerating.value.has(mutant))
         .map(({ start, mutator, status }) => ({
           line: start.line,
           column: start.column,
           mutator,
           status,
         }))
+        .sort(byPosition),
+      tolerated: mutants
+        .flatMap((mutant) => {
+          const entry = tolerating.value.get(mutant);
+          return entry === undefined
+            ? []
+            : [
+                {
+                  line: mutant.start.line,
+                  column: mutant.start.column,
+                  mutator: mutant.mutator,
+                  reason: entry.reason,
+                  revisitBy: entry.revisitBy,
+                },
+              ];
+        })
         .sort(byPosition),
     });
   }
@@ -358,6 +538,7 @@ export function buildChangeReport(input: ChangeReportInput): ChangeReport {
     measuresSurface,
     ...(measuresSurface ? { surface: measure([...parsed.value.values()].flat()) } : {}),
     smallSample: change.mutants > 0 && scoredOf(change.counts) < SMALL_SAMPLE,
+    untriaged: files.reduce((total, file) => total + file.unkilled.length, 0),
     files,
     unmeasured,
     elapsedMs,
@@ -403,7 +584,7 @@ const remaining = (unkilled: number): string => {
 const SCORE_NAME: Record<ChangeScope, string> = { change: 'Change score', file: 'File score' };
 
 const changeScoreLine = (report: Extract<ChangeReport, { state: 'complete' }>): string => {
-  const { change, target, smallSample, scope, measuresSurface } = report;
+  const { change, target, smallSample, scope, measuresSurface, untriaged } = report;
   const name = SCORE_NAME[scope];
   const mutants = scope === 'file' ? 'mutants' : 'Changed mutants';
   if (change.mutants === 0) {
@@ -414,7 +595,7 @@ const changeScoreLine = (report: Extract<ChangeReport, { state: 'complete' }>): 
     return `**${name}:** N/A: ${why}. Target ${String(target)}%.`;
   }
   if (smallSample || change.score === null) {
-    return `**${name}:** ${String(scoredOf(change.counts))} scored of ${String(change.mutants)} ${mutants}, fewer than ${String(SMALL_SAMPLE)} scored: ${rawCounts(change.counts)}. The target is zero survived or no-coverage mutants, and ${remaining(change.counts.survived + change.counts.noCoverage)}.`;
+    return `**${name}:** ${String(scoredOf(change.counts))} scored of ${String(change.mutants)} ${mutants}, fewer than ${String(SMALL_SAMPLE)} scored: ${rawCounts(change.counts)}. The target is zero untriaged survived or no-coverage mutants, and ${remaining(untriaged)}.`;
   }
   return `**${name}:** ${percent(change.score)} of ${String(change.mutants)} ${mutants}, against a target of ${String(target)}%.`;
 };
@@ -423,6 +604,17 @@ export function renderChangeReport(report: ChangeReport): string {
   const name = SCORE_NAME[report.scope];
   const heading = `## ${name}`;
   const elapsed = `Elapsed: ${formatElapsed(report.elapsedMs)}.`;
+
+  if (report.state === 'invalid') {
+    return [
+      heading,
+      '',
+      `**Invalid:** ${report.reason}. There is no ${name}${report.measuresSurface ? ' and no whole-surface score' : ''} for this run, and the step fails.`,
+      '',
+      elapsed,
+      '',
+    ].join('\n');
+  }
 
   if (report.state === 'incomplete') {
     return [
@@ -470,6 +662,14 @@ export function renderChangeReport(report: ChangeReport): string {
       ),
     );
     if (unkilled.length > 0) lines.push('### Survived and no coverage', '', ...unkilled, '');
+
+    const tolerated = files.flatMap(({ path: file, tolerated: mutants }) =>
+      mutants.map(
+        ({ line, column, mutator, reason, revisitBy }) =>
+          `- \`${file}:${String(line)}:${String(column)}\` ${mutator}, tolerated: ${reason} Revisit by ${revisitBy}.`,
+      ),
+    );
+    if (tolerated.length > 0) lines.push('### Tolerated', '', ...tolerated, '');
   }
 
   if (unmeasured.length > 0) {
@@ -606,6 +806,7 @@ if (import.meta.main) {
 
   const report = buildChangeReport({
     report: existsSync(STRYKER_JSON) ? readFileSync(STRYKER_JSON, 'utf8') : undefined,
+    register: existsSync(TOLERATED_REGISTER) ? readFileSync(TOLERATED_REGISTER, 'utf8') : undefined,
     diff: diff.stdout,
     mutate: stryker.mutate,
     elapsedMs: Number.isFinite(startedAt) && startedAt > 0 ? Date.now() - startedAt * 1000 : undefined,
@@ -619,4 +820,5 @@ if (import.meta.main) {
   const summary = process.env['GITHUB_STEP_SUMMARY'];
   if (summary !== undefined && summary !== '') appendFileSync(summary, markdown);
   console.log(markdown);
+  if (report.state === 'invalid') process.exitCode = 1;
 }

@@ -6,7 +6,7 @@
 # an owned path in the diff is what pulls a reviewer in, and everything else
 # merges unattended behind the gates in .github/workflows/ci.yml.
 #
-# Four paths, each here for its own reason:
+# Five paths, each here for its own reason:
 #
 #   e2e/                  the requirements themselves, stated as executable
 #                         specs. An agent that may edit these can make a
@@ -19,8 +19,14 @@
 #                         the only gate that requires them to be tested, so a
 #                         test that got hard to write has a one-line way out
 #                         that nothing else would review. ADR-0004.
+#   tolerated-mutants.json
+#                         the Tolerated-mutant register. An entry excuses a
+#                         survived mutant from being killed, so adding one is
+#                         the judgement that a missing assertion is not worth
+#                         writing, and it needs the owner's eye. ADR-0034.
 
 /e2e/                      @kinchi22
 /packages/db/drizzle/      @kinchi22
 /.github/                  @kinchi22
 /stryker.config.ts         @kinchi22
+/tolerated-mutants.json    @kinchi22

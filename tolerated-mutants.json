@@ -1,0 +1,20 @@
+[
+  {
+    "file": "packages/core/src/health/domain/status.ts",
+    "mutator": "StringLiteral",
+    "original": "'Health cannot be evaluated with no components checked.'",
+    "replacement": "\"\"",
+    "reason": "Nothing branches on the message text of an INVALID_INPUT error, so asserting its wording would be a brittle test for no behaviour. ADR-0004.",
+    "recorded": "2026-11-24",
+    "revisitBy": "2027-05-24"
+  },
+  {
+    "file": "packages/core/src/health/domain/status.ts",
+    "mutator": "StringLiteral",
+    "original": "'Every checked component must have a name.'",
+    "replacement": "\"\"",
+    "reason": "Nothing branches on the message text of an INVALID_INPUT error, so asserting its wording would be a brittle test for no behaviour. ADR-0004.",
+    "recorded": "2026-11-24",
+    "revisitBy": "2027-05-24"
+  }
+]
