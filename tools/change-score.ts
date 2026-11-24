@@ -74,7 +74,8 @@ export type ChangeReport =
       readonly state: 'complete';
       readonly target: number;
       readonly change: Measure;
-      readonly surface: Measure;
+      readonly scope: ChangeScope;
+      readonly surface?: Measure;
       readonly smallSample: boolean;
       readonly files: readonly ChangedFile[];
       readonly unmeasured: readonly UnmeasuredFile[];
@@ -86,7 +87,11 @@ export type ChangeReport =
       readonly elapsedMs: number | undefined;
     };
 
+export type ChangeScope = 'change' | 'file';
+
 export type ChangeReportInput = {
+  readonly scope?: ChangeScope;
+  readonly measureSurface?: boolean;
   readonly report: string | undefined;
   readonly diff: string;
   readonly mutate: readonly string[];
@@ -156,6 +161,16 @@ const parseStrykerReport = (
   }
   return { ok: true, value: files };
 };
+
+export const DIFF_ARGUMENTS = [
+  '-c',
+  'core.quotePath=false',
+  'diff',
+  '--no-color',
+  '--no-ext-diff',
+  '-U0',
+  '-M',
+] as const;
 
 const HUNK = /^@@ -\d+(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/;
 const DIFF_HEADER = /^diff --git a\/.* b\/(.*)$/;
@@ -258,15 +273,20 @@ const measurableKindOf = (changed: DiffFile): MeasurableKind => {
   return changed.from === undefined ? 'modified' : 'renamed';
 };
 
+const isOnlyMoved = (changed: DiffFile): boolean =>
+  changed.from !== undefined && changed.lines.size === 0;
+
 const unmeasuredReason = (
   changed: DiffFile,
   mutants: readonly Mutant[],
   mutate: readonly string[],
+  reported: boolean,
 ): UnmeasuredFile['reason'] | undefined => {
   if (changed.deleted) return 'deleted';
   if (!inSurface(changed.path, mutate)) return 'excluded';
+  if (!reported && isOnlyMoved(changed)) return 'moved';
   if (mutants.length === 0) return 'non-mutatable';
-  if (changed.from !== undefined && changed.lines.size === 0) return 'moved';
+  if (isOnlyMoved(changed)) return 'moved';
   return undefined;
 };
 
@@ -289,7 +309,7 @@ export function buildChangeReport(input: ChangeReportInput): ChangeReport {
     const kind = measurableKindOf(changed);
     const from = changed.from === undefined ? {} : { from: changed.from };
     const all = parsed.value.get(changed.path) ?? [];
-    const reason = unmeasuredReason(changed, all, input.mutate);
+    const reason = unmeasuredReason(changed, all, input.mutate, parsed.value.has(changed.path));
     const mutants = all.filter((mutant) => changed.created || overlaps(mutant, changed.lines));
     if (reason !== undefined || mutants.length === 0) {
       unmeasured.push({
@@ -327,7 +347,8 @@ export function buildChangeReport(input: ChangeReportInput): ChangeReport {
     state: 'complete',
     target: CHANGE_TARGET,
     change,
-    surface: measure([...parsed.value.values()].flat()),
+    scope: input.scope ?? 'change',
+    ...(input.measureSurface === false ? {} : { surface: measure([...parsed.value.values()].flat()) }),
     smallSample: change.mutants > 0 && scoredOf(change.counts) < SMALL_SAMPLE,
     files,
     unmeasured,
@@ -376,7 +397,7 @@ const changeScoreLine = (
 ): string => {
   const { change, target, smallSample } = report;
   if (change.mutants === 0) {
-    return `**Change score:** N/A: no mutant overlaps a line this pull request adds or modifies. Target ${String(target)}%.`;
+    return `**Change score:** N/A: no mutant overlaps a line this ${report.surface === undefined ? 'change' : 'pull request'} adds or modifies. Target ${String(target)}%.`;
   }
   if (smallSample || change.score === null) {
     return `**Change score:** ${String(scoredOf(change.counts))} scored of ${String(change.mutants)} Changed mutants, fewer than ${String(SMALL_SAMPLE)} scored: ${rawCounts(change.counts)}. The target is zero survived or no-coverage mutants, and ${remaining(change.counts.survived + change.counts.noCoverage)}.`;
@@ -401,18 +422,17 @@ export function renderChangeReport(report: ChangeReport): string {
 
   const { surface, files, unmeasured } = report;
   const changeLine = changeScoreLine(report);
-  const surfaceLine =
-    surface.score === null
+  const surfaceLine = (measured: Measure): string =>
+    measured.score === null
       ? `**Whole-surface score:** not applicable: the surface holds no mutant.`
-      : `**Whole-surface score:** ${percent(surface.score)} of ${String(surface.mutants)} mutants, the floor that fails below the break threshold.`;
+      : `**Whole-surface score:** ${percent(measured.score)} of ${String(measured.mutants)} mutants, the floor that fails below the break threshold.`;
 
   const lines = [
     heading,
     '',
     changeLine,
     '',
-    surfaceLine,
-    '',
+    ...(surface === undefined ? [] : [surfaceLine(surface), '']),
     'The Change score is advisory: a low one fails nothing.',
     '',
   ];
@@ -452,6 +472,59 @@ export function renderChangeReport(report: ChangeReport): string {
   return lines.join('\n');
 }
 
+export const LOCAL_BASE = 'origin/main';
+export const LOCAL_REPORT_DIR = 'reports/mutation-changed';
+export const LOCAL_STRYKER_JSON = `${LOCAL_REPORT_DIR}/mutation.json`;
+export const LOCAL_CHANGE_REPORT_MARKDOWN = `${LOCAL_REPORT_DIR}/change-report.md`;
+export const LOCAL_CHANGE_REPORT_JSON = `${LOCAL_REPORT_DIR}/change-report.json`;
+
+export type LocalArguments =
+  | { readonly ok: true; readonly base: string }
+  | { readonly ok: false; readonly problem: string };
+
+export function parseLocalArguments(args: readonly string[]): LocalArguments {
+  let base = LOCAL_BASE;
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index] ?? '';
+    if (arg !== '--base') return { ok: false, problem: `unknown argument ${arg}` };
+    const value = args[index + 1];
+    if (value === undefined || value === '' || value.startsWith('-')) {
+      return { ok: false, problem: '--base needs a ref' };
+    }
+    base = value;
+    index += 1;
+  }
+  return { ok: true, base };
+}
+
+export type LocalPlan =
+  | { readonly kind: 'error'; readonly problem: string }
+  | { readonly kind: 'none'; readonly diff: string }
+  | { readonly kind: 'run'; readonly diff: string; readonly mutate: readonly string[] };
+
+export type DiffReader = (
+  base: string,
+) => { readonly ok: true; readonly diff: string } | { readonly ok: false; readonly problem: string };
+
+export function planLocalRun(input: {
+  readonly args: readonly string[];
+  readonly mutate: readonly string[];
+  readonly readDiff: DiffReader;
+}): LocalPlan {
+  const args = parseLocalArguments(input.args);
+  if (!args.ok) return { kind: 'error', problem: args.problem };
+  const read = input.readDiff(args.base);
+  if (!read.ok) return { kind: 'error', problem: read.problem };
+
+  const mutate = parseDiff(read.diff)
+    .filter((file) => !file.deleted && !isOnlyMoved(file) && inSurface(file.path, input.mutate))
+    .map((file) => file.path)
+    .sort((a, b) => a.localeCompare(b));
+  return mutate.length === 0
+    ? { kind: 'none', diff: read.diff }
+    : { kind: 'run', diff: read.diff, mutate };
+}
+
 if (import.meta.main) {
   const base = process.argv[2];
   if (base === undefined || base === '') {
@@ -461,13 +534,7 @@ if (import.meta.main) {
   const found = findMergeBase(process.cwd(), base);
   if (!found.ok) throw new Error(found.problem);
   const diff = git(process.cwd(), [
-    '-c',
-    'core.quotePath=false',
-    'diff',
-    '--no-color',
-    '--no-ext-diff',
-    '-U0',
-    '-M',
+    ...DIFF_ARGUMENTS,
     found.mergeBase,
     found.head,
   ]);
