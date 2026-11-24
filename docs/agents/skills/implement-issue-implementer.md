@@ -33,14 +33,24 @@ the base branch for your Task and the `gh` commands.
    nothing and return it to the Driver.
 6. **Gate.** `pnpm gates` passes. A specs Task passes
    `pnpm verify:gates:e2e` too: every spec fails against an empty page.
-7. **Open.** Push and open the pull request into the base branch. The title is
+7. **Measure.** After the gates pass and before the pull request opens, run
+   `pnpm test:mutation:changed --base origin/<base>` and read its Change score
+   against the target of ADR-0033. For a Task that changes only tests, run
+   `pnpm test:mutation:changed --file <path>` for each source file those tests
+   cover, and read the File score. Below the target, add or strengthen tests
+   until it is met. A survived or no-coverage mutant you leave needs a reason:
+   an equivalent mutant no test can kill, or behaviour outside the Task. Not
+   applicable passes. Nothing blocks on the score, and CI is unchanged.
+8. **Open.** Push and open the pull request into the base branch. The title is
    the change in the imperative, as the log reads. Write the body with the `pr`
    Skill. Its Merge Danger names every owned path in the diff and why the owner
-   is needed, and the body ends with `Closes #<n>`. When the pull request also closes the Feature --
+   is needed, and the body ends with `Closes #<n>`. The body also records the
+   Change score or File score from step 7, and each survived or no-coverage
+   mutant left with its reason. When the pull request also closes the Feature --
    the specs Task of a Feature whose every criterion the app already meets, or
    the last Task of a Feature with no specs -- it carries `Closes #<feature>` as
    well. Set the Task In Review.
-8. **Return** the pull request number once its required checks finish:
+9. **Return** the pull request number once its required checks finish:
    `gh pr checks <n> --watch --required` is the one wait, and it ends by itself.
    Every server, database and process you started is stopped first, so the
    next Task finds port 3000 free.

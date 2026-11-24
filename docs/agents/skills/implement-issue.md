@@ -87,6 +87,10 @@ commits go with it, without asking, as an Agent worktree is defined in
    branch, as the fixed point. The review changes no files, and never checks a
    branch out in the primary tree. The spec is the Task, and its Feature's body
    for context. Post the report on the pull request as a comment.
+   The pull request body must record the Change score or File score and each
+   survived or no-coverage mutant left with its reason. A missing record, or a
+   survivor without a reason, is a finding sent back in step 5. A score below
+   the target of ADR-0033 with every survivor reasoned is not.
 5. **Fix.** When either axis reports a hard violation, or a requirement missing
    or wrong, send the findings back to the same Subagent and review again.
    Judgement calls are the Subagent's to take or leave, with a reason in the
