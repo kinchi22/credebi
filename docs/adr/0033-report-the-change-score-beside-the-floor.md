@@ -3,7 +3,7 @@
 **Status:** Accepted
 **Date:** 2026-11-20
 **Amended:** 2026-11-21, PR #760, amended rather than superseded by the owner's choice
-**Amended:** 2026-11-24, PR #887
+**Amended:** 2026-11-24, PR #888
 
 ## Problem
 
