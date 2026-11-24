@@ -34,7 +34,8 @@ type Mutant = {
 };
 
 const MUTATE = stryker.mutate;
-const NO_TOLERANCE = { register: '[]' };
+const RUN_DAY = '2026-11-25';
+const NO_TOLERANCE = { register: '[]', runDay: RUN_DAY };
 
 const mutant = (status: Status, line: number, rest: Partial<Mutant> = {}): Mutant => ({
   status,
@@ -994,6 +995,7 @@ const toleranceReport = (
   buildChangeReport({
     report: strykerReport(files),
     register: JSON.stringify(entries),
+    runDay: RUN_DAY,
     diff,
     mutate: MUTATE,
     elapsedMs: 1,
@@ -1127,6 +1129,194 @@ describe('a tolerated mutant', () => {
     expect(report.files[0]?.tolerated).toHaveLength(1);
     expect(report.change.score).toBe(0);
     expect(report.untriaged).toBe(0);
+  });
+});
+
+describe('the register summary', () => {
+  const files = {
+    [OLD]: [survivor(5), mutant('Killed', 6, { mutator: 'Other', original: 'x', replacement: 'y' })],
+  };
+  const diff = modified(OLD, [5, 2]);
+  const summary = (
+    entries: readonly Record<string, unknown>[],
+    extra: Partial<Parameters<typeof buildChangeReport>[0]> = {},
+    reported: Record<string, readonly Mutant[]> = files,
+  ) => complete(toleranceReport(reported, diff, entries, extra)).register;
+  const staleOf = (entries: readonly Record<string, unknown>[], reported = files) =>
+    summary(entries, {}, reported).stale.map(({ why }) => why);
+
+  it('counts an entry live on its revisit day and expired the day after', () => {
+    expect(summary([entry({ revisitBy: '2026-11-25' })], { runDay: '2026-11-25' })).toMatchObject({
+      live: 1,
+      expired: [],
+    });
+    expect(summary([entry({ revisitBy: '2026-11-25' })], { runDay: '2026-11-26' })).toMatchObject({
+      live: 0,
+      expired: [{ file: OLD, revisitBy: '2026-11-25' }],
+    });
+  });
+
+  it('treats the mutant of an expired entry as untriaged again', () => {
+    const report = complete(
+      toleranceReport(files, diff, [entry({ revisitBy: '2026-11-25' })], { runDay: '2026-11-26' }),
+    );
+
+    expect(report.untriaged).toBe(1);
+    expect(report.files[0]?.tolerated).toEqual([]);
+    expect(report.files[0]?.unkilled).toHaveLength(1);
+  });
+
+  it('reports an expired entry as expired and never as stale', () => {
+    const report = summary([entry({ original: 'gone', revisitBy: '2026-11-24' })]);
+
+    expect(report.expired).toHaveLength(1);
+    expect(report.stale).toEqual([]);
+  });
+
+  it('reports an entry matching no mutant as stale', () => {
+    expect(staleOf([entry({ original: "'other'" })])).toEqual(['no-match']);
+  });
+
+  it('reports an entry matching more than one mutant of its file as stale', () => {
+    expect(staleOf([entry()], { [OLD]: [survivor(5), survivor(6)] })).toEqual(['ambiguous']);
+  });
+
+  it('reports an entry matching a Killed or NoCoverage mutant as stale', () => {
+    expect(staleOf([entry()], { [OLD]: [survivor(5, { status: 'Killed' })] })).toEqual(['not-survived']);
+    expect(staleOf([entry()], { [OLD]: [survivor(5, { status: 'NoCoverage' })] })).toEqual([
+      'not-survived',
+    ]);
+  });
+
+  it('reports an entry whose file is outside the mutate patterns as stale', () => {
+    expect(staleOf([entry({ file: 'docs/outside.ts' })])).toEqual(['outside-mutate']);
+  });
+
+  it('counts only the entries that tolerate a mutant as live', () => {
+    const report = summary([entry(), entry({ original: 'gone' })]);
+
+    expect(report.live).toBe(1);
+    expect(report.stale).toHaveLength(1);
+  });
+
+  it('covers the whole surface, whatever files the change touched', () => {
+    const elsewhere = { ...files, [NEW]: [survivor(3, { original: "'x'" })] };
+
+    expect(summary([entry({ file: NEW, original: "'x'" })], {}, elsewhere).live).toBe(1);
+    expect(staleOf([entry({ file: NEW })])).toEqual(['no-match']);
+  });
+
+  it('leaves entries of unmeasured files unjudged on a narrowed run', () => {
+    const report = summary(
+      [
+        entry({ file: NEW }),
+        entry({ file: ROUTER, revisitBy: '2026-11-25' }),
+        entry({ file: 'docs/outside.ts' }),
+      ],
+      { measureSurface: false, runDay: '2026-11-26' },
+    );
+
+    expect(report).toMatchObject({ live: 0, unjudged: 3, stale: [], expired: [] });
+  });
+
+  it('judges entries of measured files on a narrowed run', () => {
+    const report = summary([entry(), entry({ original: 'gone' }), entry({ file: NEW })], {
+      measureSurface: false,
+    });
+
+    expect(report).toMatchObject({ live: 1, unjudged: 1 });
+    expect(report.stale.map(({ why }) => why)).toEqual(['no-match']);
+  });
+
+  it('judges the entries of the named files of a File score run', () => {
+    const report = summary([entry(), entry({ file: NEW })], { scope: 'file', measureSurface: false });
+
+    expect(report).toMatchObject({ live: 1, unjudged: 1, stale: [] });
+  });
+
+  it('judges nothing of a narrowed run that measured no file', () => {
+    expect(summary([entry()], { measureSurface: false }, {})).toMatchObject({
+      live: 0,
+      unjudged: 1,
+      stale: [],
+      expired: [],
+    });
+  });
+
+  it('is invalid for two entries matching a mutant even when one is expired', () => {
+    const report = toleranceReport(files, diff, [entry(), entry({ revisitBy: '2026-11-24' })]);
+
+    expect(report.state).toBe('invalid');
+  });
+
+  it('renders the live count, with no list when nothing is stale or expired', () => {
+    const markdown = renderChangeReport(toleranceReport(files, diff, [entry()]));
+
+    expect(markdown).toContain('### Register of tolerated mutants');
+    expect(markdown).toContain('1 live entry tolerates a mutant. A stale or expired entry fails nothing.');
+    expect(markdown).not.toContain('#### Stale');
+    expect(markdown).not.toContain('#### Expired');
+    expect(markdown).not.toContain('unjudged');
+    expect(renderChangeReport(toleranceReport(files, diff, []))).toContain(
+      '0 live entries tolerate a mutant.',
+    );
+  });
+
+  it('renders each stale and expired entry with its reason', () => {
+    const markdown = renderChangeReport(
+      toleranceReport(files, diff, [
+        entry({ original: 'gone' }),
+        entry({ file: 'docs/outside.ts' }),
+        entry({ file: NEW, revisitBy: '2026-11-24' }),
+      ]),
+    );
+
+    expect(markdown).toContain('#### Stale');
+    expect(markdown).toContain(`- \`${OLD}\` StringLiteral replacing \`gone\` with \`""\`: no mutant matches it.`);
+    expect(markdown).toContain(
+      "- `docs/outside.ts` StringLiteral replacing `'a message'` with `\"\"`: its file is outside the `mutate` patterns.",
+    );
+    expect(markdown).toContain('#### Expired');
+    expect(markdown).toContain(
+      `- \`${NEW}\` StringLiteral replacing \`'a message'\` with \`""\`: revisit by 2026-11-24 has passed, so it tolerates nothing.`,
+    );
+  });
+
+  it('renders every other stale reason', () => {
+    const twice = { [OLD]: [survivor(5), survivor(6)] };
+    const killed = { [OLD]: [survivor(5, { status: 'Killed' })] };
+
+    expect(renderChangeReport(toleranceReport(twice, diff, [entry()]))).toContain(
+      'it matches more than one mutant of its file.',
+    );
+    expect(renderChangeReport(toleranceReport(killed, diff, [entry()]))).toContain(
+      'it matches a mutant that is not Survived.',
+    );
+  });
+
+  it('renders how many entries a narrowed run left unjudged', () => {
+    const narrowed = { measureSurface: false };
+    const one = renderChangeReport(toleranceReport(files, diff, [entry({ file: NEW })], narrowed));
+    const two = renderChangeReport(
+      toleranceReport(files, diff, [entry({ file: NEW }), entry({ file: ROUTER })], narrowed),
+    );
+
+    expect(one).toContain('1 entry is unjudged: its file was not measured by this run.');
+    expect(two).toContain('2 entries are unjudged: their files were not measured by this run.');
+  });
+
+  it('shows no register summary in an invalid report', () => {
+    const invalid = renderChangeReport(toleranceReport(files, diff, [], { register: undefined }));
+
+    expect(invalid).not.toContain('Register of tolerated mutants');
+  });
+
+  it('is stored in the machine-readable report', () => {
+    const json = JSON.parse(
+      JSON.stringify(toleranceReport(files, diff, [entry({ original: 'gone' })])),
+    ) as { register: { stale: readonly unknown[] } };
+
+    expect(json.register.stale[0]).toMatchObject({ file: OLD, why: 'no-match' });
   });
 });
 

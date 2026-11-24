@@ -57,8 +57,21 @@ takes the register's raw text, or nothing when the file is absent, and
 same way. A Stryker report whose mutant has no replacement, or whose file has no
 source, is incomplete, because identity cannot be read from it.
 
-Whether an entry is stale or expired is advisory, never a failure, and is
-reported by later work on this register.
+The run day is a UTC date the command supplies to `buildChangeReport`. An entry
+is live on its `revisitBy` day and expired the day after. An expired entry
+tolerates nothing, so its mutant is untriaged again. A live entry that tolerates
+nothing is stale, for one of four reasons: its file is outside the `mutate`
+patterns, no mutant matches it, it matches more than one mutant of its file, or
+it matches a mutant that is not Survived. An expired entry is reported as
+expired and never also as stale.
+
+Every complete report carries a register summary across the whole surface, not
+only the changed files: the count of live entries, which tolerate a mutant, and
+each stale and expired entry with why. A stale or expired entry is advisory and
+never fails the step; an invalid register still does. A narrowed local run,
+`pnpm test:mutation:changed` with or without `--file`, judges only the entries
+whose file its Stryker report holds. The others are counted as unjudged and are
+never stale or expired.
 
 ADR-0004 and ADR-0033 are not amended.
 

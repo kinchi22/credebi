@@ -54,6 +54,22 @@ export type Tolerated = Position & {
   readonly revisitBy: string;
 };
 
+export type StaleReason = 'outside-mutate' | 'no-match' | 'ambiguous' | 'not-survived';
+
+export type RegisterEntry = Pick<
+  ToleratedEntry,
+  'file' | 'mutator' | 'original' | 'replacement' | 'revisitBy'
+>;
+
+export type StaleEntry = RegisterEntry & { readonly why: StaleReason };
+
+export type RegisterSummary = {
+  readonly live: number;
+  readonly unjudged: number;
+  readonly stale: readonly StaleEntry[];
+  readonly expired: readonly RegisterEntry[];
+};
+
 export type Counts = {
   readonly killed: number;
   readonly survived: number;
@@ -103,6 +119,7 @@ export type ChangeReport =
       readonly surface?: Measure;
       readonly smallSample: boolean;
       readonly untriaged: number;
+      readonly register: RegisterSummary;
       readonly files: readonly ChangedFile[];
       readonly unmeasured: readonly UnmeasuredFile[];
       readonly elapsedMs: number | undefined;
@@ -129,6 +146,7 @@ export type ChangeReportInput = {
   readonly measureSurface?: boolean;
   readonly report: string | undefined;
   readonly register: string | undefined;
+  readonly runDay: string;
   readonly diff: string;
   readonly mutate: readonly string[];
   readonly elapsedMs: number | undefined;
@@ -298,10 +316,33 @@ export const matchesEntry = (entry: ToleratedEntry, mutant: MutantIdentity): boo
   entry.replacement === mutant.replacement &&
   entry.original === mutant.original;
 
-const toleratingEntries = (
+const identityOf = ({ file, mutator, original, replacement, revisitBy }: ToleratedEntry): RegisterEntry => ({
+  file,
+  mutator,
+  original,
+  replacement,
+  revisitBy,
+});
+
+const staleReason = (matched: readonly Mutant[], inside: boolean): StaleReason | undefined => {
+  if (!inside) return 'outside-mutate';
+  const [only] = matched;
+  if (only === undefined) return 'no-match';
+  if (matched.length > 1) return 'ambiguous';
+  return only.status === 'Survived' ? undefined : 'not-survived';
+};
+
+type Judgement = {
+  readonly tolerated: ReadonlyMap<Mutant, ToleratedEntry>;
+  readonly summary: RegisterSummary;
+};
+
+const judgeRegister = (
   entries: readonly ToleratedEntry[],
-  mutants: readonly Mutant[],
-): Parsed<ReadonlyMap<Mutant, ToleratedEntry>> => {
+  files: ReadonlyMap<string, readonly Mutant[]>,
+  context: { readonly runDay: string; readonly mutate: readonly string[]; readonly wholeSurface: boolean },
+): Parsed<Judgement> => {
+  const mutants = [...files.values()].flat();
   for (const mutant of mutants) {
     if (entries.filter((entry) => matchesEntry(entry, mutant)).length > 1) {
       return {
@@ -311,12 +352,25 @@ const toleratingEntries = (
     }
   }
   const tolerated = new Map<Mutant, ToleratedEntry>();
+  const stale: StaleEntry[] = [];
+  const expired: RegisterEntry[] = [];
+  let unjudged = 0;
   for (const entry of entries) {
+    if (!context.wholeSurface && !files.has(entry.file)) {
+      unjudged += 1;
+      continue;
+    }
+    if (entry.revisitBy < context.runDay) {
+      expired.push(identityOf(entry));
+      continue;
+    }
     const matched = mutants.filter((mutant) => matchesEntry(entry, mutant));
+    const why = staleReason(matched, inSurface(entry.file, context.mutate));
     const [only] = matched;
-    if (matched.length === 1 && only?.status === 'Survived') tolerated.set(only, entry);
+    if (why !== undefined) stale.push({ ...identityOf(entry), why });
+    else if (only !== undefined) tolerated.set(only, entry);
   }
-  return { ok: true, value: tolerated };
+  return { ok: true, value: { tolerated, summary: { live: tolerated.size, unjudged, stale, expired } } };
 };
 
 export const DIFF_ARGUMENTS = [
@@ -467,7 +521,11 @@ export function buildChangeReport(input: ChangeReportInput): ChangeReport {
   if (!register.ok) {
     return { state: 'invalid', scope, measuresSurface, reason: register.reason, elapsedMs };
   }
-  const tolerating = toleratingEntries(register.value, [...parsed.value.values()].flat());
+  const tolerating = judgeRegister(register.value, parsed.value, {
+    runDay: input.runDay,
+    mutate: input.mutate,
+    wholeSurface: measuresSurface,
+  });
   if (!tolerating.ok) {
     return { state: 'invalid', scope, measuresSurface, reason: tolerating.reason, elapsedMs };
   }
@@ -500,7 +558,7 @@ export function buildChangeReport(input: ChangeReportInput): ChangeReport {
       score: scoreOf(counts),
       unkilled: mutants
         .filter(isUnkilled)
-        .filter((mutant) => !tolerating.value.has(mutant))
+        .filter((mutant) => !tolerating.value.tolerated.has(mutant))
         .map(({ start, mutator, status }) => ({
           line: start.line,
           column: start.column,
@@ -510,7 +568,7 @@ export function buildChangeReport(input: ChangeReportInput): ChangeReport {
         .sort(byPosition),
       tolerated: mutants
         .flatMap((mutant) => {
-          const entry = tolerating.value.get(mutant);
+          const entry = tolerating.value.tolerated.get(mutant);
           return entry === undefined
             ? []
             : [
@@ -538,6 +596,7 @@ export function buildChangeReport(input: ChangeReportInput): ChangeReport {
     measuresSurface,
     ...(measuresSurface ? { surface: measure([...parsed.value.values()].flat()) } : {}),
     smallSample: change.mutants > 0 && scoredOf(change.counts) < SMALL_SAMPLE,
+    register: tolerating.value.summary,
     untriaged: files.reduce((total, file) => total + file.unkilled.length, 0),
     files,
     unmeasured,
@@ -599,6 +658,46 @@ const changeScoreLine = (report: Extract<ChangeReport, { state: 'complete' }>): 
   }
   return `**${name}:** ${percent(change.score)} of ${String(change.mutants)} ${mutants}, against a target of ${String(target)}%.`;
 };
+
+const STALE_WHY: Record<StaleReason, string> = {
+  'outside-mutate': 'its file is outside the `mutate` patterns',
+  'no-match': 'no mutant matches it',
+  ambiguous: 'it matches more than one mutant of its file',
+  'not-survived': 'it matches a mutant that is not Survived',
+};
+
+const describeEntry = (entry: RegisterEntry): string =>
+  `\`${entry.file}\` ${entry.mutator} replacing \`${entry.original}\` with \`${entry.replacement}\``;
+
+const plural = (amount: number, one: string, many: string): string =>
+  `${String(amount)} ${amount === 1 ? one : many}`;
+
+const renderRegister = ({ live, unjudged, stale, expired }: RegisterSummary): readonly string[] => [
+  '### Register of tolerated mutants',
+  '',
+  `${plural(live, 'live entry tolerates', 'live entries tolerate')} a mutant. A stale or expired entry fails nothing.`,
+  '',
+  ...(unjudged > 0
+    ? [
+        `${plural(unjudged, 'entry is', 'entries are')} unjudged: ${unjudged === 1 ? 'its file was' : 'their files were'} not measured by this run.`,
+        '',
+      ]
+    : []),
+  ...(stale.length > 0
+    ? ['#### Stale', '', ...stale.map((entry) => `- ${describeEntry(entry)}: ${STALE_WHY[entry.why]}.`), '']
+    : []),
+  ...(expired.length > 0
+    ? [
+        '#### Expired',
+        '',
+        ...expired.map(
+          (entry) =>
+            `- ${describeEntry(entry)}: revisit by ${entry.revisitBy} has passed, so it tolerates nothing.`,
+        ),
+        '',
+      ]
+    : []),
+];
 
 export function renderChangeReport(report: ChangeReport): string {
   const name = SCORE_NAME[report.scope];
@@ -683,7 +782,7 @@ export function renderChangeReport(report: ChangeReport): string {
     );
   }
 
-  lines.push(elapsed, '');
+  lines.push(...renderRegister(report.register), elapsed, '');
   return lines.join('\n');
 }
 
@@ -807,6 +906,7 @@ if (import.meta.main) {
   const report = buildChangeReport({
     report: existsSync(STRYKER_JSON) ? readFileSync(STRYKER_JSON, 'utf8') : undefined,
     register: existsSync(TOLERATED_REGISTER) ? readFileSync(TOLERATED_REGISTER, 'utf8') : undefined,
+    runDay: new Date().toISOString().slice(0, 10),
     diff: diff.stdout,
     mutate: stryker.mutate,
     elapsedMs: Number.isFinite(startedAt) && startedAt > 0 ? Date.now() - startedAt * 1000 : undefined,
