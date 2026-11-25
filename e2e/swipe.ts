@@ -1,5 +1,6 @@
 import { type Locator, type Page } from '@playwright/test';
 import { boxOf } from './accounts';
+import { animationsSeen, recordAnimations } from './animations';
 
 export type Point = { readonly x: number; readonly y: number };
 
@@ -11,6 +12,7 @@ export type Swipe = {
   readonly from?: Point;
   readonly pointer?: PointerKind;
   readonly cancel?: boolean;
+  readonly click?: boolean;
 };
 
 export const LEFT = -100;
@@ -51,40 +53,27 @@ export async function swipe(target: Locator, gesture: Swipe, origin: Locator = t
       fire('pointermove', from.x + dx * step, from.y + dy * step, 1);
     }
     fire(cancel ? 'pointercancel' : 'pointerup', from.x + dx, from.y + dy, 0);
+    if (${String(gesture.click === true)}) {
+      element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    }
   }`;
   await target.evaluate(script);
 }
 
-export async function tap(target: Locator, origin: Locator = target): Promise<void> {
-  await swipe(target, { dx: 0 }, origin);
-  await target.dispatchEvent('click');
-}
+export const tap = (target: Locator, origin: Locator = target): Promise<void> =>
+  swipe(target, { dx: 0, click: true }, origin);
 
-export async function swipeThenClick(target: Locator, gesture: Swipe, origin: Locator = target): Promise<void> {
-  await swipe(target, gesture, origin);
-  await target.dispatchEvent('click');
-}
+const SLIDING = `(animation) => {
+  const effect = animation.effect;
+  if (effect === null) return false;
+  if (String(effect.pseudoElement).startsWith('::view-transition')) return true;
+  const target = effect.target;
+  if (!(target instanceof Element) || target.querySelector('[role="tablist"]') !== null) return false;
+  return [...document.querySelectorAll('[role="tabpanel"]')].some(
+    (panel) => panel.contains(target) || target.contains(panel),
+  );
+}`;
 
-export async function recordSlides(page: Page): Promise<void> {
-  await page.evaluate(`(() => {
-    window.slideAnimations = 0;
-    const slides = (animation) => {
-      const effect = animation.effect;
-      if (effect === null) return false;
-      if (String(effect.pseudoElement).startsWith('::view-transition')) return true;
-      const target = effect.target;
-      if (!(target instanceof Element) || target.querySelector('[role="tablist"]') !== null) return false;
-      return [...document.querySelectorAll('[role="tabpanel"]')].some(
-        (panel) => panel.contains(target) || target.contains(panel),
-      );
-    };
-    const look = () => {
-      window.slideAnimations += document.getAnimations().filter(slides).length;
-      requestAnimationFrame(look);
-    };
-    requestAnimationFrame(look);
-  })()`);
-}
+export const recordSlides = (page: Page): Promise<void> => recordAnimations(page, SLIDING);
 
-export const slideAnimations = async (page: Page): Promise<number> =>
-  Number(await page.evaluate('window.slideAnimations'));
+export const slideAnimations = animationsSeen;

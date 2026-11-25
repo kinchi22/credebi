@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { expect, type Locator, type Page } from '@playwright/test';
 import { directionArrow, expectBelow, expectLeftOf, expectOnOneRow, typeTile } from './account-type-cues';
 import { addAccount, boxOf } from './accounts';
+import { animationsSeen, recordAnimations, VIEW_TRANSITION_ANIMATION } from './animations';
 import {
   added,
   DAY,
@@ -285,21 +286,10 @@ export async function expectOneRowHeader(entry: Locator, heading: Titled): Promi
   await expectLeftOf(entryTitle(entry, heading), total, 'the Title and the Entry total');
 }
 
-export async function recordViewTransitions(page: Page): Promise<void> {
-  await page.evaluate(`(() => {
-    window.viewTransitionAnimations = 0;
-    const look = () => {
-      window.viewTransitionAnimations += document
-        .getAnimations()
-        .filter((animation) => String(animation.effect && animation.effect.pseudoElement).startsWith('::view-transition')).length;
-      requestAnimationFrame(look);
-    };
-    requestAnimationFrame(look);
-  })()`);
-}
+export const recordViewTransitions = (page: Page): Promise<void> =>
+  recordAnimations(page, VIEW_TRANSITION_ANIMATION);
 
-export const viewTransitionAnimations = async (page: Page): Promise<number> =>
-  Number(await page.evaluate('window.viewTransitionAnimations'));
+export const viewTransitionAnimations = animationsSeen;
 
 export async function selectText(page: Page, text: Locator): Promise<void> {
   const box = await boxOf(text, 'the text to select');

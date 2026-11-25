@@ -206,7 +206,7 @@ export const sheetTab = (sheet: Locator, side: Side): Locator =>
 export const findAnAccount = (sheet: Locator): Locator =>
   sheet.getByRole('searchbox', { name: 'Find an account', exact: true });
 
-const accountSheet = (page: Page): Locator =>
+export const accountSheet = (page: Page): Locator =>
   page.getByRole('dialog', { name: 'Choose accounts', exact: true });
 
 async function openSheetWith(button: Locator): Promise<Locator> {

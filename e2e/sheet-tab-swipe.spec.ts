@@ -4,10 +4,11 @@ import { BOOKS_OPEN } from './accounts';
 import { CATEGORIES, choosePeriod, fixToday, periodSheet } from './date-presets';
 import {
   accountChoice,
+  accountSheet,
   accountTick,
-  addAccountButton,
   addLineOnPhone,
   chooseAccountButton,
+  closeButton,
   DAY,
   entryForm,
   findAnAccount,
@@ -20,69 +21,95 @@ import {
   openEntryForm,
   openMultiLineForm,
   openTwoLineAccountSheet,
+  postEntries,
   pressDone,
   sheetTab,
   SIDES,
   submit,
   submitMultiLineEntry,
   submitTwoLineEntry,
+  submitTwoLineEntryOnPhone,
+  TITLE_MAX,
   titleField,
   twoLine,
 } from './entries';
-import { ENTRY_SEARCH_PATH } from './routes';
+import { SETTINGS_PATH, ENTRY_SEARCH_PATH } from './routes';
 import { signIn } from './session';
-import { MCP_CLIENTS, openConnectionDialog, startConnectingButton, type EntryFormMode } from './settings';
 import {
-  LEFT,
-  recordSlides,
-  RIGHT,
-  slideAnimations,
-  swipe,
-  swipeThenClick,
-  tap,
-  type Swipe,
-} from './swipe';
+  clientGuidance as panelOf,
+  clientTab,
+  MCP_CLIENTS,
+  openConnectionDialog,
+  startConnectingButton,
+  type EntryFormMode,
+  type McpClientName,
+} from './settings';
+import { LEFT, recordSlides, RIGHT, slideAnimations, swipe, tap, type Swipe } from './swipe';
 import { PHONE, WIDE, WIDE_BELOW_SPLIT, waitFrames } from './viewport';
 
 const MODES: readonly EntryFormMode[] = ['Two-line mode', 'Multi-line mode'];
 
-type Place = {
+type Tabs = {
+  readonly names: readonly string[];
+  readonly tab: (root: Locator, name: string) => Locator;
+};
+
+type Place = Tabs & {
   readonly name: string;
-  readonly tabs: readonly string[];
   readonly open: (page: Page) => Promise<Locator>;
   readonly find?: (root: Locator) => Locator;
 };
 
-const tabOf = (root: Locator, name: string): Locator =>
-  root.getByRole('tablist').getByRole('tab', { name, exact: true });
+function named<Name extends string>(all: readonly Name[], name: string): Name {
+  const found = all.find((each) => each === name);
+  if (found === undefined) throw new Error(`${name} is not a tab here`);
+  return found;
+}
 
-const panelOf = (root: Locator): Locator => root.getByRole('tabpanel');
+const SIDE_TABS: Tabs = { names: SIDES, tab: (root, name) => sheetTab(root, named(SIDES, name)) };
 
-async function expectShowing(root: Locator, tabs: readonly string[], name: string): Promise<void> {
-  for (const tab of tabs) {
-    await expect(tabOf(root, tab)).toHaveAttribute('aria-selected', String(tab === name));
+const PRESET_TABS: Tabs = {
+  names: CATEGORIES,
+  tab: (root, name) => root.getByRole('tablist').getByRole('tab', { name, exact: true }),
+};
+
+const CLIENT_TABS: Tabs = {
+  names: MCP_CLIENTS,
+  tab: (root, name) => clientTab(root, named<McpClientName>(MCP_CLIENTS, name)),
+};
+
+async function expectShowing(root: Locator, tabs: Tabs, name: string): Promise<void> {
+  for (const each of tabs.names) {
+    await expect(tabs.tab(root, each)).toHaveAttribute('aria-selected', String(each === name));
   }
   await expect(panelOf(root)).toHaveCount(1);
   await expect(panelOf(root)).toBeVisible();
   await expect(panelOf(root)).toHaveAccessibleName(name);
 }
 
-async function showFirst(place: Place, root: Locator): Promise<void> {
-  const [first] = place.tabs;
-  if (first === undefined) throw new Error('a place has tabs');
-  await tabOf(root, first).click();
-  await expectShowing(root, place.tabs, first);
+const firstOf = (tabs: Tabs): string => tabs.names[0] ?? '';
+
+const secondOf = (tabs: Tabs): string => tabs.names[1] ?? '';
+
+const lastOf = (tabs: Tabs): string => tabs.names.at(-1) ?? '';
+
+async function showFirst(tabs: Tabs, root: Locator): Promise<void> {
+  await tabs.tab(root, firstOf(tabs)).click();
+  await expectShowing(root, tabs, firstOf(tabs));
 }
+
+const openSheetOn = (mode: EntryFormMode, scope: Locator): Promise<Locator> =>
+  mode === 'Two-line mode' ? openTwoLineAccountSheet(scope, 'Debit') : openAccountSheet(scope, 'Debit');
+
+const leaveSheet = (mode: EntryFormMode, sheet: Locator): Promise<void> =>
+  mode === 'Two-line mode' ? closeButton(sheet).click() : pressDone(sheet);
 
 const accountSheetOnPhone =
   (mode: EntryFormMode) =>
   async (page: Page): Promise<Locator> => {
     await page.setViewportSize(PHONE);
     await signIn(page);
-    const form = await openEntryForm(page, mode);
-    return mode === 'Two-line mode'
-      ? openTwoLineAccountSheet(form, 'Debit')
-      : openAccountSheet(form, 'Debit');
+    return openSheetOn(mode, await openEntryForm(page, mode));
   };
 
 async function postForEditing(page: Page, mode: EntryFormMode): Promise<string> {
@@ -105,16 +132,16 @@ async function postForEditing(page: Page, mode: EntryFormMode): Promise<string> 
   return memo;
 }
 
+async function editDialogOnPhone(page: Page, mode: EntryFormMode): Promise<Locator> {
+  const memo = await postForEditing(page, mode);
+  await page.setViewportSize(PHONE);
+  return openEditEntry(listedEntry(page, memo));
+}
+
 const editSheetOnPhone =
   (mode: EntryFormMode) =>
-  async (page: Page): Promise<Locator> => {
-    const memo = await postForEditing(page, mode);
-    await page.setViewportSize(PHONE);
-    const dialog = await openEditEntry(listedEntry(page, memo));
-    return mode === 'Two-line mode'
-      ? openTwoLineAccountSheet(dialog, 'Debit')
-      : openAccountSheet(dialog, 'Debit');
-  };
+  async (page: Page): Promise<Locator> =>
+    openSheetOn(mode, await editDialogOnPhone(page, mode));
 
 const pickerBelowSplit =
   (mode: EntryFormMode) =>
@@ -140,51 +167,53 @@ async function datePresetsOnPhone(page: Page): Promise<Locator> {
 async function connectionDialogOnPhone(page: Page): Promise<Locator> {
   await signIn(page);
   await page.setViewportSize(PHONE);
-  await page.goto('/settings');
+  await page.goto(SETTINGS_PATH);
   return openConnectionDialog(startConnectingButton(page));
 }
 
-const CLIENT_TABS: readonly string[] = MCP_CLIENTS;
-
 const PLACES: readonly Place[] = [
   ...MODES.flatMap((mode): readonly Place[] => [
-    { name: `the Account sheet of the entry form at 390px in ${mode}`, tabs: SIDES, open: accountSheetOnPhone(mode), find: findAnAccount },
-    { name: `the Account sheet of Edit entry at 390px in ${mode}`, tabs: SIDES, open: editSheetOnPhone(mode), find: findAnAccount },
-    { name: `the Account picker at 1024px in ${mode}`, tabs: SIDES, open: pickerBelowSplit(mode), find: findAnAccount },
+    { ...SIDE_TABS, name: `the Account sheet of the entry form at 390px in ${mode}`, open: accountSheetOnPhone(mode), find: findAnAccount },
+    { ...SIDE_TABS, name: `the Account sheet of Edit entry at 390px in ${mode}`, open: editSheetOnPhone(mode), find: findAnAccount },
+    { ...SIDE_TABS, name: `the Account picker at 1024px in ${mode}`, open: pickerBelowSplit(mode), find: findAnAccount },
   ]),
-  { name: 'the Date presets sheet at 390px', tabs: CATEGORIES, open: datePresetsOnPhone },
-  { name: 'the Connection dialog at 390px', tabs: CLIENT_TABS, open: connectionDialogOnPhone },
+  { ...PRESET_TABS, name: 'the Date presets sheet at 390px', open: datePresetsOnPhone },
+  { ...CLIENT_TABS, name: 'the Connection dialog at 390px', open: connectionDialogOnPhone },
 ];
 
 for (const place of PLACES) {
-  const { name, tabs } = place;
+  const { name } = place;
+  const first = firstOf(place);
+  const second = secondOf(place);
+  const last = lastOf(place);
 
   test(`moves one tab per swipe in ${name}, left to the next and right to the previous, and never past either end`, async ({ page }) => {
-    test.slow();
     const root = await place.open(page);
     await showFirst(place, root);
     const panel = panelOf(root);
 
     await swipe(panel, { dx: RIGHT });
-    await expectShowing(root, tabs, tabs[0] ?? '');
+    await waitFrames(page, 10);
+    await expectShowing(root, place, first);
 
-    for (const next of tabs.slice(1)) {
+    for (const next of place.names.slice(1)) {
       await swipe(panel, { dx: LEFT });
-      await expectShowing(root, tabs, next);
+      await expectShowing(root, place, next);
     }
     await swipe(panel, { dx: LEFT });
-    await expectShowing(root, tabs, tabs.at(-1) ?? '');
+    await waitFrames(page, 10);
+    await expectShowing(root, place, last);
 
-    for (const previous of tabs.slice(0, -1).reverse()) {
+    for (const previous of place.names.slice(0, -1).reverse()) {
       await swipe(panel, { dx: RIGHT });
-      await expectShowing(root, tabs, previous);
+      await expectShowing(root, place, previous);
     }
     await swipe(panel, { dx: RIGHT });
-    await expectShowing(root, tabs, tabs[0] ?? '');
+    await waitFrames(page, 10);
+    await expectShowing(root, place, first);
   });
 
   test(`changes nothing in ${name} for a swipe that is short, mostly vertical, cancelled, started at a screen edge, on the tab strip, on a mouse or a pen`, async ({ page }) => {
-    test.slow();
     const root = await place.open(page);
     await showFirst(place, root);
     const panel = panelOf(root);
@@ -207,61 +236,64 @@ for (const place of PLACES) {
       await test.step(`a swipe ${what}`, async () => {
         await swipe(target, gesture);
         await waitFrames(page, 10);
-        await expectShowing(root, tabs, tabs[0] ?? '');
+        await expectShowing(root, place, first);
       });
     }
 
+    await place.tab(root, last).click();
+    await expectShowing(root, place, last);
+    await swipe(panel, { dx: RIGHT, from: { x: 20, y: 300 } });
+    await waitFrames(page, 10);
+    await expectShowing(root, place, last);
+
+    await showFirst(place, root);
     await swipe(panel, { dx: LEFT });
-    await expectShowing(root, tabs, tabs[1] ?? '');
+    await expectShowing(root, place, second);
   });
 
   test(`switches tabs in ${name} on a tap, and on the arrow keys, the selected tab and the visible tabpanel agreeing`, async ({ page }) => {
-    test.slow();
     const root = await place.open(page);
     await showFirst(place, root);
-    const second = tabs[1] ?? '';
 
-    await tabOf(root, second).click();
-    await expectShowing(root, tabs, second);
+    await place.tab(root, second).click();
+    await expectShowing(root, place, second);
 
-    await tabOf(root, second).press('ArrowLeft');
-    await expectShowing(root, tabs, tabs[0] ?? '');
-    await tabOf(root, tabs[0] ?? '').press('ArrowRight');
-    await expectShowing(root, tabs, second);
+    await place.tab(root, second).press('ArrowLeft');
+    await expectShowing(root, place, first);
+    await place.tab(root, first).press('ArrowRight');
+    await expectShowing(root, place, second);
   });
 
   test(`slides the incoming panel when ${name} switches tab, by tap and by swipe`, async ({ page }) => {
-    test.slow();
     const root = await place.open(page);
     await showFirst(place, root);
     await waitFrames(page, 40);
     await recordSlides(page);
 
-    await tabOf(root, tabs[1] ?? '').click();
-    await expectShowing(root, tabs, tabs[1] ?? '');
+    await place.tab(root, second).click();
+    await expectShowing(root, place, second);
     await expect.poll(() => slideAnimations(page), { timeout: 2000 }).toBeGreaterThan(0);
 
     await waitFrames(page, 60);
     const before = await slideAnimations(page);
     await swipe(panelOf(root), { dx: RIGHT });
-    await expectShowing(root, tabs, tabs[0] ?? '');
+    await expectShowing(root, place, first);
     await expect.poll(() => slideAnimations(page), { timeout: 2000 }).toBeGreaterThan(before);
   });
 
   test(`switches tab in ${name} with no slide when the User prefers reduced motion, by tap and by swipe`, async ({ page }) => {
-    test.slow();
     await page.emulateMedia({ reducedMotion: 'reduce' });
     const root = await place.open(page);
     await showFirst(place, root);
     await waitFrames(page, 40);
     await recordSlides(page);
 
-    await tabOf(root, tabs[1] ?? '').click();
-    await expectShowing(root, tabs, tabs[1] ?? '');
+    await place.tab(root, second).click();
+    await expectShowing(root, place, second);
     await swipe(panelOf(root), { dx: RIGHT });
-    await expectShowing(root, tabs, tabs[0] ?? '');
+    await expectShowing(root, place, first);
     await swipe(panelOf(root), { dx: LEFT });
-    await expectShowing(root, tabs, tabs[1] ?? '');
+    await expectShowing(root, place, second);
 
     await waitFrames(page, 40);
     expect(await slideAnimations(page)).toBe(0);
@@ -269,21 +301,23 @@ for (const place of PLACES) {
 }
 
 for (const mode of MODES) {
-  test(`keeps switching on every boundary of a swipe in the Account sheet at 390px in ${mode}: from 48px across, from 1.5 times as far across as down, and from just inside the screen edge`, async ({ page }) => {
+  test(`keeps switching on every boundary of a swipe in the Account sheet at 390px in ${mode}: from 48px across, from 1.5 times as far across as down, and from just inside either screen edge`, async ({ page }) => {
     const root = await accountSheetOnPhone(mode)(page);
     const panel = panelOf(root);
-    const gestures: readonly Swipe[] = [
+    const forward: readonly Swipe[] = [
       { dx: -48 },
       { dx: -72, dy: 48 },
       { dx: LEFT, from: { x: PHONE.width - 25, y: 300 } },
     ];
 
-    for (const gesture of gestures) {
-      await tabOf(root, 'Debit').click();
-      await expectShowing(root, SIDES, 'Debit');
+    for (const gesture of forward) {
+      await sheetTab(root, 'Debit').click();
+      await expectShowing(root, SIDE_TABS, 'Debit');
       await swipe(panel, gesture);
-      await expectShowing(root, SIDES, 'Credit');
+      await expectShowing(root, SIDE_TABS, 'Credit');
     }
+    await swipe(panel, { dx: RIGHT, from: { x: 25, y: 300 } });
+    await expectShowing(root, SIDE_TABS, 'Debit');
   });
 
   test(`lets a swipe that starts on an Account at 390px in ${mode} switch tabs without choosing it, and a tap still choose it`, async ({ page }) => {
@@ -294,73 +328,131 @@ for (const mode of MODES) {
         : accountTick(root, 'Debit', 'Food');
     const panel = panelOf(root);
 
-    await swipeThenClick(chip, { dx: LEFT }, panel);
-    await expectShowing(root, SIDES, 'Credit');
-    await tabOf(root, 'Debit').click();
+    await swipe(chip, { dx: LEFT, click: true }, panel);
+    await expectShowing(root, SIDE_TABS, 'Credit');
+    await sheetTab(root, 'Debit').click();
+    await expectShowing(root, SIDE_TABS, 'Debit');
     await expect(chip).not.toBeChecked();
 
     await tap(chip, panel);
+    await sheetTab(root, 'Debit').click();
     await expect(chip).toBeChecked();
   });
 }
 
+async function postSentinel(page: Page): Promise<string> {
+  const sentinel = `Swipe sentinel ${randomUUID()}`;
+  await postEntries(page, [twoLine({ day: DAY, memo: sentinel })]);
+  return sentinel;
+}
+
+async function expectNothingPosted(page: Page, sentinel: string, memo: string): Promise<void> {
+  await page.goto('/entries');
+  await expect(listedEntry(page, sentinel)).toHaveCount(1);
+  await expect(listedEntry(page, memo)).toHaveCount(0);
+}
+
 test('keeps the day, Title, memo, amounts, Entry lines and a validation message through swipes in the Account sheet at 390px in Multi-line mode, without submitting or closing the sheet', async ({ page }) => {
-  test.slow();
   const memo = `Swipe keeps ${randomUUID()}`;
   const form = await openMultiLineForm(page);
+  const sentinel = `Swipe sentinel ${randomUUID()}`;
+  await submitMultiLineEntry(form, {
+    day: DAY,
+    memo: sentinel,
+    lines: [
+      { side: 'Debit', account: 'Food', amount: '500' },
+      { side: 'Credit', account: 'Cash', amount: '500' },
+    ],
+  });
+  await expect(listedEntry(page, sentinel)).toHaveCount(1);
   await page.setViewportSize(PHONE);
-  await fillHeading(form, { day: DAY, title: 'Groceries', memo });
-  await addLineOnPhone(form, { side: 'Debit', account: 'Food', amount: '12500' });
-  await addLineOnPhone(form, { side: 'Credit', account: 'Cash', amount: '12000' });
-  await submit(form);
-  await expect(form.getByRole('alert')).toContainText(/balance/i);
+  await fillHeading(entryForm(page), { day: DAY, title: 'Groceries', memo });
+  await addLineOnPhone(entryForm(page), { side: 'Debit', account: 'Food', amount: '12500' });
+  await addLineOnPhone(entryForm(page), { side: 'Credit', account: 'Cash', amount: '12000' });
+  await submit(entryForm(page));
+  await expect(entryForm(page).getByRole('alert')).toContainText(/balance/i);
 
-  const sheet = await openAccountSheet(form, 'Credit');
+  const sheet = await openAccountSheet(entryForm(page), 'Credit');
   await swipe(panelOf(sheet), { dx: RIGHT });
-  await expectShowing(sheet, SIDES, 'Debit');
+  await expectShowing(sheet, SIDE_TABS, 'Debit');
   await swipe(panelOf(sheet), { dx: LEFT });
-  await expectShowing(sheet, SIDES, 'Credit');
+  await expectShowing(sheet, SIDE_TABS, 'Credit');
   await expect(sheet).toBeVisible();
   await pressDone(sheet);
 
-  await expect(form.getByLabel('Date')).toHaveValue(DAY);
-  await expect(titleField(form)).toHaveValue('Groceries');
-  await expect(form.getByLabel('Memo')).toHaveValue(memo);
-  await expect(lineAmount(form, 'Debit', 'Food')).toHaveValue(/12,?500/);
-  await expect(lineAmount(form, 'Credit', 'Cash')).toHaveValue(/12,?000/);
-  await expect(lineGroups(form)).toHaveCount(2);
-  await expect(form.getByRole('alert')).toContainText(/balance/i);
-  await expect(listedEntry(page, memo)).toHaveCount(0);
+  const kept = entryForm(page);
+  await expect(kept.getByLabel('Date')).toHaveValue(DAY);
+  await expect(titleField(kept)).toHaveValue('Groceries');
+  await expect(kept.getByLabel('Memo')).toHaveValue(memo);
+  await expect(lineAmount(kept, 'Debit', 'Food')).toHaveValue(/12,?500/);
+  await expect(lineAmount(kept, 'Credit', 'Cash')).toHaveValue(/12,?000/);
+  await expect(lineGroups(kept)).toHaveCount(2);
+  await expect(kept.getByRole('alert')).toContainText(/balance/i);
+  await expectNothingPosted(page, sentinel, memo);
 });
 
-test('keeps the day, Title, memo, amount and chosen Account through swipes in the Account sheet at 390px in Two-line mode, without submitting or closing the sheet', async ({ page }) => {
+test('keeps the day, Title, memo, amount, chosen Accounts and a validation message through swipes in the Account sheet at 390px in Two-line mode, without submitting or closing the sheet', async ({ page }) => {
   const memo = `Swipe keeps ${randomUUID()}`;
+  const title = 'T'.repeat(TITLE_MAX + 1);
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
+  const sentinel = await postSentinel(page);
   await page.setViewportSize(PHONE);
-  await signIn(page);
   const form = await openEntryForm(page, 'Two-line mode');
-  await fillHeading(form, { day: DAY, title: 'Groceries', memo });
-  await form.getByLabel('Amount').fill('12500');
-  const sheet = await openTwoLineAccountSheet(form, 'Debit');
-  await accountChoice(sheet, 'Debit', 'Food').check();
-  await expectShowing(sheet, SIDES, 'Credit');
+  await submitTwoLineEntryOnPhone(form, {
+    day: DAY,
+    title,
+    memo,
+    debitAccount: 'Food',
+    creditAccount: 'Cash',
+    amount: '12500',
+  });
+  await expect(form.getByRole('alert')).toContainText(/title/i);
 
-  await swipe(panelOf(sheet), { dx: RIGHT });
-  await expectShowing(sheet, SIDES, 'Debit');
-  await expect(accountChoice(sheet, 'Debit', 'Food')).toBeChecked();
+  const sheet = await openTwoLineAccountSheet(form, 'Debit');
   await swipe(panelOf(sheet), { dx: LEFT });
-  await expectShowing(sheet, SIDES, 'Credit');
+  await expectShowing(sheet, SIDE_TABS, 'Credit');
+  await expect(accountChoice(sheet, 'Credit', 'Cash')).toBeChecked();
+  await swipe(panelOf(sheet), { dx: RIGHT });
+  await expectShowing(sheet, SIDE_TABS, 'Debit');
+  await expect(accountChoice(sheet, 'Debit', 'Food')).toBeChecked();
   await expect(sheet).toBeVisible();
-  await sheet.getByRole('button', { name: 'Close', exact: true }).click();
+  await closeButton(sheet).click();
   await expect(sheet).toBeHidden();
 
   await expect(chooseAccountButton(form, 'Debit')).toContainText('Food');
+  await expect(chooseAccountButton(form, 'Credit')).toContainText('Cash');
   await expect(form.getByLabel('Date')).toHaveValue(DAY);
-  await expect(titleField(form)).toHaveValue('Groceries');
+  await expect(titleField(form)).toHaveValue(title);
   await expect(form.getByLabel('Memo')).toHaveValue(memo);
   await expect(form.getByLabel('Amount')).toHaveValue(/12,?500/);
-  await expect(entryForm(page)).toBeVisible();
-  await expect(listedEntry(page, memo)).toHaveCount(0);
+  await expect(form.getByRole('alert')).toContainText(/title/i);
+  await expectNothingPosted(page, sentinel, memo);
 });
+
+for (const mode of MODES) {
+  test(`keeps the day, memo and amounts of Edit entry through swipes in the Account sheet at 390px in ${mode}, without saving or closing the sheet`, async ({ page }) => {
+    const dialog = await editDialogOnPhone(page, mode);
+    const edited = `Swipe edited ${randomUUID()}`;
+    await dialog.getByLabel('Memo').fill(edited);
+    const sheet = await openSheetOn(mode, dialog);
+
+    await swipe(panelOf(sheet), { dx: LEFT });
+    await expectShowing(sheet, SIDE_TABS, 'Credit');
+    await swipe(panelOf(sheet), { dx: RIGHT });
+    await expectShowing(sheet, SIDE_TABS, 'Debit');
+    await expect(sheet).toBeVisible();
+    await leaveSheet(mode, sheet);
+    await expect(sheet).toBeHidden();
+
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByLabel('Date')).toHaveValue(DAY);
+    await expect(dialog.getByLabel('Memo')).toHaveValue(edited);
+    await expect(
+      mode === 'Two-line mode' ? dialog.getByLabel('Amount') : lineAmount(dialog, 'Debit', 'Food'),
+    ).toHaveValue(/12,?500/);
+    await expect(listedEntry(page, edited)).toHaveCount(0);
+  });
+}
 
 test('keeps the own tab switches of the form at 390px in Two-line mode: choosing an Account on one Side while the other has none, and a submit finding a Side without one', async ({ page }) => {
   const memo = `Swipe own switch ${randomUUID()}`;
@@ -371,16 +463,16 @@ test('keeps the own tab switches of the form at 390px in Two-line mode: choosing
   await form.getByLabel('Amount').fill('12500');
 
   const chosen = await openTwoLineAccountSheet(form, 'Debit');
-  await expectShowing(chosen, SIDES, 'Debit');
+  await expectShowing(chosen, SIDE_TABS, 'Debit');
   await accountChoice(chosen, 'Debit', 'Food').check();
-  await expectShowing(chosen, SIDES, 'Credit');
-  await chosen.getByRole('button', { name: 'Close', exact: true }).click();
+  await expectShowing(chosen, SIDE_TABS, 'Credit');
+  await closeButton(chosen).click();
   await expect(chosen).toBeHidden();
 
   await submit(form);
-  const sheet = page.getByRole('dialog', { name: 'Choose accounts', exact: true });
+  const sheet = accountSheet(page);
   await expect(sheet).toBeVisible();
-  await expectShowing(sheet, SIDES, 'Credit');
+  await expectShowing(sheet, SIDE_TABS, 'Credit');
 });
 
 test('shows the Credit tab by a swipe at 1024px in the Account picker beside the form, and the Debit tab again, keeping the Account chosen', async ({ page }) => {
@@ -390,9 +482,9 @@ test('shows the Credit tab by a swipe at 1024px in the Account picker beside the
   await expect(sheetTab(form, 'Debit')).toBeVisible();
 
   await accountChoice(form, 'Debit', 'Food').check();
-  await expectShowing(form, SIDES, 'Credit');
+  await expectShowing(form, SIDE_TABS, 'Credit');
   await swipe(panelOf(form), { dx: RIGHT });
-  await expectShowing(form, SIDES, 'Debit');
+  await expectShowing(form, SIDE_TABS, 'Debit');
   await expect(accountChoice(form, 'Debit', 'Food')).toBeChecked();
 });
 
@@ -402,8 +494,10 @@ for (const mode of MODES) {
     await page.setViewportSize(WIDE);
     const form = await openEntryForm(page, mode);
     const panels = form.getByRole('tabpanel');
-    await expect(page.getByRole('tab')).toHaveCount(0);
     await expect(panels).toHaveCount(2);
+    await expect(panels.nth(0)).toBeVisible();
+    await expect(panels.nth(1)).toBeVisible();
+    await expect(page.getByRole('tab')).toHaveCount(0);
     await waitFrames(page, 40);
     await recordSlides(page);
 
@@ -413,10 +507,9 @@ for (const mode of MODES) {
     await swipe(panels.nth(1), { dx: LEFT });
 
     await waitFrames(page, 40);
-    await expect(page.getByRole('tab')).toHaveCount(0);
     await expect(panels.nth(0)).toBeVisible();
     await expect(panels.nth(1)).toBeVisible();
+    await expect(page.getByRole('tab')).toHaveCount(0);
     expect(await slideAnimations(page)).toBe(0);
-    await expect(addAccountButton(form, 'Debit')).toBeHidden();
   });
 }
