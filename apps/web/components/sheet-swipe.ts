@@ -34,3 +34,12 @@ export function swipeTarget(swipe: Swipe): number | undefined {
   const target = shownIndex + (end.x < start.x ? 1 : -1);
   return target >= 0 && target < tabCount ? target : undefined;
 }
+
+export type SlideSide = 'left' | 'right';
+
+export function slideFrom(previousIndex: number, shownIndex: number): SlideSide | undefined {
+  if (previousIndex < 0 || shownIndex < 0 || previousIndex === shownIndex) {
+    return undefined;
+  }
+  return shownIndex > previousIndex ? 'right' : 'left';
+}

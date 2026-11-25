@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { swipeTarget, type Swipe } from './sheet-swipe';
+import { slideFrom, swipeTarget, type Swipe } from './sheet-swipe';
 
 const swipe = (over: {
   readonly dx?: number;
@@ -63,5 +63,31 @@ describe('swipeTarget', () => {
     expect(swipeTarget(swipe({ dx: -100, shownIndex: 1 }))).toBeUndefined();
     expect(swipeTarget(swipe({ dx: 100, shownIndex: 0 }))).toBeUndefined();
     expect(swipeTarget(swipe({ dx: -100, shownIndex: 3, tabCount: 4 }))).toBeUndefined();
+  });
+});
+
+describe('slideFrom', () => {
+  it('slides in from the right to a later tab', () => {
+    expect(slideFrom(0, 3)).toBe('right');
+  });
+
+  it('slides in from the left to an earlier tab', () => {
+    expect(slideFrom(2, 1)).toBe('left');
+  });
+
+  it('does not slide when the tab is unchanged', () => {
+    expect(slideFrom(1, 1)).toBeUndefined();
+  });
+
+  it('does not slide from a tab that was not shown', () => {
+    expect(slideFrom(-1, 1)).toBeUndefined();
+  });
+
+  it('slides in from the left to the first tab', () => {
+    expect(slideFrom(1, 0)).toBe('left');
+  });
+
+  it('does not slide to a tab that is not shown', () => {
+    expect(slideFrom(1, -1)).toBeUndefined();
   });
 });
