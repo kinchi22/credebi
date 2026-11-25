@@ -138,8 +138,9 @@ export function SheetPanels<Tab extends string>({
   className,
   children,
 }: SheetPanelsProps<Tab>): ReactNode {
-  const area = useRef<HTMLDivElement>(null);
+  const panels = useRef<HTMLDivElement>(null);
   const previous = useRef<Tab>(shown);
+  const sheetWasOpen = useRef(false);
   const press = useRef<Press | undefined>(undefined);
   const swipedAt = useRef<number | undefined>(undefined);
 
@@ -147,19 +148,36 @@ export function SheetPanels<Tab extends string>({
 
   useLayoutEffect(() => {
     const from = slideFrom(tabs.indexOf(previous.current), tabs.indexOf(shown));
+    const wasOpen = sheetWasOpen.current;
+    const sheet = panels.current?.closest('dialog');
+    sheetWasOpen.current = sheet === null || sheet === undefined || sheet.open;
     previous.current = shown;
-    if (from === undefined || !stripShown() || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (
+      from === undefined ||
+      !wasOpen ||
+      !stripShown() ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
       return;
     }
-    const incoming = area.current?.querySelector<HTMLElement>(
+    const incoming = panels.current?.querySelector<HTMLElement>(
       `[role="tabpanel"][aria-labelledby="${tabId(shown)}"]`,
     );
-    incoming?.animate(
+    if (incoming === null || incoming === undefined || panels.current === null) {
+      return;
+    }
+    const clipped = panels.current;
+    clipped.style.overflowX = 'clip';
+    const unclip = (): void => {
+      clipped.style.overflowX = '';
+    };
+    const slide = incoming.animate(
       [{ transform: `translateX(${from === 'right' ? '100%' : '-100%'})` }, { transform: 'translateX(0)' }],
       { duration: SLIDE_MS, easing: SLIDE_EASING },
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs on a change of shown tab alone
-  }, [shown]);
+    slide.onfinish = unclip;
+    slide.oncancel = unclip;
+  });
 
   const begin = (event: PointerEvent<HTMLDivElement>): void => {
     swipedAt.current = undefined;
@@ -206,14 +224,14 @@ export function SheetPanels<Tab extends string>({
 
   return (
     <div
-      ref={area}
+      ref={panels}
       onPointerDown={begin}
       onPointerUp={end}
       onPointerCancel={() => {
         press.current = undefined;
       }}
       onClickCapture={swallowClick}
-      className={`touch-pan-y overflow-x-clip ${className ?? ''}`}
+      className={`touch-pan-y ${className ?? ''}`}
     >
       {children}
     </div>

@@ -82,9 +82,7 @@ describe('slideFrom', () => {
   it('does not slide from a tab that was not shown', () => {
     expect(slideFrom(-1, 1)).toBeUndefined();
   });
-});
 
-describe('slideFrom ends', () => {
   it('slides in from the left to the first tab', () => {
     expect(slideFrom(1, 0)).toBe('left');
   });
