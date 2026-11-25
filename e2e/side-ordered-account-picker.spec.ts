@@ -19,7 +19,6 @@ import {
   type PickRole,
   postEntries,
   pressDone,
-  sheetTab,
   SIDES,
   suggested,
   titled,
@@ -29,6 +28,7 @@ import {
 import { signIn } from './session';
 import { type EntryFormMode } from './settings';
 import { PHONE } from './viewport';
+import { tabOf } from './tabs';
 
 const SIDE_ORDER: Readonly<Record<Side, readonly AccountType[]>> = {
   Debit: ['Assets', 'Liabilities', 'Equity', 'Expenses', 'Revenue'],
@@ -157,7 +157,7 @@ for (const { mode, role, pickers, openSheet, chooseEach, chooseEachOnSheet } of 
     const sheet = await openSheet(form, 'Debit');
 
     for (const side of SIDES) {
-      await sheetTab(sheet, side).click();
+      await tabOf(sheet, side).click();
       await expectSideOrder(pickers(sheet, side), side, role);
     }
   });

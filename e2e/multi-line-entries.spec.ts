@@ -25,7 +25,6 @@ import {
   type LineAccount,
   openAccountSheet,
   pressDone,
-  sheetTab,
   SIDES,
   submitMultiLineEntry,
   submitMultiLineEntryOnPhone,
@@ -39,6 +38,7 @@ import {
   WALLET_STILL_IN_USE,
 } from './accounts';
 import { PHONE, WIDE_BELOW_SPLIT } from './viewport';
+import { tabOf } from './tabs';
 
 test('offers every Account as a checkbox on each Side, and ticking, unticking or Remove adds or drops its line', async ({ page }) => {
   const form = await openMultiLineForm(page);
@@ -201,7 +201,7 @@ test('keeps the tab on the ticked Side at 390px, whether or not the other Side h
   await expect(accountTick(sheet, 'Credit', 'Cash')).toBeChecked();
   await expectSheetOnSide(sheet, 'Credit');
 
-  await sheetTab(sheet, 'Debit').click();
+  await tabOf(sheet, 'Debit').click();
   await expectSheetOnSide(sheet, 'Debit');
   await accountTick(sheet, 'Debit', 'Food').check();
   await expect(accountTick(sheet, 'Debit', 'Food')).toBeChecked();
@@ -247,7 +247,7 @@ test('keeps the tab on the ticked Side at 1024px, whether or not the other Side 
   await expect(accountTick(form, 'Debit', 'Food')).toBeChecked();
   await expectPickerOnSide(form, 'Debit', accountTicks);
 
-  await sheetTab(form, 'Credit').click();
+  await tabOf(form, 'Credit').click();
   await accountTick(form, 'Credit', 'Cash').check();
   await expect(accountTick(form, 'Credit', 'Cash')).toBeChecked();
   await expectPickerOnSide(form, 'Credit', accountTicks);

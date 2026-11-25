@@ -34,12 +34,12 @@ import {
   shownLines,
   tabToChevronPassingOver,
   type Titled,
-  viewTransitionAnimations,
 } from './entry-density';
 import { resultFor, search } from './entry-search';
 import { ENTRY_SEARCH_PATH } from './routes';
 import { BOOKS_OPEN, signIn } from './session';
 import { expectWithinPhone, PHONE, waitFrames, WIDE, WIDE_BELOW_SPLIT, WIDE_BESIDE_SIDEBAR } from './viewport';
+import { animationsSeen } from './animations';
 
 const PAYROLL: Titled = {
   day: DAY,
@@ -298,7 +298,7 @@ test('runs View Transition animations right after an Entry expands at 390px', as
 
   await chevron(listedHeading(page, PAYROLL), PAYROLL).click();
 
-  await expect.poll(() => viewTransitionAnimations(page), { timeout: 2000 }).toBeGreaterThan(0);
+  await expect.poll(() => animationsSeen(page), { timeout: 2000 }).toBeGreaterThan(0);
   await expectExpanded(listedHeading(page, PAYROLL), PAYROLL, true);
 });
 
@@ -311,7 +311,7 @@ test('expands an Entry at 390px at once, with no View Transition animation, when
 
   await expectExpanded(listedHeading(page, PAYROLL), PAYROLL, true);
   await waitFrames(page, 30);
-  expect(await viewTransitionAnimations(page)).toBe(0);
+  expect(await animationsSeen(page)).toBe(0);
   await expectDetailed(listedHeading(page, PAYROLL), shownLines(PAYROLL), 'stacked');
 });
 

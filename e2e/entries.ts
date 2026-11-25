@@ -1,6 +1,7 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import { BOOKS_OPEN, signIn } from './session';
 import { setEntryFormMode, type EntryFormMode } from './settings';
+import { expectTabSelected } from './tabs';
 
 export const AMOUNT = '12500';
 
@@ -200,9 +201,6 @@ export const chooseAccountButton = (form: Locator, side: Side): Locator =>
 
 export const NO_ACCOUNT_CHOSEN = 'Choose an account';
 
-export const sheetTab = (sheet: Locator, side: Side): Locator =>
-  sheet.getByRole('tablist').getByRole('tab', { name: side, exact: true });
-
 export const findAnAccount = (sheet: Locator): Locator =>
   sheet.getByRole('searchbox', { name: 'Find an account', exact: true });
 
@@ -236,9 +234,7 @@ export const closeButton = (sheet: Locator): Locator =>
   sheet.getByRole('button', { name: 'Close', exact: true });
 
 export async function expectSheetOnSide(sheet: Locator, side: Side): Promise<void> {
-  for (const tab of SIDES) {
-    await expect(sheetTab(sheet, tab)).toHaveAttribute('aria-selected', String(tab === side));
-  }
+  await expectTabSelected(sheet, SIDES, side);
 }
 
 export async function expectPickerOnSide(

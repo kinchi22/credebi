@@ -22,7 +22,6 @@ import {
   openEntryForm,
   openTwoLineAccountSheet,
   postEntries,
-  sheetTab,
   type Side,
   SIDES,
   suggested,
@@ -34,6 +33,7 @@ import { ASSETS_AND_LIABILITIES_PATH, INCOME_STATEMENT_PATH, SETTINGS_PATH } fro
 import { signIn } from './session';
 import { type EntryFormMode } from './settings';
 import { PHONE } from './viewport';
+import { tabOf } from './tabs';
 
 const MONTH_FIRST = '2026-09-01';
 
@@ -107,7 +107,7 @@ for (const { mode, pickers, openSheet } of PICKERS) {
     const sheet = await openSheet(form, 'Debit');
 
     for (const side of SIDES) {
-      await sheetTab(sheet, side).click();
+      await tabOf(sheet, side).click();
       await expectBandsTinted(pickers(sheet, side), side);
     }
   });
