@@ -140,6 +140,7 @@ export function SheetPanels<Tab extends string>({
   const stripShown = (): boolean => document.getElementById(tabId(shown))?.checkVisibility() === true;
 
   const begin = (event: PointerEvent<HTMLDivElement>): void => {
+    swipedAt.current = undefined;
     const startsInTextEntry = event.target instanceof Element && event.target.closest(TEXT_ENTRY) !== null;
     press.current =
       startsInTextEntry || !event.isPrimary || !stripShown()
