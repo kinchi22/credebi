@@ -1,8 +1,9 @@
 'use client';
 
 import { typeClasses } from '@repo/ui/type-classes';
-import { useRef, type KeyboardEvent, type ReactNode } from 'react';
+import { useRef, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { ACROSS_STEPS } from './roving-focus';
+import { swipeTarget, type SwipePoint } from './sheet-swipe';
 
 export type SheetTabsProps<Tab extends string> = {
   readonly tabs: readonly Tab[];
@@ -98,6 +99,100 @@ export function SheetTabs<Tab extends string>({
           {label(tab)}
         </button>
       ))}
+    </div>
+  );
+}
+
+const CLICK_AFTER_SWIPE_MS = 500;
+
+const NON_TEXT_INPUTS = ['radio', 'checkbox', 'button', 'submit', 'reset', 'image', 'file', 'range', 'color']
+  .map((type) => `[type="${type}"]`)
+  .join(', ');
+
+const TEXT_ENTRY = `textarea, [contenteditable], input:not(${NON_TEXT_INPUTS})`;
+
+type Press = {
+  readonly pointerId: number;
+  readonly pointerType: string;
+  readonly start: SwipePoint;
+};
+
+export type SheetPanelsProps<Tab extends string> = {
+  readonly tabs: readonly Tab[];
+  readonly shown: Tab;
+  readonly onShow: (tab: Tab) => void;
+  readonly tabId: (tab: Tab) => string;
+  readonly className?: string;
+  readonly children: ReactNode;
+};
+
+export function SheetPanels<Tab extends string>({
+  tabs,
+  shown,
+  onShow,
+  tabId,
+  className,
+  children,
+}: SheetPanelsProps<Tab>): ReactNode {
+  const press = useRef<Press | undefined>(undefined);
+  const swipedAt = useRef<number | undefined>(undefined);
+
+  const stripShown = (): boolean => document.getElementById(tabId(shown))?.checkVisibility() === true;
+
+  const begin = (event: PointerEvent<HTMLDivElement>): void => {
+    swipedAt.current = undefined;
+    const startsInTextEntry = event.target instanceof Element && event.target.closest(TEXT_ENTRY) !== null;
+    press.current =
+      startsInTextEntry || !event.isPrimary || !stripShown()
+        ? undefined
+        : {
+            pointerId: event.pointerId,
+            pointerType: event.pointerType,
+            start: { x: event.clientX, y: event.clientY },
+          };
+  };
+
+  const end = (event: PointerEvent<HTMLDivElement>): void => {
+    const current = press.current;
+    press.current = undefined;
+    if (current?.pointerId !== event.pointerId) {
+      return;
+    }
+    const target = swipeTarget({
+      start: current.start,
+      end: { x: event.clientX, y: event.clientY },
+      screenWidth: window.innerWidth,
+      pointerType: current.pointerType,
+      tabCount: tabs.length,
+      shownIndex: tabs.indexOf(shown),
+    });
+    const next = target === undefined ? undefined : tabs[target];
+    if (next !== undefined) {
+      swipedAt.current = event.timeStamp;
+      onShow(next);
+    }
+  };
+
+  const swallowClick = (event: MouseEvent<HTMLDivElement>): void => {
+    const at = swipedAt.current;
+    swipedAt.current = undefined;
+    if (at !== undefined && event.timeStamp - at < CLICK_AFTER_SWIPE_MS) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  };
+
+  return (
+    <div
+      onPointerDown={begin}
+      onPointerUp={end}
+      onPointerCancel={() => {
+        press.current = undefined;
+      }}
+      onClickCapture={swallowClick}
+      className={`touch-pan-y ${className ?? ''}`}
+    >
+      {children}
     </div>
   );
 }
