@@ -105,7 +105,11 @@ export function SheetTabs<Tab extends string>({
 
 const CLICK_AFTER_SWIPE_MS = 500;
 
-const TEXT_FIELD = 'input, textarea, select, [contenteditable]';
+const NON_TEXT_INPUTS = ['radio', 'checkbox', 'button', 'submit', 'reset', 'image', 'file', 'range', 'color']
+  .map((type) => `[type="${type}"]`)
+  .join(', ');
+
+const TEXT_ENTRY = `textarea, [contenteditable], input:not(${NON_TEXT_INPUTS})`;
 
 type Press = {
   readonly pointerId: number;
@@ -133,12 +137,12 @@ export function SheetPanels<Tab extends string>({
   const press = useRef<Press | undefined>(undefined);
   const swipedAt = useRef<number | undefined>(undefined);
 
-  const stripShown = (): boolean => (document.getElementById(tabId(shown))?.getClientRects().length ?? 0) > 0;
+  const stripShown = (): boolean => document.getElementById(tabId(shown))?.checkVisibility() === true;
 
   const begin = (event: PointerEvent<HTMLDivElement>): void => {
-    const startsOnField = event.target instanceof Element && event.target.closest(TEXT_FIELD) !== null;
+    const startsInTextEntry = event.target instanceof Element && event.target.closest(TEXT_ENTRY) !== null;
     press.current =
-      startsOnField || !event.isPrimary || !stripShown()
+      startsInTextEntry || !event.isPrimary || !stripShown()
         ? undefined
         : {
             pointerId: event.pointerId,
