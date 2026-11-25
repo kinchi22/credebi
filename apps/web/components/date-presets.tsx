@@ -27,7 +27,7 @@ import {
 import { BUTTON, ICON_CONTROL, POPOVER_FRAME, TODAY_MARK } from './control-classes';
 import { useModalDialog } from './use-modal-dialog';
 import { CloseButton } from './close-button';
-import { SheetBar, SheetTabs } from './sheet';
+import { SheetBar, SheetPanels, SheetTabs } from './sheet';
 
 const CATEGORIES = ['year', 'quarter', 'month', 'relative'] as const;
 
@@ -394,9 +394,17 @@ export function DatePresetsSheet({ granularity, today, onChoose }: DatePresetsPr
               panelId={() => `${id}-panel`}
               label={(category) => t(`categories.${category}`)}
             />
-            <SheetPanel key={shown} id={`${id}-panel`} labelledBy={tabId(shown)}>
-              <Choices granularity={granularity} today={today} layout={SHEET_LAYOUT} onChoose={choose} />
-            </SheetPanel>
+            <SheetPanels
+              tabs={CATEGORIES}
+              shown={shown}
+              onShow={setShown}
+              tabId={tabId}
+              className="flex min-h-0 grow flex-col"
+            >
+              <SheetPanel key={shown} id={`${id}-panel`} labelledBy={tabId(shown)}>
+                <Choices granularity={granularity} today={today} layout={SHEET_LAYOUT} onChoose={choose} />
+              </SheetPanel>
+            </SheetPanels>
           </div>
         ) : null}
       </dialog>

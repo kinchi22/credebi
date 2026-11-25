@@ -725,7 +725,9 @@ numerals.
   a tab strip, `Claude` and `ChatGPT`, drawn as the segment strip of the
   Settings choices: the shown tab semibold in the chosen segment's tint and
   ring, the other in `text-muted`. It opens on `Claude` every time, the left
-  and right arrow keys move between the tabs, and the panel below the strip
+  and right arrow keys move between the tabs, a touch swipe across the panel
+  moves between them as the Account sheet's does while a mouse drag, selecting
+  a command included, never does, and the panel below the strip
   holds the shown client's guidance in short groups 16px apart, each ending in
   a link to that vendor's own help, opening in a new tab. `Claude` has two:
   add the MCP URL as a custom connector in claude.ai or the desktop app; and in
@@ -768,7 +770,9 @@ numerals.
   and To, with an Input's edge. A `surface` bar holds its title and a
   close icon, and below it the four categories are tabs running the sheet's
   full width with no side padding, the shown one underlined in `accent` and set
-  in `accent-text`, semibold. Each tab lists its
+  in `accent-text`, semibold. A touch swipe across the choices moves one tab,
+  as a swipe does in the Account sheet, and never wraps from `Relative` to
+  `Year` or back. Each tab lists its
   choices as the panel does, with each year above its row; choosing one closes
   the sheet. Escape or the close icon closes it without choosing, and focus
   returns to the button. The Income statement's `Statement period` form and the
@@ -789,7 +793,9 @@ numerals.
   mode, choosing an Account on one Side while the other has none shows the
   other Side's tab, as the Account sheet does; a choice that leaves both Sides
   with an Account keeps the tab, and in Multi-line mode ticking an Account keeps
-  it too. When a submit
+  it too. A touch swipe across the Accounts switches the tab as the Account
+  sheet's does, and from `split` up, where the tab strip is not shown, it
+  changes nothing. When a submit
   finds a Side missing its required Account, the first such Side's tab is
   shown, so the browser's message is visible. From `split`
   up there are no tabs and the two Sides sit side by side, Credit's column
