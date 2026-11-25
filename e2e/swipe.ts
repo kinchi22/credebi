@@ -1,6 +1,5 @@
-import { type Locator, type Page } from '@playwright/test';
+import { type Locator } from '@playwright/test';
 import { boxOf } from './accounts';
-import { recordAnimations } from './animations';
 
 export type Point = { readonly x: number; readonly y: number };
 
@@ -62,16 +61,3 @@ export async function swipe(target: Locator, gesture: Swipe, origin: Locator = t
 
 export const tap = (target: Locator, origin: Locator = target): Promise<void> =>
   swipe(target, { dx: 0, click: true }, origin);
-
-const SLIDING = `(animation) => {
-  const effect = animation.effect;
-  if (effect === null) return false;
-  if (String(effect.pseudoElement).startsWith('::view-transition')) return true;
-  const target = effect.target;
-  if (!(target instanceof Element) || target.querySelector('[role="tablist"]') !== null) return false;
-  return [...document.querySelectorAll('[role="tabpanel"]')].some(
-    (panel) => panel.contains(target) || target.contains(panel),
-  );
-}`;
-
-export const recordSlides = (page: Page): Promise<void> => recordAnimations(page, SLIDING);

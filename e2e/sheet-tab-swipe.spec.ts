@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { BOOKS_OPEN } from './accounts';
-import { animationsSeen, incomingFrom, resetAnimations } from './animations';
+import { animationsSeen, incomingFrom, recordSlides, resetAnimations } from './animations';
 import { CATEGORIES, choosePeriod, fixToday, periodSheet } from './date-presets';
 import {
   AMOUNT,
@@ -42,7 +42,7 @@ import {
   startConnectingButton,
   type EntryFormMode,
 } from './settings';
-import { LEFT, recordSlides, RIGHT, swipe, tap, type Swipe } from './swipe';
+import { LEFT, RIGHT, swipe, tap, type Swipe } from './swipe';
 import { expectTabSelected, tabOf, tabpanelOf } from './tabs';
 import { PHONE, WIDE, WIDE_BELOW_SPLIT, waitFrames } from './viewport';
 
@@ -80,6 +80,8 @@ type Draft = {
 
 type Own = (root: Locator, forward: boolean, round: number) => Promise<void>;
 
+type Missing = (form: Locator, forward: boolean) => Promise<void>;
+
 type Kit = {
   readonly mode: EntryFormMode;
   readonly openSheet: (scope: Locator) => Promise<Locator>;
@@ -91,12 +93,20 @@ type Kit = {
   readonly expectAmounts: (scope: Locator, draft: Draft) => Promise<void>;
   readonly draftOf: (outcome: Outcome, memo: string) => Draft;
   readonly own?: Own;
+  readonly missing?: Missing;
 };
 
 const chooseOnSide: Own = async (root, forward, round) => {
   const side: Side = forward ? 'Debit' : 'Credit';
   const pick = at(forward ? DEBIT_PICKS : CREDIT_PICKS, round);
   await accountChoice(root, side, pick).check();
+};
+
+const leaveASideMissing: Missing = async (form, forward) => {
+  await fillHeading(form, { day: DAY, memo: 'Swipe missing side' });
+  await form.getByLabel('Amount').fill(AMOUNT);
+  if (!forward) await tabOf(form, 'Credit').click();
+  await accountChoice(form, forward ? 'Debit' : 'Credit', forward ? 'Food' : 'Cash').check();
 };
 
 const TWO_LINE: Kit = {
@@ -123,6 +133,7 @@ const TWO_LINE: Kit = {
       ? { title: TOO_LONG_TITLE, memo, debit: NEW_AMOUNT, credit: NEW_AMOUNT, refusal: /title/i }
       : { title: DRAFT_TITLE, memo, debit: NEW_AMOUNT, credit: NEW_AMOUNT },
   own: chooseOnSide,
+  missing: leaveASideMissing,
 };
 
 const MULTI_LINE: Kit = {
@@ -170,6 +181,7 @@ type Place = {
   readonly open: (page: Page) => Promise<Locator>;
   readonly find?: (root: Locator) => Locator;
   readonly own?: Own;
+  readonly missing?: Missing;
 };
 
 async function expectShowing(root: Locator, names: readonly string[], shown: string): Promise<void> {
@@ -244,10 +256,11 @@ const PLACES: readonly Place[] = [
   ...MODES.flatMap((mode): readonly Place[] => {
     const kit = KIT_OF[mode];
     const own = kit.own === undefined ? {} : { own: kit.own };
+    const missing = kit.missing === undefined ? {} : { missing: kit.missing };
     return [
       { name: `the Account sheet of the entry form at 390px in ${mode}`, names: SIDES, open: accountSheetOnPhone(kit), find: findAnAccount, ...own },
       { name: `the Account sheet of Edit entry at 390px in ${mode}`, names: SIDES, open: editSheetOnPhone(kit), find: findAnAccount },
-      { name: `the Account picker at 1024px in ${mode}`, names: SIDES, open: pickerBelowSplit(kit), find: findAnAccount, ...own },
+      { name: `the Account picker at 1024px in ${mode}`, names: SIDES, open: pickerBelowSplit(kit), find: findAnAccount, ...own, ...missing },
     ];
   }),
   { name: 'the Date presets sheet at 390px', names: CATEGORIES, open: datePresetsOnPhone },
@@ -257,12 +270,18 @@ const PLACES: readonly Place[] = [
 type CauseKind = {
   readonly name: string;
   readonly applies: (place: Place) => boolean;
+  readonly prepare?: (place: Place, root: Locator, forward: boolean) => Promise<void>;
   readonly run: (place: Place, root: Locator, forward: boolean, round: number) => Promise<void>;
 };
 
 function ownOf(place: Place): Own {
   if (place.own === undefined) throw new Error(`${place.name} has no switch of the form's own`);
   return place.own;
+}
+
+function missingOf(place: Place): Missing {
+  if (place.missing === undefined) throw new Error(`${place.name} has no submit that finds a Side missing`);
+  return place.missing;
 }
 
 const CAUSE_KINDS: readonly CauseKind[] = [
@@ -288,6 +307,12 @@ const CAUSE_KINDS: readonly CauseKind[] = [
     name: 'the own rules of the form',
     applies: (place) => place.own !== undefined,
     run: (place, root, forward, round) => ownOf(place)(root, forward, round),
+  },
+  {
+    name: 'a submit that finds a Side without an Account',
+    applies: (place) => place.missing !== undefined,
+    prepare: (place, root, forward) => missingOf(place)(root, forward),
+    run: (_place, root) => submit(root),
   },
 ];
 
@@ -393,6 +418,7 @@ for (const place of PLACES) {
 
       test(`slides the incoming panel of ${name} in from its tab's side when ${kind.name} moves to ${direction}, and not when the User prefers reduced motion`, async ({ page }) => {
         const root = await place.open(page);
+        await kind.prepare?.(place, root, forward);
         await tabOf(root, from).click();
         await expectShowing(root, names, from);
         await waitFrames(page, 40);
@@ -426,10 +452,11 @@ for (const mode of MODES) {
     const root = await accountSheetOnPhone(kit)(page);
     const panel = tabpanelOf(root);
     const right = PHONE.width - 25;
+    const inside = PHONE.width - 24;
     const pairs: readonly (readonly [string, Swipe, Swipe])[] = [
       ['48px across', { dx: -48 }, { dx: -47 }],
       ['1.5 times as far across as down', { dx: -72, dy: 48 }, { dx: -72, dy: 49 }],
-      ['25px from the right edge', { dx: LEFT, from: { x: right, y: 300 } }, { dx: LEFT, from: { x: right + 5, y: 300 } }],
+      ['25px from the right edge', { dx: LEFT, from: { x: right, y: 300 } }, { dx: LEFT, from: { x: inside, y: 300 } }],
     ];
 
     for (const [what, switches, stays] of pairs) {
@@ -444,7 +471,7 @@ for (const mode of MODES) {
       });
     }
 
-    await swipe(panel, { dx: RIGHT, from: { x: 20, y: 300 } });
+    await swipe(panel, { dx: RIGHT, from: { x: 24, y: 300 } });
     await waitFrames(page, 10);
     await expectShowing(root, SIDES, 'Credit');
     await swipe(panel, { dx: RIGHT, from: { x: 25, y: 300 } });
@@ -555,13 +582,16 @@ for (const context of ['entry form', 'Edit entry'] as const) {
 
         await expect(scope).toBeVisible();
         await expectDraft(scope, kit, draft);
-        if (outcome === 'refused') return;
 
         const other = await page.context().newPage();
         await other.setViewportSize(PHONE);
         await other.goto('/entries');
         await anchor(other);
         await expect(listedEntry(other, memo)).toHaveCount(0);
+        if (outcome === 'refused') {
+          await other.close();
+          return;
+        }
 
         await where.commit(scope);
         await expect(listedEntry(page, memo)).toHaveCount(1);
