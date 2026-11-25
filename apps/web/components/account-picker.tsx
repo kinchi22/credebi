@@ -572,7 +572,13 @@ function AccountColumns({
           shownTone={sideTone}
         />
       </div>
-      <div className="grid split:grid-cols-2">
+      <SheetPanels
+        tabs={SIDES}
+        shown={shown}
+        onShow={setShown}
+        tabId={tabId}
+        className="grid split:grid-cols-2"
+      >
         {SIDES.map((side, index) => (
           <div
             key={side}
@@ -598,7 +604,7 @@ function AccountColumns({
             />
           </div>
         ))}
-      </div>
+      </SheetPanels>
       <NoMatch query={query} chart={chart} matches={matches} />
     </div>
   );
