@@ -1,9 +1,9 @@
 'use client';
 
 import { typeClasses } from '@repo/ui/type-classes';
-import { useRef, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
+import { useLayoutEffect, useRef, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { ACROSS_STEPS } from './roving-focus';
-import { swipeTarget, type SwipePoint } from './sheet-swipe';
+import { slideFrom, swipeTarget, type SwipePoint } from './sheet-swipe';
 
 export type SheetTabsProps<Tab extends string> = {
   readonly tabs: readonly Tab[];
@@ -105,6 +105,10 @@ export function SheetTabs<Tab extends string>({
 
 const CLICK_AFTER_SWIPE_MS = 500;
 
+const SLIDE_MS = 200;
+
+const SLIDE_EASING = 'ease-out';
+
 const NON_TEXT_INPUTS = ['radio', 'checkbox', 'button', 'submit', 'reset', 'image', 'file', 'range', 'color']
   .map((type) => `[type="${type}"]`)
   .join(', ');
@@ -134,10 +138,28 @@ export function SheetPanels<Tab extends string>({
   className,
   children,
 }: SheetPanelsProps<Tab>): ReactNode {
+  const area = useRef<HTMLDivElement>(null);
+  const previous = useRef<Tab>(shown);
   const press = useRef<Press | undefined>(undefined);
   const swipedAt = useRef<number | undefined>(undefined);
 
   const stripShown = (): boolean => document.getElementById(tabId(shown))?.checkVisibility() === true;
+
+  useLayoutEffect(() => {
+    const from = slideFrom(tabs.indexOf(previous.current), tabs.indexOf(shown));
+    previous.current = shown;
+    if (from === undefined || !stripShown() || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+    const incoming = area.current?.querySelector<HTMLElement>(
+      `[role="tabpanel"][aria-labelledby="${tabId(shown)}"]`,
+    );
+    incoming?.animate(
+      [{ transform: `translateX(${from === 'right' ? '100%' : '-100%'})` }, { transform: 'translateX(0)' }],
+      { duration: SLIDE_MS, easing: SLIDE_EASING },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs on a change of shown tab alone
+  }, [shown]);
 
   const begin = (event: PointerEvent<HTMLDivElement>): void => {
     swipedAt.current = undefined;
@@ -184,13 +206,14 @@ export function SheetPanels<Tab extends string>({
 
   return (
     <div
+      ref={area}
       onPointerDown={begin}
       onPointerUp={end}
       onPointerCancel={() => {
         press.current = undefined;
       }}
       onClickCapture={swallowClick}
-      className={`touch-pan-y ${className ?? ''}`}
+      className={`touch-pan-y overflow-x-clip ${className ?? ''}`}
     >
       {children}
     </div>

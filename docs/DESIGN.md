@@ -726,7 +726,8 @@ numerals.
   Settings choices: the shown tab semibold in the chosen segment's tint and
   ring, the other in `text-muted`. It opens on `Claude` every time, the left
   and right arrow keys move between the tabs, a touch swipe across the panel
-  moves between them as the Account sheet's does while a mouse drag, selecting
+  moves between them as the Account sheet's does, the incoming panel sliding in
+  as there, while a mouse drag, selecting
   a command included, never does, and the panel below the strip
   holds the shown client's guidance in short groups 16px apart, each ending in
   a link to that vendor's own help, opening in a new tab. `Claude` has two:
@@ -771,7 +772,8 @@ numerals.
   close icon, and below it the four categories are tabs running the sheet's
   full width with no side padding, the shown one underlined in `accent` and set
   in `accent-text`, semibold. A touch swipe across the choices moves one tab,
-  as a swipe does in the Account sheet, and never wraps from `Relative` to
+  as a swipe does in the Account sheet, the incoming panel sliding in as there,
+  and never wraps from `Relative` to
   `Year` or back. Each tab lists its
   choices as the panel does, with each year above its row; choosing one closes
   the sheet. Escape or the close icon closes it without choosing, and focus
@@ -795,7 +797,7 @@ numerals.
   with an Account keeps the tab, and in Multi-line mode ticking an Account keeps
   it too. A touch swipe across the Accounts switches the tab as the Account
   sheet's does, and from `split` up, where the tab strip is not shown, it
-  changes nothing. When a submit
+  changes nothing and slides nothing. When a submit
   finds a Side missing its required Account, the first such Side's tab is
   shown, so the browser's message is visible. From `split`
   up there are no tabs and the two Sides sit side by side, Credit's column
@@ -880,7 +882,11 @@ numerals.
   start off the tab strip, the bar and any field that takes text, `Find an
   account` included. A swipe that starts on an Account switches without
   choosing it, and nothing happens past either end or where the tab strip is
-  hidden. `Done` or the close icon, Escape or a click on the scrim closes it,
+  hidden. Every change of shown tab, by swipe, tap, arrow key or the form's own
+  rules, slides the incoming panel in over 200ms, ease-out, from the side its
+  tab lies on, the left for an earlier tab and the right for a later one, with
+  no finger tracking and the outgoing panel hiding at once, and with no motion
+  under `prefers-reduced-motion: reduce`. `Done` or the close icon, Escape or a click on the scrim closes it,
   and focus returns to the button that opened it.
 - **Entry form grid.** From `wide` up the entry form and the Account picker
   sit side by side, 24px apart: as two equal columns below `split`, and from
@@ -1229,7 +1235,7 @@ numerals.
   iOS overscroll bounce reports, changes nothing. Focus reaching `Menu`, or
   anything else in the Top bar, shows it at once. It hides and shows by sliding
   vertically past the top edge over 200ms, ease-out, both ways, without a fade,
-  and instantly under `prefers-reduced-motion: reduce`. This, the Entry
+  and instantly under `prefers-reduced-motion: reduce`. This, the sheet tabs' slide, the Entry
   expansion in the Entries list, the Landing page's opening Entry and the Line
   chart's dot pop are the design's only motion. The Entry expansion and the
   opening Entry share the Entry expansion's timing; the Top bar and the dot pop
