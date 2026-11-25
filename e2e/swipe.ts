@@ -14,6 +14,10 @@ export type Swipe = {
   readonly click?: boolean;
 };
 
+type Animatable = {
+  readonly getAnimations: () => readonly { readonly finished: Promise<unknown> }[];
+};
+
 type Dispatcher = { readonly dispatchEvent: (event: unknown) => boolean };
 
 export const LEFT = -100;
@@ -22,6 +26,9 @@ export const RIGHT = 100;
 
 async function startOf(origin: Locator, gesture: Swipe): Promise<Point> {
   if (gesture.from !== undefined) return gesture.from;
+  await origin.evaluate((element: Animatable) =>
+    Promise.all(element.getAnimations().map((animation) => animation.finished.catch(() => undefined))),
+  );
   const box = await boxOf(origin, 'the panel a swipe starts on');
   return { x: box.x + box.width / 2, y: box.y + Math.min(box.height / 2, 120) };
 }
