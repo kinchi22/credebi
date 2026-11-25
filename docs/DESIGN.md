@@ -727,7 +727,7 @@ numerals.
   ring, the other in `text-muted`. It opens on `Claude` every time, the left
   and right arrow keys move between the tabs, a touch swipe across the panel
   moves between them as the Account sheet's does while a mouse drag, selecting
-  the URL or a command included, never does, and the panel below the strip
+  a command included, never does, and the panel below the strip
   holds the shown client's guidance in short groups 16px apart, each ending in
   a link to that vendor's own help, opening in a new tab. `Claude` has two:
   add the MCP URL as a custom connector in claude.ai or the desktop app; and in
