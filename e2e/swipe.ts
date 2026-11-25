@@ -1,6 +1,6 @@
 import { type Locator, type Page } from '@playwright/test';
 import { boxOf } from './accounts';
-import { animationsSeen, recordAnimations } from './animations';
+import { recordAnimations } from './animations';
 
 export type Point = { readonly x: number; readonly y: number };
 
@@ -75,5 +75,3 @@ const SLIDING = `(animation) => {
 }`;
 
 export const recordSlides = (page: Page): Promise<void> => recordAnimations(page, SLIDING);
-
-export const slideAnimations = animationsSeen;

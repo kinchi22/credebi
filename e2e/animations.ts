@@ -12,6 +12,10 @@ export async function recordAnimations(page: Page, counted: string): Promise<voi
   })()`);
 }
 
+export const resetAnimations = async (page: Page): Promise<void> => {
+  await page.evaluate('window.animationsSeen = 0');
+};
+
 export const animationsSeen = async (page: Page): Promise<number> =>
   Number(await page.evaluate('window.animationsSeen'));
 
