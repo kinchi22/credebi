@@ -729,19 +729,19 @@ numerals.
   and right arrow keys move between the tabs, a touch swipe across the panel
   moves between them as the Account sheet's does, the incoming panel sliding in
   as the Account picker's does, while a mouse drag, selecting a command
-  included, never does, and the panel below the strip holds the shown client's guidance in short groups 16px apart, each ending in
-  a link to that vendor's own help, opening in a new tab. `Claude` has two:
-  add the MCP URL as a custom connector in claude.ai or the desktop app; and in
-  Claude Code, run `claude mcp add --transport http credebi <MCP URL>`, then
-  authenticate from `/mcp`, the command in a `control`-radius box on the
-  `ground` with a `border` edge, in the sans face, wrapping anywhere.
-  `ChatGPT` has one: turn on developer mode under Apps in its settings, create
-  an app with the MCP URL and choose OAuth. The guidance names as few of the vendor's menus as it can,
-  and no other client. The last step says in `text-muted` that
-  the application opens a Credebi page to sign in, review and approve, after
-  which the Connection appears in the list. `Close`, Escape or a click on the
-  scrim closes it, and focus returns to the button that opened it. It
-  remembers nothing between openings.
+  included, never does, and the panel below the strip holds the shown client's
+  guidance in short groups 16px apart, each ending in a link to that vendor's
+  own help, opening in a new tab. `Claude` has two: add the MCP URL as a custom
+  connector in claude.ai or the desktop app; and in Claude Code, run `claude mcp
+  add --transport http credebi <MCP URL>`, then authenticate from `/mcp`, the
+  command in a `control`-radius box on the `ground` with a `border` edge, in the
+  sans face, wrapping anywhere. `ChatGPT` has one: turn on developer mode under
+  Apps in its settings, create an app with the MCP URL and choose OAuth. The
+  guidance names as few of the vendor's menus as it can, and no other client.
+  The last step says in `text-muted` that the application opens a Credebi page
+  to sign in, review and approve, after which the Connection appears in the
+  list. `Close`, Escape or a click on the scrim closes it, and focus returns to
+  the button that opened it. It remembers nothing between openings.
 - **MCP URL field.** The first step's read-only field, drawn as a control in
   the sans face, not `figure` or `date`, wrapping anywhere and as tall as its
   text, so a long MCP URL shows whole at any width. A secondary `Copy` sits at
@@ -774,14 +774,14 @@ numerals.
   in `accent-text`, semibold. A touch swipe across the choices moves one tab,
   as a swipe does in the Account sheet, the incoming panel sliding in as the
   Account picker's does, and never wraps from `Relative` to `Year` or back.
-  Each tab lists its choices as the panel does, with each year above its row; choosing one closes
-  the sheet. Escape or the close icon closes it without choosing, and focus
-  returns to the button. The Income statement's `Statement period` form and the
-  Assets and liabilities trend's `Trend range` form carry the same presets,
-  laid out the same. On the trend they are month by month: a choice fills From
-  month and To month with the calendar months it covers, and Relative offers
-  the last, the next and either side of 3, 6, 12, 24 and 36 months, each
-  counting the current month.
+  Each tab lists its choices as the panel does, with each year above its row;
+  choosing one closes the sheet. Escape or the close icon closes it without
+  choosing, and focus returns to the button. The Income statement's `Statement
+  period` form and the Assets and liabilities trend's `Trend range` form carry
+  the same presets, laid out the same. On the trend they are month by month: a
+  choice fills From month and To month with the calendar months it covers, and
+  Relative offers the last, the next and either side of 3, 6, 12, 24 and 36
+  months, each counting the current month.
 - **Account picker.** From `wide` up the Accounts to choose from sit right of
   the entry form in a `ground` panel with a `border` edge, the `panel` radius
   and the `lift` shadow. At its top a
@@ -1240,9 +1240,9 @@ numerals.
   slide, the Entry expansion in the Entries list, the Landing page's opening
   Entry and the Line chart's dot pop are the design's only motion. The Entry
   expansion and the opening Entry share the Entry expansion's timing; the Top
-  bar, the sheet tabs' slide and the dot pop each state their own. Focus starts on the drawer, and Tab reaches `Entries`
-  first. Escape, a click on the scrim or following a link closes it, and focus
-  returns to `Menu`.
+  bar, the sheet tabs' slide and the dot pop each state their own. Focus starts
+  on the drawer, and Tab reaches `Entries` first. Escape, a click on the scrim
+  or following a link closes it, and focus returns to `Menu`.
 - **Focus.** A 2px ring on every focusable element: `focus` on a light ground,
   `focus-on-dark` on a dark one, 2px outside its edge. A focused Input adds a
   3px `accent` halo at 25%, `ring-3 ring-accent/25`, around its edge and under

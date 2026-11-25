@@ -141,6 +141,7 @@ export function SheetPanels<Tab extends string>({
   const panels = useRef<HTMLDivElement>(null);
   const previous = useRef<Tab>(shown);
   const sheetWasOpen = useRef(false);
+  const sliding = useRef<Animation | undefined>(undefined);
   const press = useRef<Press | undefined>(undefined);
   const swipedAt = useRef<number | undefined>(undefined);
 
@@ -167,14 +168,19 @@ export function SheetPanels<Tab extends string>({
       return;
     }
     const clipped = panels.current;
+    sliding.current?.cancel();
     clipped.style.overflowX = 'clip';
-    const unclip = (): void => {
-      clipped.style.overflowX = '';
-    };
     const slide = incoming.animate(
       [{ transform: `translateX(${from === 'right' ? '100%' : '-100%'})` }, { transform: 'translateX(0)' }],
       { duration: SLIDE_MS, easing: SLIDE_EASING },
     );
+    sliding.current = slide;
+    const unclip = (): void => {
+      if (sliding.current === slide) {
+        clipped.style.overflowX = '';
+        sliding.current = undefined;
+      }
+    };
     slide.onfinish = unclip;
     slide.oncancel = unclip;
   });
