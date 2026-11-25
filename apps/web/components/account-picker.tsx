@@ -29,7 +29,7 @@ import {
   type Run,
 } from './chart-tree';
 import { CloseButton } from './close-button';
-import { SheetBar, SheetTabs } from './sheet';
+import { SheetBar, SheetPanels, SheetTabs } from './sheet';
 import { SIDES } from './entry-lines';
 import { SIDE_TONE } from './side-classes';
 import { SIDE_ORDER } from './side-order';
@@ -662,7 +662,13 @@ function AccountSheetDialog({
         <div className="shrink-0 border-b border-border bg-surface px-4 py-3">
           <FindAnAccount query={sheet.query} setQuery={sheet.setQuery} className={CONTROL} />
         </div>
-        <div className={`min-h-0 grow overflow-y-auto ${typeClasses['body-dense']}`}>
+        <SheetPanels
+          tabs={SIDES}
+          shown={sheet.side}
+          onShow={sheet.setSide}
+          tabId={tabId}
+          className={`min-h-0 grow overflow-y-auto ${typeClasses['body-dense']}`}
+        >
           {SIDES.map((side) => (
             <div
               key={side}
@@ -689,7 +695,7 @@ function AccountSheetDialog({
             </div>
           ))}
           <NoMatch query={sheet.query} chart={chart} matches={matches} />
-        </div>
+        </SheetPanels>
       </div>
     </dialog>
   );

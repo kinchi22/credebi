@@ -867,7 +867,13 @@ numerals.
   each column from `wide` up keeps one. In Two-line mode, choosing an Account
   on one Side while the other has none shows the other Side's tab, and a choice
   that leaves both Sides with an Account closes the sheet; in Multi-line mode
-  ticking an Account keeps the tab. `Done` or the close icon, Escape or a click
+  ticking an Account keeps the tab. A touch swipe across the Accounts shows the
+  neighbouring tab, left for the next and right for the previous, as a tap on
+  it does: it must move at least 48px across and at least 1.5 times as far
+  across as down, start more than 24px from either edge of the screen, and
+  start off the tab strip, the bar and `Find an account`; one that starts on an
+  Account switches without choosing it, and nothing happens past either end.
+  `Done` or the close icon, Escape or a click
   on the scrim closes it, and focus returns to the button that opened it.
 - **Entry form grid.** From `wide` up the entry form and the Account picker
   sit side by side, 24px apart: as two equal columns below `split`, and from
