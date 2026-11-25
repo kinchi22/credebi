@@ -227,7 +227,7 @@ const editSheetOnPhone =
 const pickerBelowSplit =
   (kit: Kit) =>
   async (page: Page): Promise<Locator> => {
-    await signIn(page);
+    await signIn(page, { accountsStartOn: BOOKS_OPEN });
     const form = await openEntryForm(page, kit.mode);
     await page.setViewportSize(WIDE_BELOW_SPLIT);
     await expect(tabOf(form, 'Debit')).toBeVisible();
