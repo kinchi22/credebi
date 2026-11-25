@@ -606,7 +606,7 @@ for (const context of ['entry form', 'Edit entry'] as const) {
 test('keeps the own tab switches of the form at 390px in Two-line mode: choosing an Account on one Side while the other has none, and a submit finding a Side without one', async ({ page }) => {
   const memo = `Swipe own switch ${randomUUID()}`;
   await page.setViewportSize(PHONE);
-  await signIn(page);
+  await signIn(page, { accountsStartOn: BOOKS_OPEN });
   const form = await openEntryForm(page, 'Two-line mode');
   await fillHeading(form, { day: DAY, memo });
   await form.getByLabel('Amount').fill(AMOUNT);
