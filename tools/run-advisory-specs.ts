@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
@@ -118,7 +118,7 @@ export function findMergeBase(cwd: string, baseRef: string): MergeBase {
   if (!base.ok) {
     return {
       ok: false,
-      problem: `${baseRef} does not name a commit here, so there is no baseline to compare with. Fetch it first.`,
+      problem: `${baseRef} does not name a commit here: the base reference is missing. Fetch it first.`,
     };
   }
   const head = git(cwd, ['rev-parse', '--verify', 'HEAD^{commit}']);
@@ -432,5 +432,9 @@ if (import.meta.main) {
 
   const outcome = await runAdvisoryGroup({ cwd: process.cwd(), group, baseRef: values.base, config: values.config, baseline: values.baseline });
   (outcome.status === 0 ? console.log : console.error)(outcome.lines.join('\n'));
+  const summary = process.env['GITHUB_STEP_SUMMARY'];
+  if (summary !== undefined && summary !== '') {
+    appendFileSync(summary, `### ${LABEL[group]}\n\n\`\`\`text\n${outcome.lines.join('\n')}\n\`\`\`\n`);
+  }
   process.exit(outcome.status);
 }

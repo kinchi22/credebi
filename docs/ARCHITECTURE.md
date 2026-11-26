@@ -345,9 +345,9 @@ whose every criterion the app already meets has no milestone: its specs go to
 
 | Pull request                | Approved by | E2E    | Isolation |
 | --------------------------- | ----------- | ------ | --------- |
-| specs -> `milestone/x`      | the owner, as code owner | not on the pull request (the specs would fail by design); the two advisory checks on the merge | e2e only |
+| specs -> `milestone/x`      | the owner, as code owner | the Feature-specs advisory check on the pull request, red by design; the two advisory checks on the merge | e2e only |
 | migration -> `milestone/x`  | the owner, as code owner of `packages/db/drizzle/` | as for a feature | no specs |
-| feature -> `milestone/x`    | nobody      | not on the pull request (the specs would fail until the behaviour lands); the two advisory checks on the merge | no specs |
+| feature -> `milestone/x`    | nobody      | the Feature-specs advisory check on the pull request, compared with the milestone; the two advisory checks on the merge | no specs |
 | `main` -> `milestone/x`     | the owner, who pushes it: a merge commit, not a pull request | the two advisory checks, on the push | exempt |
 | `milestone/x` -> `main`     | the owner, like every pull request into `main` | green, required | exempt |
 | specs -> `main`, for a Feature whose every criterion the app already meets | the owner, as code owner | green, required | e2e only |
@@ -393,10 +393,11 @@ when both sides moved. It reads a pull request, so it has no local equivalent
 and `pnpm gates` does not run it.
 
 The E2E column is the `E2E build` workflow: the suite against a production build
-of the commit, run on every pull request into `main`, on `main` itself, and on a
-push to a `milestone/**` branch. A pull request onto a milestone does not run
-it: that one would be red by design, and ADR-0002 does not let the specs block
-it. The push run lands as each Task merges, and it is advisory -- in no ruleset,
+of the commit, run on every pull request into `main`, on `main` itself, on a
+push to a `milestone/**` branch, and, as the Feature-specs advisory leg alone, on
+a pull request onto a milestone. That leg is red by design while the behaviour
+is unbuilt, and ADR-0002 does not let the specs block the milestone, so it is in
+no ruleset. The push run lands as each Task merges, and it is advisory -- in no ruleset,
 blocking no merge -- because no gate can tell a spec that is red by design from
 one that regressed: the run reports, and the driver reading it judges, which is
 a step in the `implement-issue` Skill's loop. The job brings a
@@ -424,11 +425,30 @@ as an existing spec ("Writing a spec"). Each
 run prints the classification, including the spec files removed since the
 merge-base: no group runs them, and none counts as passing.
 
+A pull request onto a milestone runs the Feature-specs leg alone, as `E2E build
+(advisory, Feature specs)`, never as `E2E build`; the existing-specs leg does
+not run there, and a pull request whose changed files all end in `.md` runs
+nothing. It is in no ruleset and blocks nothing. Its job summary compares each
+Feature spec with the milestone as it stands, without building or running the
+base again: the baseline is the JSON report in the
+`playwright-report-advisory-feature` artifact of the latest completed push run
+of the workflow on the pull request's base branch (`tools/find-advisory-baseline.ts`),
+and of no older run. The
+summary names that run and its commit, and
+groups each test, per project, as turned to passing, turned to failing,
+unchanged, other change, new (absent from the baseline) or gone, with its state
+on both sides. A Task that builds a behaviour shows its specs turning to
+passing; none turned, or one turned to failing, is for the driver to read as a
+finding. When that run kept no report, the lookup failed or the report cannot be
+read, the summary says "no baseline" with the reason and lists every test as
+new: that is not a pass, and no older run stands in for it. The term is
+this report's alone; an unresolved merge-base is the failure below.
+
 Each leg has its own 20-minute budget, preparation included, runs each test
 once with no retry, and keeps the trace of a failed first attempt;
 `fail-fast: false` keeps one leg's failure or timeout from cancelling the
 other. The leg checks out the whole history, which brings `origin/main`. A
-missing baseline, an unresolved merge-base or a failed Git command fails the
+missing base reference, an unresolved merge-base or a failed Git command fails the
 leg before any test runs, and a run Playwright did not finish fails it too:
 none is a green result. A group with no spec file is reported as skipped,
 green, and Playwright is not started, since an empty selection would run the
