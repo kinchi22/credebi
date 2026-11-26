@@ -95,7 +95,7 @@ describe('classifySpecFiles', () => {
   });
 });
 
-type FixtureTest = readonly [title: string, status: string];
+type FixtureTest = readonly [title: string, status: string, project?: string];
 
 const reportOf = (...tests: readonly FixtureTest[]): LivenessReport => ({
   config: { rootDir: '/fixture' },
@@ -107,11 +107,13 @@ const reportOf = (...tests: readonly FixtureTest[]): LivenessReport => ({
       suites: [
         {
           title: 'the feature',
-          specs: tests.map(([title, status]) => ({
+          specs: [...new Set(tests.map(([title]) => title))].map((title) => ({
             title,
             file: 'feature.spec.ts',
             line: 1,
-            tests: [{ status, results: [] }],
+            tests: tests
+              .filter(([name]) => name === title)
+              .map(([, status, projectName]) => ({ status, results: [], ...(projectName === undefined ? {} : { projectName }) })),
           })),
         },
       ],
@@ -203,6 +205,60 @@ describe('compareWithBaseline, against JSON report fixtures', () => {
       'Gone, on the baseline and absent from this run (1):',
       `  ${key('vanishes')}: baseline passed, this run none`,
     ]);
+  });
+
+  describe('with a spec run in two projects', () => {
+    const projectBaseline = reportFile(
+      'projects-baseline.json',
+      reportOf(
+        ['builds', 'unexpected', 'chromium'],
+        ['builds', 'unexpected', 'mobile-webkit'],
+        ['regresses', 'unexpected', 'chromium'],
+        ['regresses', 'expected', 'mobile-webkit'],
+        ['dropped', 'expected', 'chromium'],
+        ['dropped', 'expected', 'mobile-webkit'],
+      ),
+    );
+    const projectRun = reportOf(
+      ['builds', 'expected', 'chromium'],
+      ['builds', 'unexpected', 'mobile-webkit'],
+      ['regresses', 'unexpected', 'chromium'],
+      ['regresses', 'unexpected', 'mobile-webkit'],
+      ['dropped', 'expected', 'chromium'],
+      ['added', 'expected', 'chromium'],
+    );
+    const projectLines = compareWithBaseline(projectBaseline, projectRun);
+
+    it('compares each project on its own, so progress in one shows beside a failure in the other', () => {
+      expect(groupOf(projectLines, 'Turned to passing')).toEqual([
+        'Turned to passing (1):',
+        `  ${key('builds')} [chromium]: baseline failed, this run passed`,
+      ]);
+      expect(groupOf(projectLines, 'Unchanged')).toEqual([
+        'Unchanged (3):',
+        `  ${key('builds')} [mobile-webkit]: baseline failed, this run failed`,
+        `  ${key('dropped')} [chromium]: baseline passed, this run passed`,
+        `  ${key('regresses')} [chromium]: baseline failed, this run failed`,
+      ]);
+    });
+
+    it('lists a regression in one project as turned to failing', () => {
+      expect(groupOf(projectLines, 'Turned to failing')).toEqual([
+        'Turned to failing (1):',
+        `  ${key('regresses')} [mobile-webkit]: baseline passed, this run failed`,
+      ]);
+    });
+
+    it('lists a test present in one project only as new or gone', () => {
+      expect(groupOf(projectLines, 'New, absent from the baseline')).toEqual([
+        'New, absent from the baseline (1):',
+        `  ${key('added')} [chromium]: baseline none, this run passed`,
+      ]);
+      expect(groupOf(projectLines, 'Gone, on the baseline and absent from this run')).toEqual([
+        'Gone, on the baseline and absent from this run (1):',
+        `  ${key('dropped')} [mobile-webkit]: baseline passed, this run none`,
+      ]);
+    });
   });
 
   it.each([

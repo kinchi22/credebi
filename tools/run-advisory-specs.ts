@@ -178,15 +178,26 @@ const stateOfStatus = (status: string): TestState => {
   return 'skipped';
 };
 
-const SEVERITY: readonly TestState[] = ['failed', 'flaky', 'skipped', 'passed'];
+const WORST_FIRST: readonly TestState[] = ['failed', 'flaky', 'skipped', 'passed'];
 
-function testStatesIn(suites: readonly ReportSuite[]): ReadonlyMap<string, TestState> {
-  const states = new Map<string, TestState>();
+type NamedState = { readonly name: string; readonly state: TestState };
+
+function testStatesIn(suites: readonly ReportSuite[]): ReadonlyMap<string, NamedState> {
+  const states = new Map<string, NamedState>();
   const visit = (suite: ReportSuite, titles: readonly string[]): void => {
     for (const spec of suite.specs) {
-      const found = spec.tests.map((test) => stateOfStatus(test.status));
-      const worst = SEVERITY.find((state) => found.includes(state));
-      if (worst !== undefined) states.set([spec.file, ...titles, spec.title].join(' > '), worst);
+      const projects = new Set(spec.tests.map((test) => test.projectName ?? ''));
+      for (const project of projects) {
+        const found = spec.tests.filter((test) => (test.projectName ?? '') === project).map((test) => stateOfStatus(test.status));
+        const state = WORST_FIRST.find((candidate) => found.includes(candidate));
+        const path = [spec.file, ...titles, spec.title];
+        if (state !== undefined) {
+          states.set(JSON.stringify([...path, project]), {
+            name: `${path.join(' > ')}${project === '' ? '' : ` [${project}]`}`,
+            state,
+          });
+        }
+      }
     }
     for (const nested of suite.suites ?? []) {
       visit(nested, [...titles, ...(nested.title === undefined ? [] : [nested.title])]);
@@ -209,7 +220,12 @@ const isWellFormedSuite = (value: unknown): value is ReportSuite =>
       typeof spec['title'] === 'string' &&
       typeof spec['file'] === 'string' &&
       Array.isArray(spec['tests']) &&
-      spec['tests'].every((test) => isRecord(test) && typeof test['status'] === 'string'),
+      spec['tests'].every(
+        (test) =>
+          isRecord(test) &&
+          typeof test['status'] === 'string' &&
+          (test['projectName'] === undefined || typeof test['projectName'] === 'string'),
+      ),
   ) &&
   (value['suites'] === undefined || (Array.isArray(value['suites']) && value['suites'].every(isWellFormedSuite)));
 
@@ -235,6 +251,8 @@ type TestChange = { readonly test: string; readonly baseline: TestState | undefi
 
 const NEW_HEADING = 'New, absent from the baseline';
 
+const GONE_HEADING = 'Gone, on the baseline and absent from this run';
+
 const changeLines = (heading: string, changes: readonly TestChange[]): readonly string[] => [
   `${heading} (${String(changes.length)}):`,
   ...(changes.length === 0
@@ -242,33 +260,41 @@ const changeLines = (heading: string, changes: readonly TestChange[]): readonly 
     : changes.map(({ test, baseline, run }) => `  ${test}: baseline ${baseline ?? 'none'}, this run ${run ?? 'none'}`)),
 ];
 
+const CHANGE_GROUPS = ['Turned to passing', 'Turned to failing', 'Unchanged', 'Other change'] as const;
+
+function changeGroup(was: TestState, run: TestState): (typeof CHANGE_GROUPS)[number] {
+  if (was === run) return 'Unchanged';
+  if (run === 'passed') return 'Turned to passing';
+  if (was === 'passed' && run === 'failed') return 'Turned to failing';
+  return 'Other change';
+}
+
 export function compareWithBaseline(baselineFile: string, report: LivenessReport): readonly string[] {
   const baseline = readBaseline(baselineFile);
   const current = testStatesIn(report.suites);
-  const changes = (names: Iterable<string>, before: ReadonlyMap<string, TestState>): readonly TestChange[] =>
-    [...names].sort().map((test) => ({ test, baseline: before.get(test), run: current.get(test) }));
+  const byName = (a: TestChange, b: TestChange): number => a.test.localeCompare(b.test);
 
   if (!baseline.ok) {
+    const everyTest = [...current.values()].map(({ name, state }) => ({ test: name, baseline: undefined, run: state }));
     return [
       `No baseline: ${baseline.problem}. Nothing is compared, so every test is new and no test counts as turned to passing.`,
-      ...changeLines(NEW_HEADING, changes(current.keys(), new Map())),
+      ...changeLines(NEW_HEADING, everyTest.sort(byName)),
     ];
   }
 
   const before = testStatesIn(baseline.suites);
-  const both = changes([...current.keys()].filter((test) => before.has(test)), before);
-  const turnedToPassing = both.filter(({ baseline: was, run }) => run === 'passed' && was !== 'passed');
-  const turnedToFailing = both.filter(({ baseline: was, run }) => was === 'passed' && run === 'failed');
-  const unchanged = both.filter(({ baseline: was, run }) => was === run);
-  const otherChange = both.filter((change) => ![...turnedToPassing, ...turnedToFailing, ...unchanged].includes(change));
+  const grouped = new Map<string, TestChange[]>([...CHANGE_GROUPS, NEW_HEADING, GONE_HEADING].map((group) => [group, []]));
+  for (const [key, now] of current) {
+    const was = before.get(key);
+    const group = was === undefined ? NEW_HEADING : changeGroup(was.state, now.state);
+    grouped.get(group)?.push({ test: now.name, baseline: was?.state, run: now.state });
+  }
+  for (const [key, was] of before) {
+    if (!current.has(key)) grouped.get(GONE_HEADING)?.push({ test: was.name, baseline: was.state, run: undefined });
+  }
   return [
     'Comparison with the baseline report:',
-    ...changeLines('Turned to passing', turnedToPassing),
-    ...changeLines('Turned to failing', turnedToFailing),
-    ...changeLines('Unchanged', unchanged),
-    ...changeLines('Other change', otherChange),
-    ...changeLines(NEW_HEADING, changes([...current.keys()].filter((test) => !before.has(test)), before)),
-    ...changeLines('Gone, on the baseline and absent from this run', changes([...before.keys()].filter((test) => !current.has(test)), before)),
+    ...[...grouped].flatMap(([group, changes]) => changeLines(group, changes.sort(byName))),
   ];
 }
 
