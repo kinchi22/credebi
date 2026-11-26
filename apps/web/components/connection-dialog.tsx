@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { CloseButton } from './close-button';
 import { BOTTOM_SHEET, BUTTON, CHOSEN_SEGMENT, CONTROL, SEGMENT, UNCHOSEN_SEGMENT } from './control-classes';
-import { SheetBar, SheetTabs, type TabsLook } from './sheet';
+import { SheetBar, SheetPanels, SheetTabs, type TabsLook } from './sheet';
 import { LINK, MUTED_TEXT } from './text-classes';
 import { type ModalDialog } from './use-modal-dialog';
 
@@ -195,17 +195,19 @@ function ClientStep({ mcpUrl }: { readonly mcpUrl: string }): ReactNode {
         label={(client) => t(`connectionsSection.clients.${client}`)}
         look={SEGMENT_TABS}
       />
-      {MCP_CLIENTS.map((client) => (
-        <div
-          key={client}
-          id={panelId(client)}
-          role="tabpanel"
-          aria-labelledby={tabId(client)}
-          className={shown === client ? 'block' : 'hidden'}
-        >
-          {client === 'claude' ? <ClaudeGuidance mcpUrl={mcpUrl} /> : <ChatGptGuidance />}
-        </div>
-      ))}
+      <SheetPanels tabs={MCP_CLIENTS} shown={shown} onShow={setShown} tabId={tabId}>
+        {MCP_CLIENTS.map((client) => (
+          <div
+            key={client}
+            id={panelId(client)}
+            role="tabpanel"
+            aria-labelledby={tabId(client)}
+            className={shown === client ? 'block' : 'hidden'}
+          >
+            {client === 'claude' ? <ClaudeGuidance mcpUrl={mcpUrl} /> : <ChatGptGuidance />}
+          </div>
+        ))}
+      </SheetPanels>
     </li>
   );
 }

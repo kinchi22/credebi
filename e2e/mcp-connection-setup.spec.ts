@@ -21,9 +21,7 @@ import { SETTINGS_PATH } from './routes';
 import { signIn } from './session';
 import {
   addConnectionButton,
-  clientGuidance,
   clientStep,
-  clientTab,
   clientTabs,
   clipboardText,
   connectionItems,
@@ -45,6 +43,7 @@ import {
   type McpClientName,
 } from './settings';
 import { expectWithinPhone, PHONE } from './viewport';
+import { expectTabSelected, tabOf, tabpanelOf } from './tabs';
 
 const OTHER_CLIENTS = /\b(?:Muse|Cursor|Gemini|Copilot|Perplexity|Windsurf|Mistral|Grok|DeepSeek)\b/i;
 
@@ -97,9 +96,7 @@ async function explanationBeside(section: Locator, opener: Locator): Promise<str
 }
 
 async function expectClientShown(dialog: Locator, shown: McpClientName): Promise<void> {
-  for (const client of MCP_CLIENTS) {
-    await expect(clientTab(dialog, client)).toHaveAttribute('aria-selected', String(client === shown));
-  }
+  await expectTabSelected(dialog, MCP_CLIENTS, shown);
 }
 
 async function expectHelpLink(guidance: Locator, client: McpClientName): Promise<void> {
@@ -211,13 +208,13 @@ test('guides Claude and ChatGPT in tabs, each with a link to its vendor\'s own h
 
   await expect(clientTabs(dialog)).toHaveCount(MCP_CLIENTS.length);
   await expectClientShown(dialog, 'Claude');
-  const guidance = clientGuidance(dialog);
+  const guidance = tabpanelOf(dialog);
   await expect(guidance).toHaveCount(1);
   await expect(guidance).toContainText(`${CLAUDE_CODE_COMMAND} ${mcpUrlOf(baseURL)}`);
   await expectHelpLink(guidance, 'Claude');
   await expect(dialog).not.toContainText(OTHER_CLIENTS);
 
-  await clientTab(dialog, 'ChatGPT').click();
+  await tabOf(dialog, 'ChatGPT').click();
 
   await expectClientShown(dialog, 'ChatGPT');
   await expect(guidance).toHaveCount(1);
@@ -240,18 +237,18 @@ test('moves between the Claude and ChatGPT tabs with the arrow keys', async ({ p
   await signIn(page);
   await openSettings(page);
   const dialog = await openConnectionDialog(startConnectingButton(page));
-  const guidance = clientGuidance(dialog);
-  await clientTab(dialog, 'Claude').focus();
+  const guidance = tabpanelOf(dialog);
+  await tabOf(dialog, 'Claude').focus();
 
   await page.keyboard.press('ArrowRight');
 
-  await expect(clientTab(dialog, 'ChatGPT')).toBeFocused();
+  await expect(tabOf(dialog, 'ChatGPT')).toBeFocused();
   await expectClientShown(dialog, 'ChatGPT');
   await expect(guidance).toContainText('OAuth');
 
   await page.keyboard.press('ArrowLeft');
 
-  await expect(clientTab(dialog, 'Claude')).toBeFocused();
+  await expect(tabOf(dialog, 'Claude')).toBeFocused();
   await expectClientShown(dialog, 'Claude');
   await expect(guidance).toContainText(CLAUDE_CODE_COMMAND);
 });

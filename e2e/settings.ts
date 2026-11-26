@@ -78,11 +78,6 @@ export const copyButton = (dialog: Locator): Locator => firstStep(dialog).getByR
 
 export const clientTabs = (dialog: Locator): Locator => dialog.getByRole('tablist').getByRole('tab');
 
-export const clientTab = (dialog: Locator, name: McpClientName): Locator =>
-  dialog.getByRole('tablist').getByRole('tab', { name, exact: true });
-
-export const clientGuidance = (dialog: Locator): Locator => dialog.getByRole('tabpanel');
-
 export const liveRegions = (scope: Locator): Locator =>
   scope.locator('[aria-live="polite"], [aria-live="assertive"], [role="status"], [role="alert"]');
 

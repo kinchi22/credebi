@@ -207,7 +207,8 @@ module, the stylesheet and here, in one pull request.
 Motion is not among those values, and the tokens module holds none of it. Each
 motion's timing lives in the code that runs it: the Top bar's in Tailwind's
 duration and easing utilities, the Line chart's dot pop's in the stylesheet's
-rule for it. The Entry expansion and the Landing page's opening Entry share
+rule for it, the sheet tabs' slide's in the shared sheet tabs component that
+runs it. The Entry expansion and the Landing page's opening Entry share
 one timing, which the stylesheet alone declares, as
 `--entry-expansion-duration` and `--entry-expansion-easing` on `:root`, and a
 unit test of the stylesheet holds; the view transitions of the Entries list
@@ -725,20 +726,22 @@ numerals.
   a tab strip, `Claude` and `ChatGPT`, drawn as the segment strip of the
   Settings choices: the shown tab semibold in the chosen segment's tint and
   ring, the other in `text-muted`. It opens on `Claude` every time, the left
-  and right arrow keys move between the tabs, and the panel below the strip
-  holds the shown client's guidance in short groups 16px apart, each ending in
-  a link to that vendor's own help, opening in a new tab. `Claude` has two:
-  add the MCP URL as a custom connector in claude.ai or the desktop app; and in
-  Claude Code, run `claude mcp add --transport http credebi <MCP URL>`, then
-  authenticate from `/mcp`, the command in a `control`-radius box on the
-  `ground` with a `border` edge, in the sans face, wrapping anywhere.
-  `ChatGPT` has one: turn on developer mode under Apps in its settings, create
-  an app with the MCP URL and choose OAuth. The guidance names as few of the vendor's menus as it can,
-  and no other client. The last step says in `text-muted` that
-  the application opens a Credebi page to sign in, review and approve, after
-  which the Connection appears in the list. `Close`, Escape or a click on the
-  scrim closes it, and focus returns to the button that opened it. It
-  remembers nothing between openings.
+  and right arrow keys move between the tabs, a touch swipe across the panel
+  moves between them as the Account sheet's does, the incoming panel sliding in
+  as the Account picker's does, while a mouse drag, selecting a command
+  included, never does, and the panel below the strip holds the shown client's
+  guidance in short groups 16px apart, each ending in a link to that vendor's
+  own help, opening in a new tab. `Claude` has two: add the MCP URL as a custom
+  connector in claude.ai or the desktop app; and in Claude Code, run `claude mcp
+  add --transport http credebi <MCP URL>`, then authenticate from `/mcp`, the
+  command in a `control`-radius box on the `ground` with a `border` edge, in the
+  sans face, wrapping anywhere. `ChatGPT` has one: turn on developer mode under
+  Apps in its settings, create an app with the MCP URL and choose OAuth. The
+  guidance names as few of the vendor's menus as it can, and no other client.
+  The last step says in `text-muted` that the application opens a Credebi page
+  to sign in, review and approve, after which the Connection appears in the
+  list. `Close`, Escape or a click on the scrim closes it, and focus returns to
+  the button that opened it. It remembers nothing between openings.
 - **MCP URL field.** The first step's read-only field, drawn as a control in
   the sans face, not `figure` or `date`, wrapping anywhere and as tall as its
   text, so a long MCP URL shows whole at any width. A secondary `Copy` sits at
@@ -768,15 +771,17 @@ numerals.
   and To, with an Input's edge. A `surface` bar holds its title and a
   close icon, and below it the four categories are tabs running the sheet's
   full width with no side padding, the shown one underlined in `accent` and set
-  in `accent-text`, semibold. Each tab lists its
-  choices as the panel does, with each year above its row; choosing one closes
-  the sheet. Escape or the close icon closes it without choosing, and focus
-  returns to the button. The Income statement's `Statement period` form and the
-  Assets and liabilities trend's `Trend range` form carry the same presets,
-  laid out the same. On the trend they are month by month: a choice fills From
-  month and To month with the calendar months it covers, and Relative offers
-  the last, the next and either side of 3, 6, 12, 24 and 36 months, each
-  counting the current month.
+  in `accent-text`, semibold. A touch swipe across the choices moves one tab,
+  as a swipe does in the Account sheet, the incoming panel sliding in as the
+  Account picker's does, and never wraps from `Relative` to `Year` or back.
+  Each tab lists its choices as the panel does, with each year above its row;
+  choosing one closes the sheet. Escape or the close icon closes it without
+  choosing, and focus returns to the button. The Income statement's `Statement
+  period` form and the Assets and liabilities trend's `Trend range` form carry
+  the same presets, laid out the same. On the trend they are month by month: a
+  choice fills From month and To month with the calendar months it covers, and
+  Relative offers the last, the next and either side of 3, 6, 12, 24 and 36
+  months, each counting the current month.
 - **Account picker.** From `wide` up the Accounts to choose from sit right of
   the entry form in a `ground` panel with a `border` edge, the `panel` radius
   and the `lift` shadow. At its top a
@@ -789,7 +794,9 @@ numerals.
   mode, choosing an Account on one Side while the other has none shows the
   other Side's tab, as the Account sheet does; a choice that leaves both Sides
   with an Account keeps the tab, and in Multi-line mode ticking an Account keeps
-  it too. When a submit
+  it too. A touch swipe across the Accounts switches the tab as the Account
+  sheet's does, and from `split` up, where the tab strip is not shown, it
+  changes nothing and slides nothing. When a submit
   finds a Side missing its required Account, the first such Side's tab is
   shown, so the browser's message is visible. From `split`
   up there are no tabs and the two Sides sit side by side, Credit's column
@@ -867,8 +874,21 @@ numerals.
   each column from `wide` up keeps one. In Two-line mode, choosing an Account
   on one Side while the other has none shows the other Side's tab, and a choice
   that leaves both Sides with an Account closes the sheet; in Multi-line mode
-  ticking an Account keeps the tab. `Done` or the close icon, Escape or a click
-  on the scrim closes it, and focus returns to the button that opened it.
+  ticking an Account keeps the tab. A touch swipe across the Accounts shows
+  the neighbouring tab, left for the next and right for the previous, as a tap
+  on it does: it must move at least 48px across and at least 1.5 times as far
+  across as down, start more than 24px from either edge of the screen, and
+  start off the tab strip, the bar and any field that takes text, `Find an
+  account` included. A swipe that starts on an Account switches without
+  choosing it, and nothing happens past either end or where the tab strip is
+  hidden. Every change of shown tab while the panels are showing, by swipe, tap,
+  arrow key or the form's own rules, slides the incoming panel in over 200ms,
+  ease-out, from the side its tab lies on, the left for an earlier tab and the
+  right for a later one, with no finger tracking and the outgoing panel hiding
+  at once, and with no motion under `prefers-reduced-motion: reduce`. Opening
+  the sheet on a Side other than the one it was left on shows that tab with no
+  slide. `Done` or the close icon, Escape or a click on the scrim closes it, and
+  focus returns to the button that opened it.
 - **Entry form grid.** From `wide` up the entry form and the Account picker
   sit side by side, 24px apart: as two equal columns below `split`, and from
   `split` up the entry form in a fixed 400px column with the picker taking the
@@ -1216,13 +1236,13 @@ numerals.
   iOS overscroll bounce reports, changes nothing. Focus reaching `Menu`, or
   anything else in the Top bar, shows it at once. It hides and shows by sliding
   vertically past the top edge over 200ms, ease-out, both ways, without a fade,
-  and instantly under `prefers-reduced-motion: reduce`. This, the Entry
-  expansion in the Entries list, the Landing page's opening Entry and the Line
-  chart's dot pop are the design's only motion. The Entry expansion and the
-  opening Entry share the Entry expansion's timing; the Top bar and the dot pop
-  each state their own. Focus starts on the drawer, and Tab reaches `Entries`
-  first. Escape, a click on the scrim or following a link closes it, and focus
-  returns to `Menu`.
+  and instantly under `prefers-reduced-motion: reduce`. This, the sheet tabs'
+  slide, the Entry expansion in the Entries list, the Landing page's opening
+  Entry and the Line chart's dot pop are the design's only motion. The Entry
+  expansion and the opening Entry share the Entry expansion's timing; the Top
+  bar, the sheet tabs' slide and the dot pop each state their own. Focus starts
+  on the drawer, and Tab reaches `Entries` first. Escape, a click on the scrim
+  or following a link closes it, and focus returns to `Menu`.
 - **Focus.** A 2px ring on every focusable element: `focus` on a light ground,
   `focus-on-dark` on a dark one, 2px outside its edge. A focused Input adds a
   3px `accent` halo at 25%, `ring-3 ring-accent/25`, around its edge and under

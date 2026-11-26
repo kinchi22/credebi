@@ -19,7 +19,6 @@ import {
   listedEntry,
   NO_ACCOUNT_CHOSEN,
   openTwoLineAccountSheet,
-  sheetTab,
   SIDES,
   type Account,
   type Side,
@@ -31,6 +30,7 @@ import { BOOKS_OPEN } from './accounts';
 import { signIn, signInForSmoke } from './session';
 import { setEntryFormMode } from './settings';
 import { PHONE, WIDE_BELOW_SPLIT } from './viewport';
+import { tabOf } from './tabs';
 
 async function expectListedAsSubmitted(entry: Locator): Promise<void> {
   await expect(entry).toHaveCount(1);
@@ -152,7 +152,7 @@ test('hides the Account pickers at 390px until Choose debit account or Choose cr
   await expect(accountChoices(sheet, 'Credit').getByRole('radio')).toHaveCount(ACCOUNTS.length);
   await expect(accountChoices(sheet, 'Debit')).toBeHidden();
 
-  await sheetTab(sheet, 'Debit').click();
+  await tabOf(sheet, 'Debit').click();
   await expectSheetOnSide(sheet, 'Debit');
   await expect(accountChoices(sheet, 'Debit').getByRole('radio')).toHaveCount(ACCOUNTS.length);
   await expect(accountChoices(sheet, 'Credit')).toBeHidden();
@@ -179,7 +179,7 @@ test('has no Done button in Choose accounts at 390px in Two-line mode, and its C
   const reopened = await openTwoLineAccountSheet(form, 'Credit');
   await expectSheetOnSide(reopened, 'Credit');
   await expect(accountChoices(reopened, 'Credit').getByRole('radio', { checked: true })).toHaveCount(0);
-  await sheetTab(reopened, 'Debit').click();
+  await tabOf(reopened, 'Debit').click();
   await expect(accountChoice(reopened, 'Debit', 'Cash')).toBeChecked();
 });
 
@@ -273,36 +273,36 @@ test('shows the Credit tab at 1024px once a Debit Account is chosen while Credit
 
   await accountChoice(form, 'Credit', 'Food').check();
   await expectPickerOnSide(form, 'Credit');
-  await sheetTab(form, 'Debit').click();
+  await tabOf(form, 'Debit').click();
   await expect(accountChoice(form, 'Debit', 'Cash')).toBeChecked();
 });
 
 test('shows the Debit tab at 1024px once a Credit Account is chosen while Debit has none', async ({ page }) => {
   const form = await openTabbedTwoLineForm(page);
 
-  await sheetTab(form, 'Credit').click();
+  await tabOf(form, 'Credit').click();
   await expectPickerOnSide(form, 'Credit');
   await accountChoice(form, 'Credit', 'Salary').check();
   await expectPickerOnSide(form, 'Debit');
 
   await accountChoice(form, 'Debit', 'Cash').check();
   await expectPickerOnSide(form, 'Debit');
-  await sheetTab(form, 'Credit').click();
+  await tabOf(form, 'Credit').click();
   await expect(accountChoice(form, 'Credit', 'Salary')).toBeChecked();
 });
 
 test('keeps the tab at 1024px when an Account is chosen on one Side while both Sides already have one', async ({ page }) => {
   const form = await openTabbedTwoLineForm(page);
   await accountChoice(form, 'Debit', 'Cash').check();
-  await sheetTab(form, 'Credit').click();
+  await tabOf(form, 'Credit').click();
   await accountChoice(form, 'Credit', 'Food').check();
 
-  await sheetTab(form, 'Debit').click();
+  await tabOf(form, 'Debit').click();
   await accountChoice(form, 'Debit', 'Salary').check();
   await expectPickerOnSide(form, 'Debit');
   await expect(accountChoice(form, 'Debit', 'Salary')).toBeChecked();
 
-  await sheetTab(form, 'Credit').click();
+  await tabOf(form, 'Credit').click();
   await accountChoice(form, 'Credit', 'Opening balance equity').check();
   await expectPickerOnSide(form, 'Credit');
   await expect(accountChoice(form, 'Credit', 'Opening balance equity')).toBeChecked();
