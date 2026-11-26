@@ -210,6 +210,7 @@ jobs:
       # so the command reports "no baseline" itself. Nothing here fails the job.
       - name: Find the baseline report
         id: baseline
+        continue-on-error: true
         if: ${{ !(needs.classify.result == 'success' && needs.classify.outputs.markdown_only == 'true') && github.event_name == 'pull_request' && matrix.suite != 'strict' }}
         run: |
           echo "BASELINE=$RUNNER_TEMP/baseline/report.json" >> "$GITHUB_ENV"

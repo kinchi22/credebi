@@ -1,49 +1,52 @@
-import { spawnSync } from 'node:child_process';
 import { appendFileSync, copyFileSync, mkdirSync, readdirSync } from 'node:fs';
 import path from 'node:path';
+import { runGh } from './gh.ts';
 
 const WORKFLOW = 'e2e-build.yml';
 
 const ARTIFACT = 'playwright-report-advisory-feature';
 
-type Gh = { readonly ok: true; readonly stdout: string } | { readonly ok: false; readonly problem: string };
-
-function gh(args: readonly string[]): Gh {
-  const result = spawnSync('gh', [...args], { encoding: 'utf8', shell: false });
-  if (result.status === 0) return { ok: true, stdout: result.stdout };
-  const reason = (result.error?.message ?? result.stderr).trim();
-  return { ok: false, problem: reason === '' ? `exit status ${String(result.status)}` : reason };
-}
+const message = (error: unknown): string => (error instanceof Error ? error.message.trim() : String(error));
 
 const findReport = (directory: string): string | undefined =>
   readdirSync(directory, { recursive: true })
     .map(String)
     .find((entry) => path.basename(entry) === 'report.json');
 
-type RunRow = { readonly databaseId?: unknown; readonly headSha?: unknown };
+type Run = { readonly databaseId: number; readonly headSha: string };
 
-export function findBaseline(branch: string, directory: string): string {
-  const listed = gh([
-    'run', 'list', '--workflow', WORKFLOW, '--branch', branch, '--event', 'push',
-    '--status', 'completed', '--limit', '1', '--json', 'databaseId,headSha',
-  ]);
-  if (!listed.ok) return `No baseline: listing the completed push runs on ${branch} failed: ${listed.problem}`;
+const isRun = (value: unknown): value is Run =>
+  typeof value === 'object' &&
+  value !== null &&
+  typeof (value as Run).databaseId === 'number' &&
+  typeof (value as Run).headSha === 'string';
 
-  let latest: RunRow | undefined;
+function findBaseline(branch: string, directory: string): string {
+  let rows: unknown;
   try {
-    [latest] = JSON.parse(listed.stdout) as RunRow[];
-  } catch {
-    return `No baseline: the list of completed push runs on ${branch} cannot be read.`;
+    rows = JSON.parse(
+      runGh(
+        [
+          'run', 'list', '--workflow', WORKFLOW, '--branch', branch, '--event', 'push',
+          '--status', 'completed', '--limit', '1', '--json', 'databaseId,headSha',
+        ],
+        process.env,
+      ),
+    );
+  } catch (error) {
+    return `No baseline: listing the completed push runs on ${branch} failed: ${message(error)}`;
   }
-  if (latest === undefined) return `No baseline: ${branch} has no completed push run.`;
+  if (!Array.isArray(rows) || rows.length === 0) return `No baseline: ${branch} has no completed push run.`;
+  const latest: unknown = rows[0];
+  if (!isRun(latest)) return `No baseline: the list of completed push runs on ${branch} cannot be read.`;
 
-  const run = String(latest.databaseId);
-  const named = `run ${run} at ${String(latest.headSha)}`;
+  const named = `run ${String(latest.databaseId)} at ${latest.headSha}`;
   const artifactDirectory = path.join(directory, 'artifact');
   mkdirSync(artifactDirectory, { recursive: true });
-  const downloaded = gh(['run', 'download', run, '--name', ARTIFACT, '--dir', artifactDirectory]);
-  if (!downloaded.ok) {
-    return `No baseline: the latest completed push run on ${branch}, ${named}, gave no ${ARTIFACT} artifact: ${downloaded.problem}`;
+  try {
+    runGh(['run', 'download', String(latest.databaseId), '--name', ARTIFACT, '--dir', artifactDirectory], process.env);
+  } catch (error) {
+    return `No baseline: the latest completed push run on ${branch}, ${named}, gave no ${ARTIFACT} artifact: ${message(error)}`;
   }
   const report = findReport(artifactDirectory);
   if (report === undefined) return `No baseline: ${ARTIFACT} of ${named} holds no report.json.`;
@@ -62,7 +65,7 @@ if (import.meta.main) {
     mkdirSync(directory, { recursive: true });
     line = findBaseline(branch, directory);
   } catch (error) {
-    line = `No baseline: the lookup failed: ${error instanceof Error ? error.message : String(error)}`;
+    line = `No baseline: the lookup failed: ${message(error)}`;
   }
   console.log(line);
   const summary = process.env['GITHUB_STEP_SUMMARY'];

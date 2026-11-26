@@ -432,7 +432,8 @@ nothing. It is in no ruleset and blocks nothing. Its job summary compares each
 Feature spec with the milestone as it stands, without building or running the
 base again: the baseline is the JSON report in the
 `playwright-report-advisory-feature` artifact of the latest completed push run
-of the workflow on the pull request's base branch, and of no older run. The
+of the workflow on the pull request's base branch (`tools/find-advisory-baseline.ts`),
+and of no older run. The
 summary names that run and its commit, and
 groups each test, per project, as turned to passing, turned to failing,
 unchanged, other change, new (absent from the baseline) or gone, with its state
