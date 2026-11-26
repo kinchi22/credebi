@@ -91,6 +91,12 @@ commits go with it, without asking, as an Agent worktree is defined in
    survived or no-coverage mutant left with its reason. A missing record, or a
    survivor without a reason, is a finding sent back in step 5. A score below
    the target of ADR-0033 with every survivor reasoned is not.
+   On a pull request into a milestone, read the comparison in the job summary of
+   its `E2E build (advisory, Feature specs)` check, headed "Comparison with the
+   baseline report". It is a finding sent back in step 5 when a Task that builds
+   behaviour has no Feature spec turned to passing, or has any turned to
+   failing. A report that says "No baseline" proves nothing either way: it is
+   neither a pass nor a finding by itself.
 5. **Fix.** When either axis reports a hard violation, or a requirement missing
    or wrong, send the findings back to the same Subagent and review again.
    Judgement calls are the Subagent's to take or leave, with a reason in the
