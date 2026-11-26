@@ -432,13 +432,15 @@ nothing. It is in no ruleset and blocks nothing. Its job summary compares each
 Feature spec with the milestone as it stands, without building or running the
 base again: the baseline is the JSON report in the
 `playwright-report-advisory-feature` artifact of the latest completed push run
-of the workflow on the pull request's base branch that kept one. The summary
+of the workflow on the pull request's base branch, and of no older run. The
+summary names that run and its commit, and
 groups each test, per project, as turned to passing, turned to failing,
 unchanged, other change, new (absent from the baseline) or gone, with its state
 on both sides. A Task that builds a behaviour shows its specs turning to
 passing; none turned, or one turned to failing, is for the driver to read as a
-finding. When no baseline is found or the one found cannot be read, the summary
-says "no baseline" and lists every test as new: that is not a pass. The term is
+finding. When that run kept no report, the lookup failed or the report cannot be
+read, the summary says "no baseline" with the reason and lists every test as
+new: that is not a pass, and no older run stands in for it. The term is
 this report's alone; an unresolved merge-base is the failure below.
 
 Each leg has its own 20-minute budget, preparation included, runs each test

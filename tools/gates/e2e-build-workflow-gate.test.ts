@@ -218,10 +218,7 @@ describe('the E2E build workflow', () => {
     expect([pullRequest, push].map((github) => runs(find, 'feature', undefined, github))).toEqual([true, false]);
     expect(runs(find, 'strict', undefined, EVENTS['a pull request into main'].github)).toBe(false);
     expect(field(find, 'BASE_REF')).toBe('${{ github.base_ref }}');
-    expect(field(find, 'run')).toContain('--name playwright-report-advisory-feature');
-    expect(field(find, 'run')).toContain('--event push');
-    expect(field(find, 'run')).toContain('--status completed');
-    expect(field(find, 'run')).toContain('--branch "$BASE_REF"');
+    expect(field(find, 'run')).toContain('node tools/find-advisory-baseline.ts "$BASE_REF"');
     expect(field(find, 'run')).toContain('BASELINE=');
     expect(field(advisory, 'run')).toContain('${BASELINE:+--baseline "$BASELINE"}');
     expect(job).toMatch(/\n {4}permissions:\n {6}contents: read\n {6}actions: read\n/);

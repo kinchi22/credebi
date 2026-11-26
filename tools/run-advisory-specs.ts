@@ -118,7 +118,7 @@ export function findMergeBase(cwd: string, baseRef: string): MergeBase {
   if (!base.ok) {
     return {
       ok: false,
-      problem: `${baseRef} does not name a commit here, so there is no baseline to compare with. Fetch it first.`,
+      problem: `${baseRef} does not name a commit here: the base reference is missing. Fetch it first.`,
     };
   }
   const head = git(cwd, ['rev-parse', '--verify', 'HEAD^{commit}']);

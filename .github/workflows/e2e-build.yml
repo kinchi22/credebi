@@ -202,29 +202,18 @@ jobs:
           GOOGLE_CLIENT_ID: e2e-build-placeholder
           GOOGLE_CLIENT_SECRET: e2e-build-placeholder
 
-      # The latest completed push run of this workflow on the pull request's
-      # base branch that kept a Feature-specs report is the baseline: a push run
-      # cancelled by a later one, or one that ran nothing, kept none. The path
-      # is exported whether or not a report was found, so the command reports
-      # "no baseline" itself instead of this step guessing. Nothing here fails
-      # the job.
+      # The baseline is the Feature-specs report of the latest completed push
+      # run of this workflow on the pull request's base branch, and of no older
+      # one: when that run kept none, the comparison is "no baseline", with the
+      # reason in the job summary, not a comparison against an older state of
+      # the milestone. The path is exported whether or not a report was found,
+      # so the command reports "no baseline" itself. Nothing here fails the job.
       - name: Find the baseline report
         id: baseline
         if: ${{ !(needs.classify.result == 'success' && needs.classify.outputs.markdown_only == 'true') && github.event_name == 'pull_request' && matrix.suite != 'strict' }}
         run: |
-          directory="$RUNNER_TEMP/baseline"
-          mkdir -p "$directory"
-          echo "BASELINE=$directory/report.json" >> "$GITHUB_ENV"
-          for run in $(gh run list --workflow e2e-build.yml --branch "$BASE_REF" --event push --status completed --limit 10 --json databaseId --jq '.[].databaseId'); do
-            if gh run download "$run" --name playwright-report-advisory-feature --dir "$directory/artifact"; then
-              found=$(find "$directory/artifact" -name report.json | head -n 1)
-              if [ -n "$found" ]; then
-                cp "$found" "$directory/report.json"
-                break
-              fi
-            fi
-          done
-          true
+          echo "BASELINE=$RUNNER_TEMP/baseline/report.json" >> "$GITHUB_ENV"
+          node tools/find-advisory-baseline.ts "$BASE_REF" "$RUNNER_TEMP/baseline"
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
