@@ -146,7 +146,10 @@ const stepNamed = (name: string): string => required(steps.find((step) => step.i
 const uploads = steps.filter((step) => step.includes('uses: actions/upload-artifact@'));
 
 const EVENTS = {
-  'a pull request into main': { github: { event_name: 'pull_request', ref: 'refs/pull/7/merge' } },
+  'a pull request into main': { github: { event_name: 'pull_request', ref: 'refs/pull/7/merge', base_ref: 'main' } },
+  'a pull request into a milestone': {
+    github: { event_name: 'pull_request', ref: 'refs/pull/7/merge', base_ref: 'milestone/titles' },
+  },
   'a push to main': { github: { event_name: 'push', ref: 'refs/heads/main' } },
   'a push to a milestone': { github: { event_name: 'push', ref: 'refs/heads/milestone/titles' } },
 } as const;
@@ -157,7 +160,7 @@ const legsOf = (event: keyof typeof EVENTS): readonly string[] =>
 const nameOf = (suite: string): Value =>
   interpolate(required(field(job, 'name'), 'the job name'), { matrix: { suite } });
 
-const runs = (step: string, suite: string, outcome?: string): boolean => {
+const runs = (step: string, suite: string, outcome?: string, github: Context = {}): boolean => {
   const raw = field(step, 'if');
   const condition = raw?.replace(/^\$\{\{\s*([\s\S]*?)\s*\}\}$/, '$1');
   if (condition === undefined) return outcome === undefined || outcome === 'success';
@@ -166,6 +169,7 @@ const runs = (step: string, suite: string, outcome?: string): boolean => {
   if (!always && status !== 'success') return false;
   return truthy(
     evaluate(condition, {
+      github,
       matrix: { suite },
       steps: { advisory: { outcome: outcome ?? 'success' } },
     }),
@@ -175,7 +179,7 @@ const runs = (step: string, suite: string, outcome?: string): boolean => {
 describe('the E2E build workflow', () => {
   it('keeps its triggers and its cancellation of superseded runs', () => {
     expect(workflow).toContain(
-      "\non:\n  pull_request:\n    branches: [main]\n  push:\n    branches: [main, 'milestone/**']\n",
+      "\non:\n  pull_request:\n    branches: [main, 'milestone/**']\n  push:\n    branches: [main, 'milestone/**']\n",
     );
     expect(workflow).toContain('\nconcurrency:\n  group: e2e-build-${{ github.ref }}\n  cancel-in-progress: true\n');
   });
@@ -195,6 +199,32 @@ describe('the E2E build workflow', () => {
     expect(legs).toEqual(['existing', 'feature']);
     expect(names).toEqual(['E2E build (advisory, existing specs)', 'E2E build (advisory, Feature specs)']);
     expect(names).not.toContain('E2E build (advisory)');
+  });
+
+  it('runs the Feature specs alone, under their advisory name, on a pull request into a milestone', () => {
+    const legs = legsOf('a pull request into a milestone');
+
+    expect(legs).toEqual(['feature']);
+    expect(legs.map(nameOf)).toEqual(['E2E build (advisory, Feature specs)']);
+    expect(legs.map(nameOf)).not.toContain('E2E build');
+  });
+
+  it('finds the base branch report only on a pull request, and compares against it only then', () => {
+    const find = stepNamed('Find the baseline report');
+    const advisory = stepNamed('7. test:e2e:advisory');
+    const pullRequest = EVENTS['a pull request into a milestone'].github;
+    const push = EVENTS['a push to a milestone'].github;
+
+    expect([pullRequest, push].map((github) => runs(find, 'feature', undefined, github))).toEqual([true, false]);
+    expect(runs(find, 'strict', undefined, EVENTS['a pull request into main'].github)).toBe(false);
+    expect(field(find, 'BASE_REF')).toBe('${{ github.base_ref }}');
+    expect(field(find, 'run')).toContain('--name playwright-report-advisory-feature');
+    expect(field(find, 'run')).toContain('--event push');
+    expect(field(find, 'run')).toContain('--status completed');
+    expect(field(find, 'run')).toContain('--branch "$BASE_REF"');
+    expect(field(find, 'run')).toContain('BASELINE=');
+    expect(field(advisory, 'run')).toContain('${BASELINE:+--baseline "$BASELINE"}');
+    expect(job).toMatch(/\n {4}permissions:\n {6}contents: read\n {6}actions: read\n/);
   });
 
   it('gives each leg its own 20-minute budget, preparation included, and lets neither cancel the other', () => {
@@ -220,7 +250,7 @@ describe('the E2E build workflow', () => {
     const advisory = stepNamed('7. test:e2e:advisory');
 
     expect(field(strict, 'run')).toBe('pnpm test:e2e');
-    expect(field(advisory, 'run')).toBe('pnpm test:e2e:advisory "$SUITE" --base origin/main');
+    expect(field(advisory, 'run')).toBe('pnpm test:e2e:advisory "$SUITE" --base origin/main ${BASELINE:+--baseline "$BASELINE"}');
     expect(field(advisory, 'SUITE')).toBe('${{ matrix.suite }}');
     expect(field(advisory, 'id')).toBe('advisory');
     expect(['strict', 'existing', 'feature'].map((suite) => [runs(strict, suite), runs(advisory, suite)])).toEqual([

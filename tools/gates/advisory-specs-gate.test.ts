@@ -416,6 +416,7 @@ const advisoryEnvironment = (env: NodeJS.ProcessEnv): NodeJS.ProcessEnv => ({
   PLAYWRIGHT_JSON_OUTPUT_NAME: undefined,
   PLAYWRIGHT_HTML_OUTPUT_DIR: undefined,
   GITHUB_ACTIONS: undefined,
+  GITHUB_STEP_SUMMARY: undefined,
   ...env,
 });
 
@@ -510,6 +511,21 @@ describe('run-advisory-specs.ts, run as CI runs it', () => {
     ]);
     expect(result.stdout).toContain('Feature specs, spec files added since the merge-base (1):\n  e2e/added.spec.ts');
     expect(result.stderr).toContain('Feature specs: 1 passed, 1 failed, 0 flaky, 0 skipped, from 1 of 1 selected spec files.');
+  });
+
+  it('writes the comparison to the job summary when the runner provides one, and only then', () => {
+    const summary = path.join(sandbox, 'job-summary.md');
+    const missing = path.join(sandbox, 'absent.json');
+    const quiet = run('feature', '--base', 'main', '--config', config, '--baseline', missing);
+    expect(existsSync(summary)).toBe(false);
+
+    const reported = runIn({ CI: 'true', GITHUB_STEP_SUMMARY: summary }, 'feature', '--base', 'main', '--config', config, '--baseline', missing);
+    const written = readFileSync(summary, 'utf8');
+
+    expect(reported.status).toBe(quiet.status);
+    expect(written).toContain('### Feature specs');
+    expect(written).toContain('No baseline:');
+    expect(written).toContain('New, absent from the baseline (2):');
   });
 
   it('adds the comparison with a baseline report and leaves the exit status alone', () => {

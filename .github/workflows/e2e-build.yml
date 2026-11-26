@@ -56,9 +56,16 @@ name: E2E build
 # `concurrency` group below. The survivor is the one built from the later tree,
 # which is the milestone as it now stands, so that is the run to read.
 #
-# A pull request onto a milestone still runs nothing: it would be red by design
-# too, and ADR-0002 says the specs must not block the branch that exists to
-# satisfy them.
+# A pull request onto a milestone runs the Feature-specs leg alone, under
+# `E2E build (advisory, Feature specs)`. It is red by design when the pull
+# request is the specs, and ADR-0002 says the specs must not block the branch
+# that exists to satisfy them, so it is in no ruleset and blocks nothing. It
+# runs so that a Task's pull request shows which Feature specs changed state
+# against the milestone as it stands: the job summary compares this run with the
+# JSON report of the latest completed push run of the milestone, taken from its
+# `playwright-report-advisory-feature` artifact, so the base is not built or run
+# again. No such report is reported as "no baseline", never as a pass. The
+# existing-specs leg does not run on a pull request.
 #
 # Its own workflow rather than a job in ci.yml behind `if:`, because the two fail
 # differently. A job skipped by `if:` reports success to a required check. A pull
@@ -70,7 +77,7 @@ name: E2E build
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, 'milestone/**']
   push:
     branches: [main, 'milestone/**']
 
@@ -99,12 +106,18 @@ jobs:
       || 'E2E build' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
     strategy:
       fail-fast: false
       matrix:
         suite: ${{ fromJSON(github.event_name == 'push'
           && startsWith(github.ref, 'refs/heads/milestone/')
           && '["existing", "feature"]'
+          || github.event_name == 'pull_request'
+          && startsWith(github.base_ref, 'milestone/')
+          && '["feature"]'
           || '["strict"]') }}
 
     # ADR-0012. The first criterion of Phase 1 writes an entry and reads it
@@ -189,12 +202,40 @@ jobs:
           GOOGLE_CLIENT_ID: e2e-build-placeholder
           GOOGLE_CLIENT_SECRET: e2e-build-placeholder
 
+      # The latest completed push run of this workflow on the pull request's
+      # base branch that kept a Feature-specs report is the baseline: a push run
+      # cancelled by a later one, or one that ran nothing, kept none. The path
+      # is exported whether or not a report was found, so the command reports
+      # "no baseline" itself instead of this step guessing. Nothing here fails
+      # the job.
+      - name: Find the baseline report
+        id: baseline
+        if: ${{ !(needs.classify.result == 'success' && needs.classify.outputs.markdown_only == 'true') && github.event_name == 'pull_request' && matrix.suite != 'strict' }}
+        run: |
+          directory="$RUNNER_TEMP/baseline"
+          mkdir -p "$directory"
+          echo "BASELINE=$directory/report.json" >> "$GITHUB_ENV"
+          for run in $(gh run list --workflow e2e-build.yml --branch "$BASE_REF" --event push --status completed --limit 10 --json databaseId --jq '.[].databaseId'); do
+            if gh run download "$run" --name playwright-report-advisory-feature --dir "$directory/artifact"; then
+              found=$(find "$directory/artifact" -name report.json | head -n 1)
+              if [ -n "$found" ]; then
+                cp "$found" "$directory/report.json"
+                break
+              fi
+            fi
+          done
+          true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          BASE_REF: ${{ github.base_ref }}
+
       # The same server and environment as the strict step, through the command
       # that selects the group, runs it once per test and judges its report.
       - name: 7. test:e2e:advisory
         id: advisory
         if: ${{ !(needs.classify.result == 'success' && needs.classify.outputs.markdown_only == 'true') && matrix.suite != 'strict' }}
-        run: pnpm test:e2e:advisory "$SUITE" --base origin/main
+        run: pnpm test:e2e:advisory "$SUITE" --base origin/main ${BASELINE:+--baseline "$BASELINE"}
         env:
           SUITE: ${{ matrix.suite }}
           DATABASE_URL: postgres://e2e:e2e@127.0.0.1:5432/e2e
