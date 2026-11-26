@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
@@ -8,6 +8,7 @@ import {
   type LivenessReport,
   noReport,
   type ReportSpec,
+  type ReportSuite,
   runPlaywright,
   specsIn,
 } from './verify-e2e-liveness.ts';
@@ -168,18 +169,142 @@ function describeComparison(group: Group, baseRef: string, comparison: Compariso
   ].join('\n');
 }
 
+type TestState = 'passed' | 'failed' | 'flaky' | 'skipped';
+
+const stateOfStatus = (status: string): TestState => {
+  if (status === 'expected') return 'passed';
+  if (status === 'unexpected') return 'failed';
+  if (status === 'flaky') return 'flaky';
+  return 'skipped';
+};
+
+const WORST_FIRST: readonly TestState[] = ['failed', 'flaky', 'skipped', 'passed'];
+
+type NamedState = { readonly name: string; readonly state: TestState };
+
+function testStatesIn(suites: readonly ReportSuite[]): ReadonlyMap<string, NamedState> {
+  const states = new Map<string, NamedState>();
+  const visit = (suite: ReportSuite, titles: readonly string[]): void => {
+    for (const spec of suite.specs) {
+      const projects = new Set(spec.tests.map((test) => test.projectName ?? ''));
+      for (const project of projects) {
+        const found = spec.tests.filter((test) => (test.projectName ?? '') === project).map((test) => stateOfStatus(test.status));
+        const state = WORST_FIRST.find((candidate) => found.includes(candidate));
+        const path = [spec.file, ...titles, spec.title];
+        if (state !== undefined) {
+          states.set(JSON.stringify([...path, project]), {
+            name: `${path.join(' > ')}${project === '' ? '' : ` [${project}]`}`,
+            state,
+          });
+        }
+      }
+    }
+    for (const nested of suite.suites ?? []) {
+      visit(nested, [...titles, ...(nested.title === undefined ? [] : [nested.title])]);
+    }
+  };
+  for (const fileSuite of suites) visit(fileSuite, []);
+  return states;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isWellFormedSuite = (value: unknown): value is ReportSuite =>
+  isRecord(value) &&
+  (value['title'] === undefined || typeof value['title'] === 'string') &&
+  Array.isArray(value['specs']) &&
+  value['specs'].every(
+    (spec) =>
+      isRecord(spec) &&
+      typeof spec['title'] === 'string' &&
+      typeof spec['file'] === 'string' &&
+      Array.isArray(spec['tests']) &&
+      spec['tests'].every(
+        (test) =>
+          isRecord(test) &&
+          typeof test['status'] === 'string' &&
+          (test['projectName'] === undefined || typeof test['projectName'] === 'string'),
+      ),
+  ) &&
+  (value['suites'] === undefined || (Array.isArray(value['suites']) && value['suites'].every(isWellFormedSuite)));
+
+type BaselineRead =
+  | { readonly ok: true; readonly suites: readonly ReportSuite[] }
+  | { readonly ok: false; readonly problem: string };
+
+function readBaseline(file: string): BaselineRead {
+  if (!existsSync(file)) return { ok: false, problem: `${file} does not exist` };
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(readFileSync(file, 'utf8'));
+  } catch (error) {
+    return { ok: false, problem: `${file} cannot be read as JSON: ${error instanceof Error ? error.message : String(error)}` };
+  }
+  const suites = isRecord(parsed) ? parsed['suites'] : undefined;
+  if (!Array.isArray(suites)) return { ok: false, problem: `${file} is not a Playwright JSON report` };
+  if (!suites.every(isWellFormedSuite)) return { ok: false, problem: `${file} has suites or specs that are not those of a Playwright JSON report` };
+  return { ok: true, suites };
+}
+
+type TestChange = { readonly test: string; readonly baseline: TestState | undefined; readonly run: TestState | undefined };
+
+const NEW_HEADING = 'New, absent from the baseline';
+
+const GONE_HEADING = 'Gone, on the baseline and absent from this run';
+
+const changeLines = (heading: string, changes: readonly TestChange[]): readonly string[] => [
+  `${heading} (${String(changes.length)}):`,
+  ...(changes.length === 0
+    ? ['  none']
+    : changes.map(({ test, baseline, run }) => `  ${test}: baseline ${baseline ?? 'none'}, this run ${run ?? 'none'}`)),
+];
+
+const CHANGE_GROUPS = ['Turned to passing', 'Turned to failing', 'Unchanged', 'Other change'] as const;
+
+function changeGroup(was: TestState, run: TestState): (typeof CHANGE_GROUPS)[number] {
+  if (was === run) return 'Unchanged';
+  if (run === 'passed') return 'Turned to passing';
+  if (was === 'passed' && run === 'failed') return 'Turned to failing';
+  return 'Other change';
+}
+
+export function compareWithBaseline(baselineFile: string, report: LivenessReport): readonly string[] {
+  const baseline = readBaseline(baselineFile);
+  const current = testStatesIn(report.suites);
+  const byName = (a: TestChange, b: TestChange): number => a.test.localeCompare(b.test);
+
+  if (!baseline.ok) {
+    const everyTest = [...current.values()].map(({ name, state }) => ({ test: name, baseline: undefined, run: state }));
+    return [
+      `No baseline: ${baseline.problem}. Nothing is compared, so every test is new and no test counts as turned to passing.`,
+      ...changeLines(NEW_HEADING, everyTest.sort(byName)),
+    ];
+  }
+
+  const before = testStatesIn(baseline.suites);
+  const grouped = new Map<string, TestChange[]>([...CHANGE_GROUPS, NEW_HEADING, GONE_HEADING].map((group) => [group, []]));
+  for (const [key, now] of current) {
+    const was = before.get(key);
+    const group = was === undefined ? NEW_HEADING : changeGroup(was.state, now.state);
+    grouped.get(group)?.push({ test: now.name, baseline: was?.state, run: now.state });
+  }
+  for (const [key, was] of before) {
+    if (!current.has(key)) grouped.get(GONE_HEADING)?.push({ test: was.name, baseline: was.state, run: undefined });
+  }
+  return [
+    'Comparison with the baseline report:',
+    ...[...grouped].flatMap(([group, changes]) => changeLines(group, changes.sort(byName))),
+  ];
+}
+
 type Outcome = { readonly status: number; readonly lines: readonly string[] };
 
 type Tally = { passed: number; failed: number; flaky: number; skipped: number };
 
 function tally(specs: readonly ReportSpec[]): Tally {
   const counts: Tally = { passed: 0, failed: 0, flaky: 0, skipped: 0 };
-  for (const test of specs.flatMap((spec) => spec.tests)) {
-    if (test.status === 'expected') counts.passed += 1;
-    else if (test.status === 'unexpected') counts.failed += 1;
-    else if (test.status === 'flaky') counts.flaky += 1;
-    else counts.skipped += 1;
-  }
+  for (const test of specs.flatMap((spec) => spec.tests)) counts[stateOfStatus(test.status)] += 1;
   return counts;
 }
 
@@ -227,9 +352,10 @@ type RunOptions = {
   readonly group: Group;
   readonly baseRef: string;
   readonly config?: string | undefined;
+  readonly baseline?: string | undefined;
 };
 
-export async function runAdvisoryGroup({ cwd, group, baseRef, config }: RunOptions): Promise<Outcome> {
+export async function runAdvisoryGroup({ cwd, group, baseRef, config, baseline }: RunOptions): Promise<Outcome> {
   const comparison = compareWithBase(cwd, baseRef);
   if (!comparison.ok) {
     return { status: 2, lines: [`${LABEL[group]} were not run: the comparison failed.`, comparison.problem] };
@@ -283,6 +409,7 @@ export async function runAdvisoryGroup({ cwd, group, baseRef, config }: RunOptio
     status: outcome.status,
     lines: [
       ...outcome.lines,
+      ...(baseline === undefined ? [] : compareWithBaseline(path.resolve(cwd, baseline), run.report)),
       `HTML report: ${path.relative(cwd, reportDirectory)}`,
       `Traces of failed tests and the JSON report: ${path.relative(cwd, outputDirectory)}`,
     ],
@@ -295,15 +422,15 @@ const isGroup = (value: string | undefined): value is Group =>
 if (import.meta.main) {
   const { values, positionals } = parseArgs({
     allowPositionals: true,
-    options: { base: { type: 'string', default: DEFAULT_BASE }, config: { type: 'string' } },
+    options: { base: { type: 'string', default: DEFAULT_BASE }, config: { type: 'string' }, baseline: { type: 'string' } },
   });
   const [group] = positionals;
   if (positionals.length !== 1 || !isGroup(group)) {
-    console.error(`Usage: run-advisory-specs.ts <${GROUPS.join('|')}> [--base <ref>] [--config <file>]`);
+    console.error(`Usage: run-advisory-specs.ts <${GROUPS.join('|')}> [--base <ref>] [--config <file>] [--baseline <report.json>]`);
     process.exit(2);
   }
 
-  const outcome = await runAdvisoryGroup({ cwd: process.cwd(), group, baseRef: values.base, config: values.config });
+  const outcome = await runAdvisoryGroup({ cwd: process.cwd(), group, baseRef: values.base, config: values.config, baseline: values.baseline });
   (outcome.status === 0 ? console.log : console.error)(outcome.lines.join('\n'));
   process.exit(outcome.status);
 }

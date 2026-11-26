@@ -17,10 +17,10 @@ export type ReportSpec = {
   readonly title: string;
   readonly file: string;
   readonly line: number;
-  readonly tests: readonly { readonly status: string; readonly results: readonly ReportResult[] }[];
+  readonly tests: readonly { readonly projectName?: string; readonly status: string; readonly results: readonly ReportResult[] }[];
 };
 
-export type ReportSuite = { readonly specs: readonly ReportSpec[]; readonly suites?: readonly ReportSuite[] };
+export type ReportSuite = { readonly title?: string; readonly specs: readonly ReportSpec[]; readonly suites?: readonly ReportSuite[] };
 
 export type LivenessReport = {
   readonly config: { readonly rootDir: string; readonly workers?: number };
