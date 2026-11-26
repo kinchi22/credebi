@@ -125,41 +125,83 @@ const reportFile = (name: string, content: unknown): string => {
   return file;
 };
 
+const groupOf = (lines: readonly string[], heading: string): readonly string[] => {
+  const start = lines.findIndex((line) => line.startsWith(`${heading} (`));
+  expect(start, `${heading} is listed`).toBeGreaterThanOrEqual(0);
+  const rest = lines.slice(start + 1);
+  const end = rest.findIndex((line) => !line.startsWith('  '));
+  return [lines[start] ?? '', ...(end === -1 ? rest : rest.slice(0, end))];
+};
+
 describe('compareWithBaseline, against JSON report fixtures', () => {
   const baseline = reportFile(
     'baseline.json',
-    reportOf(['gains', 'unexpected'], ['loses', 'expected'], ['steady', 'expected'], ['stuck', 'unexpected']),
+    reportOf(
+      ['gains', 'unexpected'],
+      ['loses', 'expected'],
+      ['steady', 'expected'],
+      ['stuck', 'unexpected'],
+      ['skips', 'expected'],
+      ['wakes', 'skipped'],
+      ['wobbles', 'expected'],
+      ['vanishes', 'expected'],
+    ),
   );
-  const run = reportOf(['gains', 'expected'], ['loses', 'unexpected'], ['steady', 'expected'], ['stuck', 'unexpected'], ['fresh', 'expected']);
+  const run = reportOf(
+    ['gains', 'expected'],
+    ['loses', 'unexpected'],
+    ['steady', 'expected'],
+    ['stuck', 'unexpected'],
+    ['skips', 'skipped'],
+    ['wakes', 'unexpected'],
+    ['wobbles', 'flaky'],
+    ['fresh', 'expected'],
+  );
   const lines = compareWithBaseline(baseline, run);
   const key = (title: string): string => `feature.spec.ts > the feature > ${title}`;
 
   it('lists a test that turned to passing with both states', () => {
-    expect(lines).toContain(`  ${key('gains')}: baseline failed, this run passed`);
-    expect(lines.indexOf('Turned to passing (1):')).toBeLessThan(lines.indexOf(`  ${key('gains')}: baseline failed, this run passed`));
-    expect(lines.indexOf(`  ${key('gains')}: baseline failed, this run passed`)).toBeLessThan(lines.indexOf('Turned to failing (1):'));
+    expect(groupOf(lines, 'Turned to passing')).toEqual([
+      'Turned to passing (1):',
+      `  ${key('gains')}: baseline failed, this run passed`,
+    ]);
   });
 
-  it('lists a test that turned to failing with both states', () => {
-    const at = lines.indexOf(`  ${key('loses')}: baseline passed, this run failed`);
-    expect(at).toBeGreaterThan(lines.indexOf('Turned to failing (1):'));
-    expect(at).toBeLessThan(lines.indexOf('Unchanged (2):'));
+  it('lists a test that went from passed to failed as turned to failing', () => {
+    expect(groupOf(lines, 'Turned to failing')).toEqual([
+      'Turned to failing (1):',
+      `  ${key('loses')}: baseline passed, this run failed`,
+    ]);
   });
 
   it('lists tests whose state held as unchanged, failing ones included', () => {
-    const from = lines.indexOf('Unchanged (2):');
-    const until = lines.indexOf('New, absent from the baseline (1):');
-    expect(lines.slice(from, until)).toEqual([
+    expect(groupOf(lines, 'Unchanged')).toEqual([
       'Unchanged (2):',
       `  ${key('steady')}: baseline passed, this run passed`,
       `  ${key('stuck')}: baseline failed, this run failed`,
     ]);
   });
 
+  it('lists every other change of state apart, a passed test now skipped included', () => {
+    expect(groupOf(lines, 'Other change')).toEqual([
+      'Other change (3):',
+      `  ${key('skips')}: baseline passed, this run skipped`,
+      `  ${key('wakes')}: baseline skipped, this run failed`,
+      `  ${key('wobbles')}: baseline passed, this run flaky`,
+    ]);
+  });
+
   it('lists a test the baseline lacks as new, with its state on this run', () => {
-    expect(lines.slice(lines.indexOf('New, absent from the baseline (1):'))).toEqual([
+    expect(groupOf(lines, 'New, absent from the baseline')).toEqual([
       'New, absent from the baseline (1):',
       `  ${key('fresh')}: baseline none, this run passed`,
+    ]);
+  });
+
+  it('lists a test the run lacks as gone, with its state on the baseline', () => {
+    expect(groupOf(lines, 'Gone, on the baseline and absent from this run')).toEqual([
+      'Gone, on the baseline and absent from this run (1):',
+      `  ${key('vanishes')}: baseline passed, this run none`,
     ]);
   });
 
@@ -167,6 +209,18 @@ describe('compareWithBaseline, against JSON report fixtures', () => {
     ['is missing', path.join(sandbox, 'absent.json'), 'does not exist'],
     ['is not JSON', reportFile('garbled.json', '{ not json'), 'cannot be read as JSON'],
     ['is not a report', reportFile('other.json', { hello: 'world' }), 'is not a Playwright JSON report'],
+    ['has an empty suite', reportFile('empty-suite.json', { suites: [{}] }), 'not those of a Playwright JSON report'],
+    ['has a null suite', reportFile('null-suite.json', { suites: [null] }), 'not those of a Playwright JSON report'],
+    [
+      'has a spec with no tests',
+      reportFile('no-tests.json', { suites: [{ specs: [{ title: 'x' }] }] }),
+      'not those of a Playwright JSON report',
+    ],
+    [
+      'has a malformed nested suite',
+      reportFile('nested.json', { suites: [{ specs: [], suites: [{ specs: 'x' }] }] }),
+      'not those of a Playwright JSON report',
+    ],
   ])('reports a baseline that %s as no baseline and lists every test as new', (_name, file, reason) => {
     const result = compareWithBaseline(file, run);
 
@@ -174,8 +228,7 @@ describe('compareWithBaseline, against JSON report fixtures', () => {
     expect(result[0]).toContain(reason);
     expect(result.join('\n')).not.toContain('Turned to');
     expect(result.join('\n')).not.toContain('Unchanged');
-    expect(result).toContain('New tests (5):');
-    expect(result.filter((line) => line.startsWith('  '))).toHaveLength(5);
+    expect(groupOf(result, 'New, absent from the baseline')).toHaveLength(9);
   });
 });
 
