@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
@@ -8,6 +8,7 @@ import {
   type LivenessReport,
   noReport,
   type ReportSpec,
+  type ReportSuite,
   runPlaywright,
   specsIn,
 } from './verify-e2e-liveness.ts';
@@ -168,6 +169,79 @@ function describeComparison(group: Group, baseRef: string, comparison: Compariso
   ].join('\n');
 }
 
+type TestState = 'passed' | 'failed' | 'flaky' | 'skipped';
+
+const stateOf = (statuses: readonly string[]): TestState => {
+  if (statuses.includes('unexpected')) return 'failed';
+  if (statuses.includes('flaky')) return 'flaky';
+  if (statuses.length === 0 || statuses.some((status) => status !== 'expected')) return 'skipped';
+  return 'passed';
+};
+
+function statesIn(report: LivenessReport): ReadonlyMap<string, TestState> {
+  const states = new Map<string, TestState>();
+  const visit = (suite: ReportSuite, titles: readonly string[]): void => {
+    for (const spec of suite.specs) {
+      states.set([spec.file, ...titles, spec.title].join(' > '), stateOf(spec.tests.map((test) => test.status)));
+    }
+    for (const nested of (suite.suites ?? [])) {
+      visit(nested, [...titles, ...(nested.title === undefined ? [] : [nested.title])]);
+    }
+  };
+  for (const fileSuite of report.suites) visit(fileSuite, []);
+  return states;
+}
+
+type Baseline = { readonly ok: true; readonly report: LivenessReport } | { readonly ok: false; readonly problem: string };
+
+function readBaseline(file: string): Baseline {
+  if (!existsSync(file)) return { ok: false, problem: `${file} does not exist` };
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(readFileSync(file, 'utf8'));
+  } catch (error) {
+    return { ok: false, problem: `${file} cannot be read as JSON: ${error instanceof Error ? error.message : String(error)}` };
+  }
+  const suites = typeof parsed === 'object' && parsed !== null ? (parsed as { suites?: unknown }).suites : undefined;
+  if (!Array.isArray(suites)) return { ok: false, problem: `${file} is not a Playwright JSON report` };
+  return { ok: true, report: parsed as LivenessReport };
+}
+
+type Entry = { readonly key: string; readonly baseline: TestState | undefined; readonly run: TestState };
+
+const entryLines = (heading: string, entries: readonly Entry[]): readonly string[] => [
+  `${heading} (${String(entries.length)}):`,
+  ...(entries.length === 0
+    ? ['  none']
+    : entries.map(({ key, baseline, run }) => `  ${key}: baseline ${baseline ?? 'none'}, this run ${run}`)),
+];
+
+export function compareWithBaseline(baselineFile: string, report: LivenessReport): readonly string[] {
+  const baseline = readBaseline(baselineFile);
+  const current = [...statesIn(report)].sort(([a], [b]) => a.localeCompare(b));
+  if (!baseline.ok) {
+    return [
+      `No baseline: ${baseline.problem}. Nothing is compared, so every test is new and no test counts as turned to passing.`,
+      ...entryLines('New tests', current.map(([key, run]) => ({ key, baseline: undefined, run }))),
+    ];
+  }
+
+  const before = statesIn(baseline.report);
+  const entries: Entry[] = current.map(([key, run]) => ({ key, baseline: before.get(key), run }));
+  const fresh = entries.filter((entry) => entry.baseline === undefined);
+  const known = entries.filter((entry) => entry.baseline !== undefined);
+  const toPassing = known.filter((entry) => entry.run === 'passed' && entry.baseline !== 'passed');
+  const toFailing = known.filter((entry) => entry.baseline === 'passed' && entry.run !== 'passed');
+  const moved = new Set([...toPassing, ...toFailing]);
+  return [
+    'Comparison with the baseline report:',
+    ...entryLines('Turned to passing', toPassing),
+    ...entryLines('Turned to failing', toFailing),
+    ...entryLines('Unchanged', known.filter((entry) => !moved.has(entry))),
+    ...entryLines('New, absent from the baseline', fresh),
+  ];
+}
+
 type Outcome = { readonly status: number; readonly lines: readonly string[] };
 
 type Tally = { passed: number; failed: number; flaky: number; skipped: number };
@@ -227,9 +301,10 @@ type RunOptions = {
   readonly group: Group;
   readonly baseRef: string;
   readonly config?: string | undefined;
+  readonly baseline?: string | undefined;
 };
 
-export async function runAdvisoryGroup({ cwd, group, baseRef, config }: RunOptions): Promise<Outcome> {
+export async function runAdvisoryGroup({ cwd, group, baseRef, config, baseline }: RunOptions): Promise<Outcome> {
   const comparison = compareWithBase(cwd, baseRef);
   if (!comparison.ok) {
     return { status: 2, lines: [`${LABEL[group]} were not run: the comparison failed.`, comparison.problem] };
@@ -283,6 +358,7 @@ export async function runAdvisoryGroup({ cwd, group, baseRef, config }: RunOptio
     status: outcome.status,
     lines: [
       ...outcome.lines,
+      ...(baseline === undefined ? [] : compareWithBaseline(path.resolve(cwd, baseline), run.report)),
       `HTML report: ${path.relative(cwd, reportDirectory)}`,
       `Traces of failed tests and the JSON report: ${path.relative(cwd, outputDirectory)}`,
     ],
@@ -295,15 +371,15 @@ const isGroup = (value: string | undefined): value is Group =>
 if (import.meta.main) {
   const { values, positionals } = parseArgs({
     allowPositionals: true,
-    options: { base: { type: 'string', default: DEFAULT_BASE }, config: { type: 'string' } },
+    options: { base: { type: 'string', default: DEFAULT_BASE }, config: { type: 'string' }, baseline: { type: 'string' } },
   });
   const [group] = positionals;
   if (positionals.length !== 1 || !isGroup(group)) {
-    console.error(`Usage: run-advisory-specs.ts <${GROUPS.join('|')}> [--base <ref>] [--config <file>]`);
+    console.error(`Usage: run-advisory-specs.ts <${GROUPS.join('|')}> [--base <ref>] [--config <file>] [--baseline <report.json>]`);
     process.exit(2);
   }
 
-  const outcome = await runAdvisoryGroup({ cwd: process.cwd(), group, baseRef: values.base, config: values.config });
+  const outcome = await runAdvisoryGroup({ cwd: process.cwd(), group, baseRef: values.base, config: values.config, baseline: values.baseline });
   (outcome.status === 0 ? console.log : console.error)(outcome.lines.join('\n'));
   process.exit(outcome.status);
 }

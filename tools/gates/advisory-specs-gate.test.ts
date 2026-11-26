@@ -15,7 +15,7 @@ import {
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { classifySpecFiles, compareWithBase } from '../run-advisory-specs';
+import { classifySpecFiles, compareWithBase, compareWithBaseline } from '../run-advisory-specs';
 import { type LivenessReport, specsIn } from '../verify-e2e-liveness';
 import { REPO_ROOT } from './run-gate';
 
@@ -92,6 +92,90 @@ describe('classifySpecFiles', () => {
     expect(
       classifySpecFiles(['e2e/old.spec.ts'], ['e2e/old.ts'], [{ from: 'e2e/old.spec.ts', to: 'e2e/old.ts' }]),
     ).toEqual({ existing: [], feature: [], removed: ['e2e/old.spec.ts'] });
+  });
+});
+
+type FixtureTest = readonly [title: string, status: string];
+
+const reportOf = (...tests: readonly FixtureTest[]): LivenessReport => ({
+  config: { rootDir: '/fixture' },
+  errors: [],
+  suites: [
+    {
+      title: 'feature.spec.ts',
+      specs: [],
+      suites: [
+        {
+          title: 'the feature',
+          specs: tests.map(([title, status]) => ({
+            title,
+            file: 'feature.spec.ts',
+            line: 1,
+            tests: [{ status, results: [] }],
+          })),
+        },
+      ],
+    },
+  ],
+});
+
+const reportFile = (name: string, content: unknown): string => {
+  const file = path.join(sandbox, name);
+  writeFileSync(file, typeof content === 'string' ? content : JSON.stringify(content));
+  return file;
+};
+
+describe('compareWithBaseline, against JSON report fixtures', () => {
+  const baseline = reportFile(
+    'baseline.json',
+    reportOf(['gains', 'unexpected'], ['loses', 'expected'], ['steady', 'expected'], ['stuck', 'unexpected']),
+  );
+  const run = reportOf(['gains', 'expected'], ['loses', 'unexpected'], ['steady', 'expected'], ['stuck', 'unexpected'], ['fresh', 'expected']);
+  const lines = compareWithBaseline(baseline, run);
+  const key = (title: string): string => `feature.spec.ts > the feature > ${title}`;
+
+  it('lists a test that turned to passing with both states', () => {
+    expect(lines).toContain(`  ${key('gains')}: baseline failed, this run passed`);
+    expect(lines.indexOf('Turned to passing (1):')).toBeLessThan(lines.indexOf(`  ${key('gains')}: baseline failed, this run passed`));
+    expect(lines.indexOf(`  ${key('gains')}: baseline failed, this run passed`)).toBeLessThan(lines.indexOf('Turned to failing (1):'));
+  });
+
+  it('lists a test that turned to failing with both states', () => {
+    const at = lines.indexOf(`  ${key('loses')}: baseline passed, this run failed`);
+    expect(at).toBeGreaterThan(lines.indexOf('Turned to failing (1):'));
+    expect(at).toBeLessThan(lines.indexOf('Unchanged (2):'));
+  });
+
+  it('lists tests whose state held as unchanged, failing ones included', () => {
+    const from = lines.indexOf('Unchanged (2):');
+    const until = lines.indexOf('New, absent from the baseline (1):');
+    expect(lines.slice(from, until)).toEqual([
+      'Unchanged (2):',
+      `  ${key('steady')}: baseline passed, this run passed`,
+      `  ${key('stuck')}: baseline failed, this run failed`,
+    ]);
+  });
+
+  it('lists a test the baseline lacks as new, with its state on this run', () => {
+    expect(lines.slice(lines.indexOf('New, absent from the baseline (1):'))).toEqual([
+      'New, absent from the baseline (1):',
+      `  ${key('fresh')}: baseline none, this run passed`,
+    ]);
+  });
+
+  it.each([
+    ['is missing', path.join(sandbox, 'absent.json'), 'does not exist'],
+    ['is not JSON', reportFile('garbled.json', '{ not json'), 'cannot be read as JSON'],
+    ['is not a report', reportFile('other.json', { hello: 'world' }), 'is not a Playwright JSON report'],
+  ])('reports a baseline that %s as no baseline and lists every test as new', (_name, file, reason) => {
+    const result = compareWithBaseline(file, run);
+
+    expect(result[0]).toMatch(/^No baseline: .*/);
+    expect(result[0]).toContain(reason);
+    expect(result.join('\n')).not.toContain('Turned to');
+    expect(result.join('\n')).not.toContain('Unchanged');
+    expect(result).toContain('New tests (5):');
+    expect(result.filter((line) => line.startsWith('  '))).toHaveLength(5);
   });
 });
 
@@ -317,6 +401,22 @@ describe('run-advisory-specs.ts, run as CI runs it', () => {
     ]);
     expect(result.stdout).toContain('Feature specs, spec files added since the merge-base (1):\n  e2e/added.spec.ts');
     expect(result.stderr).toContain('Feature specs: 1 passed, 1 failed, 0 flaky, 0 skipped, from 1 of 1 selected spec files.');
+  });
+
+  it('adds the comparison with a baseline report and leaves the exit status alone', () => {
+    const baseline = reportFile(
+      'cli-baseline.json',
+      JSON.parse(readFileSync(path.join(repository, 'test-results', 'advisory-feature', 'report.json'), 'utf8')),
+    );
+    const without = run('feature', '--base', 'main', '--config', config);
+    const withBaseline = run('feature', '--base', 'main', '--config', config, '--baseline', baseline);
+    const unreadable = run('feature', '--base', 'main', '--config', config, '--baseline', path.join(sandbox, 'absent.json'));
+
+    expect(withBaseline.status).toBe(without.status);
+    expect(unreadable.status).toBe(without.status);
+    expect(without.stderr).not.toContain('baseline');
+    expect(withBaseline.stderr).toContain('Unchanged (2):');
+    expect(unreadable.stderr).toContain('No baseline:');
   });
 
   it('keeps the first failed attempt trace and the HTML report under the group', () => {
