@@ -1207,7 +1207,8 @@ numerals.
   input kept, focus back where it was. `Discard` closes both dialogs, changes
   nothing, and focus returns to the button that opened the edit.
 - **Link.** `accent-text`, underlined, and `accent-text-hover` under the
-  pointer.
+  pointer, except an Account's name in the report tables, which "Income
+  statement tables" describes.
 - **Input.** `surface` fill, `text`, a `border-control` edge, the `control`
   radius, 36px tall. The spec's component properties have no border colour, so
   the edge is stated here only. A select is drawn the same. A date Input drops
