@@ -1092,6 +1092,9 @@ numerals.
   total row -- `Total revenue`, `Total expense`, and `Net income` in `Totals` --
   is semibold above a 2px `border` rule. A negative amount keeps its minus sign
   and its colour.
+  An Account's name is a link to its Entry search, set as the name is, Regular
+  in `text`, with no underline or accent at rest or under the pointer, only the
+  pointing-hand cursor under it, and the `focus` ring on keyboard focus.
   An Account group's row holds its name in medium and its subtotal, and its
   Accounts follow it, their names indented 16px; their hairlines and amounts
   are an Account row's. The group's name is one button as wide as its cell,
@@ -1204,7 +1207,8 @@ numerals.
   input kept, focus back where it was. `Discard` closes both dialogs, changes
   nothing, and focus returns to the button that opened the edit.
 - **Link.** `accent-text`, underlined, and `accent-text-hover` under the
-  pointer.
+  pointer, except an Account's name in the report tables, which "Income
+  statement tables" describes.
 - **Input.** `surface` fill, `text`, a `border-control` edge, the `control`
   radius, 36px tall. The spec's component properties have no border colour, so
   the edge is stated here only. A select is drawn the same. A date Input drops
