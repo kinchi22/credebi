@@ -1,7 +1,6 @@
 import {
   SEARCH_CRITERIA_FIELDS,
   type AccountId,
-  type IncomeStatementQuery,
   type SearchQuery,
 } from '@repo/contracts';
 
@@ -73,7 +72,9 @@ export function pathWithQuery(path: string, query: SearchQuery): string {
   return `${path}${queryOf(query)}`;
 }
 
-export function accountSearchPath(account: AccountId, range: IncomeStatementQuery): string {
+type SearchRange = { readonly from?: string; readonly to: string };
+
+export function accountSearchPath(account: AccountId, range: SearchRange): string {
   return pathWithQuery(ENTRY_SEARCH_PATH, {
     [SEARCH_CRITERIA_FIELDS.account]: account,
     [SEARCH_CRITERIA_FIELDS.from]: range.from,
