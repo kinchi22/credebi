@@ -47,6 +47,3 @@ export async function expectReport(page: Page, report: Report): Promise<void> {
     ['Net worth', report.netWorth],
   ]);
 }
-
-export const accountLink = (page: Page, table: ReportTable, name: string): Locator =>
-  reportTable(page, table).getByRole('link', { name, exact: true });

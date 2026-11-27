@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
 import { addAccount, addGroup, BOOKS_OPEN } from './accounts';
-import { accountLink, reportTable } from './assets-and-liabilities';
+import { reportTable } from './assets-and-liabilities';
 import { added, entryOn, intoCash, postEntries } from './entries';
 import { accountField, fromField, resultFor, toField } from './entry-search';
 import { tabTo } from './language';
-import { expectGroupControls, groupControl, reportRow } from './report-tables';
+import { accountLink, expectGroupControls, groupControl, reportRow } from './report-tables';
 import {
   ASSETS_AND_LIABILITIES_PATH as REPORT,
   ENTRY_SEARCH_PATH,
@@ -31,7 +31,7 @@ type Coloured = {
 
 type Memos = Readonly<
   Record<
-    'savingsEarlier' | 'savingsBefore' | 'savingsAfter' | 'mortgageBefore' | 'mortgageAfter' | 'elsewhere',
+    'savingsEarlier' | 'savingsBefore' | 'savingsOnDay' | 'savingsAfter' | 'mortgageBefore' | 'mortgageAfter' | 'elsewhere',
     string
   >
 >;
@@ -41,6 +41,7 @@ async function signInWithSavingsAndMortgage(page: Page): Promise<Memos> {
   const memos: Memos = {
     savingsEarlier: `Savings earlier ${run}`,
     savingsBefore: `Savings before ${run}`,
+    savingsOnDay: `Savings on the day ${run}`,
     savingsAfter: `Savings after ${run}`,
     mortgageBefore: `Mortgage before ${run}`,
     mortgageAfter: `Mortgage after ${run}`,
@@ -54,6 +55,7 @@ async function signInWithSavingsAndMortgage(page: Page): Promise<Memos> {
   await postEntries(page, [
     entryOn(LONG_BEFORE, memos.savingsEarlier, added('Savings'), 'Cash', '300'),
     entryOn(IN_JUNE, memos.savingsBefore, added('Savings'), 'Cash', '500'),
+    entryOn(REPORT_DAY, memos.savingsOnDay, added('Savings'), 'Cash', '600'),
     entryOn(IN_JULY, memos.savingsAfter, added('Savings'), 'Cash', '700'),
     entryOn(IN_JUNE, memos.mortgageBefore, 'Cash', added('Mortgage'), '1000'),
     entryOn(IN_JULY, memos.mortgageAfter, 'Cash', added('Mortgage'), '2000'),
@@ -83,6 +85,7 @@ test('links an asset Account under its Account type to Entry search ending on th
   await expectSearchThroughReportDay(page, 'Savings');
   await expect(resultFor(page, memos.savingsEarlier)).toHaveCount(1);
   await expect(resultFor(page, memos.savingsBefore)).toHaveCount(1);
+  await expect(resultFor(page, memos.savingsOnDay)).toHaveCount(1);
   await expect(resultFor(page, memos.savingsAfter)).toHaveCount(0);
   await expect(resultFor(page, memos.mortgageBefore)).toHaveCount(0);
   await expect(resultFor(page, memos.elsewhere)).toHaveCount(0);
@@ -129,12 +132,14 @@ test('keeps an Account group heading a collapse control that hides and shows its
 
   await expectGroupControls(liabilities, { Loans: false });
   await expect(accountLink(page, 'Liabilities', 'Mortgage')).toHaveCount(0);
+  await expect(reportRow(liabilities, 'Mortgage')).toHaveCount(0);
   await expect(page).toHaveURL(`${REPORT}?date=${REPORT_DAY}`);
 
   await loans.click();
 
   await expectGroupControls(liabilities, { Loans: true });
   await expect(accountLink(page, 'Liabilities', 'Mortgage')).toBeVisible();
+  await expect(reportRow(liabilities, 'Mortgage')).toBeVisible();
 });
 
 test('reaches an Account link by Tab, shows a visible focus indicator on it and opens its Entry search on Enter', async ({ page }) => {
