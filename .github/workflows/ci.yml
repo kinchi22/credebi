@@ -113,6 +113,9 @@ jobs:
     if: ${{ !cancelled() && !(needs.classify.result == 'success' && needs.classify.outputs.markdown_only == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
     steps:
       # Full history, so the change report can find the pull request's merge
       # base with its base branch.
@@ -138,13 +141,15 @@ jobs:
       # ADR-0033, ADR-0034. The Change score, beside the whole-surface score, in
       # the job summary and the artifact. Advisory: a low score passes, and so
       # does a stale or expired tolerated-mutant entry. Only the reporter itself
-      # failing, or an invalid tolerated-mutant register, fails this step. It
+      # failing, or an invalid tolerated-mutant register, fails this step, and
+      # so does failing to reach the API for the Baseline. It
       # runs when Stryker failed too, so a broken or partial run reads as
       # incomplete rather than as nothing.
       - name: Change score
         if: always() && github.event_name == 'pull_request'
         env:
           BASE_REF: ${{ github.base_ref }}
+          GH_TOKEN: ${{ github.token }}
         run: node tools/change-score.ts "origin/$BASE_REF"
       - uses: actions/upload-artifact@v7.0.2
         if: always()

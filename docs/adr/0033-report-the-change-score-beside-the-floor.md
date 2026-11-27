@@ -5,6 +5,7 @@
 **Amended:** 2026-11-21, PR #760, amended rather than superseded by the owner's choice
 **Amended:** 2026-11-24, PR #888, amended rather than superseded by the owner's choice
 **Amended:** 2026-11-24, PR #889, amended rather than superseded by the owner's choice
+**Amended:** 2026-11-27, PR #931, amended rather than superseded by the owner's choice
 
 ## Problem
 
@@ -85,6 +86,47 @@ On a push to `main`, the job keeps the Stryker JSON report alone as the
 `mutation-json` artifact for 90 days, as a baseline to compare pull requests
 against.
 
+Every pull request's change report also compares its mutant outcomes with a
+Baseline (`docs/GLOSSARY.md`), which finds what a change that touches no source
+line cannot show: a test weakened or deleted leaves no Changed mutant, yet
+mutants its old tests killed now survive. The Baseline is the report kept for
+the nearest first-parent ancestor of the pull request's merge base with
+`origin/main` that has one, at most 50 commits back, whatever branch the pull
+request targets. A Markdown-only commit on `main` skips mutation testing and so
+has no report, which is why the nearest ancestor is taken and not the merge base
+alone. `selectBaseline` decides it from plain values: the ancestors in order,
+and the set of them with a usable report. It returns the commit and its distance,
+too far back when none lies within 50 commits, or not found when the history
+ends first. The command in the `Change score` step lists the ancestors, finds
+the `main` push runs of CI with a non-expired `mutation-json` artifact through
+`gh api`, downloads the chosen one and reads `mutate` at the Baseline commit.
+Failing to reach the API fails the step; an artifact that is not there does not.
+The `Mutation testing` job is granted the token permission to read Actions
+artifacts for this.
+
+A Regressed mutant (`docs/GLOSSARY.md`) is Killed or Timeout in the Baseline and
+Survived or NoCoverage in the head, anywhere on the mutation surface, a pull
+request that changes only tests included. Identity is `matchesEntry`'s rule
+(ADR-0034), which is not amended: file, mutator, replacement and the source text
+at the location. Mutants of one identity in one file are compared as a group by
+count: where the head detects fewer of the group than the Baseline did, the
+shortfall is flagged, never more than the group's undetected head mutants, and
+every undetected head location of the group is listed, so a repeated literal
+cannot hide a deleted test and no mutant is paired with the wrong one. A mutant
+in only one side's groups is unmatched and never flagged, and so are Compile
+error, Runtime error and Ignored mutants on either side. A tolerated Regressed
+mutant is still flagged and counted, shown with its register entry, because the
+register changes no count here as it changes no score.
+
+The section is in every complete report, after the Change score and before the
+register summary, and in the machine-readable report: regressed, none, or no
+baseline with its reason. Not found, too far back, an expired or missing
+artifact, an unparseable or incomplete Baseline report, and a Baseline measured
+under different `mutate` patterns are each a no-baseline reason, never a failure
+and never read as none regressed. An incomplete head report has no section. The
+comparison is advisory: a Regressed mutant fails nothing, until it has run on
+real pull requests, as the Change score has.
+
 Production waits for mutation: the release sequence on a push to `main` needs
 `Mutation testing` to have succeeded on the same commit, and a skipped,
 cancelled or missing result holds the release as a failure does. #754 builds
@@ -139,6 +181,25 @@ command runs narrowed because it replaces no CI run.
 **Line ranges for the local run.** Faster, but Stryker would drop a mutant that
 overlaps a changed line without fitting inside it, such as the block of the
 function the line sits in, so the local Change score would differ from CI's.
+
+**The exact merge base only.** A Markdown-only commit skips mutation testing and
+leaves no report, and a pull request branched there would have no comparison.
+
+**The latest `main` run.** It compares a pull request with code it does not
+contain, so every commit that landed since its merge base would read as a
+difference of the pull request.
+
+**Keeping Baselines for milestone branches.** Pushes to `milestone/**` keep no
+report today, and keeping them would add a store to maintain. A pull request
+into a milestone is compared with `main` at its merge base, and the
+milestone-to-`main` pull request is the decisive comparison.
+
+**A second Stryker run at the merge base.** It doubles the job of about eight
+minutes to rebuild what `main` already kept.
+
+**Stryker's incremental mode.** It decides what to rerun and not what to
+report, and it keeps its state in a file that this comparison would then depend
+on across runs.
 
 **A separate job for the report.** A new job would need the report handed over
 as an artifact and a new name in the rulesets; a step inside the existing job

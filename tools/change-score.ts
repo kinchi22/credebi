@@ -1,6 +1,9 @@
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import stryker from '../stryker.config.ts';
+import { runGh } from './gh.ts';
 import { findMergeBase, git } from './run-advisory-specs.ts';
 
 export const CHANGE_TARGET = 95;
@@ -36,6 +39,7 @@ type Mutant = MutantIdentity & {
   readonly status: Finished;
   readonly start: Position;
   readonly end: Position;
+  readonly killedBy: readonly string[];
 };
 
 export type ToleratedEntry = {
@@ -109,6 +113,58 @@ export type Measure = {
   readonly counts: Counts;
 };
 
+export const BASELINE_WINDOW = 50;
+
+export type NoBaselineReason =
+  | 'not-found'
+  | 'too-far-back'
+  | 'artifact-missing'
+  | 'unusable'
+  | 'different-mutate';
+
+export type BaselineInput =
+  | {
+      readonly found: true;
+      readonly report: string | undefined;
+      readonly commit: string;
+      readonly distance: number;
+      readonly mutate: readonly string[];
+    }
+  | { readonly found: false; readonly reason: Extract<NoBaselineReason, 'not-found' | 'too-far-back' | 'artifact-missing'> };
+
+export type SelectedBaseline =
+  | { readonly found: true; readonly commit: string; readonly distance: number }
+  | { readonly found: false; readonly reason: Extract<NoBaselineReason, 'not-found' | 'too-far-back'> };
+
+export type RegressedLocation = Position & {
+  readonly status: 'Survived' | 'NoCoverage';
+  readonly tolerated?: { readonly reason: string; readonly revisitBy: string };
+};
+
+export type RegressedGroup = MutantIdentity & {
+  readonly mutator: string;
+  readonly shortfall: number;
+  readonly baselineStatuses: readonly ('Killed' | 'Timeout')[];
+  readonly killedBy: readonly string[];
+  readonly locations: readonly RegressedLocation[];
+};
+
+export type RegressionCounts = {
+  readonly matched: number;
+  readonly unmatched: number;
+  readonly ambiguous: number;
+};
+
+export type Regression =
+  | { readonly state: 'no-baseline'; readonly reason: NoBaselineReason; readonly detail?: string }
+  | (RegressionCounts & {
+      readonly state: 'none' | 'regressed';
+      readonly commit: string;
+      readonly distance: number;
+      readonly regressed: number;
+      readonly groups: readonly RegressedGroup[];
+    });
+
 export type ChangeReport =
   | {
       readonly state: 'complete';
@@ -120,6 +176,7 @@ export type ChangeReport =
       readonly smallSample: boolean;
       readonly untriaged: number;
       readonly register: RegisterSummary;
+      readonly regression?: Regression;
       readonly files: readonly ChangedFile[];
       readonly unmeasured: readonly UnmeasuredFile[];
       readonly elapsedMs: number | undefined;
@@ -149,6 +206,7 @@ export type ChangeReportInput = {
   readonly runDay: string;
   readonly diff: string;
   readonly mutate: readonly string[];
+  readonly baseline?: BaselineInput;
   readonly elapsedMs: number | undefined;
 };
 
@@ -177,7 +235,7 @@ const textAt = (source: string, start: Position, end: Position): string => {
 
 const parseMutant = (value: unknown, file: string, source: string): Mutant | 'pending' | undefined => {
   if (!isRecord(value)) return undefined;
-  const { status, mutatorName, location, replacement } = value;
+  const { status, mutatorName, location, replacement, killedBy } = value;
   if (status === 'Pending') return 'pending';
   if (!FINISHED.some((finished) => finished === status)) return undefined;
   if (typeof mutatorName !== 'string' || typeof replacement !== 'string') return undefined;
@@ -192,12 +250,30 @@ const parseMutant = (value: unknown, file: string, source: string): Mutant | 'pe
     original: textAt(source, start, end),
     start,
     end,
+    killedBy: Array.isArray(killedBy) ? killedBy.filter((id): id is string => typeof id === 'string') : [],
   };
 };
 
-const parseStrykerReport = (
-  text: string | undefined,
-): Parsed<ReadonlyMap<string, readonly Mutant[]>> => {
+type StrykerReport = {
+  readonly files: ReadonlyMap<string, readonly Mutant[]>;
+  readonly testNames: ReadonlyMap<string, string>;
+};
+
+const parseTestNames = (testFiles: unknown): ReadonlyMap<string, string> => {
+  const names = new Map<string, string>();
+  if (!isRecord(testFiles)) return names;
+  for (const file of Object.values(testFiles)) {
+    if (!isRecord(file) || !Array.isArray(file['tests'])) continue;
+    for (const test of file['tests'] as readonly unknown[]) {
+      if (isRecord(test) && typeof test['id'] === 'string' && typeof test['name'] === 'string') {
+        names.set(test['id'], test['name']);
+      }
+    }
+  }
+  return names;
+};
+
+const parseStrykerReport = (text: string | undefined): Parsed<StrykerReport> => {
   if (text === undefined) return { ok: false, reason: 'Stryker wrote no JSON report' };
 
   let json: unknown;
@@ -233,7 +309,7 @@ const parseStrykerReport = (
     }
     files.set(name, mutants);
   }
-  return { ok: true, value: files };
+  return { ok: true, value: { files, testNames: parseTestNames(json['testFiles']) } };
 };
 
 const ENTRY_FIELDS = [
@@ -310,11 +386,11 @@ const parseRegister = (text: string | undefined): Parsed<readonly ToleratedEntry
   return { ok: true, value: entries as readonly ToleratedEntry[] };
 };
 
+const identityKey = ({ file, mutator, replacement, original }: MutantIdentity): string =>
+  JSON.stringify([file, mutator, replacement, original]);
+
 export const matchesEntry = (entry: ToleratedEntry, mutant: MutantIdentity): boolean =>
-  entry.file === mutant.file &&
-  entry.mutator === mutant.mutator &&
-  entry.replacement === mutant.replacement &&
-  entry.original === mutant.original;
+  identityKey(entry) === identityKey(mutant);
 
 const identityOf = ({ file, mutator, original, replacement, revisitBy }: ToleratedEntry): RegisterEntry => ({
   file,
@@ -506,7 +582,114 @@ const isUnkilled = (
 ): mutant is Mutant & { readonly status: 'Survived' | 'NoCoverage' } =>
   mutant.status === 'Survived' || mutant.status === 'NoCoverage';
 
+const isDetected = (mutant: Mutant): mutant is Mutant & { readonly status: 'Killed' | 'Timeout' } =>
+  mutant.status === 'Killed' || mutant.status === 'Timeout';
+
 const byPosition = (a: Position, b: Position): number => a.line - b.line || a.column - b.column;
+
+const groupByIdentity = (report: StrykerReport): ReadonlyMap<string, readonly Mutant[]> => {
+  const groups = new Map<string, Mutant[]>();
+  for (const mutant of [...report.files.values()].flat()) {
+    if (!isDetected(mutant) && !isUnkilled(mutant)) continue;
+    const key = identityKey(mutant);
+    groups.set(key, [...(groups.get(key) ?? []), mutant]);
+  }
+  return groups;
+};
+
+const sameList = (a: readonly string[], b: readonly string[]): boolean =>
+  a.length === b.length && a.every((pattern, index) => pattern === b[index]);
+
+const unique = (values: readonly string[]): readonly string[] =>
+  [...new Set(values)].sort((a, b) => a.localeCompare(b));
+
+function compareWithBaseline(
+  baseline: BaselineInput,
+  head: StrykerReport,
+  tolerated: ReadonlyMap<Mutant, ToleratedEntry>,
+  mutate: readonly string[],
+): Regression {
+  if (!baseline.found) return { state: 'no-baseline', reason: baseline.reason };
+  if (baseline.report === undefined) return { state: 'no-baseline', reason: 'artifact-missing' };
+  const parsed = parseStrykerReport(baseline.report);
+  if (!parsed.ok) return { state: 'no-baseline', reason: 'unusable', detail: parsed.reason };
+  if (!sameList(baseline.mutate, mutate)) return { state: 'no-baseline', reason: 'different-mutate' };
+
+  const before = groupByIdentity(parsed.value);
+  const groups: RegressedGroup[] = [];
+  let matched = 0;
+  let unmatched = 0;
+  let ambiguous = 0;
+  const after = groupByIdentity(head);
+  for (const [key, was] of before) {
+    if (!after.has(key)) unmatched += was.length;
+  }
+  for (const [key, now] of after) {
+    const was = before.get(key);
+    if (was === undefined) {
+      unmatched += now.length;
+      continue;
+    }
+    if (was.length === 1 && now.length === 1) matched += 1;
+    else ambiguous += now.length;
+
+    const undetected = now.filter(isUnkilled);
+    const detectedBefore = was.filter(isDetected);
+    const shortfall = Math.min(detectedBefore.length - now.filter(isDetected).length, undetected.length);
+    const [sample] = now;
+    if (shortfall <= 0 || sample === undefined) continue;
+    groups.push({
+      file: sample.file,
+      mutator: sample.mutator,
+      original: sample.original,
+      replacement: sample.replacement,
+      shortfall,
+      baselineStatuses: [...new Set(detectedBefore.map(({ status }) => status))].sort(),
+      killedBy: unique(
+        detectedBefore.flatMap(({ killedBy }) =>
+          killedBy.map((id) => parsed.value.testNames.get(id) ?? id),
+        ),
+      ),
+      locations: undetected
+        .map((mutant): RegressedLocation => {
+          const entry = tolerated.get(mutant);
+          return {
+            line: mutant.start.line,
+            column: mutant.start.column,
+            status: mutant.status,
+            ...(entry === undefined ? {} : { tolerated: { reason: entry.reason, revisitBy: entry.revisitBy } }),
+          };
+        })
+        .sort(byPosition),
+    });
+  }
+  groups.sort(
+    (a, b) =>
+      a.file.localeCompare(b.file) ||
+      byPosition(a.locations[0] ?? { line: 0, column: 0 }, b.locations[0] ?? { line: 0, column: 0 }),
+  );
+  const regressed = groups.reduce((total, group) => total + group.shortfall, 0);
+  return {
+    state: regressed === 0 ? 'none' : 'regressed',
+    commit: baseline.commit,
+    distance: baseline.distance,
+    matched,
+    unmatched,
+    ambiguous,
+    regressed,
+    groups,
+  };
+}
+
+export function selectBaseline(
+  ancestors: readonly string[],
+  withArtifact: ReadonlySet<string>,
+): SelectedBaseline {
+  const distance = ancestors.slice(0, BASELINE_WINDOW + 1).findIndex((commit) => withArtifact.has(commit));
+  const commit = ancestors[distance];
+  if (distance >= 0 && commit !== undefined) return { found: true, commit, distance };
+  return { found: false, reason: ancestors.length > BASELINE_WINDOW + 1 ? 'too-far-back' : 'not-found' };
+}
 
 export function buildChangeReport(input: ChangeReportInput): ChangeReport {
   const { elapsedMs } = input;
@@ -521,7 +704,7 @@ export function buildChangeReport(input: ChangeReportInput): ChangeReport {
   if (!register.ok) {
     return { state: 'invalid', scope, measuresSurface, reason: register.reason, elapsedMs };
   }
-  const tolerating = judgeRegister(register.value, parsed.value, {
+  const tolerating = judgeRegister(register.value, parsed.value.files, {
     runDay: input.runDay,
     mutate: input.mutate,
     wholeSurface: measuresSurface,
@@ -536,8 +719,8 @@ export function buildChangeReport(input: ChangeReportInput): ChangeReport {
   for (const changed of parseDiff(input.diff)) {
     const kind = input.scope === 'file' ? 'whole' : measurableKindOf(changed);
     const from = changed.from === undefined ? {} : { from: changed.from };
-    const all = parsed.value.get(changed.path) ?? [];
-    const reason = unmeasuredReason(changed, all, input.mutate, parsed.value.has(changed.path));
+    const all = parsed.value.files.get(changed.path) ?? [];
+    const reason = unmeasuredReason(changed, all, input.mutate, parsed.value.files.has(changed.path));
     const mutants = all.filter((mutant) => changed.created || overlaps(mutant, changed.lines));
     if (reason !== undefined || mutants.length === 0) {
       unmeasured.push({
@@ -594,9 +777,19 @@ export function buildChangeReport(input: ChangeReportInput): ChangeReport {
     change,
     scope,
     measuresSurface,
-    ...(measuresSurface ? { surface: measure([...parsed.value.values()].flat()) } : {}),
+    ...(measuresSurface ? { surface: measure([...parsed.value.files.values()].flat()) } : {}),
     smallSample: change.mutants > 0 && scoredOf(change.counts) < SMALL_SAMPLE,
     register: tolerating.value.summary,
+    ...(input.baseline === undefined
+      ? {}
+      : {
+          regression: compareWithBaseline(
+            input.baseline,
+            parsed.value,
+            tolerating.value.tolerated,
+            input.mutate,
+          ),
+        }),
     untriaged: files.reduce((total, file) => total + file.unkilled.length, 0),
     files,
     unmeasured,
@@ -699,6 +892,48 @@ const renderRegister = ({ tolerating, unjudged, stale, expired }: RegisterSummar
     : []),
 ];
 
+const NO_BASELINE_WHY: Record<NoBaselineReason, string> = {
+  'not-found': 'the history of `main` ends before any commit with a report',
+  'too-far-back': `no commit within ${String(BASELINE_WINDOW)} of the merge base has a report`,
+  'artifact-missing': 'the report of the Baseline commit has expired or is missing',
+  unusable: 'the report of the Baseline commit is unusable',
+  'different-mutate': 'the Baseline was measured under different `mutate` patterns',
+};
+
+const renderRegression = (regression: Regression): readonly string[] => {
+  if (regression.state === 'no-baseline') {
+    const detail = regression.detail === undefined ? '' : `: ${regression.detail}`;
+    return [
+      '### Regressed mutants',
+      '',
+      `**No baseline:** ${NO_BASELINE_WHY[regression.reason]}${detail}. Nothing was compared, so this says nothing about regressions.`,
+      '',
+    ];
+  }
+  const { commit, distance, matched, unmatched, ambiguous, regressed, groups } = regression;
+  return [
+    '### Regressed mutants',
+    '',
+    `Baseline: \`${commit}\` on \`main\`, ${plural(distance, 'commit', 'commits')} before the merge base. Compared ${String(matched)} matched, ${String(unmatched)} unmatched and ${String(ambiguous)} ambiguous mutants. A Regressed mutant is advisory: it fails nothing.`,
+    '',
+    regressed === 0
+      ? '**Regressed:** none.'
+      : `**Regressed:** ${plural(regressed, 'mutant', 'mutants')} killed or timed out in the Baseline and now surviving or not covered.`,
+    '',
+    ...groups.flatMap((group) => [
+      `- \`${group.file}\` ${group.mutator} replacing \`${group.original}\` with \`${group.replacement}\`: Baseline ${group.baselineStatuses.join(' and ')}, ${String(group.shortfall)} fewer detected now.`,
+      ...group.locations.map(
+        ({ line, column, status, tolerated }) =>
+          `  - \`${group.file}:${String(line)}:${String(column)}\` ${status}${tolerated === undefined ? '' : `, tolerated: ${tolerated.reason} Revisit by ${tolerated.revisitBy}.`}`,
+      ),
+      ...(group.killedBy.length === 0
+        ? []
+        : [`  - Killed in the Baseline by: ${group.killedBy.map((name) => `\`${name}\``).join(', ')}`]),
+    ]),
+    ...(groups.length > 0 ? [''] : []),
+  ];
+};
+
 export function renderChangeReport(report: ChangeReport): string {
   const name = SCORE_NAME[report.scope];
   const heading = `## ${name}`;
@@ -782,7 +1017,12 @@ export function renderChangeReport(report: ChangeReport): string {
     );
   }
 
-  lines.push(...renderRegister(report.register), elapsed, '');
+  lines.push(
+    ...(report.regression === undefined ? [] : renderRegression(report.regression)),
+    ...renderRegister(report.register),
+    elapsed,
+    '',
+  );
   return lines.join('\n');
 }
 
@@ -887,6 +1127,93 @@ export function planLocalRun(input: {
     : { kind: 'run', scope: 'change', diff: read.diff, mutate };
 }
 
+const CI_WORKFLOW = 'ci.yml';
+const BASELINE_ARTIFACT = 'mutation-json';
+const ARTIFACT_GONE = /no valid artifacts|not found|404|expired|gone/i;
+
+const gh = (args: readonly string[]): string => runGh(args, process.env);
+
+const ghJson = (endpoint: string): Record<string, unknown> => {
+  const parsed: unknown = JSON.parse(gh(['api', endpoint]));
+  if (!isRecord(parsed)) throw new Error(`${endpoint} did not answer with an object`);
+  return parsed;
+};
+
+const listOf = (value: unknown): readonly Record<string, unknown>[] =>
+  Array.isArray(value) ? (value as readonly unknown[]).filter(isRecord) : [];
+
+function runWithArtifact(repository: string, commit: string): number | undefined {
+  const listing = ghJson(
+    `repos/${repository}/actions/workflows/${CI_WORKFLOW}/runs?head_sha=${commit}&branch=main&event=push&status=completed`,
+  );
+  for (const run of listOf(listing['workflow_runs'])) {
+    const id = run['id'];
+    if (typeof id !== 'number') continue;
+    const artifacts = listOf(
+      ghJson(`repos/${repository}/actions/runs/${String(id)}/artifacts?name=${BASELINE_ARTIFACT}`)['artifacts'],
+    );
+    if (artifacts.some((artifact) => artifact['expired'] === false)) return id;
+  }
+  return undefined;
+}
+
+async function mutateAt(commit: string): Promise<readonly string[]> {
+  const config = git(process.cwd(), ['show', `${commit}:stryker.config.ts`]);
+  if (!config.ok) throw new Error(config.problem);
+  const directory = mkdtempSync(path.join(tmpdir(), 'baseline-stryker-'));
+  const file = path.join(directory, 'stryker.config.ts');
+  writeFileSync(file, config.stdout);
+  const loaded = (await import(pathToFileURL(file).href)) as { readonly default?: { readonly mutate?: unknown } };
+  const mutate = loaded.default?.mutate;
+  if (!Array.isArray(mutate) || !mutate.every((pattern) => typeof pattern === 'string')) {
+    throw new Error(`stryker.config.ts at ${commit} holds no mutate patterns`);
+  }
+  return mutate;
+}
+
+async function findBaseline(): Promise<BaselineInput> {
+  const repository = process.env['GITHUB_REPOSITORY'] ?? '';
+  if (repository === '') throw new Error('GITHUB_REPOSITORY is not set');
+  const found = findMergeBase(process.cwd(), 'origin/main');
+  if (!found.ok) throw new Error(found.problem);
+  const listed = git(process.cwd(), [
+    'rev-list',
+    '--first-parent',
+    `--max-count=${String(BASELINE_WINDOW + 2)}`,
+    found.mergeBase,
+  ]);
+  if (!listed.ok) throw new Error(listed.problem);
+  const ancestors = listed.stdout.split('\n').filter((commit) => commit !== '');
+
+  const runs = new Map<string, number>();
+  for (const commit of ancestors.slice(0, BASELINE_WINDOW + 1)) {
+    const run = runWithArtifact(repository, commit);
+    if (run !== undefined) runs.set(commit, run);
+  }
+  const selected = selectBaseline(ancestors, new Set(runs.keys()));
+  if (!selected.found) return selected;
+
+  const run = runs.get(selected.commit);
+  if (run === undefined) throw new Error(`no run found for ${selected.commit}`);
+  const directory = mkdtempSync(path.join(tmpdir(), 'baseline-report-'));
+  try {
+    gh(['run', 'download', String(run), '--repo', repository, '--name', BASELINE_ARTIFACT, '--dir', directory]);
+  } catch (error) {
+    if (error instanceof Error && ARTIFACT_GONE.test(error.message)) {
+      return { found: false, reason: 'artifact-missing' };
+    }
+    throw error;
+  }
+  const reportFile = path.join(directory, 'mutation.json');
+  return {
+    found: true,
+    report: existsSync(reportFile) ? readFileSync(reportFile, 'utf8') : undefined,
+    commit: selected.commit,
+    distance: selected.distance,
+    mutate: await mutateAt(selected.commit),
+  };
+}
+
 if (import.meta.main) {
   const base = process.argv[2];
   if (base === undefined || base === '') {
@@ -909,6 +1236,7 @@ if (import.meta.main) {
     runDay: new Date().toISOString().slice(0, 10),
     diff: diff.stdout,
     mutate: stryker.mutate,
+    ...(process.env['GITHUB_EVENT_NAME'] === 'pull_request' ? { baseline: await findBaseline() } : {}),
     elapsedMs: Number.isFinite(startedAt) && startedAt > 0 ? Date.now() - startedAt * 1000 : undefined,
   });
   const markdown = renderChangeReport(report);
