@@ -1,8 +1,8 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { addAccount, addGroup, BOOKS_OPEN } from './accounts';
-import { accountLink, statementTable, type StatementTable } from './income-statement';
+import { statementTable, type StatementTable } from './income-statement';
 import { tabTo } from './language';
-import { reportRow } from './report-tables';
+import { accountLink, reportRow } from './report-tables';
 import { INCOME_STATEMENT_PATH as STATEMENT, SETTINGS_PATH } from './routes';
 import { signIn } from './session';
 
