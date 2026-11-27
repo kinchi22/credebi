@@ -130,11 +130,11 @@ export type BaselineInput =
       readonly distance: number;
       readonly mutate: readonly string[];
     }
-  | { readonly found: false; readonly reason: 'not-found' | 'too-far-back' | 'artifact-missing' };
+  | { readonly found: false; readonly reason: Extract<NoBaselineReason, 'not-found' | 'too-far-back' | 'artifact-missing'> };
 
 export type SelectedBaseline =
   | { readonly found: true; readonly commit: string; readonly distance: number }
-  | { readonly found: false; readonly reason: 'not-found' | 'too-far-back' };
+  | { readonly found: false; readonly reason: Extract<NoBaselineReason, 'not-found' | 'too-far-back'> };
 
 export type RegressedLocation = Position & {
   readonly status: 'Survived' | 'NoCoverage';
