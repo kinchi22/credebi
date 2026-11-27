@@ -11,6 +11,8 @@ import {
   renderChangeReport,
   TOLERATED_REGISTER,
   type ChangeReport,
+  type BaselineInput,
+  selectBaseline,
 } from '../change-score';
 
 type Status =
@@ -31,6 +33,7 @@ type Mutant = {
   readonly mutator?: string;
   readonly original?: string;
   readonly replacement?: string;
+  readonly killedBy?: readonly string[];
 };
 
 const MUTATE = stryker.mutate;
@@ -56,9 +59,15 @@ const sourceOf = (mutants: readonly Mutant[]): string => {
   return lines.join('\n');
 };
 
-const strykerReport = (files: Record<string, readonly Mutant[]>): string =>
+const strykerReport = (
+  files: Record<string, readonly Mutant[]>,
+  tests: Record<string, string> = {},
+): string =>
   JSON.stringify({
     schemaVersion: '1.0',
+    testFiles: {
+      'tests.test.ts': { tests: Object.entries(tests).map(([id, name]) => ({ id, name })) },
+    },
     thresholds: { high: 95, low: 90, break: 90 },
     files: Object.fromEntries(
       Object.entries(files).map(([name, mutants]) => [
@@ -71,6 +80,7 @@ const strykerReport = (files: Record<string, readonly Mutant[]>): string =>
             mutatorName: m.mutator ?? 'ConditionalExpression',
             replacement: m.replacement ?? 'true',
             status: m.status,
+            ...(m.killedBy === undefined ? {} : { killedBy: m.killedBy }),
             location: {
               start: { line: m.line, column: 3 },
               end: {
@@ -1489,5 +1499,483 @@ describe('the register of the repository', () => {
       'packages/core/src/health/domain/status.ts',
       'packages/core/src/health/domain/status.ts',
     ]);
+  });
+});
+
+type Regression = NonNullable<Extract<ChangeReport, { state: 'complete' }>['regression']>;
+
+type Options = { readonly diff?: string; readonly register?: string; readonly report?: string };
+
+const BASE_COMMIT = 'a1b2c3d4';
+
+const baselineOf = (
+  files: Record<string, readonly Mutant[]>,
+  rest: {
+    readonly tests?: Record<string, string>;
+    readonly distance?: number;
+    readonly mutate?: readonly string[];
+  } = {},
+): BaselineInput => ({
+  found: true,
+  report: strykerReport(files, rest.tests),
+  commit: BASE_COMMIT,
+  distance: rest.distance ?? 2,
+  mutate: rest.mutate ?? MUTATE,
+});
+
+const compare = (
+  head: Record<string, readonly Mutant[]>,
+  baseline: BaselineInput | undefined,
+  rest: Options = {},
+): ChangeReport =>
+  buildChangeReport({
+    register: rest.register ?? '[]',
+    runDay: RUN_DAY,
+    report: rest.report ?? strykerReport(head),
+    diff: rest.diff ?? '',
+    mutate: MUTATE,
+    ...(baseline === undefined ? {} : { baseline }),
+    elapsedMs: 1,
+  });
+
+const regressionOf = (
+  head: Record<string, readonly Mutant[]>,
+  baseline: BaselineInput | undefined,
+  rest: Options = {},
+): Regression => {
+  const { regression } = complete(compare(head, baseline, rest));
+  if (regression === undefined) throw new Error('expected a regression section');
+  return regression;
+};
+
+const located = (regression: Regression): readonly string[] => {
+  if (regression.state === 'no-baseline') throw new Error('expected a comparison');
+  return regression.groups.flatMap((group) =>
+    group.locations.map((place) => `${group.file}:${String(place.line)}:${place.status}`),
+  );
+};
+
+const tolerating = (file: string, original: string, replacement: string): string =>
+  JSON.stringify([
+    {
+      file,
+      mutator: 'ConditionalExpression',
+      original,
+      replacement,
+      reason: 'equivalent mutant',
+      recorded: '2026-11-01',
+      revisitBy: '2026-12-31',
+    },
+  ]);
+
+const at = (status: Status, line: number, original = 'a > b', rest: Partial<Mutant> = {}): Mutant =>
+  mutant(status, line, { original, ...rest });
+
+describe('the regression against the Baseline', () => {
+  it('adds no regression section when no Baseline is given', () => {
+    const report = compare({ [OLD]: [at('Killed', 1)] }, undefined);
+
+    expect(complete(report).regression).toBeUndefined();
+    expect(renderChangeReport(report)).not.toContain('Regressed mutants');
+  });
+
+  it.each([
+    ['Killed', 'Survived', true],
+    ['Killed', 'NoCoverage', true],
+    ['Timeout', 'Survived', true],
+    ['Timeout', 'NoCoverage', true],
+    ['Killed', 'Killed', false],
+    ['Killed', 'Timeout', false],
+    ['Timeout', 'Killed', false],
+    ['Survived', 'Survived', false],
+    ['NoCoverage', 'Survived', false],
+    ['Survived', 'Killed', false],
+    ['Killed', 'CompileError', false],
+    ['Killed', 'RuntimeError', false],
+    ['Killed', 'Ignored', false],
+    ['CompileError', 'Survived', false],
+    ['RuntimeError', 'Survived', false],
+    ['Ignored', 'Survived', false],
+  ] as const)('treats %s in the Baseline and %s now as regressed: %s', (was, now, flagged) => {
+    const regression = regressionOf({ [OLD]: [at(now, 5)] }, baselineOf({ [OLD]: [at(was, 5)] }));
+
+    expect(regression.state).toBe(flagged ? 'regressed' : 'none');
+    expect(regression).toMatchObject({ regressed: flagged ? 1 : 0 });
+  });
+
+  it('flags a mutant on a pull request that changes only tests, with no Changed mutant', () => {
+    const report = complete(
+      compare({ [OLD]: [at('Survived', 5)] }, baselineOf({ [OLD]: [at('Killed', 5)] }), {
+        diff: modified('packages/core/src/ledger/domain/entry.test.ts', [1, 1]),
+      }),
+    );
+
+    expect(report.change.mutants).toBe(0);
+    expect(report.regression).toMatchObject({ state: 'regressed', regressed: 1 });
+  });
+
+  it('flags a mutant in a file the pull request never touched', () => {
+    const regression = regressionOf(
+      { [OLD]: [at('Survived', 5)], [NEW]: [at('Killed', 1)] },
+      baselineOf({ [OLD]: [at('Killed', 5)], [NEW]: [at('Killed', 1)] }),
+      { diff: modified(NEW, [1, 1]) },
+    );
+
+    expect(located(regression)).toEqual([`${OLD}:5:Survived`]);
+  });
+
+  it('never flags a mutant new in the head, or gone from it', () => {
+    const regression = regressionOf(
+      { [OLD]: [at('Survived', 5, 'c > d')] },
+      baselineOf({ [OLD]: [at('Killed', 5, 'a > b')] }),
+    );
+
+    expect(regression).toMatchObject({ state: 'none', matched: 0, unmatched: 1, ambiguous: 0 });
+  });
+
+  it('leaves a mutant whose source text was edited unmatched, never flagged', () => {
+    const regression = regressionOf(
+      { [OLD]: [at('Survived', 5, 'a >= b')] },
+      baselineOf({ [OLD]: [at('Killed', 5, 'a > b')] }),
+    );
+
+    expect(regression).toMatchObject({ state: 'none', unmatched: 1 });
+  });
+
+  it('leaves a mutant of another mutator or replacement unmatched', () => {
+    const base = baselineOf({ [OLD]: [at('Killed', 5)] });
+    const otherMutator = regressionOf(
+      { [OLD]: [at('Survived', 5, 'a > b', { mutator: 'EqualityOperator' })] },
+      base,
+    );
+    const otherReplacement = regressionOf(
+      { [OLD]: [at('Survived', 5, 'a > b', { replacement: 'false' })] },
+      base,
+    );
+
+    expect(otherMutator).toMatchObject({ state: 'none', unmatched: 1 });
+    expect(otherReplacement).toMatchObject({ state: 'none', unmatched: 1 });
+  });
+
+  it('leaves a mutant of a file absent from the Baseline unmatched', () => {
+    const regression = regressionOf({ [NEW]: [at('Survived', 5)] }, baselineOf({ [OLD]: [at('Killed', 5)] }));
+
+    expect(regression).toMatchObject({ state: 'none', unmatched: 1 });
+  });
+
+  it('keeps a match when unrelated lines move above the mutant', () => {
+    const regression = regressionOf(
+      { [OLD]: [at('Survived', 25)] },
+      baselineOf({ [OLD]: [at('Killed', 5)] }),
+    );
+
+    expect(regression).toMatchObject({ state: 'regressed', matched: 1 });
+    expect(located(regression)).toEqual([`${OLD}:25:Survived`]);
+  });
+
+  it('flags a group by its shortfall and lists every undetected location of the group', () => {
+    const regression = regressionOf(
+      { [OLD]: [at('Killed', 3), at('Survived', 8), at('NoCoverage', 20)] },
+      baselineOf({ [OLD]: [at('Killed', 3), at('Killed', 7), at('Killed', 19)] }),
+    );
+
+    expect(regression).toMatchObject({ state: 'regressed', regressed: 2, matched: 0, ambiguous: 3 });
+    expect(located(regression)).toEqual([`${OLD}:8:Survived`, `${OLD}:20:NoCoverage`]);
+  });
+
+  it('flags nothing for a group detected as often as the Baseline, wherever the survivors moved', () => {
+    const regression = regressionOf(
+      { [OLD]: [at('Survived', 3), at('Killed', 8)] },
+      baselineOf({ [OLD]: [at('Killed', 3), at('Survived', 7)] }),
+    );
+
+    expect(regression).toMatchObject({ state: 'none', regressed: 0, ambiguous: 2 });
+  });
+
+  it('flags nothing for a group that detects more than the Baseline did', () => {
+    const regression = regressionOf(
+      { [OLD]: [at('Killed', 3), at('Killed', 8)] },
+      baselineOf({ [OLD]: [at('Killed', 3), at('Survived', 7)] }),
+    );
+
+    expect(regression.state).toBe('none');
+  });
+
+  it('counts a group that shrank only by the mutants still undetected', () => {
+    const regression = regressionOf(
+      { [OLD]: [at('Survived', 3)] },
+      baselineOf({ [OLD]: [at('Killed', 3), at('Killed', 7), at('Killed', 9)] }),
+    );
+
+    expect(regression).toMatchObject({ state: 'regressed', regressed: 1 });
+  });
+
+  it('leaves errors and ignored mutants out of both sides of a group', () => {
+    const regression = regressionOf(
+      { [OLD]: [at('CompileError', 3), at('Survived', 8)] },
+      baselineOf({ [OLD]: [at('Killed', 7), at('Ignored', 9)] }),
+    );
+
+    expect(regression).toMatchObject({ state: 'regressed', regressed: 1, matched: 1, ambiguous: 0 });
+  });
+
+  it('counts matched, unmatched and ambiguous mutants of the head', () => {
+    const regression = regressionOf(
+      {
+        [OLD]: [at('Killed', 1, 'x'), at('Killed', 2, 'y'), at('Killed', 3, 'y'), at('Killed', 4, 'z')],
+      },
+      baselineOf({
+        [OLD]: [at('Killed', 1, 'x'), at('Killed', 2, 'y'), at('Killed', 3, 'y'), at('Killed', 4, 'w')],
+      }),
+    );
+
+    expect(regression).toMatchObject({ matched: 1, ambiguous: 2, unmatched: 1 });
+  });
+
+  it('flags a tolerated Regressed mutant with its register entry, counting it all the same', () => {
+    const report = complete(
+      compare({ [OLD]: [at('Survived', 5)] }, baselineOf({ [OLD]: [at('Killed', 5)] }), {
+        register: tolerating(OLD, 'a > b', 'true'),
+      }),
+    );
+
+    expect(report.regression).toMatchObject({
+      state: 'regressed',
+      regressed: 1,
+      groups: [{ locations: [{ tolerated: { reason: 'equivalent mutant', revisitBy: '2026-12-31' } }] }],
+    });
+    expect(report.untriaged).toBe(0);
+    expect(renderChangeReport(report)).toContain('tolerated: equivalent mutant Revisit by 2026-12-31.');
+  });
+
+  it('shows the Baseline commit, the distance, the statuses and the tests that killed the mutant', () => {
+    const report = compare(
+      { [OLD]: [at('Survived', 5)] },
+      baselineOf(
+        { [OLD]: [at('Killed', 5, 'a > b', { killedBy: ['2', '1', '9'] })] },
+        { tests: { '1': 'entry rejects a debit', '2': 'entry rejects a credit' }, distance: 3 },
+      ),
+    );
+
+    expect(complete(report).regression).toMatchObject({
+      commit: BASE_COMMIT,
+      distance: 3,
+      groups: [
+        {
+          mutator: 'ConditionalExpression',
+          original: 'a > b',
+          replacement: 'true',
+          baselineStatuses: ['Killed'],
+          killedBy: ['entry rejects a credit', 'entry rejects a debit'],
+          locations: [{ line: 5, status: 'Survived' }],
+        },
+      ],
+    });
+    const markdown = renderChangeReport(report);
+    expect(markdown).toContain(BASE_COMMIT);
+    expect(markdown).toContain('3 commits before the merge base');
+    expect(markdown).toContain('Baseline Killed');
+    expect(markdown).toContain(`\`${OLD}:5:3\` Survived`);
+    expect(markdown).toContain(
+      'Killed in the Baseline by: `entry rejects a credit`, `entry rejects a debit`',
+    );
+  });
+
+  it('names a Timeout Baseline, which no test killed, with no killing test', () => {
+    const regression = regressionOf({ [OLD]: [at('NoCoverage', 5)] }, baselineOf({ [OLD]: [at('Timeout', 5)] }));
+
+    expect(regression).toMatchObject({ groups: [{ baselineStatuses: ['Timeout'], killedBy: [] }] });
+  });
+
+  it('orders entries by file then by location', () => {
+    const regression = regressionOf(
+      { [OLD]: [at('Survived', 9, 'q'), at('Survived', 2, 'r')], [NEW]: [at('Survived', 1)] },
+      baselineOf({ [OLD]: [at('Killed', 9, 'q'), at('Killed', 2, 'r')], [NEW]: [at('Killed', 1)] }),
+    );
+
+    expect(located(regression)).toEqual([`${NEW}:1:Survived`, `${OLD}:2:Survived`, `${OLD}:9:Survived`]);
+  });
+
+  it('places the section after the Change score and before the register summary', () => {
+    const markdown = renderChangeReport(
+      compare({ [OLD]: [at('Survived', 5)] }, baselineOf({ [OLD]: [at('Killed', 5)] }), {
+        diff: created(OLD, 6),
+      }),
+    );
+
+    const score = markdown.indexOf('**Change score:**');
+    const section = markdown.indexOf('### Regressed mutants');
+    const register = markdown.indexOf('### Register of tolerated mutants');
+    expect(score).toBeGreaterThan(-1);
+    expect(section).toBeGreaterThan(score);
+    expect(register).toBeGreaterThan(section);
+  });
+
+  it('renders none as no regressions, with the counts', () => {
+    const markdown = renderChangeReport(
+      compare({ [OLD]: [at('Killed', 5)] }, baselineOf({ [OLD]: [at('Killed', 5)] })),
+    );
+
+    expect(markdown).toContain('**Regressed:** none.');
+    expect(markdown).toContain('1 matched, 0 unmatched and 0 ambiguous');
+  });
+
+  it('writes the section into the machine-readable report', () => {
+    const report = compare({ [OLD]: [at('Survived', 5)] }, baselineOf({ [OLD]: [at('Killed', 5)] }));
+
+    expect(JSON.parse(JSON.stringify(report))).toMatchObject({
+      regression: { state: 'regressed', regressed: 1, commit: BASE_COMMIT, distance: 2, matched: 1 },
+    });
+  });
+
+  it('changes no score, count or register verdict', () => {
+    const head = { [OLD]: [at('Survived', 5), at('Killed', 6, 'k')] };
+    const without = complete(compare(head, undefined, { diff: created(OLD, 6) }));
+    const withBaseline = complete(
+      compare(head, baselineOf({ [OLD]: [at('Killed', 5)] }), { diff: created(OLD, 6) }),
+    );
+
+    expect({ ...withBaseline, regression: undefined }).toEqual({ ...without, regression: undefined });
+  });
+});
+
+describe('a comparison with no usable Baseline', () => {
+  const head = { [OLD]: [at('Survived', 5)] };
+  const found = (report: string | undefined, mutate: readonly string[] = MUTATE): BaselineInput => ({
+    found: true,
+    report,
+    commit: BASE_COMMIT,
+    distance: 1,
+    mutate,
+  });
+
+  it.each([
+    ['not-found', 'the history of `main` ends before any commit with a report'],
+    ['too-far-back', 'no commit within 50 of the merge base has a report'],
+    ['artifact-missing', 'has expired or is missing'],
+  ] as const)('reads %s as no baseline, never as none regressed', (reason, words) => {
+    const report = compare(head, { found: false, reason });
+
+    expect(complete(report).regression).toEqual({ state: 'no-baseline', reason });
+    const markdown = renderChangeReport(report);
+    expect(markdown).toContain('**No baseline:**');
+    expect(markdown).toContain(words);
+    expect(markdown).not.toContain('**Regressed:** none');
+  });
+
+  it('reads a found commit with no report text as an expired or missing artifact', () => {
+    expect(regressionOf(head, found(undefined))).toEqual({ state: 'no-baseline', reason: 'artifact-missing' });
+  });
+
+  it.each([
+    ['unparseable text', 'not json'],
+    ['no files', '{"nothing":1}'],
+    ['a mutant that never ran', strykerReport({ [OLD]: [at('Pending', 5)] })],
+    ['a file without a source', JSON.stringify({ files: { [OLD]: { mutants: [] } } })],
+    [
+      'a mutant without a replacement',
+      JSON.stringify({
+        files: {
+          [OLD]: {
+            source: 'abc',
+            mutants: [
+              {
+                status: 'Killed',
+                mutatorName: 'X',
+                location: { start: { line: 1, column: 1 }, end: { line: 1, column: 2 } },
+              },
+            ],
+          },
+        },
+      }),
+    ],
+  ])('reads a Baseline report with %s as unusable', (_name, report) => {
+    expect(regressionOf(head, found(report))).toMatchObject({ state: 'no-baseline', reason: 'unusable' });
+    expect(renderChangeReport(compare(head, found(report)))).toContain(
+      '**No baseline:** the report of the Baseline commit is unusable: ',
+    );
+  });
+
+  it('reads a Baseline measured under other mutate patterns as no baseline', () => {
+    const regression = regressionOf(
+      head,
+      baselineOf({ [OLD]: [at('Killed', 5)] }, { mutate: [...MUTATE, 'extra/**/*.ts'] }),
+    );
+
+    expect(regression).toEqual({ state: 'no-baseline', reason: 'different-mutate' });
+    expect(
+      renderChangeReport(compare(head, baselineOf({ [OLD]: [at('Killed', 5)] }, { mutate: MUTATE.slice(1) }))),
+    ).toContain('different `mutate` patterns');
+  });
+
+  it('has no regression section when the head report is incomplete', () => {
+    const report = compare(head, baselineOf({ [OLD]: [at('Killed', 5)] }), {
+      report: strykerReport({ [OLD]: [at('Pending', 5)] }),
+    });
+
+    expect(report.state).toBe('incomplete');
+    expect('regression' in report).toBe(false);
+    expect(renderChangeReport(report)).not.toContain('Regressed mutants');
+  });
+
+  it('has no regression section when the register is invalid', () => {
+    const report = compare(head, baselineOf({ [OLD]: [at('Killed', 5)] }), { register: 'not json' });
+
+    expect(report.state).toBe('invalid');
+    expect('regression' in report).toBe(false);
+  });
+});
+
+describe('selecting the Baseline', () => {
+  const history = (length: number): readonly string[] =>
+    Array.from({ length }, (_, index) => `c${String(index)}`);
+
+  it('takes the merge base itself at distance 0', () => {
+    expect(selectBaseline(history(10), new Set(['c0', 'c3']))).toEqual({
+      found: true,
+      commit: 'c0',
+      distance: 0,
+    });
+  });
+
+  it('takes the nearest ancestor with a report', () => {
+    expect(selectBaseline(history(10), new Set(['c4', 'c7']))).toEqual({
+      found: true,
+      commit: 'c4',
+      distance: 4,
+    });
+  });
+
+  it('ignores a commit with a report that is no ancestor', () => {
+    expect(selectBaseline(history(10), new Set(['elsewhere', 'c2']))).toEqual({
+      found: true,
+      commit: 'c2',
+      distance: 2,
+    });
+  });
+
+  it('takes a commit exactly 50 back', () => {
+    expect(selectBaseline(history(80), new Set(['c50']))).toEqual({
+      found: true,
+      commit: 'c50',
+      distance: 50,
+    });
+  });
+
+  it('reports a commit 51 back as too far back', () => {
+    expect(selectBaseline(history(80), new Set(['c51']))).toEqual({ found: false, reason: 'too-far-back' });
+  });
+
+  it('reports too far back when the window is exhausted and history goes on', () => {
+    expect(selectBaseline(history(52), new Set())).toEqual({ found: false, reason: 'too-far-back' });
+  });
+
+  it('reports not found when the history ends within the window with no report', () => {
+    expect(selectBaseline(history(51), new Set())).toEqual({ found: false, reason: 'not-found' });
+    expect(selectBaseline(history(3), new Set(['other']))).toEqual({ found: false, reason: 'not-found' });
+  });
+
+  it('reports not found for an empty history', () => {
+    expect(selectBaseline([], new Set(['c0']))).toEqual({ found: false, reason: 'not-found' });
   });
 });
