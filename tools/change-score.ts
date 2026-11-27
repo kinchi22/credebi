@@ -129,6 +129,7 @@ export type BaselineInput =
       readonly commit: string;
       readonly distance: number;
       readonly mutate: readonly string[];
+      readonly renames: string;
     }
   | { readonly found: false; readonly reason: Extract<NoBaselineReason, 'not-found' | 'too-far-back' | 'artifact-missing'> };
 
@@ -587,11 +588,19 @@ const isDetected = (mutant: Mutant): mutant is Mutant & { readonly status: 'Kill
 
 const byPosition = (a: Position, b: Position): number => a.line - b.line || a.column - b.column;
 
-const groupByIdentity = (report: StrykerReport): ReadonlyMap<string, readonly Mutant[]> => {
+const renamesOf = (diff: string): ReadonlyMap<string, string> =>
+  new Map(
+    parseDiff(diff).flatMap((changed) => (changed.from === undefined ? [] : [[changed.from, changed.path] as const])),
+  );
+
+const groupByIdentity = (
+  report: StrykerReport,
+  renames: ReadonlyMap<string, string> = new Map(),
+): ReadonlyMap<string, readonly Mutant[]> => {
   const groups = new Map<string, Mutant[]>();
   for (const mutant of [...report.files.values()].flat()) {
     if (!isDetected(mutant) && !isUnkilled(mutant)) continue;
-    const key = identityKey(mutant);
+    const key = identityKey({ ...mutant, file: renames.get(mutant.file) ?? mutant.file });
     groups.set(key, [...(groups.get(key) ?? []), mutant]);
   }
   return groups;
@@ -615,7 +624,7 @@ function compareWithBaseline(
   if (!parsed.ok) return { state: 'no-baseline', reason: 'unusable', detail: parsed.reason };
   if (!sameList(baseline.mutate, mutate)) return { state: 'no-baseline', reason: 'different-mutate' };
 
-  const before = groupByIdentity(parsed.value);
+  const before = groupByIdentity(parsed.value, renamesOf(baseline.renames));
   const groups: RegressedGroup[] = [];
   let matched = 0;
   let unmatched = 0;
@@ -1205,12 +1214,15 @@ async function findBaseline(): Promise<BaselineInput> {
     throw error;
   }
   const reportFile = path.join(directory, 'mutation.json');
+  const renames = git(process.cwd(), [...DIFF_ARGUMENTS, selected.commit, found.head]);
+  if (!renames.ok) throw new Error(renames.problem);
   return {
     found: true,
     report: existsSync(reportFile) ? readFileSync(reportFile, 'utf8') : undefined,
     commit: selected.commit,
     distance: selected.distance,
     mutate: await mutateAt(selected.commit),
+    renames: renames.stdout,
   };
 }
 
