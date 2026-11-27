@@ -1092,6 +1092,9 @@ numerals.
   total row -- `Total revenue`, `Total expense`, and `Net income` in `Totals` --
   is semibold above a 2px `border` rule. A negative amount keeps its minus sign
   and its colour.
+  An Account's name is a link to its Entry search, set as the name is, Regular
+  in `text`, with no underline or accent at rest or under the pointer, only the
+  pointing-hand cursor under it, and the `focus` ring on keyboard focus.
   An Account group's row holds its name in medium and its subtotal, and its
   Accounts follow it, their names indented 16px; their hairlines and amounts
   are an Account row's. The group's name is one button as wide as its cell,
