@@ -15,7 +15,6 @@ import {
 } from './entries';
 import { accountField, EARLIEST, fromField, LATEST, resultFor, toField } from './entry-search';
 import {
-  accountLink,
   expectPeriod,
   expectStatement,
   periodForm,
@@ -39,6 +38,7 @@ import {
   expectOneColumn,
   expectTotalsDirectlyBelowShorter,
   expectTwoColumnsWithTotalsUnder,
+  accountLink,
   reportTables as statementTables,
   type ReportRow,
   atZero,
