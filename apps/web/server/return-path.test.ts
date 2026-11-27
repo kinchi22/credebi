@@ -134,4 +134,12 @@ describe('accountSearchPath', () => {
 
     expect(accountSearchPath(groceries, { from: '2026-06-01', to: '2026-06-30' })).toBe('/entries/search?account=01920000-0000-7000-8000-00000000c004&from=2026-06-01&to=2026-06-30');
   });
+
+  it('leaves the start day out when the range has only an end', () => {
+    const cash = '01920000-0000-7000-8000-00000000c001' as AccountId;
+
+    expect(accountSearchPath(cash, { to: '2026-06-30' })).toBe(
+      '/entries/search?account=01920000-0000-7000-8000-00000000c001&to=2026-06-30',
+    );
+  });
 });
