@@ -15,6 +15,9 @@ export const zeroRows = (first: string, names: readonly string[]): ReportRow[] =
 export const reportRow = (table: Locator, label: string): Locator =>
   table.getByRole('row').filter({ has: table.page().getByRole('rowheader', { name: label, exact: true }) });
 
+export const accountLink = (page: Page, table: string, name: string): Locator =>
+  namedTable(page, table).getByRole('link', { name, exact: true });
+
 export async function expectRows(table: Locator, rows: readonly ReportRow[]): Promise<void> {
   await expect(table.getByRole('rowheader')).toHaveText(rows.map(([label]) => label));
   for (const [label, amount] of rows) {

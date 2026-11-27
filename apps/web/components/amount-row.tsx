@@ -3,12 +3,12 @@ import { type Money } from '@repo/contracts';
 import { typeClasses } from '@repo/ui/type-classes';
 import { type ReactNode } from 'react';
 import { formatAmount } from './amount';
-import { LINK } from './text-classes';
 
 const ROW = 'border-b border-border last:border-b-0';
 const LABEL = 'pr-3 text-left wrap-anywhere';
 const LABEL_PADDING = 'py-2';
 const AMOUNT = `py-2 text-right whitespace-nowrap ${typeClasses.figure}`;
+const ACCOUNT_LINK = 'text-inherit no-underline cursor-pointer';
 const TOTAL_ROW = 'border-t-2 border-border font-semibold';
 
 export type AmountRowVariant = 'account' | 'group' | 'grouped' | 'total';
@@ -37,7 +37,7 @@ export function AmountRow({ label, amount, variant = 'account', href, id, hidden
         {href === undefined ? (
           label
         ) : (
-          <Link href={href} className={LINK}>
+          <Link href={href} className={ACCOUNT_LINK}>
             {label}
           </Link>
         )}
