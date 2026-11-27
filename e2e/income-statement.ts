@@ -29,9 +29,6 @@ export type StatementTable = 'Revenue' | 'Expenses' | 'Totals';
 
 export const statementTable = (page: Page, name: StatementTable): Locator => namedTable(page, name);
 
-export const accountLink = (page: Page, table: StatementTable, name: string): Locator =>
-  statementTable(page, table).getByRole('link', { name, exact: true });
-
 export const statementPanels = (page: Page): ReportPanels => ({
   left: statementTable(page, 'Expenses'),
   right: statementTable(page, 'Revenue'),
