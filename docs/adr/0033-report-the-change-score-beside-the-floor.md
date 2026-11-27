@@ -116,7 +116,11 @@ cannot hide a deleted test and no mutant is paired with the wrong one. A mutant
 in only one side's groups is unmatched and never flagged, and so are Compile
 error, Runtime error and Ignored mutants on either side. A tolerated Regressed
 mutant is still flagged and counted, shown with its register entry, because the
-register changes no count here as it changes no score.
+register changes no count here as it changes no score. Renames are followed: the
+command also gives the raw `git diff -M` from the Baseline commit to the head,
+used only for renames, and a Baseline file path is mapped through them before
+identity is decided. A renamed or moved file therefore keeps its unedited
+mutants matched, and its text-edited mutants stay unmatched.
 
 The section is in every complete report, after the Change score and before the
 register summary, and in the machine-readable report: regressed, none, or no

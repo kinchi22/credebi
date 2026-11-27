@@ -1514,6 +1514,7 @@ const baselineOf = (
     readonly tests?: Record<string, string>;
     readonly distance?: number;
     readonly mutate?: readonly string[];
+    readonly renames?: string;
   } = {},
 ): BaselineInput => ({
   found: true,
@@ -1521,6 +1522,7 @@ const baselineOf = (
   commit: BASE_COMMIT,
   distance: rest.distance ?? 2,
   mutate: rest.mutate ?? MUTATE,
+  renames: rest.renames ?? '',
 });
 
 const compare = (
@@ -1680,6 +1682,57 @@ describe('the regression against the Baseline', () => {
 
     expect(regression).toMatchObject({ state: 'regressed', matched: 1 });
     expect(located(regression)).toEqual([`${OLD}:25:Survived`]);
+  });
+
+  it('follows a pure rename and flags a mutant that lost detection', () => {
+    const regression = regressionOf(
+      { [NEW]: [at('Survived', 5)] },
+      baselineOf({ [OLD]: [at('Killed', 5)] }, { renames: renamed(OLD, NEW) }),
+    );
+
+    expect(regression).toMatchObject({ state: 'regressed', matched: 1, unmatched: 0 });
+    expect(located(regression)).toEqual([`${NEW}:5:Survived`]);
+  });
+
+  it('follows a file moved to another folder and flags its regressed mutant', () => {
+    const moved = 'packages/core/src/ledger/application/entry.ts';
+    const regression = regressionOf(
+      { [moved]: [at('NoCoverage', 12)] },
+      baselineOf({ [OLD]: [at('Timeout', 5)] }, { renames: renamed(OLD, moved, [12, 1]) }),
+    );
+
+    expect(located(regression)).toEqual([`${moved}:12:NoCoverage`]);
+  });
+
+  it('reads a renamed file whose mutants kept detection as none regressed', () => {
+    const regression = regressionOf(
+      { [NEW]: [at('Killed', 5)] },
+      baselineOf({ [OLD]: [at('Killed', 5)] }, { renames: renamed(OLD, NEW) }),
+    );
+
+    expect(regression).toMatchObject({ state: 'none', matched: 1, unmatched: 0 });
+  });
+
+  it('matches the unedited mutants of a renamed and edited file and leaves its edited ones unmatched', () => {
+    const regression = regressionOf(
+      { [NEW]: [at('Survived', 5, 'a > b'), at('Survived', 9, 'c >= d')] },
+      baselineOf(
+        { [OLD]: [at('Killed', 5, 'a > b'), at('Killed', 9, 'c > d')] },
+        { renames: renamed(OLD, NEW, [9, 1]) },
+      ),
+    );
+
+    expect(regression).toMatchObject({ state: 'regressed', regressed: 1, matched: 1, unmatched: 2 });
+    expect(located(regression)).toEqual([`${NEW}:5:Survived`]);
+  });
+
+  it('leaves a file unmatched when the diff does not rename it', () => {
+    const regression = regressionOf(
+      { [NEW]: [at('Survived', 5)] },
+      baselineOf({ [OLD]: [at('Killed', 5)] }, { renames: modified(OLD, [1, 1]) }),
+    );
+
+    expect(regression).toMatchObject({ state: 'none', unmatched: 2 });
   });
 
   it('flags a group by its shortfall and lists every undetected location of the group', () => {
@@ -1856,6 +1909,7 @@ describe('a comparison with no usable Baseline', () => {
     commit: BASE_COMMIT,
     distance: 1,
     mutate,
+    renames: '',
   });
 
   it.each([
