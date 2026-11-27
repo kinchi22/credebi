@@ -1,9 +1,9 @@
-import { spawnSync } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import stryker from '../stryker.config.ts';
+import { runGh } from './gh.ts';
 import { findMergeBase, git } from './run-advisory-specs.ts';
 
 export const CHANGE_TARGET = 95;
@@ -386,11 +386,11 @@ const parseRegister = (text: string | undefined): Parsed<readonly ToleratedEntry
   return { ok: true, value: entries as readonly ToleratedEntry[] };
 };
 
+const identityKey = ({ file, mutator, replacement, original }: MutantIdentity): string =>
+  JSON.stringify([file, mutator, replacement, original]);
+
 export const matchesEntry = (entry: ToleratedEntry, mutant: MutantIdentity): boolean =>
-  entry.file === mutant.file &&
-  entry.mutator === mutant.mutator &&
-  entry.replacement === mutant.replacement &&
-  entry.original === mutant.original;
+  identityKey(entry) === identityKey(mutant);
 
 const identityOf = ({ file, mutator, original, replacement, revisitBy }: ToleratedEntry): RegisterEntry => ({
   file,
@@ -582,26 +582,20 @@ const isUnkilled = (
 ): mutant is Mutant & { readonly status: 'Survived' | 'NoCoverage' } =>
   mutant.status === 'Survived' || mutant.status === 'NoCoverage';
 
+const isDetected = (mutant: Mutant): mutant is Mutant & { readonly status: 'Killed' | 'Timeout' } =>
+  mutant.status === 'Killed' || mutant.status === 'Timeout';
+
 const byPosition = (a: Position, b: Position): number => a.line - b.line || a.column - b.column;
-
-const DETECTED: readonly Finished[] = ['Killed', 'Timeout'];
-const UNDETECTED: readonly Finished[] = ['Survived', 'NoCoverage'];
-
-const identityKey = ({ file, mutator, replacement, original }: MutantIdentity): string =>
-  JSON.stringify([file, mutator, replacement, original]);
 
 const groupByIdentity = (report: StrykerReport): ReadonlyMap<string, readonly Mutant[]> => {
   const groups = new Map<string, Mutant[]>();
   for (const mutant of [...report.files.values()].flat()) {
-    if (!DETECTED.includes(mutant.status) && !UNDETECTED.includes(mutant.status)) continue;
+    if (!isDetected(mutant) && !isUnkilled(mutant)) continue;
     const key = identityKey(mutant);
     groups.set(key, [...(groups.get(key) ?? []), mutant]);
   }
   return groups;
 };
-
-const isRegressedStatus = (status: Finished): status is 'Survived' | 'NoCoverage' =>
-  status === 'Survived' || status === 'NoCoverage';
 
 const sameList = (a: readonly string[], b: readonly string[]): boolean =>
   a.length === b.length && a.every((pattern, index) => pattern === b[index]);
@@ -626,7 +620,11 @@ function compareWithBaseline(
   let matched = 0;
   let unmatched = 0;
   let ambiguous = 0;
-  for (const [key, now] of groupByIdentity(head)) {
+  const after = groupByIdentity(head);
+  for (const [key, was] of before) {
+    if (!after.has(key)) unmatched += was.length;
+  }
+  for (const [key, now] of after) {
     const was = before.get(key);
     if (was === undefined) {
       unmatched += now.length;
@@ -635,12 +633,9 @@ function compareWithBaseline(
     if (was.length === 1 && now.length === 1) matched += 1;
     else ambiguous += now.length;
 
-    const undetected = now.filter((mutant) => isRegressedStatus(mutant.status));
-    const detectedBefore = was.filter((mutant) => DETECTED.includes(mutant.status));
-    const shortfall = Math.min(
-      detectedBefore.length - now.filter((mutant) => DETECTED.includes(mutant.status)).length,
-      undetected.length,
-    );
+    const undetected = now.filter(isUnkilled);
+    const detectedBefore = was.filter(isDetected);
+    const shortfall = Math.min(detectedBefore.length - now.filter(isDetected).length, undetected.length);
     const [sample] = now;
     if (shortfall <= 0 || sample === undefined) continue;
     groups.push({
@@ -649,13 +644,10 @@ function compareWithBaseline(
       original: sample.original,
       replacement: sample.replacement,
       shortfall,
-      baselineStatuses: unique(detectedBefore.map(({ status }) => status)) as ('Killed' | 'Timeout')[],
+      baselineStatuses: [...new Set(detectedBefore.map(({ status }) => status))].sort(),
       killedBy: unique(
         detectedBefore.flatMap(({ killedBy }) =>
-          killedBy.flatMap((id) => {
-            const name = parsed.value.testNames.get(id);
-            return name === undefined ? [] : [name];
-          }),
+          killedBy.map((id) => parsed.value.testNames.get(id) ?? id),
         ),
       ),
       locations: undetected
@@ -664,7 +656,7 @@ function compareWithBaseline(
           return {
             line: mutant.start.line,
             column: mutant.start.column,
-            status: mutant.status as 'Survived' | 'NoCoverage',
+            status: mutant.status,
             ...(entry === undefined ? {} : { tolerated: { reason: entry.reason, revisitBy: entry.revisitBy } }),
           };
         })
@@ -1137,17 +1129,9 @@ export function planLocalRun(input: {
 
 const CI_WORKFLOW = 'ci.yml';
 const BASELINE_ARTIFACT = 'mutation-json';
-const RUN_PAGES = 3;
+const ARTIFACT_GONE = /no valid artifacts|not found|404|expired|gone/i;
 
-function gh(args: readonly string[]): string {
-  const result = spawnSync('gh', [...args], {
-    encoding: 'utf8',
-    shell: false,
-    maxBuffer: 64 * 1024 * 1024,
-  });
-  if (result.status === 0) return result.stdout;
-  throw new Error(`gh ${args.join(' ')} failed: ${(result.error?.message ?? result.stderr).trim()}`);
-}
+const gh = (args: readonly string[]): string => runGh(args, process.env);
 
 const ghJson = (endpoint: string): Record<string, unknown> => {
   const parsed: unknown = JSON.parse(gh(['api', endpoint]));
@@ -1158,26 +1142,20 @@ const ghJson = (endpoint: string): Record<string, unknown> => {
 const listOf = (value: unknown): readonly Record<string, unknown>[] =>
   Array.isArray(value) ? (value as readonly unknown[]).filter(isRecord) : [];
 
-function mainRunsBySha(repository: string, wanted: ReadonlySet<string>): ReadonlyMap<string, number> {
-  const runs = new Map<string, number>();
-  for (let page = 1; page <= RUN_PAGES && runs.size < wanted.size; page += 1) {
-    const listing = ghJson(
-      `repos/${repository}/actions/workflows/${CI_WORKFLOW}/runs?branch=main&event=push&status=completed&per_page=100&page=${String(page)}`,
-    );
-    for (const run of listOf(listing['workflow_runs'])) {
-      const [sha, id] = [run['head_sha'], run['id']];
-      if (typeof sha === 'string' && typeof id === 'number' && wanted.has(sha) && !runs.has(sha)) {
-        runs.set(sha, id);
-      }
-    }
-  }
-  return runs;
-}
-
-const hasLiveArtifact = (repository: string, run: number): boolean =>
-  listOf(ghJson(`repos/${repository}/actions/runs/${String(run)}/artifacts?name=${BASELINE_ARTIFACT}`)['artifacts']).some(
-    (artifact) => artifact['expired'] === false,
+function runWithArtifact(repository: string, commit: string): number | undefined {
+  const listing = ghJson(
+    `repos/${repository}/actions/workflows/${CI_WORKFLOW}/runs?head_sha=${commit}&branch=main&event=push&status=completed`,
   );
+  for (const run of listOf(listing['workflow_runs'])) {
+    const id = run['id'];
+    if (typeof id !== 'number') continue;
+    const artifacts = listOf(
+      ghJson(`repos/${repository}/actions/runs/${String(id)}/artifacts?name=${BASELINE_ARTIFACT}`)['artifacts'],
+    );
+    if (artifacts.some((artifact) => artifact['expired'] === false)) return id;
+  }
+  return undefined;
+}
 
 async function mutateAt(commit: string): Promise<readonly string[]> {
   const config = git(process.cwd(), ['show', `${commit}:stryker.config.ts`]);
@@ -1207,22 +1185,25 @@ async function findBaseline(): Promise<BaselineInput> {
   if (!listed.ok) throw new Error(listed.problem);
   const ancestors = listed.stdout.split('\n').filter((commit) => commit !== '');
 
-  const runs = mainRunsBySha(repository, new Set(ancestors.slice(0, BASELINE_WINDOW + 1)));
-  const withArtifact = new Set<string>();
+  const runs = new Map<string, number>();
   for (const commit of ancestors.slice(0, BASELINE_WINDOW + 1)) {
-    const run = runs.get(commit);
-    if (run !== undefined && hasLiveArtifact(repository, run)) {
-      withArtifact.add(commit);
-      break;
-    }
+    const run = runWithArtifact(repository, commit);
+    if (run !== undefined) runs.set(commit, run);
   }
-  const selected = selectBaseline(ancestors, withArtifact);
+  const selected = selectBaseline(ancestors, new Set(runs.keys()));
   if (!selected.found) return selected;
 
   const run = runs.get(selected.commit);
   if (run === undefined) throw new Error(`no run found for ${selected.commit}`);
   const directory = mkdtempSync(path.join(tmpdir(), 'baseline-report-'));
-  gh(['run', 'download', String(run), '--repo', repository, '--name', BASELINE_ARTIFACT, '--dir', directory]);
+  try {
+    gh(['run', 'download', String(run), '--repo', repository, '--name', BASELINE_ARTIFACT, '--dir', directory]);
+  } catch (error) {
+    if (error instanceof Error && ARTIFACT_GONE.test(error.message)) {
+      return { found: false, reason: 'artifact-missing' };
+    }
+    throw error;
+  }
   const reportFile = path.join(directory, 'mutation.json');
   return {
     found: true,

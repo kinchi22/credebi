@@ -1630,7 +1630,7 @@ describe('the regression against the Baseline', () => {
       baselineOf({ [OLD]: [at('Killed', 5, 'a > b')] }),
     );
 
-    expect(regression).toMatchObject({ state: 'none', matched: 0, unmatched: 1, ambiguous: 0 });
+    expect(regression).toMatchObject({ state: 'none', matched: 0, unmatched: 2, ambiguous: 0 });
   });
 
   it('leaves a mutant whose source text was edited unmatched, never flagged', () => {
@@ -1639,7 +1639,7 @@ describe('the regression against the Baseline', () => {
       baselineOf({ [OLD]: [at('Killed', 5, 'a > b')] }),
     );
 
-    expect(regression).toMatchObject({ state: 'none', unmatched: 1 });
+    expect(regression).toMatchObject({ state: 'none', unmatched: 2 });
   });
 
   it('leaves a mutant of another mutator or replacement unmatched', () => {
@@ -1653,14 +1653,23 @@ describe('the regression against the Baseline', () => {
       base,
     );
 
-    expect(otherMutator).toMatchObject({ state: 'none', unmatched: 1 });
-    expect(otherReplacement).toMatchObject({ state: 'none', unmatched: 1 });
+    expect(otherMutator).toMatchObject({ state: 'none', unmatched: 2 });
+    expect(otherReplacement).toMatchObject({ state: 'none', unmatched: 2 });
+  });
+
+  it('counts a group only the Baseline holds as unmatched, never flagged', () => {
+    const regression = regressionOf(
+      { [OLD]: [at('Killed', 5, 'x')] },
+      baselineOf({ [OLD]: [at('Killed', 5, 'x'), at('Killed', 6, 'y'), at('Killed', 7, 'y')] }),
+    );
+
+    expect(regression).toMatchObject({ state: 'none', matched: 1, unmatched: 2 });
   });
 
   it('leaves a mutant of a file absent from the Baseline unmatched', () => {
     const regression = regressionOf({ [NEW]: [at('Survived', 5)] }, baselineOf({ [OLD]: [at('Killed', 5)] }));
 
-    expect(regression).toMatchObject({ state: 'none', unmatched: 1 });
+    expect(regression).toMatchObject({ state: 'none', unmatched: 2 });
   });
 
   it('keeps a match when unrelated lines move above the mutant', () => {
@@ -1719,7 +1728,7 @@ describe('the regression against the Baseline', () => {
     expect(regression).toMatchObject({ state: 'regressed', regressed: 1, matched: 1, ambiguous: 0 });
   });
 
-  it('counts matched, unmatched and ambiguous mutants of the head', () => {
+  it('counts matched, ambiguous and unmatched mutants, unmatched from either side', () => {
     const regression = regressionOf(
       {
         [OLD]: [at('Killed', 1, 'x'), at('Killed', 2, 'y'), at('Killed', 3, 'y'), at('Killed', 4, 'z')],
@@ -1729,7 +1738,7 @@ describe('the regression against the Baseline', () => {
       }),
     );
 
-    expect(regression).toMatchObject({ matched: 1, ambiguous: 2, unmatched: 1 });
+    expect(regression).toMatchObject({ matched: 1, ambiguous: 2, unmatched: 2 });
   });
 
   it('flags a tolerated Regressed mutant with its register entry, counting it all the same', () => {
@@ -1748,7 +1757,7 @@ describe('the regression against the Baseline', () => {
     expect(renderChangeReport(report)).toContain('tolerated: equivalent mutant Revisit by 2026-12-31.');
   });
 
-  it('shows the Baseline commit, the distance, the statuses and the tests that killed the mutant', () => {
+  it('shows the Baseline commit, the distance, the statuses and the tests that killed the mutant, an unknown test as its raw id', () => {
     const report = compare(
       { [OLD]: [at('Survived', 5)] },
       baselineOf(
@@ -1766,7 +1775,7 @@ describe('the regression against the Baseline', () => {
           original: 'a > b',
           replacement: 'true',
           baselineStatuses: ['Killed'],
-          killedBy: ['entry rejects a credit', 'entry rejects a debit'],
+          killedBy: ['9', 'entry rejects a credit', 'entry rejects a debit'],
           locations: [{ line: 5, status: 'Survived' }],
         },
       ],
@@ -1777,7 +1786,7 @@ describe('the regression against the Baseline', () => {
     expect(markdown).toContain('Baseline Killed');
     expect(markdown).toContain(`\`${OLD}:5:3\` Survived`);
     expect(markdown).toContain(
-      'Killed in the Baseline by: `entry rejects a credit`, `entry rejects a debit`',
+      'Killed in the Baseline by: `9`, `entry rejects a credit`, `entry rejects a debit`',
     );
   });
 
