@@ -6,8 +6,8 @@ import { type ReactNode } from 'react';
 import { IncomeStatementColdVisit } from '../../../../components/income-statement-cold-visit';
 import { IncomeStatementForm } from '../../../../components/income-statement-form';
 import { IncomeStatementSection } from '../../../../components/income-statement-section';
-import { IncomeStatementSkeleton } from '../../../../components/income-statement-skeletons';
 import { LoadingSection } from '../../../../components/loading-section';
+import { StatementSkeleton } from '../../../../components/statement-tables';
 import { PAGE_HEADING } from '../../../../components/text-classes';
 import { createContext } from '../../../../server/context';
 import { periodOfQuery } from '../../../../server/income-statement';
@@ -58,7 +58,7 @@ export default async function IncomeStatementPage({
       <LoadingSection
         key={JSON.stringify(query)}
         name={t('incomeStatementPage.title')}
-        skeleton={<IncomeStatementSkeleton />}
+        skeleton={<StatementSkeleton title={t('incomeStatementPage.title')} stackRightFirst />}
       >
         <IncomeStatementSection query={query} keep={keepCollapsed} />
       </LoadingSection>

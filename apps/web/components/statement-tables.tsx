@@ -6,9 +6,11 @@ import {
 } from '@repo/contracts';
 import { PANEL, PANEL_TITLE } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
+import { useTranslations } from 'next-intl';
 import { type ReactNode, useId } from 'react';
 import { AmountRow } from './amount-row';
 import { type StatementColumn, totalsUnder } from './statement-columns';
+import { SkeletonLine, SkeletonRowsPanel, SkeletonSection } from './skeleton';
 import { type KeepCollapsed, StatementGroup } from './statement-group';
 import { Band } from './type-band';
 
@@ -114,5 +116,24 @@ export function StatementTables({ left, right, stackRightFirst = false, totals, 
         </table>
       </div>
     </div>
+  );
+}
+
+const SKELETON_HEADING = <SkeletonLine className="w-1/3" />;
+
+type StatementSkeletonProps = { readonly title: string; readonly stackRightFirst?: boolean };
+
+export function StatementSkeleton({ title, stackRightFirst = false }: StatementSkeletonProps): ReactNode {
+  const t = useTranslations();
+  const { left, right, totals } = PLACEMENT.left;
+  const panels = [
+    <SkeletonRowsPanel key="left" heading={SKELETON_HEADING} className={left} />,
+    <SkeletonRowsPanel key="right" heading={SKELETON_HEADING} className={right} />,
+  ];
+  return (
+    <SkeletonSection message={t('sectionState.loading', { section: title })} className={STATEMENT_COLUMNS}>
+      {stackRightFirst ? panels.toReversed() : panels}
+      <SkeletonRowsPanel heading={SKELETON_HEADING} className={totals} />
+    </SkeletonSection>
   );
 }
