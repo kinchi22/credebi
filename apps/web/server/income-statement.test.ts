@@ -4,6 +4,7 @@ import { toTrpcError } from './domain-error';
 import {
   answerDefaultRangeStatement,
   answerIncomeStatement,
+  periodOfQuery,
   type ShowIncomeStatement,
 } from './income-statement';
 
@@ -118,5 +119,19 @@ describe('answerDefaultRangeStatement', () => {
     await expect(
       answerDefaultRangeStatement(failing('DEPENDENCY_UNAVAILABLE'), JUNE),
     ).resolves.toEqual({ outcome: 'unavailable', period: JUNE });
+  });
+});
+
+describe('periodOfQuery', () => {
+  it('reads the period the query holds', () => {
+    expect(periodOfQuery(JUNE)).toEqual(JUNE);
+  });
+
+  it('reads an empty period from a query that holds none', () => {
+    expect(periodOfQuery({})).toEqual({});
+  });
+
+  it('reads an empty period from a query that is refused', () => {
+    expect(periodOfQuery({ from: 'not-a-day', to: '2026-06-01' })).toEqual({});
   });
 });

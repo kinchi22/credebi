@@ -1,11 +1,11 @@
 import { useTranslations } from 'next-intl';
 import { type AccountId, type IncomeStatementOutput, type IncomeStatementQuery } from '@repo/contracts';
 import { type ReactNode } from 'react';
-import { type IncomeStatementAnswer } from '../server/income-statement';
+import { type ShownIncomeStatementAnswer } from '../server/income-statement';
 import { accountSearchPath } from '../server/return-path';
 import { type KeepCollapsed } from './statement-group';
 import { StatementTables } from './statement-tables';
-import { DANGER_TEXT, MUTED_TEXT } from './text-classes';
+import { DANGER_TEXT } from './text-classes';
 
 export type IncomeStatementTablesProps = {
   readonly statement: IncomeStatementOutput;
@@ -36,7 +36,7 @@ export function IncomeStatementTables({ statement, period, keep }: IncomeStateme
 }
 
 export type IncomeStatementOutcomeProps = {
-  readonly answer: IncomeStatementAnswer;
+  readonly answer: ShownIncomeStatementAnswer;
   readonly keep: KeepCollapsed;
 };
 
@@ -47,18 +47,7 @@ export function IncomeStatementOutcome({ answer, keep }: IncomeStatementOutcomeP
   }
   return (
     <p role="alert" className={DANGER_TEXT}>
-      {t(answer.outcome)}
+      {t('refused')}
     </p>
-  );
-}
-
-export function IncomeStatementPending(): ReactNode {
-  const t = useTranslations('incomeStatement');
-  return (
-    <section aria-busy className="flex flex-col gap-2">
-      <p role="status" className={MUTED_TEXT}>
-        {t('loading')}
-      </p>
-    </section>
   );
 }

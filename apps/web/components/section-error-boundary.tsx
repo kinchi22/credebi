@@ -6,9 +6,9 @@ import { type ReactNode } from 'react';
 import { BUTTON, LEGEND, SETTINGS_SECTION } from './control-classes';
 import { DANGER_TEXT } from './text-classes';
 
-type SectionErrorProps = { readonly name: string };
+export type SectionFailureProps = { readonly name: string; readonly retry: () => void };
 
-function SectionFailed({ name }: SectionErrorProps, { retry }: ErrorInfo): ReactNode {
+export function SectionFailure({ name, retry }: SectionFailureProps): ReactNode {
   const t = useTranslations();
   return (
     <div role="alert" className={`${SETTINGS_SECTION} items-start`}>
@@ -19,6 +19,10 @@ function SectionFailed({ name }: SectionErrorProps, { retry }: ErrorInfo): React
       </button>
     </div>
   );
+}
+
+function SectionFailed({ name }: { readonly name: string }, { retry }: ErrorInfo): ReactNode {
+  return <SectionFailure name={name} retry={retry} />;
 }
 
 export const SectionErrorBoundary = catchError(SectionFailed);
