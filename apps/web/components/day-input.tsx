@@ -70,7 +70,7 @@ export function DayInput({ id, name, day, onDay, required, autoComplete, classNa
     if (iso !== undefined) {
       setKept(iso);
       if (iso !== kept) onDay?.(iso);
-    } else if (edit.digits === '') {
+    } else if (edit.digits === '' && required !== true) {
       setKept('');
     }
   };
