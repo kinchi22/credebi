@@ -378,6 +378,9 @@ export const ko = {
       around: '±{months}개월',
     },
   },
+  dayInput: {
+    invalid: '날짜를 YYYYMMDD 형식으로 입력하세요',
+  },
   monthInput: {
     chooseMonth: '월 선택',
     previousYear: '이전 연도',

@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { monthRangeOf, type DayRange } from '@repo/core/entries';
-import { useId, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
+import { useId, useRef, useState, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import { DATE_CONTROL, FIELD } from './control-classes';
 import { DatePresets, DatePresetsSheet, type Granularity } from './date-presets';
@@ -34,21 +34,13 @@ type RangeFieldProps = {
 
 const RANGE_FIELD = `${DATE_CONTROL} w-full min-w-0 wide:w-auto`;
 
-function keepingAValue(set: (value: string) => void): (event: ChangeEvent<HTMLInputElement>) => void {
-  return (event) => {
-    if (event.target.value !== '') {
-      set(event.target.value);
-    }
-  };
-}
-
 function DayField({ id, name, value, onValue }: RangeFieldProps): ReactNode {
   return (
     <DayInput
       id={id}
       name={name}
-      value={value}
-      onChange={keepingAValue(onValue)}
+      day={value}
+      onDay={onValue}
       required
       autoComplete="off"
       className={RANGE_FIELD}

@@ -22,7 +22,7 @@ export async function TestSignInForm({ returnTo, action }: TestSignInFormProps):
       </label>
       <label className={`flex flex-col gap-1 ${typeClasses['body-sm']}`}>
         {t('accountsStartOn')}
-        <DayInput name={TEST_SIGN_IN_FIELDS.accountsStartOn} className={CONTROL} />
+        <DayInput name={TEST_SIGN_IN_FIELDS.accountsStartOn} day="" className={CONTROL} />
       </label>
       <button type="submit" className={`self-start ${BUTTON}`}>
         {t('submit')}

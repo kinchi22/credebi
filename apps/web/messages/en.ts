@@ -362,6 +362,9 @@ export const en = {
       around: '\u00B1{months, plural, one {# month} other {# months}}',
     },
   },
+  dayInput: {
+    invalid: 'Enter a date as YYYYMMDD',
+  },
   monthInput: {
     chooseMonth: 'Choose month',
     previousYear: 'Previous year',
