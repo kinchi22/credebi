@@ -42,6 +42,14 @@ export function CalendarIcon(): ReactNode {
   );
 }
 
+export function BoltIcon(): ReactNode {
+  return (
+    <StrokeIcon size={20}>
+      <path d="M13 3L5 13.5h6L10 21l8-10.5h-6z" />
+    </StrokeIcon>
+  );
+}
+
 export function CloseIcon(): ReactNode {
   return (
     <StrokeIcon size={20}>

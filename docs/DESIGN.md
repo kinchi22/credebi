@@ -765,7 +765,7 @@ numerals.
   today. The year, quarter and month that hold today are set in `accent-text`,
   semibold and underlined in `accent`; a Relative choice never is. No choice is
   marked as chosen: From and To state the range. Below `wide` the row is not
-  shown: a secondary button holding a calendar icon, named `Choose a period`,
+  shown: a secondary button holding a bolt icon, not a calendar, so that the only calendar on a range form is each field's own, named `Choose a period`,
   sits beside From and To and opens the presets as a full-screen modal dialog on
   the `ground`. The button is an Icon button: square, 36px, as tall as From
   and To, with an Input's edge. A `surface` bar holds its title and a

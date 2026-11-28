@@ -9,6 +9,7 @@ export type { LogoTone, LogoVariant } from './logo-drawing';
 export {
   ArrowDownIcon,
   ArrowUpIcon,
+  BoltIcon,
   CalendarIcon,
   CheckIcon,
   ChevronIcon,
