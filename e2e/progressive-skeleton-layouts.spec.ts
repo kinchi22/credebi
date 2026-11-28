@@ -42,7 +42,7 @@ for (const view of PAGES) {
       const held: FaultModes = Object.fromEntries(view.sections.map((section) => [section.id, 'hold']));
       await injectFaults(page, held);
 
-      await page.goto(view.path);
+      await page.goto(view.path, { waitUntil: 'commit' });
 
       await expectShell(page, view);
       const busy = busySections(page);

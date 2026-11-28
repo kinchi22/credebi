@@ -10,7 +10,7 @@ for (const view of PAGES) {
     const held: FaultModes = Object.fromEntries(view.sections.map((section) => [section.id, 'hold']));
     await injectFaults(page, held, new URL(baseURL ?? '').origin);
 
-    await page.goto(view.path);
+    await page.goto(view.path, { waitUntil: 'commit' });
 
     await expect(page).toHaveURL(SIGN_IN_URL);
     await expect(page.getByRole('form', { name: 'Test sign-in' })).toBeVisible();

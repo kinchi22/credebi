@@ -9,7 +9,7 @@ for (const view of PAGES) {
       await signInWithSeededEntries(page);
       await injectFaults(page, { [held.id]: 'hold' });
 
-      await page.goto(view.path);
+      await page.goto(view.path, { waitUntil: 'commit' });
 
       await expectShell(page, view);
       const busy = busySections(page);

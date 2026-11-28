@@ -13,7 +13,7 @@ for (const view of PAGES) {
       await signInWithSeededEntries(page);
       const faults = await injectFaults(page, { [held.id]: 'hold' });
 
-      await page.goto(view.path);
+      await page.goto(view.path, { waitUntil: 'commit' });
 
       const busy = busySections(page);
       await expect(busy).toHaveCount(1);

@@ -9,7 +9,7 @@ for (const view of REPORT_PAGES) {
     await signInWithSeededEntries(page);
     const faults = await injectFaults(page, { [view.report.id]: 'hold' });
 
-    await page.goto(view.second.path);
+    await page.goto(view.second.path, { waitUntil: 'commit' });
 
     await expectShell(page, view);
     await expect(busySections(page)).toHaveCount(1);
@@ -24,7 +24,7 @@ for (const view of REPORT_PAGES) {
     await signInWithSeededEntries(page);
     const faults = await injectFaults(page, { [view.report.id]: 'hold' });
 
-    await page.goto(view.pathWithoutQuery);
+    await page.goto(view.pathWithoutQuery, { waitUntil: 'commit' });
 
     await expectShell(page, view);
     const busy = busySections(page);
