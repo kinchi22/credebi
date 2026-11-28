@@ -14,6 +14,9 @@ export const reportDate = (page: Page): Locator =>
 
 export const showButton = (page: Page): Locator => reportDateForm(page).getByRole('button', { name: SHOW_LABELS });
 
+export const reportDatePickerButton = (page: Page): Locator =>
+  reportDateForm(page).getByRole('button').filter({ hasNotText: SHOW_LABELS });
+
 export async function showReport(page: Page, day: string): Promise<void> {
   await expect(reportDateForm(page)).toBeVisible();
   await reportDate(page).fill(day);
