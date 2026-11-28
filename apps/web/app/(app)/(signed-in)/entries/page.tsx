@@ -1,16 +1,10 @@
-import { type EntryFormMode } from '@repo/contracts';
 import { type Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { type ReactNode } from 'react';
-import { type EntryFormProps } from '../../../../components/entry-form';
-import { EntryList } from '../../../../components/entry-list';
-import { MultiLineEntryForm } from '../../../../components/multi-line-entry-form';
+import { EntriesFormSection, EntriesListSection } from '../../../../components/entries-sections';
+import { EntriesFormSkeleton, EntriesListSkeleton } from '../../../../components/entries-skeletons';
+import { LoadingSection } from '../../../../components/loading-section';
 import { PAGE_HEADING } from '../../../../components/text-classes';
-import { TwoLineEntryForm } from '../../../../components/two-line-entry-form';
-import { createContext } from '../../../../server/context';
-import { SIGNED_IN_HOME } from '../../../../server/return-path';
-import { createCaller } from '../../../../server/root-router';
-import { orSignIn } from '../../../../server/sign-in-redirect';
 import { deleteEntry, editEntry, postEntry } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -20,30 +14,18 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t('entriesPage.title') };
 }
 
-const FORM_BY_MODE: Readonly<Record<EntryFormMode, (props: EntryFormProps) => ReactNode>> = {
-  'two-line': TwoLineEntryForm,
-  'multi-line': MultiLineEntryForm,
-};
-
 export default async function EntriesPage(): Promise<ReactNode> {
   const t = await getTranslations();
-  const caller = createCaller(await createContext());
-  const [settings, chart, titles, entries] = await Promise.all([
-    orSignIn(caller.settings.read(), SIGNED_IN_HOME),
-    orSignIn(caller.accounts.chart(), SIGNED_IN_HOME),
-    orSignIn(caller.entries.titles(), SIGNED_IN_HOME),
-    orSignIn(caller.entries.log(), SIGNED_IN_HOME),
-  ]);
-  const EntryForm = FORM_BY_MODE[settings.entryFormMode];
 
   return (
     <>
       <h1 className={PAGE_HEADING}>{t('entriesPage.title')}</h1>
-      <EntryForm action={postEntry} chart={chart} titles={titles} />
-      <EntryList
-        entries={entries}
-        controls={{ chart, titles, entryFormMode: settings.entryFormMode, editEntry, deleteEntry }}
-      />
+      <LoadingSection name={t('entryForm.title')} skeleton={<EntriesFormSkeleton />}>
+        <EntriesFormSection action={postEntry} />
+      </LoadingSection>
+      <LoadingSection name={t('entryList.title')} skeleton={<EntriesListSkeleton />}>
+        <EntriesListSection controls={{ editEntry, deleteEntry }} />
+      </LoadingSection>
     </>
   );
 }

@@ -1,3 +1,4 @@
+import { PANEL } from '@repo/ui';
 import { type ReactNode } from 'react';
 
 export function SkeletonBlock({ className }: { readonly className: string }): ReactNode {
@@ -23,6 +24,24 @@ export function SkeletonField({ className }: { readonly className: string }): Re
     <div className="flex flex-col gap-1">
       <SkeletonLine className="w-1/4" />
       <SkeletonBlock className={`h-control ${className}`} />
+    </div>
+  );
+}
+
+const ROWS_WHEN_COUNT_UNKNOWN = Array.from({ length: 3 }, (_, index) => index);
+
+export function SkeletonRows({
+  row: Row = SkeletonRow,
+}: {
+  readonly row?: () => ReactNode;
+}): ReactNode {
+  return ROWS_WHEN_COUNT_UNKNOWN.map((index) => <Row key={index} />);
+}
+
+export function SkeletonRowsPanel(): ReactNode {
+  return (
+    <div className={`${PANEL} flex flex-col gap-2`}>
+      <SkeletonRows />
     </div>
   );
 }

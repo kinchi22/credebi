@@ -1,4 +1,3 @@
-import { PANEL } from '@repo/ui';
 import { useTranslations } from 'next-intl';
 import { type ReactNode } from 'react';
 import {
@@ -7,19 +6,7 @@ import {
   SETTINGS_ROW,
   SETTINGS_SECTION,
 } from './control-classes';
-import { SkeletonBlock, SkeletonLine, SkeletonRow, SkeletonSection } from './skeleton';
-
-const ROWS_WHEN_COUNT_UNKNOWN = Array.from({ length: 3 }, (_, index) => index);
-
-function RowsPanel(): ReactNode {
-  return (
-    <div className={`${PANEL} flex flex-col gap-2`}>
-      {ROWS_WHEN_COUNT_UNKNOWN.map((row) => (
-        <SkeletonRow key={row} />
-      ))}
-    </div>
-  );
-}
+import { SkeletonBlock, SkeletonLine, SkeletonRowsPanel, SkeletonSection } from './skeleton';
 
 export function EntryFormModeSkeleton(): ReactNode {
   const t = useTranslations();
@@ -58,7 +45,7 @@ export function AccountsSkeleton(): ReactNode {
         <SkeletonLine className="w-24" />
         <SkeletonLine className="w-32" />
       </div>
-      <RowsPanel />
+      <SkeletonRowsPanel />
     </SkeletonSection>
   );
 }
@@ -74,7 +61,7 @@ export function ConnectionsSkeleton(): ReactNode {
         <SkeletonLine className="w-28" />
         <SkeletonBlock className="h-control w-32" />
       </div>
-      <RowsPanel />
+      <SkeletonRowsPanel />
     </SkeletonSection>
   );
 }

@@ -17,7 +17,7 @@ import { flushSync } from 'react-dom';
 import { formatAmount } from './amount';
 import { DeleteEntry, type DeleteEntryAction } from './delete-entry';
 import { EditEntry, type EditEntryAction } from './edit-entry';
-import { BARE_ICON_BUTTON } from './control-classes';
+import { BARE_ICON_BUTTON, ENTRY_LIST_ROW } from './control-classes';
 import { accountTypesIn, entryExpansion, linesOn, SIDES, type AccountTypes, type HeldOpen } from './entry-lines';
 import { SIDE_TONE } from './side-classes';
 import { MUTED_TEXT } from './text-classes';
@@ -244,7 +244,7 @@ function ListedEntry({
       data-testid={markedAs(marked, 'entry')}
       onClick={expandable ? toggleOnBodyClick : undefined}
       style={{ viewTransitionName: entryTransitionName(entry), viewTransitionClass: 'entry-expansion' }}
-      className={`${PANEL_BLEED} relative grid grid-cols-1 @list:grid-cols-2 ${compact ? '@max-list:grid-cols-2' : ''} ${expandable ? '@max-list:cursor-pointer' : ''} border-t border-border py-4 first:border-t-0 first:pt-1 hover:bg-surface-hover ${typeClasses['body-dense']}`}
+      className={`${PANEL_BLEED} relative grid grid-cols-1 @list:grid-cols-2 ${compact ? '@max-list:grid-cols-2' : ''} ${expandable ? '@max-list:cursor-pointer' : ''} ${ENTRY_LIST_ROW} hover:bg-surface-hover ${typeClasses['body-dense']}`}
     >
       <div role="row" className="contents">
         <div

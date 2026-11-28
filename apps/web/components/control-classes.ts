@@ -38,3 +38,6 @@ export const UNCHOSEN_SEGMENT = 'text-text-muted';
 export const FIRST_SETTINGS_ROW = `${SETTINGS_ROW} border-t`;
 export const SETTINGS_SECTION = 'flex flex-col gap-2 border-b border-border py-5';
 export const CONNECTIONS_SECTION = 'flex flex-col gap-3 border-b border-border py-5';
+export const ENTRY_FORM_FRAME = 'flex flex-col gap-3';
+export const ENTRY_FORM_HEADING = 'flex flex-wrap gap-3 wide:grid wide:grid-cols-[9.25rem_minmax(0,1fr)]';
+export const ENTRY_LIST_ROW = 'border-t border-border py-4 first:border-t-0 first:pt-1';

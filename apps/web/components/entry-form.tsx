@@ -29,6 +29,8 @@ import {
   CONTROL,
   DATE_CONTROL,
   DENSE_FIELD,
+  ENTRY_FORM_FRAME,
+  ENTRY_FORM_HEADING,
   FIELD_LABEL,
   PRIMARY_BUTTON,
 } from './control-classes';
@@ -279,7 +281,7 @@ export function EntryFormShell({
         </h2>
       ) : null}
 
-      <div className="flex flex-wrap gap-3 wide:grid wide:grid-cols-[9.25rem_minmax(0,1fr)]">
+      <div className={ENTRY_FORM_HEADING}>
         <div className={DENSE_FIELD}>
           <label htmlFor={`${id}-date`} className={FIELD_LABEL}>{t('entryForm.date')}</label>
           <DayInput
@@ -345,7 +347,7 @@ export function EntryFormShell({
       ref={form}
       aria-labelledby={variant.labelledBy ?? `${id}-title`}
       onSubmit={submit}
-      className={`flex flex-col gap-3 ${variant.frame}`}
+      className={`${ENTRY_FORM_FRAME} ${variant.frame}`}
     >
       <input type="hidden" name={ENTRY_FORM_FIELDS.entryFormMode} value={mode} />
 
