@@ -1,4 +1,4 @@
-import { type DomainErrorCode } from '@repo/contracts';
+import { type DomainErrorCode, type Result } from '@repo/contracts';
 import { fromTrpcError } from './domain-error';
 
 export type Unanswered = 'refused' | 'unavailable';
@@ -14,4 +14,13 @@ export function unanswered(thrown: unknown): Unanswered {
     throw thrown;
   }
   return outcome;
+}
+
+export type Shown<Answer extends { readonly outcome: string }> = Exclude<
+  Answer,
+  { readonly outcome: 'unavailable' }
+>;
+
+export function parsedOrEmpty<Value>(parsed: Result<Value, unknown>): Partial<Value> {
+  return parsed.ok ? parsed.value : {};
 }

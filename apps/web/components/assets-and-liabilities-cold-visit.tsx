@@ -2,10 +2,11 @@
 
 import { type AssetsAndLiabilitiesQuery } from '@repo/contracts';
 import { useTranslations } from 'next-intl';
-import { useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { type AssetsAndLiabilitiesAnswer } from '../server/assets-and-liabilities';
 import { AssetsAndLiabilitiesForm } from './assets-and-liabilities-form';
 import { AssetsAndLiabilitiesOutcome } from './assets-and-liabilities-tables';
+import { RetryingColdVisit } from './retrying-cold-visit';
 import { SectionFailure } from './section-error-boundary';
 import { type KeepCollapsed } from './statement-group';
 import { StatementSkeleton } from './statement-tables';
@@ -44,15 +45,9 @@ function ColdVisitAttempt({ show, keep, retry }: AttemptProps): ReactNode {
 }
 
 export function AssetsAndLiabilitiesColdVisit({ show, keep }: AssetsAndLiabilitiesColdVisitProps): ReactNode {
-  const [attempt, setAttempt] = useState(0);
   return (
-    <ColdVisitAttempt
-      key={attempt}
-      show={show}
-      keep={keep}
-      retry={() => {
-        setAttempt((current) => current + 1);
-      }}
-    />
+    <RetryingColdVisit>
+      {(retry) => <ColdVisitAttempt show={show} keep={keep} retry={retry} />}
+    </RetryingColdVisit>
   );
 }

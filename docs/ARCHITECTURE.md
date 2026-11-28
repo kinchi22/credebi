@@ -190,7 +190,7 @@ Raise the TypeScript major only together with `typescript-eslint`.
 | `packages/contracts`         | Unit tests, pure. Measured since ADR-0004.             |
 | `packages/ui`                | Its pure `.ts` modules, such as the design tokens: unit tests, measured. Its `.tsx` components: Playwright, where the app renders them. |
 | `apps/web/components`        | Its `.ts` modules: unit tests, measured, except hook shells (`use-*.ts`) and class-string modules (`*-classes.ts`). Those and its `.tsx` components: Playwright. |
-| `apps/web/server`            | The half a unit test can import -- `assets-and-liabilities.ts`, `catalogues.ts`, `domain-error.ts`, `env.ts`, `income-statement.ts`, `logger.ts`, `request-error.ts`, `return-path.ts`, `section-fault-release.ts`, `section-faults.ts`, `session-cookie.ts` and `sign-in-redirect.ts` today -- unit tested and measured. |
+| `apps/web/server`            | The half a unit test can import -- `assets-and-liabilities-trend.ts`, `assets-and-liabilities.ts`, `catalogues.ts`, `domain-error.ts`, `env.ts`, `income-statement.ts`, `logger.ts`, `request-error.ts`, `return-path.ts`, `section-fault-release.ts`, `section-faults.ts`, `session-cookie.ts` and `sign-in-redirect.ts` today -- unit tested and measured. |
 | the composition root, `routers/**`, `app/**` | Playwright, against a production build in CI (`E2E build`), on a Postgres service container migrated before the suite. Nothing else reaches them. |
 
 "Measured" means the mutation score, which is the only coverage floor here:

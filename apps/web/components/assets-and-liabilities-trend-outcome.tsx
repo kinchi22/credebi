@@ -1,13 +1,13 @@
 import { useTranslations } from 'next-intl';
 import { type AssetsAndLiabilitiesTrendOutput } from '@repo/contracts';
 import { MOST_TREND_MONTHS } from '@repo/core/entries';
-import { PANEL } from '@repo/ui';
 import { type ReactNode } from 'react';
-import { type ShownAssetsAndLiabilitiesTrendAnswer } from '../server/assets-and-liabilities-trend';
+import { type AssetsAndLiabilitiesTrendAnswer } from '../server/assets-and-liabilities-trend';
+import { type Shown } from '../server/report-outcome';
 import { formatAmount } from './amount';
 import { AssetsAndLiabilitiesTrendChart, type ShownLines } from './assets-and-liabilities-trend-chart';
 import { SkeletonBlock, SkeletonSection } from './skeleton';
-import { DANGER_TEXT, MUTED_TEXT } from './text-classes';
+import { DANGER_TEXT, MUTED_TEXT, TREND_CHART_FRAME, TREND_PANEL } from './text-classes';
 import { useMonthLabel } from './use-month-label';
 
 type TrendTableProps = {
@@ -44,7 +44,7 @@ function TrendTable({ months }: TrendTableProps): ReactNode {
 }
 
 export type AssetsAndLiabilitiesTrendOutcomeProps = {
-  readonly answer: ShownAssetsAndLiabilitiesTrendAnswer;
+  readonly answer: Shown<AssetsAndLiabilitiesTrendAnswer>;
   readonly lines: ShownLines;
 };
 
@@ -61,7 +61,7 @@ export function AssetsAndLiabilitiesTrendOutcome({ answer, lines }: AssetsAndLia
     return <p className={MUTED_TEXT}>{t('nothingRecorded')}</p>;
   }
   return (
-    <section className={`${PANEL} min-w-0`}>
+    <section className={TREND_PANEL}>
       <AssetsAndLiabilitiesTrendChart months={answer.trend.months} lines={lines} />
       <TrendTable months={answer.trend.months} />
     </section>
@@ -73,9 +73,9 @@ export function AssetsAndLiabilitiesTrendSkeleton(): ReactNode {
   return (
     <SkeletonSection
       message={t('sectionState.loading', { section: t('assetsAndLiabilitiesTrendPage.title') })}
-      className={`${PANEL} min-w-0`}
+      className={TREND_PANEL}
     >
-      <SkeletonBlock className="h-80 wide:h-96" />
+      <SkeletonBlock className={TREND_CHART_FRAME} />
     </SkeletonSection>
   );
 }

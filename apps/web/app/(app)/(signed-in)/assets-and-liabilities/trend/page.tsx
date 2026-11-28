@@ -1,5 +1,4 @@
 import {
-  ASSETS_AND_LIABILITIES_TREND_CHART,
   ASSETS_AND_LIABILITIES_TREND_FIELDS,
   type SearchQuery,
 } from '@repo/contracts';
@@ -21,7 +20,6 @@ import {
   signInPath,
 } from '../../../../../server/return-path';
 import { createCaller } from '../../../../../server/root-router';
-import { orSignIn } from '../../../../../server/sign-in-redirect';
 import { keepShownTrendLines, showDefaultTrendRange } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -46,13 +44,6 @@ export default async function AssetsAndLiabilitiesTrendPage({
   if (!(await caller.auth.signedIn())) {
     redirect(signInPath(path));
   }
-  const lines = orSignIn(
-    caller.charts
-      .view({ chartId: ASSETS_AND_LIABILITIES_TREND_CHART })
-      .then(({ shownSeriesIds }) => ({ shown: shownSeriesIds, keep: keepShownTrendLines })),
-    path,
-  );
-
   if (
     query[ASSETS_AND_LIABILITIES_TREND_FIELDS.from] === undefined &&
     query[ASSETS_AND_LIABILITIES_TREND_FIELDS.to] === undefined
@@ -60,7 +51,7 @@ export default async function AssetsAndLiabilitiesTrendPage({
     return (
       <>
         {heading}
-        <AssetsAndLiabilitiesTrendColdVisit show={showDefaultTrendRange} lines={await lines} />
+        <AssetsAndLiabilitiesTrendColdVisit show={showDefaultTrendRange} keep={keepShownTrendLines} />
       </>
     );
   }

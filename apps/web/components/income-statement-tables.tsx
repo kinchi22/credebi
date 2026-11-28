@@ -1,7 +1,8 @@
 import { useTranslations } from 'next-intl';
 import { type AccountId, type IncomeStatementOutput, type IncomeStatementQuery } from '@repo/contracts';
 import { type ReactNode } from 'react';
-import { type ShownIncomeStatementAnswer } from '../server/income-statement';
+import { type IncomeStatementAnswer } from '../server/income-statement';
+import { type Shown } from '../server/report-outcome';
 import { accountSearchPath } from '../server/return-path';
 import { type KeepCollapsed } from './statement-group';
 import { StatementTables } from './statement-tables';
@@ -36,7 +37,7 @@ export function IncomeStatementTables({ statement, period, keep }: IncomeStateme
 }
 
 export type IncomeStatementOutcomeProps = {
-  readonly answer: ShownIncomeStatementAnswer;
+  readonly answer: Shown<IncomeStatementAnswer>;
   readonly keep: KeepCollapsed;
 };
 
