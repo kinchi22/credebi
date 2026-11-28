@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   SECTIONS,
+  SECTION_FAULTS_COOKIE,
   createSectionFaults,
   isSection,
   noSectionFaults,
@@ -8,7 +9,7 @@ import {
 } from './section-faults';
 
 function cookieOf(token: string, faults: string): string {
-  return encodeURIComponent(`${token};${faults}`);
+  return `${token};${faults}`;
 }
 
 function settled(promise: Promise<unknown>): Promise<boolean> {
@@ -38,6 +39,10 @@ describe('section faults', () => {
     expect(isSection('entries.nope')).toBe(false);
   });
 
+  it('reads the cookie named credebi-faults', () => {
+    expect(SECTION_FAULTS_COOKIE).toBe('credebi-faults');
+  });
+
   it('reads through when there is no cookie', async () => {
     await expect(faults().run('entries.list', undefined, read)).resolves.toBe('data');
   });
@@ -48,7 +53,6 @@ describe('section faults', () => {
   });
 
   it.each([
-    ['a cookie that is not percent-decodable', '%E0%A4%A'],
     ['a cookie with no section list', 't1'],
     ['a cookie with no token', ';entries.list:fail'],
     ['a cookie with extra parts', 't1;entries.list:fail;more'],
@@ -57,12 +61,6 @@ describe('section faults', () => {
     ['a mode with no section', cookieOf('t1', 'fail')],
   ])('ignores %s', async (_name, cookie) => {
     await expect(faults().run('entries.list', cookie, read)).resolves.toBe('data');
-  });
-
-  it('accepts a cookie that arrives already decoded', async () => {
-    await expect(faults().run('entries.list', 't1;entries.list:fail', read)).rejects.toThrow(
-      'Injected section fault.',
-    );
   });
 
   it('fails the named section and leaves its neighbours alone', async () => {

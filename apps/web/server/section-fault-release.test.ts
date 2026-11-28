@@ -16,7 +16,7 @@ const request = new Request('http://localhost/api/e2e/faults/t1/entries.list/rel
 describe('releasing a held section', () => {
   it('releases the hold and answers 204', async () => {
     const faults = createSectionFaults(new Map());
-    const cookie = encodeURIComponent('t1;entries.list:hold');
+    const cookie = 't1;entries.list:hold';
     const held = faults.run('entries.list', cookie, () => Promise.resolve('data'));
     const response = await serveRelease(() => faults)(request, params('t1', 'entries.list'));
     expect(response.status).toBe(204);

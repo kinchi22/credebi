@@ -159,7 +159,7 @@ Raise the TypeScript major only together with `typescript-eslint`.
 | Item                 | Decision                                                              |
 | -------------------- | --------------------------------------------------------------------- |
 | Error model          | Domain returns `Result<T, DomainError>`. No throwing.                  |
-| HTTP mapping         | In tRPC routers, via `apps/web/server/domain-error.ts`, and in the OAuth routes `/oauth/token` and `/mcp`, which cannot be tRPC: they answer OAuth errors, and a Domain error inside a tool is a tool result, not an HTTP error. ADR-0031. |
+| HTTP mapping         | In tRPC routers, via `apps/web/server/domain-error.ts`, and in the OAuth routes `/oauth/token` and `/mcp`, which cannot be tRPC: they answer OAuth errors, and a Domain error inside a tool is a tool result, not an HTTP error. ADR-0031. The E2E-only release route `/api/e2e/faults/<token>/<section>/release` is a route handler too: it carries no Domain error, only a 204 or a 404, and is not part of the app's API. ADR-0035. |
 | IDs                  | uuid v7, branded per entity from `uuidV7Schema`. Generators are injected, never imported into a pure layer. |
 | Money                | A branded integer in contracts, scale 0: no decimal places, no currency symbol, locale grouping at display only. Arithmetic only through `@repo/core/money`, which returns `Result`. A per-book scale is the additive path if a decimal currency ever appears. |
 | Dates                | An instant is stored in UTC as `timestamptz` and converted only at display. A calendar day -- the day an entry is posted -- is a `date`: it holds no time, so there is nothing to convert. ADR-0010. |
@@ -190,7 +190,7 @@ Raise the TypeScript major only together with `typescript-eslint`.
 | `packages/contracts`         | Unit tests, pure. Measured since ADR-0004.             |
 | `packages/ui`                | Its pure `.ts` modules, such as the design tokens: unit tests, measured. Its `.tsx` components: Playwright, where the app renders them. |
 | `apps/web/components`        | Its `.ts` modules: unit tests, measured, except hook shells (`use-*.ts`) and class-string modules (`*-classes.ts`). Those and its `.tsx` components: Playwright. |
-| `apps/web/server`            | The half a unit test can import -- `catalogues.ts`, `domain-error.ts`, `env.ts`, `logger.ts`, `request-error.ts`, `return-path.ts`, `session-cookie.ts` and `sign-in-redirect.ts` today -- unit tested and measured. |
+| `apps/web/server`            | The half a unit test can import -- `catalogues.ts`, `domain-error.ts`, `env.ts`, `logger.ts`, `request-error.ts`, `return-path.ts`, `section-fault-release.ts`, `section-faults.ts`, `session-cookie.ts` and `sign-in-redirect.ts` today -- unit tested and measured. |
 | the composition root, `routers/**`, `app/**` | Playwright, against a production build in CI (`E2E build`), on a Postgres service container migrated before the suite. Nothing else reaches them. |
 
 "Measured" means the mutation score, which is the only coverage floor here:
@@ -198,7 +198,7 @@ there is no line-coverage gate and no `@vitest/coverage-v8`. `stryker.config.ts`
 states the measured surface as patterns rather than a list, so a new file in a
 measured directory is measured by existing. A file nobody tests scores 0, and the
 break threshold of 90 is over the whole surface, so what fails is a named file
-rather than a percentage. Measured today: 89 files, 2,889 mutants, score 98.20.
+rather than a percentage. Measured today: 136 files, 5,304 mutants, score 97.83.
 
 The exclusions in that config name files no unit test can usefully run, not files
 whose tests are missing: under `apps/web/server` each reaches the composition

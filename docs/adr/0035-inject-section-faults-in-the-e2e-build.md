@@ -24,13 +24,16 @@ a code path that exists only to be exercised by the specs.
   or failed. The value is `<token>;<section>:<mode>,...` percent-encoded, the
   token a fresh UUID per spec and the mode `hold` or `fail`. The sections are a
   closed list kept as literals in `apps/web/server/section-faults.ts` and, apart,
-  in `e2e/section-faults.ts`; a drift fails the specs.
+  in `e2e/section-faults.ts`, which also repeats the cookie name; a drift fails
+  the specs.
 - A held read waits on an in-process latch per token and section. `POST
   /api/e2e/faults/<token>/<section>/release` opens it, and an open latch stays
   open. A failed read throws. The spec lifts a failure by removing the section
   from the cookie and pressing `Try again`.
 - The composition root applies it, through `Container.sectionFaults`, and
-  `withSectionFault` wraps a section's read. `packages/core` knows nothing of it.
+  `withSectionFault`, in `section-fault-request.ts`, wraps a section's read. `packages/core` knows nothing of it.
+- The latches live on `globalThis`, because the release route handler and the
+  pages are bundled separately and a module-level map would be two maps.
 - Without the variable the container holds a no-op, the cookie changes nothing
   and the release route answers 404.
 
@@ -45,7 +48,7 @@ The latch lives in one process. That holds for the E2E build, which is a single
 `next start`, and would not for a deployment with several instances; nothing
 else turns it on.
 
-The section list is stated twice, so adding a section means editing both files.
+The section list and the cookie name are stated twice, so changing either means editing both sides.
 
 ## Rejected alternatives
 

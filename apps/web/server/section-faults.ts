@@ -37,19 +37,11 @@ export function isSection(value: string): value is Section {
   return (SECTIONS as readonly string[]).includes(value);
 }
 
-function decoded(value: string): string {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return value;
-  }
-}
-
 function faultOf(
   cookie: string,
   section: Section,
 ): { readonly token: string; readonly mode: Mode } | null {
-  const [token = '', list = '', ...rest] = decoded(cookie).split(';');
+  const [token = '', list = '', ...rest] = cookie.split(';');
   if (token === '' || rest.length > 0) return null;
   for (const item of list.split(',')) {
     const [name, mode] = item.split(':');
