@@ -7,7 +7,7 @@ import { typeClasses } from '@repo/ui/type-classes';
 import { useId, useState, useTransition, type ReactNode } from 'react';
 import { ConfirmationPanel } from './confirmation-panel';
 import { ConnectionDialog } from './connection-dialog';
-import { BUTTON, DANGER_ICON_BUTTON, LEGEND, PRIMARY_BUTTON } from './control-classes';
+import { BUTTON, CONNECTIONS_SECTION, DANGER_ICON_BUTTON, LEGEND, PRIMARY_BUTTON } from './control-classes';
 import { localDayOf } from './local-day';
 import { PendingDialog } from './pending-dialog';
 import { MUTED_TEXT } from './text-classes';
@@ -119,7 +119,7 @@ export function ConnectionsSection({ connections, mcpUrl, action }: ConnectionsS
   const notRevoked = t('connectionsSection.notRevoked');
 
   return (
-    <section aria-labelledby={sectionTitleId} className="flex flex-col gap-3 border-b border-border py-5">
+    <section aria-labelledby={sectionTitleId} className={CONNECTIONS_SECTION}>
       <div className="flex min-h-control items-center justify-between gap-2">
         <h3 id={sectionTitleId} className={LEGEND}>
           {t('connectionsSection.title')}

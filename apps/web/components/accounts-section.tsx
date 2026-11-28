@@ -32,7 +32,7 @@ import {
   type ChartDeletions,
   type DeleteAccountTarget,
 } from './delete-account-dialog';
-import { LEGEND, ROW_ICON_BUTTON } from './control-classes';
+import { LEGEND, ROW_ICON_BUTTON, SETTINGS_SECTION } from './control-classes';
 import { useModalDialog } from './use-modal-dialog';
 import { DANGER_TEXT } from './text-classes';
 import { GroupFolder, TreeBranch } from './tree-branch';
@@ -361,7 +361,7 @@ export function AccountsSection({ chart, actions }: AccountsSectionProps): React
     <section
       aria-labelledby={titleId}
       aria-busy={held}
-      className="flex flex-col gap-2 border-b border-border py-5"
+      className={SETTINGS_SECTION}
     >
       <div className="flex items-center justify-between gap-3">
         <h3 id={titleId} className={LEGEND}>

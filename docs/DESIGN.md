@@ -257,7 +257,7 @@ a palette colour.
 | `white`       | `#FFFFFF` | panels                                     |
 | `slate`       | `#4A6461` | muted text                                 |
 | `sage`        | `#9FC4BC` | muted text on ink                          |
-| `fog`         | `#E1ECE8` | dividers, panel edges                      |
+| `fog`         | `#E1ECE8` | dividers, panel edges, the Skeleton's blocks |
 | `mint-fog`    | `#DCF0E9` | the Suggested Band, a touch mintier than `fog` |
 | `steel`       | `#78948F` | control edges                              |
 | `rust`        | `#B4400F` | danger                                     |
@@ -1274,6 +1274,18 @@ numerals.
   sheet, a wallet, sliders and an exit -- so each is named by its text alone; the
   magnifier is the Account picker's search icon and the wallet, for Assets and
   liabilities, the Assets Band's icon, each at 18px rather than 16px.
+- **Skeleton.** The stand-in a section shows until its data arrives. Its blocks
+  are `skeleton` (`fog`) with the `control` radius, laid out in the section's
+  own frame: the panel, the table header, the row height and the field layout
+  it will have, so the content takes its place without the page moving. Where
+  the count is unknown it draws three rows. It does not move, so it adds
+  nothing to the motion list and has no reduced-motion variant. The section
+  carries `aria-busy` and holds one visually hidden `role="status"` message
+  naming what is loading; every block is hidden from assistive technology.
+- **Section error.** What a section shows when its data could not be read: the
+  section's name in `body-sm`, semibold, one shared message in `danger`, and a
+  secondary `Try again` button that reads the page again. It stands in the
+  section's place, so the rest of the page keeps working.
 
 ## Logo
 
@@ -1362,18 +1374,6 @@ variant B settled it. Every part of it sits in one column at most 1152px wide,
   place to its new one, what only the old state showed fades out over the new
   state, the Entry's height eases between the two, and its date and Title stay
   still. Under `prefers-reduced-motion: reduce` it is instant.
-- **Skeleton.** The stand-in a section shows until its data arrives. Its blocks
-  are `skeleton` (`fog`) with the `control` radius, laid out in the section's
-  own frame: the panel, the table header, the row height and the field layout
-  it will have, so the content takes its place without the page moving. Where
-  the count is unknown it draws three rows. It does not move, so it adds
-  nothing to the motion list and has no reduced-motion variant. The section
-  carries `aria-busy` and holds one visually hidden `role="status"` message
-  naming what is loading; every block is hidden from assistive technology.
-- **Section error.** What a section shows when its data could not be read: the
-  section's name in `body-sm`, semibold, one shared message in `danger`, and a
-  secondary `Try again` button that reads the page again. It stands in the
-  section's place, so the rest of the page keeps working.
 - **Get started.** A primary button 48px tall in `body` with 24px at its
   sides, the one primary button taller than 36px, linking to `/sign-in`. It stands in the hero
   and again centred above the footer, 64px above and below it, 96px from `wide`

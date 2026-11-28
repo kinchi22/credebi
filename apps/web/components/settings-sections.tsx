@@ -16,9 +16,10 @@ import { LanguageChoice, type LanguageChoiceProps } from './language-choice';
 
 const callerOfRequest = cache(async () => createCaller(await createContext()));
 
-const settingsOfRequest = cache(async () =>
-  orSignIn((await callerOfRequest()).settings.read(), SETTINGS_PATH),
-);
+const readOfRequest = async <T,>(read: (caller: Awaited<ReturnType<typeof callerOfRequest>>) => Promise<T>): Promise<T> =>
+  orSignIn(read(await callerOfRequest()), SETTINGS_PATH);
+
+const settingsOfRequest = cache(() => readOfRequest((caller) => caller.settings.read()));
 
 export async function SettingsEntryFormModeSection({
   action,
@@ -30,8 +31,8 @@ export async function SettingsEntryFormModeSection({
 export async function SettingsAccountsSection({
   actions,
 }: Pick<AccountsSectionProps, 'actions'>): Promise<ReactNode> {
-  const chart = await withSectionFault('settings.accounts', async () =>
-    orSignIn((await callerOfRequest()).accounts.chart(), SETTINGS_PATH),
+  const chart = await withSectionFault('settings.accounts', () =>
+    readOfRequest((caller) => caller.accounts.chart()),
   );
   return <AccountsSection chart={chart} actions={actions} />;
 }
@@ -46,8 +47,8 @@ export async function SettingsLanguageSection({
 export async function SettingsConnectionsSection({
   action,
 }: Pick<ConnectionsSectionProps, 'action'>): Promise<ReactNode> {
-  const connections = await withSectionFault('settings.connections', async () =>
-    orSignIn((await callerOfRequest()).auth.connections(), SETTINGS_PATH),
+  const connections = await withSectionFault('settings.connections', () =>
+    readOfRequest((caller) => caller.auth.connections()),
   );
   const { mcpUrl } = authorizationServerAt(requestOrigin(await headers()));
   return <ConnectionsSection connections={connections} mcpUrl={mcpUrl} action={action} />;
