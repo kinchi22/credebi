@@ -20,10 +20,16 @@ export async function TestSignInForm({ returnTo, action }: TestSignInFormProps):
         {t('identifier')}
         <input name={TEST_SIGN_IN_FIELDS.identifier} required className={CONTROL} />
       </label>
-      <label className={`flex flex-col gap-1 ${typeClasses['body-sm']}`}>
-        {t('accountsStartOn')}
-        <DayInput name={TEST_SIGN_IN_FIELDS.accountsStartOn} day="" className={CONTROL} />
-      </label>
+      <div className={`flex flex-col gap-1 ${typeClasses['body-sm']}`}>
+        <label htmlFor="test-sign-in-accounts-start-on">{t('accountsStartOn')}</label>
+        <DayInput
+          id="test-sign-in-accounts-start-on"
+          name={TEST_SIGN_IN_FIELDS.accountsStartOn}
+          day=""
+          withPicker={false}
+          className={CONTROL}
+        />
+      </div>
       <button type="submit" className={`self-start ${BUTTON}`}>
         {t('submit')}
       </button>

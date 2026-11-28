@@ -381,6 +381,21 @@ export const ja = {
     },
   },
   dayInput: {
+    chooseDate: '日付を選択',
+    calendar: 'カレンダー',
+    previousMonth: '前の月',
+    nextMonth: '次の月',
+    chooseMonthAndYear: '年月を選択',
+    close: '閉じる',
+    weekdays: {
+      sun: '日',
+      mon: '月',
+      tue: '火',
+      wed: '水',
+      thu: '木',
+      fri: '金',
+      sat: '土',
+    },
     invalid: '日付をYYYYMMDDの形式で入力してください',
   },
   monthInput: {
