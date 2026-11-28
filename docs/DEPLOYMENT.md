@@ -494,6 +494,7 @@ portability rule below: the same migrations run here, on Neon, or on RDS.
 | `VERCEL_AUTOMATION_BYPASS_SECRET` | GitHub repository secret, read by the three smoke runs | Sent as `x-vercel-protection-bypass`, so Playwright gets past Deployment Protection |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Vercel Preview + Production (the secret marked Sensitive), and local `.env`; placeholders in the `test:e2e` step of `E2E build` | The Google OAuth client. Required everywhere, like `DATABASE_URL`; only Production and a local server can finish a Google sign-in. ADR-0021 |
 | `AUTH_TEST_LOGIN` | Vercel Preview only, local `.env`, and the `test:e2e` step of `E2E build` | Set to anything non-empty, `/sign-in` also offers the test sign-in. `parseEnv` refuses it when `VERCEL_ENV` is `production` |
+| `E2E_SECTION_FAULTS` | Local `.env` and the `test:e2e` step of `E2E build`; never Vercel | Set to anything non-empty, a request carrying the `credebi-faults` cookie has the sections it names held or failed, and `POST /api/e2e/faults/<token>/<section>/release` frees a hold. `parseEnv` refuses it when `VERCEL_ENV` is `production`. ADR-0035 |
 | `SMOKE_SESSION_TOKEN` | GitHub repository secret, read by the three smoke runs | The Smoke User's session token, presented as the `session` cookie. See [Authentication](#authentication) |
 | `SMOKE_SESSION_EXPIRES_ON` | GitHub repository variable, read by `Smoke token expiry` | The day `SMOKE_SESSION_TOKEN` expires, `YYYY-MM-DD`, printed by `tools/seed-smoke-user.ts` |
 

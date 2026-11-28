@@ -256,7 +256,7 @@ describe('the E2E build workflow', () => {
       [false, true],
       [false, true],
     ]);
-    for (const key of ['DATABASE_URL', 'AUTH_TEST_LOGIN', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET']) {
+    for (const key of ['DATABASE_URL', 'AUTH_TEST_LOGIN', 'E2E_SECTION_FAULTS', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET']) {
       expect(field(advisory, key)).toBe(field(strict, key));
     }
     expect(advisory).not.toMatch(/E2E_LIVENESS|E2E_ADVISORY|--retries|--timeout|--workers/);

@@ -14,6 +14,7 @@ const parsed = (databaseUrl: string): unknown => ({
   databaseUrl,
   google: { clientId: GOOGLE.GOOGLE_CLIENT_ID, clientSecret: GOOGLE.GOOGLE_CLIENT_SECRET },
   testSignIn: false,
+  sectionFaults: false,
   deployment: { id: null, commit: null, url: null },
 });
 
@@ -125,6 +126,30 @@ describe('parseEnv, AUTH_TEST_LOGIN', () => {
   it('refuses to run on Production with the test sign-in set', () => {
     expect(() => parseEnv({ ...env, AUTH_TEST_LOGIN: '1', VERCEL_ENV: 'production' })).toThrow(
       /^AUTH_TEST_LOGIN is set on Production, where the test sign-in must not exist\.$/,
+    );
+  });
+});
+
+describe('parseEnv, E2E_SECTION_FAULTS', () => {
+  const env = { DATABASE_URL: VALID, ...GOOGLE };
+
+  it('injects no faults unless the variable is set', () => {
+    expect(parseEnv(env).sectionFaults).toBe(false);
+    expect(parseEnv({ ...env, E2E_SECTION_FAULTS: '' }).sectionFaults).toBe(false);
+  });
+
+  it.each(['preview', 'development', undefined])(
+    'injects faults when it is set, on VERCEL_ENV %s',
+    (vercelEnv) => {
+      expect(
+        parseEnv({ ...env, E2E_SECTION_FAULTS: '1', VERCEL_ENV: vercelEnv }).sectionFaults,
+      ).toBe(true);
+    },
+  );
+
+  it('refuses to run on Production with section faults set', () => {
+    expect(() => parseEnv({ ...env, E2E_SECTION_FAULTS: '1', VERCEL_ENV: 'production' })).toThrow(
+      /^E2E_SECTION_FAULTS is set on Production, where section faults must not exist\.$/,
     );
   });
 });
