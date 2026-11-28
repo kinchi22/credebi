@@ -12,7 +12,7 @@ import {
   type DayRange,
   type RelativePreset,
 } from '@repo/core/entries';
-import { CalendarIcon } from '@repo/ui';
+import { BoltIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import {
   useEffect,
@@ -373,7 +373,7 @@ export function DatePresetsSheet({ granularity, today, onChoose }: DatePresetsPr
         }}
         className={`${ICON_CONTROL} wide:hidden`}
       >
-        <CalendarIcon />
+        <BoltIcon />
       </button>
       <dialog
         {...sheet.dialogProps}
