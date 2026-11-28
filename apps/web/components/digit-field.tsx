@@ -25,9 +25,10 @@ export type DigitFieldProps = {
   readonly autoComplete?: string | undefined;
   readonly withPicker?: boolean | undefined;
   readonly className: string;
+  readonly rootClassName?: string | undefined;
   readonly invalid: string;
   readonly buttonLabel: string;
-  readonly popoverLabel: string;
+  readonly popoverLabel?: string | undefined;
   readonly closeLabel: string;
   readonly panelClassName: string;
   readonly fallbackStart: string | undefined;
@@ -62,6 +63,7 @@ export function DigitField({
   autoComplete,
   withPicker = true,
   className,
+  rootClassName,
   invalid,
   buttonLabel,
   popoverLabel,
@@ -94,8 +96,10 @@ export function DigitField({
   }, [typed]);
 
   useLayoutEffect(() => {
-    field.current?.setCustomValidity(typed.digits === '' || unit.isoOf(typed.digits) !== undefined ? '' : invalid);
-  }, [typed.digits, invalid, unit]);
+    const complete = unit.isoOf(typed.digits) !== undefined;
+    const optionalEmpty = typed.digits === '' && required !== true;
+    field.current?.setCustomValidity(complete || optionalEmpty ? '' : invalid);
+  }, [typed.digits, invalid, unit, required]);
 
   const settle = (edit: Typed): void => {
     setTyped(edit);
@@ -119,7 +123,7 @@ export function DigitField({
   };
 
   return (
-    <div ref={bindRoot} {...rootProps} className="relative flex min-w-0">
+    <div ref={bindRoot} {...rootProps} className={`relative flex min-w-0 ${rootClassName ?? ''}`}>
       <div
         className={`relative flex min-w-0 flex-1 ${typeClasses.date} max-wide:text-control`}
         style={{ letterSpacing: LETTER_GAP }}
@@ -136,7 +140,7 @@ export function DigitField({
           spellCheck={false}
           placeholder={unit.placeholder}
           size={unit.limit + 2}
-          className={`${className} min-w-0`}
+          className={`${className} w-full min-w-0`}
           style={withPicker ? { paddingRight: BUTTON_ROOM } : undefined}
         />
         <input type="hidden" name={name} value={kept} />
@@ -169,7 +173,7 @@ export function DigitField({
         <PickerPanel
           surface={surface}
           label={buttonLabel}
-          popoverLabel={popoverLabel}
+          popoverLabel={popoverLabel ?? buttonLabel}
           closeLabel={closeLabel}
           className={panelClassName}
         >

@@ -31,7 +31,7 @@ type RangeFieldProps = {
   readonly today: string | undefined;
 };
 
-const RANGE_FIELD = `${DATE_CONTROL} w-full min-w-0 wide:w-auto`;
+const RANGE_ROOT = 'wide:w-fit';
 
 function DayField({ id, name, value, onValue }: RangeFieldProps): ReactNode {
   return (
@@ -42,13 +42,14 @@ function DayField({ id, name, value, onValue }: RangeFieldProps): ReactNode {
       onDay={onValue}
       required
       autoComplete="off"
-      className={RANGE_FIELD}
+      className={DATE_CONTROL}
+      rootClassName={RANGE_ROOT}
     />
   );
 }
 
 function MonthField({ id, name, value, onValue, today }: RangeFieldProps): ReactNode {
-  return <MonthInput id={id} name={name} month={value} onMonth={onValue} today={today} className={RANGE_FIELD} />;
+  return <MonthInput id={id} name={name} month={value} onMonth={onValue} today={today} className={DATE_CONTROL} rootClassName={RANGE_ROOT} />;
 }
 
 type Unit = {

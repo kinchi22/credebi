@@ -14,6 +14,7 @@ export type MonthInputProps = {
   readonly onMonth: (month: string) => void;
   readonly today: string | undefined;
   readonly className: string;
+  readonly rootClassName?: string | undefined;
 };
 
 const MONTH_PANEL = 'w-64';
@@ -26,7 +27,7 @@ const MONTH_UNIT: DigitUnit = {
   digitsOf: digitsOfIsoMonth,
 };
 
-export function MonthInput({ id, name, month, onMonth, today, className }: MonthInputProps): ReactNode {
+export function MonthInput({ id, name, month, onMonth, today, className, rootClassName }: MonthInputProps): ReactNode {
   const t = useTranslations('monthInput');
   const thisMonth = today === undefined ? undefined : monthAfter(today, 0);
 
@@ -39,9 +40,9 @@ export function MonthInput({ id, name, month, onMonth, today, className }: Month
       onValue={onMonth}
       required
       className={className}
+      rootClassName={rootClassName}
       invalid={t('invalid')}
       buttonLabel={t('chooseMonth')}
-      popoverLabel={t('chooseMonth')}
       closeLabel={t('close')}
       panelClassName={MONTH_PANEL}
       fallbackStart={thisMonth}

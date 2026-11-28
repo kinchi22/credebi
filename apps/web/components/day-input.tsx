@@ -16,6 +16,7 @@ export type DayInputProps = {
   readonly autoComplete?: string;
   readonly withPicker?: boolean;
   readonly className: string;
+  readonly rootClassName?: string | undefined;
 };
 
 const DAY_PANEL = 'w-72';
@@ -37,6 +38,7 @@ export function DayInput({
   autoComplete,
   withPicker,
   className,
+  rootClassName,
 }: DayInputProps): ReactNode {
   const t = useTranslations('dayInput');
   const today = useBrowserToday();
@@ -52,6 +54,7 @@ export function DayInput({
       autoComplete={autoComplete}
       withPicker={withPicker}
       className={className}
+      rootClassName={rootClassName}
       invalid={t('invalid')}
       buttonLabel={t('chooseDate')}
       popoverLabel={t('calendar')}
