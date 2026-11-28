@@ -7,7 +7,6 @@ import { flushSync } from 'react-dom';
 import { DATE_CONTROL, FIELD } from './control-classes';
 import { DatePresets, DatePresetsSheet, type Granularity } from './date-presets';
 import { MonthInput } from './month-input';
-import { monthText, shownMonth } from './month-text';
 import { DayInput } from './day-input';
 
 export type RangeFieldNames = {
@@ -32,7 +31,7 @@ type RangeFieldProps = {
   readonly today: string | undefined;
 };
 
-const RANGE_FIELD = `${DATE_CONTROL} w-full min-w-0 wide:w-auto`;
+const RANGE_ROOT = 'wide:w-fit';
 
 function DayField({ id, name, value, onValue }: RangeFieldProps): ReactNode {
   return (
@@ -43,32 +42,28 @@ function DayField({ id, name, value, onValue }: RangeFieldProps): ReactNode {
       onDay={onValue}
       required
       autoComplete="off"
-      className={RANGE_FIELD}
+      className={DATE_CONTROL}
+      rootClassName={RANGE_ROOT}
     />
   );
 }
 
 function MonthField({ id, name, value, onValue, today }: RangeFieldProps): ReactNode {
-  return <MonthInput id={id} name={name} text={value} onText={onValue} today={today} />;
+  return <MonthInput id={id} name={name} month={value} onMonth={onValue} today={today} className={DATE_CONTROL} rootClassName={RANGE_ROOT} />;
 }
 
 type Unit = {
   readonly labels: 'dayRange' | 'monthRange';
   readonly Field: (props: RangeFieldProps) => ReactNode;
-  readonly shown: (value: string) => string;
   readonly shownRange: (range: DayRange) => DayRange;
 };
 
 const UNITS: Readonly<Record<Granularity, Unit>> = {
-  day: { labels: 'dayRange', Field: DayField, shown: (value) => value, shownRange: (range) => range },
+  day: { labels: 'dayRange', Field: DayField, shownRange: (range) => range },
   month: {
     labels: 'monthRange',
     Field: MonthField,
-    shown: shownMonth,
-    shownRange: (range) => {
-      const months = monthRangeOf(range);
-      return { from: monthText(months.from), to: monthText(months.to) };
-    },
+    shownRange: monthRangeOf,
   },
 };
 
@@ -83,8 +78,8 @@ export function RangeFields({
   const unit = UNITS[granularity];
   const t = useTranslations(unit.labels);
   const id = useId();
-  const [from, setFrom] = useState(unit.shown(initialFrom ?? ''));
-  const [to, setTo] = useState(unit.shown(initialTo ?? ''));
+  const [from, setFrom] = useState(initialFrom ?? '');
+  const [to, setTo] = useState(initialTo ?? '');
   const [pushes, setPushes] = useState(0);
   const fields = useRef<HTMLDivElement>(null);
 

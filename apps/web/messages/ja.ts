@@ -403,7 +403,7 @@ export const ja = {
     previousYear: '前の年',
     nextYear: '次の年',
     close: '閉じる',
-    invalid: '月をYYYY/MMの形式で入力してください',
+    invalid: '月をYYYYMMの形式で入力してください',
   },
   entryForm: {
     title: '新しい仕訳',
