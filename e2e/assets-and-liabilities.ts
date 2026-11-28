@@ -1,14 +1,21 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import { expectRows, namedTable, type ReportPanels, type ReportRow, reportTables } from './report-tables';
 
-export const reportDateForm = (page: Page): Locator =>
-  page.getByRole('form', { name: 'Report date', exact: true });
+const REPORT_DATE_NAMES = /^(Report date|\uAE30\uC900\uC77C|\u57FA\u6E96\u65E5)$/;
+
+const DATE_LABELS = /^(Date|\uB0A0\uC9DC|\u65E5\u4ED8)$/;
+
+const SHOW_LABELS = /^(Show|\uC870\uD68C|\u8868\u793A)$/;
+
+export const reportDateForm = (page: Page): Locator => page.getByRole('form', { name: REPORT_DATE_NAMES });
 
 export const reportDate = (page: Page): Locator =>
-  reportDateForm(page).getByLabel('Date', { exact: true });
+  reportDateForm(page).getByLabel(DATE_LABELS);
 
-const showButton = (page: Page): Locator =>
-  reportDateForm(page).getByRole('button', { name: 'Show', exact: true });
+export const showButton = (page: Page): Locator => reportDateForm(page).getByRole('button', { name: SHOW_LABELS });
+
+export const reportDatePickerButton = (page: Page): Locator =>
+  reportDateForm(page).getByRole('button').filter({ hasNotText: SHOW_LABELS });
 
 export async function showReport(page: Page, day: string): Promise<void> {
   await expect(reportDateForm(page)).toBeVisible();

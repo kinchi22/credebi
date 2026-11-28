@@ -6,6 +6,7 @@ import {
   addOldWallet,
   BOOKS_OPEN,
   openEdit,
+  showEndedAccounts,
   WALLET_ACTIVE_FROM,
   WALLET_ACTIVE_UNTIL,
   WALLET_ENDED,
@@ -142,6 +143,7 @@ test('fills the defaults of each form in eight digits: the entry form day, an Ac
 test('shows the days of an Account in eight digits when it is edited', async ({ page }) => {
   await addOldWallet(page);
 
+  await showEndedAccounts(page).check();
   const dialog = await openEdit(page, 'Assets', WALLET);
 
   await expect(activeFrom(dialog)).toHaveValue(shownDay(WALLET_ACTIVE_FROM));

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { BOOKS_OPEN } from './accounts';
-import { reportDate, reportDateForm } from './assets-and-liabilities';
+import { reportDate, reportDateForm, reportDatePickerButton } from './assets-and-liabilities';
 import { gridMonth } from './assets-and-liabilities-trend';
 import { fixToday } from './date-presets';
 import { DAY_FIELDS } from './day-fields';
@@ -150,13 +150,13 @@ for (const language of LANGUAGES) {
     if (language !== 'en') await chooseLanguageAtSettings(page, language);
     await openReport(page);
     await expect(documentLanguage(page)).toHaveAttribute('lang', language);
-    await chooseDate(reportDateForm(page)).click();
-    await expect(previousMonth(page)).toBeVisible();
+    await reportDatePickerButton(page).click();
 
-    const headers = await weekdayHeaders(page);
+    const expected = SUNDAY_FIRST[language];
+    const headers = await weekdayHeaders(page, expected[0] ?? '');
 
     expect(headers).toHaveLength(7);
-    for (const [index, first] of SUNDAY_FIRST[language].entries()) {
+    for (const [index, first] of expected.entries()) {
       expect(headers[index]?.startsWith(first), `the header of column ${String(index + 1)} starts with ${first}`).toBe(true);
     }
   });

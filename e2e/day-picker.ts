@@ -38,8 +38,14 @@ export async function expectPickerClosed(page: Page): Promise<void> {
   await expect(gridMonth(page, 'Jan 2026')).toHaveCount(0);
 }
 
-export async function weekdayHeaders(page: Page): Promise<readonly string[]> {
-  const names = dayPicker(page).getByText(/^\p{L}+$/u);
+export async function weekdayHeaders(page: Page, firstWeekday: string): Promise<readonly string[]> {
+  const picker = page
+    .locator('*')
+    .filter({ has: page.getByText(firstWeekday, { exact: true }) })
+    .filter({ has: page.getByRole('button', { name: /^28$/ }) })
+    .last();
+  await expect(picker).toBeVisible();
+  const names = picker.getByText(/^\p{L}+$/u);
   const shown = await names.count();
   const headers = await Promise.all(
     Array.from({ length: shown }, async (_, index) => ({
