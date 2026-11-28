@@ -385,7 +385,7 @@ export const en = {
     previousYear: 'Previous year',
     nextYear: 'Next year',
     close: 'Close',
-    invalid: 'Enter a month as YYYY/MM',
+    invalid: 'Enter a month as YYYYMM',
   },
   entryForm: {
     title: 'New entry',

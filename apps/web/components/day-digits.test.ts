@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DAY_DIGITS, digitsOf, digitsOfIsoDay, editedDigits, firstDigits, isDayDigits, isoOfDayDigits } from './day-digits';
+import { DAY_DIGITS, digitsOf, digitsOfIsoDay, editedDigits, firstDigits, isDayDigits, isoOfDayDigits, digitsOfIsoMonth, isoOfMonthDigits } from './day-digits';
 
 const typed = (previous: string, raw: string, caret = raw.length) =>
   editedDigits(previous, raw, caret, DAY_DIGITS, true);
@@ -135,5 +135,24 @@ describe('digitsOfIsoDay', () => {
   it('shows anything else by its first eight digits', () => {
     expect(digitsOfIsoDay('')).toBe('');
     expect(digitsOfIsoDay('2026-1-5')).toBe('202615');
+  });
+});
+
+describe('isoOfMonthDigits', () => {
+  it('reads six digits as the ISO month', () => {
+    expect(isoOfMonthDigits('202611')).toBe('2026-11');
+    expect(isoOfMonthDigits('000101')).toBe('0001-01');
+    expect(isoOfMonthDigits('999912')).toBe('9999-12');
+  });
+
+  it('refuses an unpadded, partial, overlong or impossible month', () => {
+    for (const digits of ['', '20269', '2026009', '202613', '202600', '000001', '2026-9', 'abcdef']) {
+      expect(isoOfMonthDigits(digits)).toBeUndefined();
+    }
+  });
+
+  it('turns an ISO month into its six digits', () => {
+    expect(digitsOfIsoMonth('2026-09')).toBe('202609');
+    expect(digitsOfIsoMonth('')).toBe('');
   });
 });

@@ -1,6 +1,7 @@
-import { entryDateSchema } from '@repo/contracts';
+import { calendarMonthSchema, entryDateSchema } from '@repo/contracts';
 
 export const DAY_DIGITS = 8;
+export const MONTH_DIGITS = 6;
 
 const YEAR_DIGITS = 4;
 const MONTH_END = 6;
@@ -47,3 +48,10 @@ export function isoOfDayDigits(digits: string): string | undefined {
 export const isDayDigits = (digits: string): boolean => isoOfDayDigits(digits) !== undefined;
 
 export const digitsOfIsoDay = (iso: string): string => firstDigits(iso, DAY_DIGITS);
+
+export function isoOfMonthDigits(digits: string): string | undefined {
+  const iso = `${digits.slice(0, YEAR_DIGITS)}-${digits.slice(YEAR_DIGITS)}`;
+  return calendarMonthSchema.safeParse(iso).success ? iso : undefined;
+}
+
+export const digitsOfIsoMonth = (iso: string): string => firstDigits(iso, MONTH_DIGITS);

@@ -1,8 +1,6 @@
 import { calendarMonthSchema } from '@repo/contracts';
 import { monthAfter, monthOf } from '@repo/core/entries';
 
-const SEPARATORS: ReadonlySet<string> = new Set(['-', '/']);
-
 export const MONTHS_A_YEAR = 12;
 
 const GRID_COLUMNS = 4;
@@ -10,17 +8,6 @@ const GRID_COLUMNS = 4;
 const isCalendarMonth = (month: string): boolean => calendarMonthSchema.safeParse(month).success;
 
 export const monthText = (month: string): string => month.replace('-', '/');
-
-export function monthTyped(text: string): string | undefined {
-  const typed = text.trim();
-  if (!SEPARATORS.has(typed.charAt(4))) {
-    return undefined;
-  }
-  const month = `${typed.slice(0, 4)}-${typed.slice(5).padStart(2, '0')}`;
-  return isCalendarMonth(month) ? month : undefined;
-}
-
-export const shownMonth = (value: string): string => (isCalendarMonth(value) ? monthText(value) : value);
 
 export function steppedMonth(month: string, count: number): string | undefined {
   const stepped = monthAfter(month, count);
