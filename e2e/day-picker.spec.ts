@@ -446,6 +446,10 @@ test.describe('on a phone', () => {
 test.describe('on a touch phone', () => {
   test.use({ viewport: PHONE, hasTouch: true });
 
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize(PHONE);
+  });
+
   test('opens the sheet when the Choose date button is tapped', { tag: '@webkit' }, async ({ page }) => {
     await openReport(page, '20260920');
 

@@ -9,7 +9,7 @@ import {
   TWELVE_THOUSAND_FIVE_HUNDRED,
   type TwoLineEntry,
 } from './entries';
-import { shownDay } from './day-input';
+import { INVALID_DAY, shownDay } from './day-input';
 import { accountField, fromField, resultFor, results, search, toField } from './entry-search';
 import { CATEGORIES, category, choosePeriod, choosePreset, datePresets, fixToday, periodSheet, presetChoice } from './date-presets';
 import { ENTRY_SEARCH_PATH as SEARCH, ENTRY_SEARCH_WITH_QUERY, ENTRY_SEARCH_WITHOUT_QUERY } from './routes';
@@ -142,7 +142,7 @@ test('puts the criteria into the query when the User searches, and a reload keep
   await expect(resultFor(page, july)).toHaveCount(0);
 });
 
-test('never searches with From or To emptied', async ({ page }) => {
+test('refuses an emptied From or To on submit with the invalid-day message and runs no search', async ({ page }) => {
   test.slow();
   const run = randomUUID();
   const recent = `Recent ${run}`;
@@ -164,7 +164,8 @@ test('never searches with From or To emptied', async ({ page }) => {
     await field(page).fill('');
     await entrySearchForm(page).getByRole('button', { name: 'Search' }).click();
 
-    await expect(field(page)).not.toHaveValue('');
+    await expect(field(page)).toHaveJSProperty('validationMessage', INVALID_DAY);
+    await expect(page).toHaveURL(ENTRY_SEARCH_WITHOUT_QUERY);
     await expect(resultFor(page, recent)).toHaveCount(1);
     await expect(resultFor(page, old)).toHaveCount(0);
     await expect(resultFor(page, future)).toHaveCount(0);
