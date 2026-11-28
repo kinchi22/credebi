@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import {
   answerAssetsAndLiabilities,
   answerDefaultDayReport,
+  dayOfQuery,
   type ShowAssetsAndLiabilities,
 } from './assets-and-liabilities';
 import { toTrpcError } from './domain-error';
@@ -120,5 +121,19 @@ describe('answerDefaultDayReport', () => {
     await expect(
       answerDefaultDayReport(failing('DEPENDENCY_UNAVAILABLE'), JUNE_LAST),
     ).resolves.toEqual({ outcome: 'unavailable', day: JUNE_LAST });
+  });
+});
+
+describe('dayOfQuery', () => {
+  it('reads the day the query holds', () => {
+    expect(dayOfQuery(JUNE_LAST)).toEqual(JUNE_LAST);
+  });
+
+  it('reads an empty day from a query that holds none', () => {
+    expect(dayOfQuery({})).toEqual({});
+  });
+
+  it('reads an empty day from a query that is refused', () => {
+    expect(dayOfQuery({ date: '2026-02-30' })).toEqual({});
   });
 });

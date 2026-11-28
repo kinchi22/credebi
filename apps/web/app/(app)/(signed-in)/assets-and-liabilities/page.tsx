@@ -5,9 +5,11 @@ import { redirect } from 'next/navigation';
 import { type ReactNode } from 'react';
 import { AssetsAndLiabilitiesColdVisit } from '../../../../components/assets-and-liabilities-cold-visit';
 import { AssetsAndLiabilitiesForm } from '../../../../components/assets-and-liabilities-form';
-import { AssetsAndLiabilitiesOutcome } from '../../../../components/assets-and-liabilities-tables';
+import { AssetsAndLiabilitiesSection } from '../../../../components/assets-and-liabilities-section';
+import { AssetsAndLiabilitiesSkeleton } from '../../../../components/assets-and-liabilities-skeletons';
+import { LoadingSection } from '../../../../components/loading-section';
 import { PAGE_HEADING } from '../../../../components/text-classes';
-import { answerAssetsAndLiabilities } from '../../../../server/assets-and-liabilities';
+import { dayOfQuery } from '../../../../server/assets-and-liabilities';
 import { createContext } from '../../../../server/context';
 import {
   ASSETS_AND_LIABILITIES_PATH,
@@ -15,7 +17,6 @@ import {
   signInPath,
 } from '../../../../server/return-path';
 import { createCaller } from '../../../../server/root-router';
-import { orSignIn } from '../../../../server/sign-in-redirect';
 import { keepCollapsed } from '../actions';
 import { showDefaultDay } from './actions';
 
@@ -51,16 +52,19 @@ export default async function AssetsAndLiabilitiesPage({
     );
   }
 
-  const answer = await answerAssetsAndLiabilities(
-    (day) => orSignIn(caller.entries.assetsAndLiabilities(day), path),
-    query,
-  );
+  const day = dayOfQuery(query);
 
   return (
     <>
       {heading}
-      <AssetsAndLiabilitiesForm key={answer.day.date ?? ''} day={answer.day} />
-      <AssetsAndLiabilitiesOutcome answer={answer} keep={keepCollapsed} />
+      <AssetsAndLiabilitiesForm key={day.date ?? ''} day={day} />
+      <LoadingSection
+        key={JSON.stringify(query)}
+        name={t('assetsAndLiabilitiesPage.title')}
+        skeleton={<AssetsAndLiabilitiesSkeleton />}
+      >
+        <AssetsAndLiabilitiesSection query={query} keep={keepCollapsed} />
+      </LoadingSection>
     </>
   );
 }

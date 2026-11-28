@@ -21,6 +21,16 @@ export type AssetsAndLiabilitiesAnswer =
     }
   | { readonly outcome: Unanswered; readonly day: ReportDay };
 
+export type ShownAssetsAndLiabilitiesAnswer = Exclude<
+  AssetsAndLiabilitiesAnswer,
+  { readonly outcome: 'unavailable' }
+>;
+
+export function dayOfQuery(query: SearchQuery): ReportDay {
+  const day = parseAssetsAndLiabilitiesQuery(query);
+  return day.ok ? day.value : {};
+}
+
 export async function answerAssetsAndLiabilities(
   show: ShowAssetsAndLiabilities,
   query: SearchQuery,

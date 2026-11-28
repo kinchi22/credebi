@@ -1,11 +1,11 @@
 import { useTranslations } from 'next-intl';
 import { type AccountId, type AssetsAndLiabilitiesOutput, type AssetsAndLiabilitiesQuery } from '@repo/contracts';
 import { type ReactNode } from 'react';
-import { type AssetsAndLiabilitiesAnswer } from '../server/assets-and-liabilities';
+import { type ShownAssetsAndLiabilitiesAnswer } from '../server/assets-and-liabilities';
 import { accountSearchPath } from '../server/return-path';
 import { type KeepCollapsed } from './statement-group';
 import { StatementTables } from './statement-tables';
-import { DANGER_TEXT, MUTED_TEXT } from './text-classes';
+import { DANGER_TEXT } from './text-classes';
 
 type AssetsAndLiabilitiesTablesProps = {
   readonly report: AssetsAndLiabilitiesOutput;
@@ -35,7 +35,7 @@ function AssetsAndLiabilitiesTables({ report, day, keep }: AssetsAndLiabilitiesT
 }
 
 export type AssetsAndLiabilitiesOutcomeProps = {
-  readonly answer: AssetsAndLiabilitiesAnswer;
+  readonly answer: ShownAssetsAndLiabilitiesAnswer;
   readonly keep: KeepCollapsed;
 };
 
@@ -46,18 +46,7 @@ export function AssetsAndLiabilitiesOutcome({ answer, keep }: AssetsAndLiabiliti
   }
   return (
     <p role="alert" className={DANGER_TEXT}>
-      {t(answer.outcome)}
+      {t('refused')}
     </p>
-  );
-}
-
-export function AssetsAndLiabilitiesPending(): ReactNode {
-  const t = useTranslations('assetsAndLiabilities');
-  return (
-    <section aria-busy className="flex flex-col gap-2">
-      <p role="status" className={MUTED_TEXT}>
-        {t('loading')}
-      </p>
-    </section>
   );
 }
