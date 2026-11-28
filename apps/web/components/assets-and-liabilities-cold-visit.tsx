@@ -5,10 +5,10 @@ import { useTranslations } from 'next-intl';
 import { useState, type ReactNode } from 'react';
 import { type AssetsAndLiabilitiesAnswer } from '../server/assets-and-liabilities';
 import { AssetsAndLiabilitiesForm } from './assets-and-liabilities-form';
-import { AssetsAndLiabilitiesSkeleton } from './assets-and-liabilities-skeletons';
 import { AssetsAndLiabilitiesOutcome } from './assets-and-liabilities-tables';
 import { SectionFailure } from './section-error-boundary';
 import { type KeepCollapsed } from './statement-group';
+import { StatementSkeleton } from './statement-tables';
 import { UNAVAILABLE, useDefaultAnswer } from './use-default-answer';
 
 export type ShowDefaultDay = (day: AssetsAndLiabilitiesQuery) => Promise<AssetsAndLiabilitiesAnswer>;
@@ -28,7 +28,7 @@ function ColdVisitAttempt({ show, keep, retry }: AttemptProps): ReactNode {
 
   let report: ReactNode;
   if (answer === undefined) {
-    report = <AssetsAndLiabilitiesSkeleton />;
+    report = <StatementSkeleton title={t('assetsAndLiabilitiesPage.title')} />;
   } else if (answer === UNAVAILABLE || answer.outcome === 'unavailable') {
     report = <SectionFailure name={t('assetsAndLiabilitiesPage.title')} retry={retry} />;
   } else {

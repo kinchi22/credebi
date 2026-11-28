@@ -337,7 +337,6 @@ export const ja = {
     totalLiabilities: '負債合計',
     netWorth: '純資産',
     refused: '資産・負債を表示しませんでした。日付を確認してください。暦の上の一日である必要があります。',
-    unavailable: '今は資産・負債を読み込めません。「表示」を押してもう一度お試しください。',
   },
   assetsAndLiabilitiesTrendPage: {
     title: '資産・負債推移',

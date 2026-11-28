@@ -6,8 +6,8 @@ import { type ReactNode } from 'react';
 import { AssetsAndLiabilitiesColdVisit } from '../../../../components/assets-and-liabilities-cold-visit';
 import { AssetsAndLiabilitiesForm } from '../../../../components/assets-and-liabilities-form';
 import { AssetsAndLiabilitiesSection } from '../../../../components/assets-and-liabilities-section';
-import { AssetsAndLiabilitiesSkeleton } from '../../../../components/assets-and-liabilities-skeletons';
 import { LoadingSection } from '../../../../components/loading-section';
+import { StatementSkeleton } from '../../../../components/statement-tables';
 import { PAGE_HEADING } from '../../../../components/text-classes';
 import { dayOfQuery } from '../../../../server/assets-and-liabilities';
 import { createContext } from '../../../../server/context';
@@ -61,7 +61,7 @@ export default async function AssetsAndLiabilitiesPage({
       <LoadingSection
         key={JSON.stringify(query)}
         name={t('assetsAndLiabilitiesPage.title')}
-        skeleton={<AssetsAndLiabilitiesSkeleton />}
+        skeleton={<StatementSkeleton title={t('assetsAndLiabilitiesPage.title')} />}
       >
         <AssetsAndLiabilitiesSection query={query} keep={keepCollapsed} />
       </LoadingSection>

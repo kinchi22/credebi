@@ -318,7 +318,6 @@ export const en = {
     totalLiabilities: 'Total liabilities',
     netWorth: 'Net worth',
     refused: 'That report was not shown. Check the date: it must be a single calendar day.',
-    unavailable: 'The report could not be loaded just now. Press Show to try again.',
   },
   assetsAndLiabilitiesTrendPage: {
     title: 'Assets and liabilities trend',

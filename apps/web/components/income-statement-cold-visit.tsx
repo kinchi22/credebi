@@ -5,10 +5,10 @@ import { useTranslations } from 'next-intl';
 import { useState, type ReactNode } from 'react';
 import { type IncomeStatementAnswer } from '../server/income-statement';
 import { IncomeStatementForm } from './income-statement-form';
-import { IncomeStatementSkeleton } from './income-statement-skeletons';
 import { IncomeStatementOutcome } from './income-statement-tables';
 import { SectionFailure } from './section-error-boundary';
 import { type KeepCollapsed } from './statement-group';
+import { StatementSkeleton } from './statement-tables';
 import { UNAVAILABLE, useDefaultAnswer } from './use-default-answer';
 
 export type ShowDefaultRange = (range: DayRange) => Promise<IncomeStatementAnswer>;
@@ -26,7 +26,7 @@ function ColdVisitAttempt({ show, keep, retry }: AttemptProps): ReactNode {
 
   let report: ReactNode;
   if (answer === undefined) {
-    report = <IncomeStatementSkeleton />;
+    report = <StatementSkeleton title={t('incomeStatementPage.title')} stackRightFirst />;
   } else if (answer === UNAVAILABLE || answer.outcome === 'unavailable') {
     report = <SectionFailure name={t('incomeStatementPage.title')} retry={retry} />;
   } else {

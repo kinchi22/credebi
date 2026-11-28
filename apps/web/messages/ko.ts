@@ -335,7 +335,6 @@ export const ko = {
     totalLiabilities: '부채 합계',
     netWorth: '순자산',
     refused: '자산·부채를 표시하지 않았습니다. 날짜를 확인하세요. 달력상의 하루여야 합니다.',
-    unavailable: '지금은 자산·부채를 불러올 수 없습니다. 조회를 눌러 다시 시도해 주세요.',
   },
   assetsAndLiabilitiesTrendPage: {
     title: '자산·부채 추이',
