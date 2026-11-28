@@ -9,24 +9,30 @@ const LAYOUTS = [
   { name: 'wide', size: WIDE },
 ] as const;
 
-const SOME_BLOCK_DIFFERS_FROM_GROUND = `(section) => {
-  const transparent = 'rgba(0, 0, 0, 0)';
-  let ground = transparent;
-  for (let ancestor = section; ancestor !== null; ancestor = ancestor.parentElement) {
-    const colour = getComputedStyle(ancestor).backgroundColor;
-    if (colour !== transparent) {
-      ground = colour;
-      break;
-    }
-  }
-  return Array.from(section.querySelectorAll('[aria-hidden="true"]')).some((block) => {
-    const paint = getComputedStyle(block).backgroundColor;
-    return paint !== transparent && paint !== ground;
-  });
-}`;
+type Styled = {
+  readonly parentElement: Styled | null;
+  readonly ownerDocument: { readonly defaultView: { getComputedStyle(each: Styled): { backgroundColor: string } } | null };
+  readonly querySelectorAll: (selectors: string) => ArrayLike<Styled>;
+};
 
-const paintsAgainstGround = (section: Locator): Promise<unknown> =>
-  section.evaluate(SOME_BLOCK_DIFFERS_FROM_GROUND);
+const paintsAgainstGround = (section: Locator): Promise<boolean> =>
+  section.evaluate((root: Styled) => {
+    const transparent = 'rgba(0, 0, 0, 0)';
+    const paintOf = (each: Styled): string =>
+      each.ownerDocument.defaultView?.getComputedStyle(each).backgroundColor ?? transparent;
+    let ground = transparent;
+    for (let ancestor: Styled | null = root; ancestor !== null; ancestor = ancestor.parentElement) {
+      const colour = paintOf(ancestor);
+      if (colour !== transparent) {
+        ground = colour;
+        break;
+      }
+    }
+    return Array.from(root.querySelectorAll('[aria-hidden="true"]')).some((block) => {
+      const paint = paintOf(block);
+      return paint !== transparent && paint !== ground;
+    });
+  });
 
 for (const view of PAGES) {
   for (const layout of LAYOUTS) {
