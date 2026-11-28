@@ -33,7 +33,7 @@ export function EntriesFormSkeleton(): ReactNode {
   );
 }
 
-function EntryRowSkeleton(): ReactNode {
+export function EntryRowSkeleton(): ReactNode {
   return (
     <div className={`${PANEL_BLEED} flex flex-col gap-2 ${ENTRY_LIST_ROW}`}>
       <div className="flex items-center justify-between gap-3 pb-2">

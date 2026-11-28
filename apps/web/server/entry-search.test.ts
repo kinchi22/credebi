@@ -1,7 +1,12 @@
 import { domainError, type PostedEntry, type SearchCriteriaInput } from '@repo/contracts';
 import { describe, expect, it } from 'vitest';
 import { toTrpcError } from './domain-error';
-import { answerDefaultRangeSearch, answerEntrySearch, type SearchForEntries } from './entry-search';
+import {
+  answerDefaultRangeSearch,
+  answerEntrySearch,
+  criteriaOfQuery,
+  type SearchForEntries,
+} from './entry-search';
 
 const CASH = '01920000-0000-7000-8000-00000000c001';
 const EXPENSES = '01920000-0000-7000-8000-00000000c005';
@@ -200,5 +205,18 @@ describe('answerDefaultRangeSearch', () => {
     });
 
     expect(answer.outcome).toBe('refused');
+  });
+});
+
+describe('criteriaOfQuery', () => {
+  it('reads the criteria a valid query holds', () => {
+    expect(criteriaOfQuery({ from: '2026-06-01', to: '2026-06-30' })).toEqual({
+      from: '2026-06-01',
+      to: '2026-06-30',
+    });
+  });
+
+  it('reads an invalid query as no criteria', () => {
+    expect(criteriaOfQuery({ from: 'not a day' })).toEqual({});
   });
 });

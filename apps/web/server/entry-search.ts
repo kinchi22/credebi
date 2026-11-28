@@ -20,12 +20,17 @@ export type EntrySearchAnswer =
     }
   | { readonly outcome: 'refused'; readonly criteria: SearchCriteriaInput };
 
+export function criteriaOfQuery(query: SearchQuery): SearchCriteriaInput {
+  const parsed = parseSearchQuery(query);
+  return parsed.ok ? parsed.value : NO_CRITERIA;
+}
+
 export async function answerEntrySearch(
   search: SearchForEntries,
   query: SearchQuery,
 ): Promise<EntrySearchAnswer> {
   const parsed = parseSearchQuery(query);
-  const criteria = parsed.ok ? parsed.value : NO_CRITERIA;
+  const criteria = criteriaOfQuery(query);
 
   let entries: readonly PostedEntry[];
   try {
