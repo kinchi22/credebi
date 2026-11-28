@@ -17,5 +17,8 @@ export async function IncomeStatementSection({ query, keep }: IncomeStatementSec
   const answer = await withSectionFault('income-statement.report', () =>
     answerIncomeStatement((period) => readOfRequest(path, (caller) => caller.entries.incomeStatement(period)), query),
   );
+  if (answer.outcome === 'unavailable') {
+    throw new Error('The income statement could not be loaded.');
+  }
   return <IncomeStatementOutcome answer={answer} keep={keep} />;
 }

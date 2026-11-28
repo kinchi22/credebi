@@ -344,8 +344,6 @@ export const en = {
     netIncome: 'Net income',
     refused:
       'That statement was not shown. Check the day range: each day is a calendar day, and From cannot be later than To.',
-    unavailable: 'The statement could not be loaded just now. Press Show to try again.',
-    loading: 'Loading this month...',
   },
   datePresets: {
     title: 'Date presets',

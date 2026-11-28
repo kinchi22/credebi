@@ -19,6 +19,8 @@ export type IncomeStatementAnswer =
     }
   | { readonly outcome: Unanswered; readonly period: StatementPeriod };
 
+export type ShownIncomeStatementAnswer = Exclude<IncomeStatementAnswer, { readonly outcome: 'unavailable' }>;
+
 export function periodOfQuery(query: SearchQuery): StatementPeriod {
   const period = parseIncomeStatementQuery(query);
   return period.ok ? period.value : {};

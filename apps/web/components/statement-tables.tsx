@@ -18,7 +18,7 @@ export const STATEMENT_COLUMNS = 'flex flex-col gap-4 split:grid split:grid-cols
 
 type Placement = { readonly left: string; readonly right: string; readonly totals: string };
 
-const PLACEMENT: Readonly<Record<StatementColumn, Placement>> = {
+export const PLACEMENT: Readonly<Record<StatementColumn, Placement>> = {
   left: {
     left: 'split:col-start-1 split:row-start-1',
     right: 'split:col-start-2 split:row-span-2 split:row-start-1',

@@ -1,25 +1,21 @@
-import { PANEL } from '@repo/ui';
 import { useTranslations } from 'next-intl';
 import { type ReactNode } from 'react';
-import { SkeletonLine, SkeletonRows, SkeletonSection } from './skeleton';
-import { STATEMENT_COLUMNS } from './statement-tables';
+import { SkeletonLine, SkeletonRowsPanel, SkeletonSection } from './skeleton';
+import { PLACEMENT, STATEMENT_COLUMNS } from './statement-tables';
 
-function TablePanelSkeleton(): ReactNode {
-  return (
-    <div className={`${PANEL} flex flex-col gap-2`}>
-      <SkeletonLine className="w-1/3" />
-      <SkeletonRows />
-    </div>
-  );
-}
+const HEADING = <SkeletonLine className="w-1/3" />;
 
 export function IncomeStatementSkeleton(): ReactNode {
-  const t = useTranslations('incomeStatement');
+  const t = useTranslations();
+  const { left, right, totals } = PLACEMENT.left;
   return (
-    <SkeletonSection message={t('loading')} className={STATEMENT_COLUMNS}>
-      <TablePanelSkeleton />
-      <TablePanelSkeleton />
-      <TablePanelSkeleton />
+    <SkeletonSection
+      message={t('sectionState.loading', { section: t('incomeStatementPage.title') })}
+      className={STATEMENT_COLUMNS}
+    >
+      <SkeletonRowsPanel heading={HEADING} className={right} />
+      <SkeletonRowsPanel heading={HEADING} className={left} />
+      <SkeletonRowsPanel heading={HEADING} className={totals} />
     </SkeletonSection>
   );
 }

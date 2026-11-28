@@ -38,9 +38,15 @@ export function SkeletonRows({
   return ROWS_WHEN_COUNT_UNKNOWN.map((index) => <Row key={index} />);
 }
 
-export function SkeletonRowsPanel(): ReactNode {
+export type SkeletonRowsPanelProps = {
+  readonly className?: string;
+  readonly heading?: ReactNode;
+};
+
+export function SkeletonRowsPanel({ className = '', heading }: SkeletonRowsPanelProps): ReactNode {
   return (
-    <div className={`${PANEL} flex flex-col gap-2`}>
+    <div className={`${PANEL} flex flex-col gap-2 ${className}`}>
+      {heading}
       <SkeletonRows />
     </div>
   );
