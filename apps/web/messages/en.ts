@@ -327,11 +327,9 @@ export const en = {
     show: 'Show',
     lines: 'Lines',
     month: 'Month',
-    loading: 'Loading the last twelve months...',
     nothingRecorded: 'Nothing recorded yet on or before the last month of this range.',
     refused:
       'That trend was not shown. Check the months: each is a calendar month, From month cannot be later than To month, and the range covers at most {most} months.',
-    unavailable: 'The trend could not be loaded just now. Press Show to try again.',
   },
   incomeStatement: {
     period: 'Statement period',

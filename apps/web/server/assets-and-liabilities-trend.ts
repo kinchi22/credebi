@@ -21,6 +21,16 @@ export type AssetsAndLiabilitiesTrendAnswer =
     }
   | { readonly outcome: Unanswered; readonly range: TrendRange };
 
+export type ShownAssetsAndLiabilitiesTrendAnswer = Exclude<
+  AssetsAndLiabilitiesTrendAnswer,
+  { readonly outcome: 'unavailable' }
+>;
+
+export function rangeOfQuery(query: SearchQuery): TrendRange {
+  const range = parseAssetsAndLiabilitiesTrendQuery(query);
+  return range.ok ? range.value : {};
+}
+
 export async function answerAssetsAndLiabilitiesTrend(
   show: ShowAssetsAndLiabilitiesTrend,
   query: SearchQuery,
