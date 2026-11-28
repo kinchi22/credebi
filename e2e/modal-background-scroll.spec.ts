@@ -19,6 +19,8 @@ import { PHONE, scrollEnd, scrollY, viewportOf, waitFrames, WIDE } from './viewp
 
 const SHORT_PHONE = { width: PHONE.width, height: 400 } as const;
 
+const SHORTER_PHONE = { width: PHONE.width, height: 320 } as const;
+
 const SHORT_WIDE = { width: WIDE.width, height: 480 } as const;
 
 const PAGE_SCROLLED_TO = 60;
@@ -193,7 +195,7 @@ async function formEdge(body: Locator): Promise<Point> {
 }
 
 const DEVICES = [
-  { name: 'a touch device', viewport: SHORT_PHONE, hasTouch: true, input: swipe },
+  { name: 'a touch device', viewport: SHORTER_PHONE, hasTouch: true, input: swipe },
   { name: 'a fine pointer', viewport: SHORT_WIDE, hasTouch: false, input: wheel },
 ] as const;
 
