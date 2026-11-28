@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { dayInBrowser } from './accounts';
+import { shownDay } from './day-input';
 import {
   accountChoice,
   accountChoices,
@@ -59,7 +60,7 @@ async function postHeading(form: Locator, mode: EntryFormMode, day: string, memo
 }
 
 async function expectDay(form: Locator, day: string): Promise<void> {
-  await expect(dateField(form)).toHaveValue(day);
+  await expect(dateField(form)).toHaveValue(shownDay(day));
 }
 
 async function expectEmptyApartFromDay(form: Locator, mode: EntryFormMode): Promise<void> {

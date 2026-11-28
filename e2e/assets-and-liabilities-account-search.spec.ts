@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
 import { addAccount, addGroup, BOOKS_OPEN } from './accounts';
+import { shownDay } from './day-input';
 import { reportTable } from './assets-and-liabilities';
 import { added, entryOn, intoCash, postEntries } from './entries';
 import { accountField, fromField, resultFor, toField } from './entry-search';
@@ -72,7 +73,7 @@ async function expectSearchThroughReportDay(page: Page, account: string): Promis
   expect(query.has('from')).toBe(false);
   expect(query.get('account') ?? '').toMatch(UUID_V7);
   await expect(accountField(page)).toHaveValue(account);
-  await expect(toField(page)).toHaveValue(REPORT_DAY);
+  await expect(toField(page)).toHaveValue(shownDay(REPORT_DAY));
   await expect(fromField(page)).toHaveValue('');
 }
 

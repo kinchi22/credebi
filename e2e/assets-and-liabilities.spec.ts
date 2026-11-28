@@ -12,6 +12,7 @@ import {
   expectOrder,
   grip,
 } from './accounts';
+import { shownDay } from './day-input';
 import {
   expectReport,
   type Report,
@@ -141,14 +142,14 @@ test("opens with no date on the browser's calendar day, ahead of the server's, f
   await page.goto(REPORT);
 
   await expect(reportDateForm(page)).toBeVisible();
-  await expect(reportDate(page)).toHaveValue('2026-09-15');
+  await expect(reportDate(page)).toHaveValue(shownDay('2026-09-15'));
   await expectReport(page, cashOnly('3,000'));
   await expect(page).toHaveURL(ASSETS_AND_LIABILITIES_WITHOUT_QUERY);
 
   await page.clock.setFixedTime(new Date('2026-09-15T12:00:00Z'));
   await page.goto(REPORT);
 
-  await expect(reportDate(page)).toHaveValue('2026-09-16');
+  await expect(reportDate(page)).toHaveValue(shownDay('2026-09-16'));
   await expectReport(page, cashOnly('7,000'));
   await expect(page).toHaveURL(ASSETS_AND_LIABILITIES_WITHOUT_QUERY);
 
@@ -176,12 +177,12 @@ test('puts a day chosen with Date and Show into the URL, which a reload and the 
 
   await page.goBack();
   await expect(page).toHaveURL(withQuery(REPORT, { date: JUNE_LAST }));
-  await expect(reportDate(page)).toHaveValue(JUNE_LAST);
+  await expect(reportDate(page)).toHaveValue(shownDay(JUNE_LAST));
   await expectReport(page, june);
 
   await page.reload();
   await expect(page).toHaveURL(withQuery(REPORT, { date: JUNE_LAST }));
-  await expect(reportDate(page)).toHaveValue(JUNE_LAST);
+  await expect(reportDate(page)).toHaveValue(shownDay(JUNE_LAST));
   await expectReport(page, june);
 });
 
@@ -192,11 +193,11 @@ test('shows a future day opened from the URL, counting the Entries already recor
   await fixToday(page, TODAY);
 
   await page.goto(dated('2030-01-14'));
-  await expect(reportDate(page)).toHaveValue('2030-01-14');
+  await expect(reportDate(page)).toHaveValue(shownDay('2030-01-14'));
   await expectReport(page, cashOnly('1,000'));
 
   await page.goto(dated('2030-01-15'));
-  await expect(reportDate(page)).toHaveValue('2030-01-15');
+  await expect(reportDate(page)).toHaveValue(shownDay('2030-01-15'));
   await expectReport(page, cashOnly('6,000'));
 });
 
@@ -208,7 +209,7 @@ test("shows an error and no report when the browser's read of today fails, and s
 
   await page.goto(REPORT);
 
-  await expect(reportDate(page)).toHaveValue(TODAY);
+  await expect(reportDate(page)).toHaveValue(shownDay(TODAY));
   await expect(page.getByRole('main').getByRole('alert')).toBeVisible();
   await expect(reportTables(page)).toHaveCount(0);
 
@@ -518,7 +519,7 @@ test('sends a signed-out visitor to sign in, and back to the report for the day 
   await submitTestSignIn(page, freshIdentifier(), BOOKS_OPEN);
 
   await expect(page).toHaveURL(withQuery(REPORT, { date: JUNE_LAST }));
-  await expect(reportDate(page)).toHaveValue(JUNE_LAST);
+  await expect(reportDate(page)).toHaveValue(shownDay(JUNE_LAST));
   await expectReport(page, nothingCounted);
 });
 

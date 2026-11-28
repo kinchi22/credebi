@@ -48,7 +48,7 @@ export async function showTrend(page: Page, from: string, to: string): Promise<v
   await showButton(page).click();
 }
 
-const heldMonth = (month: string): RegExp => new RegExp(`^${month.slice(0, 4)}[-/]${month.slice(5, 7)}$`);
+const heldMonth = (month: string): string => month.replaceAll('-', '');
 
 export async function expectRange(page: Page, from: string, to: string): Promise<void> {
   await expect(fromMonth(page)).toHaveValue(heldMonth(from));
