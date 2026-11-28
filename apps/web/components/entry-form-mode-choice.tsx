@@ -10,7 +10,7 @@ import {
   LEGEND,
   SEGMENT,
   SEGMENT_RADIO,
-  SETTINGS_ROW,
+  FIRST_SETTINGS_ROW,
   UNCHOSEN_SEGMENT,
 } from './control-classes';
 import { useSavedChoice, type SettingChange } from './use-saved-choice';
@@ -72,7 +72,7 @@ export function EntryFormModeChoice({ chosen, action }: EntryFormModeChoiceProps
 
   return (
     <div className="flex flex-col gap-2">
-      <fieldset className={`${SETTINGS_ROW} border-t`}>
+      <fieldset className={FIRST_SETTINGS_ROW}>
         <legend className={`float-left p-0 ${LEGEND}`}>
           {t('settingsPage.entryFormMode')}
         </legend>

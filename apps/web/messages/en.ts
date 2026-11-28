@@ -144,6 +144,11 @@ export const en = {
     notSaved: 'Your choice was not saved, so your Entry form mode is unchanged. Try again.',
     languageNotSaved: 'Your choice was not saved, so your Language is unchanged. Try again.',
   },
+  sectionState: {
+    loading: 'Loading {section}...',
+    unavailable: 'This section could not be loaded just now.',
+    tryAgain: 'Try again',
+  },
   connectionsSection: {
     title: 'Connections',
     emptyTitle: 'Connect an AI application',

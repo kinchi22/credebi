@@ -67,6 +67,7 @@ colors:
   type-expense: "{colors.magenta}"
   type-expense-tint: "{colors.magenta-pale}"
   band-suggested: "{colors.mint-fog}"
+  skeleton: "{colors.fog}"
   border-control: "{colors.steel}"
   danger: "{colors.rust}"
   warning: "{colors.ochre}"
@@ -256,7 +257,7 @@ a palette colour.
 | `white`       | `#FFFFFF` | panels                                     |
 | `slate`       | `#4A6461` | muted text                                 |
 | `sage`        | `#9FC4BC` | muted text on ink                          |
-| `fog`         | `#E1ECE8` | dividers, panel edges                      |
+| `fog`         | `#E1ECE8` | dividers, panel edges, the Skeleton's blocks |
 | `mint-fog`    | `#DCF0E9` | the Suggested Band, a touch mintier than `fog` |
 | `steel`       | `#78948F` | control edges                              |
 | `rust`        | `#B4400F` | danger                                     |
@@ -318,6 +319,7 @@ these, as Tailwind utilities such as `bg-surface`, `text-text-muted` or
 | `type-expense`       | `magenta`   | the expense icon's stroke on its Band and Tile |
 | `type-expense-tint`  | `magenta-pale` | the Expenses Band's and its Tiles' fill |
 | `band-suggested`     | `mint-fog`  | the Suggested Band in the Account picker and the Account sheet |
+| `skeleton`           | `fog`       | every block of a Skeleton              |
 | `border-control`     | `steel`     | inputs, secondary buttons, tree connectors, and at 55% the Account picker's group rules |
 | `danger`             | `rust`      | refusals, errors                      |
 | `warning`            | `ochre`     | a Difference not 0, a line not active on the day, a Title needing Multi-line mode |
@@ -1272,6 +1274,18 @@ numerals.
   sheet, a wallet, sliders and an exit -- so each is named by its text alone; the
   magnifier is the Account picker's search icon and the wallet, for Assets and
   liabilities, the Assets Band's icon, each at 18px rather than 16px.
+- **Skeleton.** The stand-in a section shows until its data arrives. Its blocks
+  are `skeleton` (`fog`) with the `control` radius, laid out in the section's
+  own frame: the panel, the table header, the row height and the field layout
+  it will have, so the content takes its place without the page moving. Where
+  the count is unknown it draws three rows. It does not move, so it adds
+  nothing to the motion list and has no reduced-motion variant. The section
+  carries `aria-busy` and holds one visually hidden `role="status"` message
+  naming what is loading; every block is hidden from assistive technology.
+- **Section error.** What a section shows when its data could not be read: the
+  section's name in `body-sm`, semibold, one shared message in `danger`, and a
+  secondary `Try again` button that reads the page again. It stands in the
+  section's place, so the rest of the page keeps working.
 
 ## Logo
 
@@ -1399,6 +1413,7 @@ variant B settled it. Every part of it sits in one column at most 1152px wide,
 | Band           | A strip filled with its Account type's tint, such as `type-asset-tint`, with the `control` radius behind the type's name, set in `body-sm`, semibold, in `text`, and led by the type's icon drawn in the type's colour, such as `type-asset`, so the Account types read apart from each other and from the groups and Accounts under them. It is drawn in the Accounts section, the Account picker, the Account sheet, and atop each type's table in the Income statement and Assets and liabilities. In the Account picker and the Account sheet it carries at its right edge the type's Balance direction for the Side: a 14px arrow, up for `Increase` and down for `Decrease`, then the word, in `body-sm` and `text-muted`, with no Side colour and no red or green, since neither direction is good or bad. The arrow is hidden from assistive technology, and the type's group is named by one message joining the type's name and the word, as `Assets, Increase`. The Suggested Band is one more, tinted `band-suggested` and led by a sparkle, over the Suggested accounts in the Account picker and the Account sheet. |
 | Tile           | A 20px square with the `control` radius, filled with its Account type's tint, such as `type-asset-tint`, holding the type's icon at 14px in the type's colour, such as `type-asset`. It leads an Account's name where no Band stands above it, as on each line of the Entries list, on each chosen Account in the entry form and in the Account combobox, and is hidden from assistive technology, so the name it leads carries the type in words. |
 | Tree connector | A 1px `border-control` line from an Account group's folder icon to the Accounts in it, in the Accounts section and the Account sheet: `├` before each Account shown but the last, `└`, its corner rounded by the `control` radius, before the last shown. It is decoration, hidden from assistive technology. |
+| Skeleton       | A static stand-in for a section whose data has not arrived, drawn in that section's own frame from blocks filled `skeleton`, with the `control` radius. It never moves, and it is replaced by the section's content in the same place. |
 | Chip           | A choice drawn as a small inline box that sits beside others and wraps, rather than one per row; a chosen chip takes a fill and an edge. |
 | Scrim          | The `ground-dark` tint at 60% behind a modal dialog. A click on the scrim is a press that began on it as well as ended there: a press that began inside the dialog, as when selecting a field's text by dragging, and was released on the scrim closes nothing. |
 | Help tip       | A small question-mark button beside a short message, opening a panel that explains it and may link to where it is fixed. Hovering opens it; a click, a tap, Enter or Space toggles it; Escape or a click outside closes it, and one opened by a click stays open when the pointer leaves. The message stays short because the explanation lives here. |

@@ -35,3 +35,6 @@ export const SEGMENT_RADIO = 'peer absolute inset-0 m-0 appearance-none opacity-
 export const SEGMENT = 'rounded-control px-3 py-2 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus peer-disabled:opacity-50';
 export const CHOSEN_SEGMENT = 'bg-accent/15 text-text ring-[1.5px] ring-accent-text ring-inset';
 export const UNCHOSEN_SEGMENT = 'text-text-muted';
+export const FIRST_SETTINGS_ROW = `${SETTINGS_ROW} border-t`;
+export const SETTINGS_SECTION = 'flex flex-col gap-2 border-b border-border py-5';
+export const CONNECTIONS_SECTION = 'flex flex-col gap-3 border-b border-border py-5';
