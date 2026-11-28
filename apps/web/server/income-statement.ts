@@ -19,6 +19,11 @@ export type IncomeStatementAnswer =
     }
   | { readonly outcome: Unanswered; readonly period: StatementPeriod };
 
+export function periodOfQuery(query: SearchQuery): StatementPeriod {
+  const period = parseIncomeStatementQuery(query);
+  return period.ok ? period.value : {};
+}
+
 export async function answerIncomeStatement(
   show: ShowIncomeStatement,
   query: SearchQuery,

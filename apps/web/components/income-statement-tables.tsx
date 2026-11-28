@@ -5,7 +5,7 @@ import { type IncomeStatementAnswer } from '../server/income-statement';
 import { accountSearchPath } from '../server/return-path';
 import { type KeepCollapsed } from './statement-group';
 import { StatementTables } from './statement-tables';
-import { DANGER_TEXT, MUTED_TEXT } from './text-classes';
+import { DANGER_TEXT } from './text-classes';
 
 export type IncomeStatementTablesProps = {
   readonly statement: IncomeStatementOutput;
@@ -49,16 +49,5 @@ export function IncomeStatementOutcome({ answer, keep }: IncomeStatementOutcomeP
     <p role="alert" className={DANGER_TEXT}>
       {t(answer.outcome)}
     </p>
-  );
-}
-
-export function IncomeStatementPending(): ReactNode {
-  const t = useTranslations('incomeStatement');
-  return (
-    <section aria-busy className="flex flex-col gap-2">
-      <p role="status" className={MUTED_TEXT}>
-        {t('loading')}
-      </p>
-    </section>
   );
 }

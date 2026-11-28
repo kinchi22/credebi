@@ -14,7 +14,7 @@ import { Band } from './type-band';
 
 const TABLE = `w-full border-collapse ${typeClasses['body-sm']}`;
 const CAPTION = `mb-2 text-left ${PANEL_TITLE}`;
-const COLUMNS = 'flex flex-col gap-4 split:grid split:grid-cols-2 split:grid-rows-[auto_1fr] split:items-start';
+export const STATEMENT_COLUMNS = 'flex flex-col gap-4 split:grid split:grid-cols-2 split:grid-rows-[auto_1fr] split:items-start';
 
 type Placement = { readonly left: string; readonly right: string; readonly totals: string };
 
@@ -100,7 +100,7 @@ export function StatementTables({ left, right, stackRightFirst = false, totals, 
   ];
 
   return (
-    <div className={COLUMNS}>
+    <div className={STATEMENT_COLUMNS}>
       {stackRightFirst ? tables.toReversed() : tables}
       <div className={`${PANEL} ${placement.totals}`}>
         <table className={TABLE}>

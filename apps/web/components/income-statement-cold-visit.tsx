@@ -4,7 +4,8 @@ import { calendarMonth, type DayRange } from '@repo/core/entries';
 import { type ReactNode } from 'react';
 import { type IncomeStatementAnswer } from '../server/income-statement';
 import { IncomeStatementForm } from './income-statement-form';
-import { IncomeStatementOutcome, IncomeStatementPending } from './income-statement-tables';
+import { IncomeStatementSkeleton } from './income-statement-skeletons';
+import { IncomeStatementOutcome } from './income-statement-tables';
 import { type KeepCollapsed } from './statement-group';
 import { UNAVAILABLE, useDefaultAnswer } from './use-default-answer';
 
@@ -23,7 +24,7 @@ export function IncomeStatementColdVisit({ show, keep }: IncomeStatementColdVisi
     <>
       <IncomeStatementForm key={todayKey} period={period} />
       {answer === undefined ? (
-        <IncomeStatementPending />
+        <IncomeStatementSkeleton />
       ) : (
         <IncomeStatementOutcome
           answer={answer === UNAVAILABLE ? { outcome: UNAVAILABLE, period } : answer}
