@@ -162,6 +162,11 @@ export const ja = {
     notSaved: '保存に失敗しました。もう一度お試しください。',
     languageNotSaved: '保存に失敗しました。もう一度お試しください。',
   },
+  sectionState: {
+    loading: '{section}を読み込み中...',
+    unavailable: 'このセクションを今は読み込めません。',
+    tryAgain: 'もう一度試す',
+  },
   connectionsSection: {
     title: '接続',
     emptyTitle: 'AIアプリケーションを接続する',

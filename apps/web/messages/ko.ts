@@ -161,6 +161,11 @@ export const ko = {
     notSaved: '저장에 실패했습니다. 다시 시도해 주세요.',
     languageNotSaved: '저장에 실패했습니다. 다시 시도해 주세요.',
   },
+  sectionState: {
+    loading: '{section}을(를) 불러오는 중...',
+    unavailable: '지금은 이 섹션을 불러올 수 없습니다.',
+    tryAgain: '다시 시도',
+  },
   connectionsSection: {
     title: '연결',
     emptyTitle: 'AI 애플리케이션 연결하기',

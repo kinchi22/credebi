@@ -156,6 +156,7 @@ describe('the semantic tokens', () => {
       'type-expense': 'magenta',
       'type-expense-tint': 'magenta-pale',
       'band-suggested': 'mint-fog',
+      skeleton: 'fog',
       'border-control': 'steel',
       danger: 'rust',
       warning: 'ochre',
