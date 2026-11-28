@@ -10,7 +10,7 @@ test('lets a User fill in the entry form while the Entries list is held', async 
   await signIn(page, { accountsStartOn: BOOKS_OPEN });
   const faults = await injectFaults(page, { 'entries.list': 'hold' });
 
-  await page.goto('/entries');
+  await page.goto('/entries', { waitUntil: 'commit' });
 
   await expect(busySections(page)).toHaveCount(1);
   const form = entryForm(page);
