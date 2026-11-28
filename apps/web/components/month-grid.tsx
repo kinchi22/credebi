@@ -7,10 +7,8 @@ import { typeClasses } from '@repo/ui/type-classes';
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import { BARE_ICON_BUTTON, TODAY_MARK } from './control-classes';
-import { GRID_STEPS, monthsOfYear, steppedMonth } from './month-text';
+import { GRID_STEPS, MONTHS_A_YEAR, monthsOfYear, steppedMonth } from './month-text';
 import { useMonthLabel } from './use-month-label';
-
-const MONTHS_A_YEAR = 12;
 
 const MONTH = `rounded-control px-2 py-2 ${typeClasses['body-dense']} hover:bg-ground`;
 const CHOSEN_MONTH = 'bg-surface-chosen hover:bg-surface-chosen';

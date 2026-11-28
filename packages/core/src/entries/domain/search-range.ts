@@ -40,21 +40,21 @@ export function monthOf(day: string): number {
   return Number(day.slice(5, 7));
 }
 
-function dateOf(day: string): number {
+export function dateOf(day: string): number {
   return Number(day.slice(8, 10));
 }
 
-function lastDateOfMonth(year: number, monthIndex: number): number {
+export function lastDateOfMonth(year: number, monthIndex: number): number {
   return dateOf(calendarDay(year, monthIndex + 1, 0));
 }
 
-function monthsAfter(day: string, months: number): string {
+export function monthsAfter(day: string, months: number): string {
   const year = yearOf(day);
   const monthIndex = monthOf(day) - 1 + months;
   return calendarDay(year, monthIndex, Math.min(dateOf(day), lastDateOfMonth(year, monthIndex)));
 }
 
-function daysAfter(day: string, days: number): string {
+export function daysAfter(day: string, days: number): string {
   return calendarDay(yearOf(day), monthOf(day) - 1, dateOf(day) + days);
 }
 

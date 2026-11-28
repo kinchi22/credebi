@@ -1,21 +1,13 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { dateOf, monthAfter } from '@repo/core/entries';
 import { ChevronIcon } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import { TODAY_MARK } from './control-classes';
-import {
-  DAY_KEYS,
-  dayOfMonth,
-  monthCells,
-  monthOfDay,
-  movedDay,
-  sameDayIn,
-  steppedDayByMonths,
-  WEEKDAYS,
-} from './day-grid';
+import { DAY_STEPS, monthCells, sameDayIn, steppedDayByMonths, WEEKDAYS } from './day-grid';
 import { MonthGrid, STEP_BUTTON } from './month-grid';
 import { monthText } from './month-text';
 
@@ -44,27 +36,29 @@ function DayGrid({ start, chosen, today, onPick, onChooseMonth }: DayGridProps):
   const t = useTranslations('dayInput');
   const [active, setActive] = useState(start);
   const buttons = useRef<Partial<Record<number, HTMLButtonElement | null>>>({});
-  const month = monthOfDay(active);
+  const month = monthAfter(active, 0);
   const previousMonth = steppedDayByMonths(active, -1);
   const nextMonth = steppedDayByMonths(active, 1);
 
   useEffect(() => {
-    buttons.current[dayOfMonth(start)]?.focus();
+    buttons.current[dateOf(start)]?.focus();
   }, [start]);
 
   const move = (event: KeyboardEvent<HTMLDivElement>): void => {
-    if (!DAY_KEYS.has(event.key)) {
+    const step = DAY_STEPS[event.key];
+    const onDay = event.target instanceof HTMLButtonElement && Object.values(buttons.current).includes(event.target);
+    if (step === undefined || !onDay) {
       return;
     }
     event.preventDefault();
-    const next = movedDay(active, event.key, event.shiftKey);
+    const next = step(active, event.shiftKey);
     if (next === undefined) {
       return;
     }
     flushSync(() => {
       setActive(next);
     });
-    buttons.current[dayOfMonth(next)]?.focus();
+    buttons.current[dateOf(next)]?.focus();
   };
 
   return (
@@ -74,7 +68,11 @@ function DayGrid({ start, chosen, today, onPick, onChooseMonth }: DayGridProps):
         aria-label={t('previousMonth')}
         aria-disabled={previousMonth === undefined}
         onClick={() => {
-          if (previousMonth !== undefined) setActive(previousMonth);
+          if (previousMonth === undefined) {
+            buttons.current[dateOf(active)]?.focus();
+          } else {
+            setActive(previousMonth);
+          }
         }}
         className={`${STEP_BUTTON} aria-disabled:opacity-50 justify-self-start`}
       >
@@ -84,7 +82,7 @@ function DayGrid({ start, chosen, today, onPick, onChooseMonth }: DayGridProps):
       </button>
       <button
         type="button"
-        aria-label={t('chooseMonthAndYear')}
+        aria-label={`${monthText(month)} ${t('chooseMonthAndYear')}`}
         onClick={() => {
           onChooseMonth(active);
         }}
@@ -97,7 +95,11 @@ function DayGrid({ start, chosen, today, onPick, onChooseMonth }: DayGridProps):
         aria-label={t('nextMonth')}
         aria-disabled={nextMonth === undefined}
         onClick={() => {
-          if (nextMonth !== undefined) setActive(nextMonth);
+          if (nextMonth === undefined) {
+            buttons.current[dateOf(active)]?.focus();
+          } else {
+            setActive(nextMonth);
+          }
         }}
         className={`${STEP_BUTTON} aria-disabled:opacity-50 justify-self-end`}
       >
@@ -115,7 +117,7 @@ function DayGrid({ start, chosen, today, onPick, onChooseMonth }: DayGridProps):
           <button
             key={cell}
             ref={(element) => {
-              buttons.current[dayOfMonth(cell)] = element;
+              buttons.current[dateOf(cell)] = element;
             }}
             type="button"
             aria-current={cell === today ? 'date' : undefined}
@@ -125,7 +127,7 @@ function DayGrid({ start, chosen, today, onPick, onChooseMonth }: DayGridProps):
             }}
             className={dayClass(cell === today, cell === chosen)}
           >
-            {dayOfMonth(cell)}
+            {dateOf(cell)}
           </button>
         ),
       )}
@@ -139,9 +141,9 @@ export function DayPicker({ start, chosen, today, onPick }: DayPickerProps): Rea
   if (view.kind === 'months') {
     return (
       <MonthGrid
-        start={monthOfDay(view.from)}
-        chosen={chosen === undefined ? undefined : monthOfDay(chosen)}
-        today={today === undefined ? undefined : monthOfDay(today)}
+        start={monthAfter(view.from, 0)}
+        chosen={chosen === undefined ? undefined : monthAfter(chosen, 0)}
+        today={today === undefined ? undefined : monthAfter(today, 0)}
         onPick={(month) => {
           setView({ kind: 'days', start: sameDayIn(view.from, month) });
         }}

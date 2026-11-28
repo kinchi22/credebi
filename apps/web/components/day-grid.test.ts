@@ -1,15 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import {
-  DAY_KEYS,
-  dayOfMonth,
-  monthCells,
-  monthOfDay,
-  movedDay,
-  sameDayIn,
-  steppedDay,
-  steppedDayByMonths,
-  weekdayOf,
-} from './day-grid';
+import { DAY_STEPS, monthCells, sameDayIn, steppedDay, steppedDayByMonths, weekdayOf } from './day-grid';
+
+const movedDay = (day: string, key: string, shift: boolean): string | undefined => DAY_STEPS[key]?.(day, shift);
 
 const own = (month: string): readonly (string | undefined)[] => monthCells(month).filter((cell) => cell !== undefined);
 
@@ -44,13 +36,6 @@ describe('weekdayOf', () => {
     expect(weekdayOf('2026-09-13')).toBe(0);
     expect(weekdayOf('2026-09-19')).toBe(6);
     expect(weekdayOf('0001-01-01')).toBe(1);
-  });
-});
-
-describe('day parts', () => {
-  it('reads the day number and the month of an ISO day', () => {
-    expect(dayOfMonth('2026-09-05')).toBe(5);
-    expect(monthOfDay('2026-09-05')).toBe('2026-09');
   });
 });
 
@@ -127,11 +112,8 @@ describe('movedDay', () => {
     expect(movedDay(from, 'PageDown', true)).toBe('2025-09-15');
   });
 
-  it('moves on every key it claims and on no other', () => {
-    for (const key of DAY_KEYS) {
-      expect(movedDay(from, key, false), key).toBeDefined();
-    }
-    expect([...DAY_KEYS].sort()).toEqual([
+  it('claims exactly the arrows, Home, End, PageUp and PageDown', () => {
+    expect(Object.keys(DAY_STEPS).sort()).toEqual([
       'ArrowDown',
       'ArrowLeft',
       'ArrowRight',
@@ -141,8 +123,6 @@ describe('movedDay', () => {
       'PageDown',
       'PageUp',
     ]);
-    expect(DAY_KEYS.has('Enter')).toBe(false);
-    expect(DAY_KEYS.has(' ')).toBe(false);
   });
 
   it('ignores any other key', () => {

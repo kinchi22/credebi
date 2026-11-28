@@ -8,7 +8,18 @@ export { titleMatching } from './domain/title-match';
 
 export { NO_CRITERIA, makeSearchCriteria } from './domain/search-criteria';
 export type { SearchCriteria, SearchCriteriaDraft } from './domain/search-criteria';
-export { calendarMonth, defaultSearchRange, makeDayRange, monthOf, yearOf } from './domain/search-range';
+export {
+  calendarDay,
+  calendarMonth,
+  dateOf,
+  daysAfter,
+  defaultSearchRange,
+  lastDateOfMonth,
+  makeDayRange,
+  monthOf,
+  monthsAfter,
+  yearOf,
+} from './domain/search-range';
 export type { DayRange } from './domain/search-range';
 export type {
   AccountSums,

@@ -3,7 +3,7 @@ import { monthAfter, monthOf } from '@repo/core/entries';
 
 const SEPARATORS: ReadonlySet<string> = new Set(['-', '/']);
 
-const MONTHS_A_YEAR = 12;
+export const MONTHS_A_YEAR = 12;
 
 const GRID_COLUMNS = 4;
 
