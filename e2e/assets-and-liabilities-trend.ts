@@ -1,6 +1,7 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import { TYPE_COLOUR } from './account-type-cues';
 import { escaped } from './entries';
+import { shownDay } from './day-input';
 import { reportRow, reportTables } from './report-tables';
 import { TREND_PATH } from './routes';
 
@@ -48,11 +49,9 @@ export async function showTrend(page: Page, from: string, to: string): Promise<v
   await showButton(page).click();
 }
 
-const heldMonth = (month: string): string => month.replaceAll('-', '');
-
 export async function expectRange(page: Page, from: string, to: string): Promise<void> {
-  await expect(fromMonth(page)).toHaveValue(heldMonth(from));
-  await expect(toMonth(page)).toHaveValue(heldMonth(to));
+  await expect(fromMonth(page)).toHaveValue(shownDay(from));
+  await expect(toMonth(page)).toHaveValue(shownDay(to));
 }
 
 export const monthFields = (page: Page): Locator => page.getByRole('main').getByRole('form').getByRole('textbox');

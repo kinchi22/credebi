@@ -6,7 +6,7 @@ import { fixToday } from './date-presets';
 import { DAY_FIELDS } from './day-fields';
 import { chooseDate, chooseDateOf } from './day-input';
 import {
-  CHOSEN_FILL,
+  SURFACE_CHOSEN,
   dayCell,
   dayCells,
   expectPickerClosed,
@@ -83,9 +83,9 @@ test("opens on the field's month, focused on the chosen day, which is marked cho
   await openPicker(page);
 
   await expectPickerOn(page, '2026/09', 20);
-  await expect(dayCell(page, 20)).toHaveCSS('background-color', CHOSEN_FILL);
+  await expect(dayCell(page, 20)).toHaveCSS('background-color', SURFACE_CHOSEN);
   await expect(dayCell(page, 15)).toHaveAttribute('aria-current', 'date');
-  await expect(dayCell(page, 15)).not.toHaveCSS('background-color', CHOSEN_FILL);
+  await expect(dayCell(page, 15)).not.toHaveCSS('background-color', SURFACE_CHOSEN);
   await expect(dayCell(page, 20)).not.toHaveAttribute('aria-current', 'date');
 });
 
@@ -96,7 +96,7 @@ test('marks today and the chosen day on the same cell when they are one day', as
 
   await expectPickerOn(page, '2026/09', 15);
   await expect(dayCell(page, 15)).toHaveAttribute('aria-current', 'date');
-  await expect(dayCell(page, 15)).toHaveCSS('background-color', CHOSEN_FILL);
+  await expect(dayCell(page, 15)).toHaveCSS('background-color', SURFACE_CHOSEN);
 });
 
 test('marks no today in a month other than the current one', async ({ page }) => {
@@ -105,7 +105,7 @@ test('marks no today in a month other than the current one', async ({ page }) =>
   await openPicker(page);
 
   await expectPickerOn(page, '2025/03', 4);
-  await expect(dayCell(page, 4)).toHaveCSS('background-color', CHOSEN_FILL);
+  await expect(dayCell(page, 4)).toHaveCSS('background-color', SURFACE_CHOSEN);
   await expect(page.locator('[aria-current="date"]')).toHaveCount(0);
 });
 
@@ -119,7 +119,7 @@ test('chooses a complete typed day when the picker opens, so that the field and 
   await reportDate(page).fill('20240229');
   await openPicker(page);
   await expectPickerOn(page, '2024/02', 29);
-  await expect(dayCell(page, 29)).toHaveCSS('background-color', CHOSEN_FILL);
+  await expect(dayCell(page, 29)).toHaveCSS('background-color', SURFACE_CHOSEN);
   await expect(reportDate(page)).toHaveValue('20240229');
 });
 
@@ -401,7 +401,6 @@ test.describe('on a phone', () => {
 
     const sheet = pickerSheet(page);
     await expect(sheet).toBeVisible();
-    await expect(sheet.getByText('Choose date', { exact: true })).toBeVisible();
     await expect(sheet.getByRole('button', { name: 'Close', exact: true })).toBeVisible();
     await expectWithinPhone(page, sheet);
     const box = await sheet.boundingBox();

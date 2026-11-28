@@ -2,7 +2,7 @@ import { expect, type Locator, type Page } from '@playwright/test';
 import { gridMonth } from './assets-and-liabilities-trend';
 import { type Language } from './language';
 
-export const CHOSEN_FILL = 'rgb(219, 243, 235)';
+export const SURFACE_CHOSEN = 'rgb(219, 243, 235)';
 
 export const previousMonth = (page: Page): Locator =>
   page.getByRole('button', { name: 'Previous month', exact: true });
@@ -25,7 +25,7 @@ export const dayCells = (page: Page): Locator =>
 export const monthHeading = (page: Page, month: string): Locator =>
   dayPicker(page).getByRole('button').filter({ hasText: month });
 
-export const pickerSheet = (page: Page): Locator => page.getByRole('dialog').filter({ has: previousMonth(page) });
+export const pickerSheet = (page: Page): Locator => page.getByRole('dialog', { name: 'Choose date', exact: true });
 
 export async function expectPickerOn(page: Page, month: string, focusedDay: number): Promise<void> {
   await expect(monthHeading(page, month)).toBeVisible();
