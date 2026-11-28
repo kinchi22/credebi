@@ -30,6 +30,7 @@ import {
   ZERO_LINE_LOOK,
   type ChartSeriesLook,
 } from './chart-look';
+import { TREND_CHART_FRAME } from './text-classes';
 import { useMonthLabel } from './use-month-label';
 
 const FULL = '100%';
@@ -105,7 +106,7 @@ export function AssetsAndLiabilitiesTrendChart({ months, lines }: AssetsAndLiabi
 
   return (
     <>
-      <div className="h-80 min-w-0 wide:h-96">
+      <div className={TREND_CHART_FRAME}>
         <ResponsiveContainer width={FULL} height={FULL}>
           <LineChart
             data={[...months]}

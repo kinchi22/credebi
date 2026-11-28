@@ -344,11 +344,9 @@ export const ko = {
     show: '조회',
     lines: '선',
     month: '월',
-    loading: '최근 12개월을 불러오는 중...',
     nothingRecorded: '이 기간의 마지막 달까지 기록된 내용이 아직 없습니다.',
     refused:
       '자산·부채 추이를 표시하지 않았습니다. 기간을 확인하세요. 각 값은 달력상의 월이어야 하고, 시작 월은 종료 월보다 늦을 수 없으며, 기간은 최대 {most}개월입니다.',
-    unavailable: '지금은 자산·부채 추이를 불러올 수 없습니다. 조회를 눌러 다시 시도해 주세요.',
   },
   incomeStatement: {
     period: '조회 기간',

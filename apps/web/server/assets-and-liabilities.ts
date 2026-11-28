@@ -5,7 +5,7 @@ import {
   type AssetsAndLiabilitiesQuery,
   type SearchQuery,
 } from '@repo/contracts';
-import { unanswered, type Unanswered } from './report-outcome';
+import { parsedOrEmpty, unanswered, type Unanswered } from './report-outcome';
 
 export type ShowAssetsAndLiabilities = (
   day: AssetsAndLiabilitiesQuery,
@@ -21,14 +21,8 @@ export type AssetsAndLiabilitiesAnswer =
     }
   | { readonly outcome: Unanswered; readonly day: ReportDay };
 
-export type ShownAssetsAndLiabilitiesAnswer = Exclude<
-  AssetsAndLiabilitiesAnswer,
-  { readonly outcome: 'unavailable' }
->;
-
 export function dayOfQuery(query: SearchQuery): ReportDay {
-  const day = parseAssetsAndLiabilitiesQuery(query);
-  return day.ok ? day.value : {};
+  return parsedOrEmpty(parseAssetsAndLiabilitiesQuery(query));
 }
 
 export async function answerAssetsAndLiabilities(

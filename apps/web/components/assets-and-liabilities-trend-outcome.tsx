@@ -1,12 +1,13 @@
 import { useTranslations } from 'next-intl';
 import { type AssetsAndLiabilitiesTrendOutput } from '@repo/contracts';
 import { MOST_TREND_MONTHS } from '@repo/core/entries';
-import { PANEL } from '@repo/ui';
 import { type ReactNode } from 'react';
 import { type AssetsAndLiabilitiesTrendAnswer } from '../server/assets-and-liabilities-trend';
+import { type Shown } from '../server/report-outcome';
 import { formatAmount } from './amount';
 import { AssetsAndLiabilitiesTrendChart, type ShownLines } from './assets-and-liabilities-trend-chart';
-import { DANGER_TEXT, MUTED_TEXT } from './text-classes';
+import { SkeletonBlock, SkeletonSection } from './skeleton';
+import { DANGER_TEXT, MUTED_TEXT, TREND_CHART_FRAME, TREND_PANEL } from './text-classes';
 import { useMonthLabel } from './use-month-label';
 
 type TrendTableProps = {
@@ -43,7 +44,7 @@ function TrendTable({ months }: TrendTableProps): ReactNode {
 }
 
 export type AssetsAndLiabilitiesTrendOutcomeProps = {
-  readonly answer: AssetsAndLiabilitiesTrendAnswer;
+  readonly answer: Shown<AssetsAndLiabilitiesTrendAnswer>;
   readonly lines: ShownLines;
 };
 
@@ -52,7 +53,7 @@ export function AssetsAndLiabilitiesTrendOutcome({ answer, lines }: AssetsAndLia
   if (answer.outcome !== 'answered') {
     return (
       <p role="alert" className={DANGER_TEXT}>
-        {answer.outcome === 'refused' ? t('refused', { most: String(MOST_TREND_MONTHS) }) : t('unavailable')}
+        {t('refused', { most: String(MOST_TREND_MONTHS) })}
       </p>
     );
   }
@@ -60,20 +61,21 @@ export function AssetsAndLiabilitiesTrendOutcome({ answer, lines }: AssetsAndLia
     return <p className={MUTED_TEXT}>{t('nothingRecorded')}</p>;
   }
   return (
-    <section className={`${PANEL} min-w-0`}>
+    <section className={TREND_PANEL}>
       <AssetsAndLiabilitiesTrendChart months={answer.trend.months} lines={lines} />
       <TrendTable months={answer.trend.months} />
     </section>
   );
 }
 
-export function AssetsAndLiabilitiesTrendPending(): ReactNode {
-  const t = useTranslations('assetsAndLiabilitiesTrend');
+export function AssetsAndLiabilitiesTrendSkeleton(): ReactNode {
+  const t = useTranslations();
   return (
-    <section aria-busy className="flex flex-col gap-2">
-      <p role="status" className={MUTED_TEXT}>
-        {t('loading')}
-      </p>
-    </section>
+    <SkeletonSection
+      message={t('sectionState.loading', { section: t('assetsAndLiabilitiesTrendPage.title') })}
+      className={TREND_PANEL}
+    >
+      <SkeletonBlock className={TREND_CHART_FRAME} />
+    </SkeletonSection>
   );
 }

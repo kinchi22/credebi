@@ -2,10 +2,11 @@
 
 import { calendarMonth, type DayRange } from '@repo/core/entries';
 import { useTranslations } from 'next-intl';
-import { useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { type IncomeStatementAnswer } from '../server/income-statement';
 import { IncomeStatementForm } from './income-statement-form';
 import { IncomeStatementOutcome } from './income-statement-tables';
+import { RetryingColdVisit } from './retrying-cold-visit';
 import { SectionFailure } from './section-error-boundary';
 import { type KeepCollapsed } from './statement-group';
 import { StatementSkeleton } from './statement-tables';
@@ -42,15 +43,9 @@ function ColdVisitAttempt({ show, keep, retry }: AttemptProps): ReactNode {
 }
 
 export function IncomeStatementColdVisit({ show, keep }: IncomeStatementColdVisitProps): ReactNode {
-  const [attempt, setAttempt] = useState(0);
   return (
-    <ColdVisitAttempt
-      key={attempt}
-      show={show}
-      keep={keep}
-      retry={() => {
-        setAttempt((current) => current + 1);
-      }}
-    />
+    <RetryingColdVisit>
+      {(retry) => <ColdVisitAttempt show={show} keep={keep} retry={retry} />}
+    </RetryingColdVisit>
   );
 }

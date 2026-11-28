@@ -5,7 +5,7 @@ import {
   type AssetsAndLiabilitiesTrendQuery,
   type SearchQuery,
 } from '@repo/contracts';
-import { unanswered, type Unanswered } from './report-outcome';
+import { parsedOrEmpty, unanswered, type Unanswered } from './report-outcome';
 
 export type ShowAssetsAndLiabilitiesTrend = (
   range: AssetsAndLiabilitiesTrendQuery,
@@ -20,6 +20,15 @@ export type AssetsAndLiabilitiesTrendAnswer =
       readonly trend: AssetsAndLiabilitiesTrendOutput;
     }
   | { readonly outcome: Unanswered; readonly range: TrendRange };
+
+export type DefaultTrend = {
+  readonly answer: AssetsAndLiabilitiesTrendAnswer;
+  readonly shownSeriesIds: readonly string[];
+};
+
+export function rangeOfQuery(query: SearchQuery): TrendRange {
+  return parsedOrEmpty(parseAssetsAndLiabilitiesTrendQuery(query));
+}
 
 export async function answerAssetsAndLiabilitiesTrend(
   show: ShowAssetsAndLiabilitiesTrend,

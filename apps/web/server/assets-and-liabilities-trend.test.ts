@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import {
   answerAssetsAndLiabilitiesTrend,
   answerDefaultTrendRange,
+  rangeOfQuery,
   type ShowAssetsAndLiabilitiesTrend,
 } from './assets-and-liabilities-trend';
 import { toTrpcError } from './domain-error';
@@ -128,5 +129,19 @@ describe('answerDefaultTrendRange', () => {
       outcome: 'unavailable',
       range: JUNE_TO_JULY,
     });
+  });
+});
+
+describe('rangeOfQuery', () => {
+  it('reads the range the query holds', () => {
+    expect(rangeOfQuery({ ...JUNE_TO_JULY, other: 'ignored' })).toEqual(JUNE_TO_JULY);
+  });
+
+  it('reads an empty range from a query that holds none', () => {
+    expect(rangeOfQuery({})).toEqual({});
+  });
+
+  it('reads an empty range from a query that is refused', () => {
+    expect(rangeOfQuery({ from: '2026-13', to: '2026-06' })).toEqual({});
   });
 });

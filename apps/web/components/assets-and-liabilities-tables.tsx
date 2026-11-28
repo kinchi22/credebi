@@ -1,7 +1,8 @@
 import { useTranslations } from 'next-intl';
 import { type AccountId, type AssetsAndLiabilitiesOutput, type AssetsAndLiabilitiesQuery } from '@repo/contracts';
 import { type ReactNode } from 'react';
-import { type ShownAssetsAndLiabilitiesAnswer } from '../server/assets-and-liabilities';
+import { type AssetsAndLiabilitiesAnswer } from '../server/assets-and-liabilities';
+import { type Shown } from '../server/report-outcome';
 import { accountSearchPath } from '../server/return-path';
 import { type KeepCollapsed } from './statement-group';
 import { StatementTables } from './statement-tables';
@@ -35,7 +36,7 @@ function AssetsAndLiabilitiesTables({ report, day, keep }: AssetsAndLiabilitiesT
 }
 
 export type AssetsAndLiabilitiesOutcomeProps = {
-  readonly answer: ShownAssetsAndLiabilitiesAnswer;
+  readonly answer: Shown<AssetsAndLiabilitiesAnswer>;
   readonly keep: KeepCollapsed;
 };
 

@@ -5,7 +5,7 @@ import {
   type IncomeStatementQuery,
   type SearchQuery,
 } from '@repo/contracts';
-import { unanswered, type Unanswered } from './report-outcome';
+import { parsedOrEmpty, unanswered, type Unanswered } from './report-outcome';
 
 export type ShowIncomeStatement = (period: IncomeStatementQuery) => Promise<IncomeStatementOutput>;
 
@@ -19,11 +19,8 @@ export type IncomeStatementAnswer =
     }
   | { readonly outcome: Unanswered; readonly period: StatementPeriod };
 
-export type ShownIncomeStatementAnswer = Exclude<IncomeStatementAnswer, { readonly outcome: 'unavailable' }>;
-
 export function periodOfQuery(query: SearchQuery): StatementPeriod {
-  const period = parseIncomeStatementQuery(query);
-  return period.ok ? period.value : {};
+  return parsedOrEmpty(parseIncomeStatementQuery(query));
 }
 
 export async function answerIncomeStatement(
