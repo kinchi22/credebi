@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { monthRangeOf, type DayRange } from '@repo/core/entries';
-import { useId, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
+import { useId, useRef, useState, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import { DATE_CONTROL, FIELD } from './control-classes';
 import { DatePresets, DatePresetsSheet, type Granularity } from './date-presets';
@@ -34,21 +34,13 @@ type RangeFieldProps = {
 
 const RANGE_FIELD = `${DATE_CONTROL} w-full min-w-0 wide:w-auto`;
 
-function keepingAValue(set: (value: string) => void): (event: ChangeEvent<HTMLInputElement>) => void {
-  return (event) => {
-    if (event.target.value !== '') {
-      set(event.target.value);
-    }
-  };
-}
-
 function DayField({ id, name, value, onValue }: RangeFieldProps): ReactNode {
   return (
     <DayInput
       id={id}
       name={name}
-      value={value}
-      onChange={keepingAValue(onValue)}
+      day={value}
+      onDay={onValue}
       required
       autoComplete="off"
       className={RANGE_FIELD}
@@ -93,6 +85,7 @@ export function RangeFields({
   const id = useId();
   const [from, setFrom] = useState(unit.shown(initialFrom ?? ''));
   const [to, setTo] = useState(unit.shown(initialTo ?? ''));
+  const [pushes, setPushes] = useState(0);
   const fields = useRef<HTMLDivElement>(null);
 
   const submitPreset = (range: DayRange): void => {
@@ -100,6 +93,7 @@ export function RangeFields({
     flushSync(() => {
       setFrom(shown.from);
       setTo(shown.to);
+      setPushes((count) => count + 1);
     });
     fields.current?.closest('form')?.requestSubmit();
   };
@@ -113,6 +107,7 @@ export function RangeFields({
         <div className={FIELD}>
           <label htmlFor={`${id}-from`}>{t('from')}</label>
           <unit.Field
+            key={pushes}
             id={`${id}-from`}
             name={names.from}
             value={from}
@@ -123,6 +118,7 @@ export function RangeFields({
         <div className={FIELD}>
           <label htmlFor={`${id}-to`}>{t('to')}</label>
           <unit.Field
+            key={pushes}
             id={`${id}-to`}
             name={names.to}
             value={to}

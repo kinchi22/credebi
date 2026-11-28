@@ -285,10 +285,8 @@ export function EntryFormShell({
           <DayInput
             id={`${id}-date`}
             name={ENTRY_FORM_FIELDS.entryDate}
-            defaultValue={variant.entryDate}
-            onChange={(event) => {
-              setDay(event.target.value);
-            }}
+            day={day ?? ''}
+            onDay={setDay}
             required
             className={DATE_CONTROL}
           />

@@ -31,7 +31,7 @@ export function AssetsAndLiabilitiesForm({ day }: AssetsAndLiabilitiesFormProps)
         <DayInput
           id={`${id}-date`}
           name={ASSETS_AND_LIABILITIES_FIELDS.date}
-          defaultValue={day.date ?? ''}
+          day={day.date ?? ''}
           required
           autoComplete="off"
           className={DATE_CONTROL}

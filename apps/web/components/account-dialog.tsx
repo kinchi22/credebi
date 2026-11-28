@@ -161,7 +161,7 @@ function AccountFields({
           <DayInput
             name={ACCOUNT_FORM_FIELDS.activeFrom}
             required
-            defaultValue={defaults.activeFrom}
+            day={defaults.activeFrom ?? ''}
             className={DATE_CONTROL}
           />
         </label>
@@ -169,7 +169,7 @@ function AccountFields({
           {t('accountDialog.activeUntil')}
           <DayInput
             name={ACCOUNT_FORM_FIELDS.activeUntil}
-            defaultValue={defaults.activeUntil}
+            day={defaults.activeUntil}
             className={DATE_CONTROL}
           />
         </label>

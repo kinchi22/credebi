@@ -380,6 +380,9 @@ export const ja = {
       around: '±{months}か月',
     },
   },
+  dayInput: {
+    invalid: '日付をYYYYMMDDの形式で入力してください',
+  },
   monthInput: {
     chooseMonth: '月を選択',
     previousYear: '前の年',
