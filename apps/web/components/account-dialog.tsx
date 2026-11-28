@@ -156,23 +156,25 @@ function AccountFields({
         </select>
       </div>
       <div className="flex flex-wrap gap-3">
-        <label className={`${FIELD} min-w-0 flex-1`}>
-          {t('accountDialog.activeFrom')}
+        <div className={`${FIELD} min-w-0 flex-1`}>
+          <label htmlFor={`${groupId}-active-from`}>{t('accountDialog.activeFrom')}</label>
           <DayInput
+            id={`${groupId}-active-from`}
             name={ACCOUNT_FORM_FIELDS.activeFrom}
             required
             day={defaults.activeFrom ?? ''}
             className={DATE_CONTROL}
           />
-        </label>
-        <label className={`${FIELD} min-w-0 flex-1`}>
-          {t('accountDialog.activeUntil')}
+        </div>
+        <div className={`${FIELD} min-w-0 flex-1`}>
+          <label htmlFor={`${groupId}-active-until`}>{t('accountDialog.activeUntil')}</label>
           <DayInput
+            id={`${groupId}-active-until`}
             name={ACCOUNT_FORM_FIELDS.activeUntil}
             day={defaults.activeUntil}
             className={DATE_CONTROL}
           />
-        </label>
+        </div>
       </div>
     </>
   );

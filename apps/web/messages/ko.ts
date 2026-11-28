@@ -379,6 +379,21 @@ export const ko = {
     },
   },
   dayInput: {
+    chooseDate: '날짜 선택',
+    calendar: '달력',
+    previousMonth: '이전 달',
+    nextMonth: '다음 달',
+    chooseMonthAndYear: '연월 선택',
+    close: '닫기',
+    weekdays: {
+      sun: '일',
+      mon: '월',
+      tue: '화',
+      wed: '수',
+      thu: '목',
+      fri: '금',
+      sat: '토',
+    },
     invalid: '날짜를 YYYYMMDD 형식으로 입력하세요',
   },
   monthInput: {

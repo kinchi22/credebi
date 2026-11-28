@@ -363,6 +363,21 @@ export const en = {
     },
   },
   dayInput: {
+    chooseDate: 'Choose date',
+    calendar: 'Calendar',
+    previousMonth: 'Previous month',
+    nextMonth: 'Next month',
+    chooseMonthAndYear: 'Choose month and year',
+    close: 'Close',
+    weekdays: {
+      sun: 'S',
+      mon: 'M',
+      tue: 'T',
+      wed: 'W',
+      thu: 'T',
+      fri: 'F',
+      sat: 'S',
+    },
     invalid: 'Enter a date as YYYYMMDD',
   },
   monthInput: {
