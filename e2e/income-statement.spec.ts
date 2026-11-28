@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { addAccount, addAccounts, addGroup, BOOKS_OPEN, dayInBrowser } from './accounts';
+import { shownDay } from './day-input';
 import { choosePreset, fixToday } from './date-presets';
 import {
   added,
@@ -449,8 +450,8 @@ test('links an Account to Entry search with that Account and the same range', as
   expect(query).toMatchObject({ from: JUNE_FIRST, to: JUNE_LAST });
   expect(query['account'] ?? '').toMatch(UUID_V7);
   await expect(accountField(page)).toHaveValue('Groceries');
-  await expect(fromField(page)).toHaveValue(JUNE_FIRST);
-  await expect(toField(page)).toHaveValue(JUNE_LAST);
+  await expect(fromField(page)).toHaveValue(shownDay(JUNE_FIRST));
+  await expect(toField(page)).toHaveValue(shownDay(JUNE_LAST));
   await expect(resultFor(page, market)).toHaveCount(1);
   await expect(resultFor(page, stationery)).toHaveCount(0);
   await expect(resultFor(page, july)).toHaveCount(0);

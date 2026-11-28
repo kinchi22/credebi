@@ -31,6 +31,7 @@ import {
   save,
   showEndedAccounts,
 } from './accounts';
+import { shownDay } from './day-input';
 import {
   clickScrim,
   closeDialog,
@@ -94,7 +95,7 @@ test('adds an Account and an Account group at the end of their Account type, and
 
   const wallet = await openEdit(page, 'Assets', 'Wallet');
   await expect(wallet.getByLabel('Description', { exact: true })).toHaveValue('Cash I carry');
-  await expect(activeFrom(wallet)).toHaveValue(await dayInBrowser(page));
+  await expect(activeFrom(wallet)).toHaveValue(shownDay(await dayInBrowser(page)));
 });
 
 test('shows the start day of an Account that starts in the future, and the entry form does not offer it for today', async ({ page }) => {
@@ -109,7 +110,7 @@ test('shows the start day of an Account that starts in the future, and the entry
 
   await page.goto('/entries');
   const form = entryForm(page);
-  await expect(form.getByLabel('Date')).toHaveValue(await dayInBrowser(page));
+  await expect(form.getByLabel('Date')).toHaveValue(shownDay(await dayInBrowser(page)));
   await expect(accountChoice(form, 'Debit', 'Cash')).toHaveCount(1);
   await expect(accountChoice(form, 'Debit', 'Savings')).toHaveCount(0);
   await expect(accountChoice(form, 'Credit', 'Savings')).toHaveCount(0);
@@ -336,7 +337,7 @@ test('refuses an Active period change that would leave a shown Entry outside it'
   await page.reload();
   const kept = await openEdit(page, 'Assets', 'Cash');
   await expect(activeFrom(kept)).toHaveValue(start);
-  await expect(activeUntil(kept)).toHaveValue(today);
+  await expect(activeUntil(kept)).toHaveValue(shownDay(today));
 });
 
 test('lists an ended Account, last, in the Account filter of Entry search', async ({ page }) => {

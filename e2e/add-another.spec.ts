@@ -19,6 +19,7 @@ import {
   pressSave,
   save,
 } from './accounts';
+import { shownDay } from './day-input';
 import { clickScrim, closeDialog, discardChanges, discardDialog, keepEditing } from './dialog';
 import { initialNames } from './initial-chart';
 import { signIn } from './session';
@@ -128,8 +129,8 @@ test('keeps Add account open on Save while Add another is checked, emptying Name
   await expect(nameField(dialog)).toHaveValue('');
   await expect(descriptionField(dialog)).toHaveValue('');
   await expect(chosenGroup(dialog)).toHaveText('Bank');
-  await expect(activeFrom(dialog)).toHaveValue(from);
-  await expect(activeUntil(dialog)).toHaveValue(until);
+  await expect(activeFrom(dialog)).toHaveValue(shownDay(from));
+  await expect(activeUntil(dialog)).toHaveValue(shownDay(until));
   await expect(nameField(dialog)).toBeFocused();
   await expect(addAnother(dialog)).toBeChecked();
   await expectOrder(accountType(page, 'Assets'), [...ASSETS, 'Bank', 'ABC Bank']);

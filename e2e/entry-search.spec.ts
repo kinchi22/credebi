@@ -9,6 +9,7 @@ import {
   TWELVE_THOUSAND_FIVE_HUNDRED,
   type TwoLineEntry,
 } from './entries';
+import { shownDay } from './day-input';
 import { accountField, fromField, resultFor, results, search, toField } from './entry-search';
 import { CATEGORIES, category, choosePeriod, choosePreset, datePresets, fixToday, periodSheet, presetChoice } from './date-presets';
 import { ENTRY_SEARCH_PATH as SEARCH, ENTRY_SEARCH_WITH_QUERY, ENTRY_SEARCH_WITHOUT_QUERY } from './routes';
@@ -33,8 +34,8 @@ const pressedChoices = (page: Page): Locator =>
   page.getByRole('main').locator('[aria-pressed="true"]');
 
 async function expectRange(page: Page, first: string, last: string): Promise<void> {
-  await expect(fromField(page)).toHaveValue(first);
-  await expect(toField(page)).toHaveValue(last);
+  await expect(fromField(page)).toHaveValue(shownDay(first));
+  await expect(toField(page)).toHaveValue(shownDay(last));
 }
 
 async function expectNoPresetChosen(page: Page): Promise<void> {

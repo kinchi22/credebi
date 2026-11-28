@@ -19,6 +19,7 @@ import {
   showEndedAccounts,
   type AccountType,
 } from './accounts';
+import { shownDay } from './day-input';
 import { expectReport, showReport } from './assets-and-liabilities';
 import { closeDialog } from './dialog';
 import {
@@ -155,7 +156,7 @@ test('starts each initial Account on the UTC calendar day the User is created, w
 
   for (const { type, name } of INITIAL_ACCOUNTS) {
     const dialog = await openEdit(page, type, name);
-    expect([before, after], name).toContain(await activeFrom(dialog).inputValue());
+    expect([before, after].map(shownDay), name).toContain(await activeFrom(dialog).inputValue());
     await expect(activeUntil(dialog), name).toHaveValue('');
     await closeDialog(dialog);
     await expect(dialog).toBeHidden();

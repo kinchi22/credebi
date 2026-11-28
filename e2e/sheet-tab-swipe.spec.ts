@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { BOOKS_OPEN } from './accounts';
+import { shownDay } from './day-input';
 import { animationsSeen, incomingFrom, recordSlides, resetAnimations } from './animations';
 import { CATEGORIES, choosePeriod, fixToday, periodSheet } from './date-presets';
 import {
@@ -542,7 +543,7 @@ async function fillDraft(scope: Locator, kit: Kit, draft: Draft, fresh: boolean)
 }
 
 async function expectDraft(scope: Locator, kit: Kit, draft: Draft): Promise<void> {
-  await expect(scope.getByLabel('Date')).toHaveValue(DAY);
+  await expect(scope.getByLabel('Date')).toHaveValue(shownDay(DAY));
   await expect(titleField(scope)).toHaveValue(draft.title);
   await expect(scope.getByLabel('Memo')).toHaveValue(draft.memo);
   await kit.expectAmounts(scope, draft);

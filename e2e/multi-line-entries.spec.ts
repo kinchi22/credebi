@@ -30,6 +30,7 @@ import {
   submitMultiLineEntryOnPhone,
   TWELVE_THOUSAND_FIVE_HUNDRED,
 } from './entries';
+import { shownDay } from './day-input';
 import {
   addOldWallet,
   OLD_WALLET,
@@ -290,7 +291,7 @@ async function expectWalletLineMarked(form: Locator, expenses: string): Promise<
 
 async function expectRefusedForWallet(form: Locator, memo: string, expenses: string): Promise<void> {
   await expect(notActiveAlert(form, 'Debit', OLD_WALLET)).toBeVisible();
-  await expect(form.getByLabel('Date')).toHaveValue(WALLET_ENDED);
+  await expect(form.getByLabel('Date')).toHaveValue(shownDay(WALLET_ENDED));
   await expect(form.getByLabel('Memo')).toHaveValue(memo);
   await expectWalletLineMarked(form, expenses);
 }

@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import { expectRows, namedTable, type ReportPanels, type ReportRow } from './report-tables';
+import { shownDay } from './day-input';
 
 export const periodForm = (page: Page): Locator =>
   page.getByRole('form', { name: 'Statement period', exact: true });
@@ -21,8 +22,8 @@ export async function showStatement(page: Page, from: string, to: string): Promi
 }
 
 export async function expectPeriod(page: Page, from: string, to: string): Promise<void> {
-  await expect(periodFrom(page)).toHaveValue(from);
-  await expect(periodTo(page)).toHaveValue(to);
+  await expect(periodFrom(page)).toHaveValue(shownDay(from));
+  await expect(periodTo(page)).toHaveValue(shownDay(to));
 }
 
 export type StatementTable = 'Revenue' | 'Expenses' | 'Totals';

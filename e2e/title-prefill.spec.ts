@@ -40,6 +40,7 @@ import {
   type PickRole,
   type Side,
 } from './entries';
+import { shownDay } from './day-input';
 import {
   addOldWallet,
   BOOKS_OPEN,
@@ -156,7 +157,7 @@ test('fills empty Two-line mode lines from the Entry carrying the chosen Title, 
   await chooseTitle(form, 'Starbucks');
 
   await expectTwoLine(form, 'Food', 'Credit card payable', '12500');
-  await expect(form.getByLabel('Date')).toHaveValue(LATER_DAY);
+  await expect(form.getByLabel('Date')).toHaveValue(shownDay(LATER_DAY));
   await expect(form.getByLabel('Memo')).toHaveValue(memo);
 
   await submit(form);
@@ -177,7 +178,7 @@ test('fills an empty Multi-line mode form with every line of the Entry carrying 
   await chooseTitle(form, 'Salary');
 
   await expectLines(form, SALARY_LINES);
-  await expect(form.getByLabel('Date')).toHaveValue(LATER_DAY);
+  await expect(form.getByLabel('Date')).toHaveValue(shownDay(LATER_DAY));
   await expect(form.getByLabel('Memo')).toHaveValue(memo);
 
   await submit(form);

@@ -26,6 +26,7 @@ import {
   twoLine,
   type MultiLineEntry,
 } from './entries';
+import { shownDay } from './day-input';
 import { resultFor, results, search } from './entry-search';
 import { ENTRY_SEARCH_PATH as SEARCH, ENTRY_SEARCH_WITH_QUERY } from './routes';
 import { BOOKS_OPEN } from './accounts';
@@ -161,7 +162,7 @@ test('opens Edit entry in Two-line mode, filled with the Entry, for a Two-line m
   const dialog = await openEditEntry(listedEntry(page, memo));
 
   await expectTwoLineMode(dialog);
-  await expect(dialog.getByLabel('Date')).toHaveValue(DAY);
+  await expect(dialog.getByLabel('Date')).toHaveValue(shownDay(DAY));
   await expect(dialog.getByLabel('Memo')).toHaveValue(memo);
   await expect(accountChoice(dialog, 'Debit', 'Food')).toBeChecked();
   await expect(accountChoice(dialog, 'Credit', 'Cash')).toBeChecked();
@@ -186,7 +187,7 @@ test('opens Edit entry in Multi-line mode, filled with every line, for a Two-lin
   const dialog = await openEditEntry(listedEntry(page, memo));
 
   await expectMultiLineMode(dialog, 3);
-  await expect(dialog.getByLabel('Date')).toHaveValue(DAY);
+  await expect(dialog.getByLabel('Date')).toHaveValue(shownDay(DAY));
   await expect(dialog.getByLabel('Memo')).toHaveValue(memo);
   await expect(lineAmount(dialog, 'Debit', 'Food')).toHaveValue('12500');
   await expect(lineAmount(dialog, 'Credit', 'Cash')).toHaveValue('12000');
@@ -203,7 +204,7 @@ test('opens Edit entry in Multi-line mode, filled with the Entry, for a Multi-li
   const dialog = await openEditEntry(listedEntry(page, memo));
 
   await expectMultiLineMode(dialog, 2);
-  await expect(dialog.getByLabel('Date')).toHaveValue(DAY);
+  await expect(dialog.getByLabel('Date')).toHaveValue(shownDay(DAY));
   await expect(dialog.getByLabel('Memo')).toHaveValue(memo);
   await expect(lineAmount(dialog, 'Debit', 'Food')).toHaveValue(AMOUNT);
   await expect(lineAmount(dialog, 'Credit', 'Cash')).toHaveValue(AMOUNT);
