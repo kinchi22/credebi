@@ -199,6 +199,7 @@ jobs:
         env:
           DATABASE_URL: postgres://e2e:e2e@127.0.0.1:5432/e2e
           AUTH_TEST_LOGIN: '1'
+          E2E_SECTION_FAULTS: '1'
           GOOGLE_CLIENT_ID: e2e-build-placeholder
           GOOGLE_CLIENT_SECRET: e2e-build-placeholder
 
@@ -230,6 +231,7 @@ jobs:
           SUITE: ${{ matrix.suite }}
           DATABASE_URL: postgres://e2e:e2e@127.0.0.1:5432/e2e
           AUTH_TEST_LOGIN: '1'
+          E2E_SECTION_FAULTS: '1'
           GOOGLE_CLIENT_ID: e2e-build-placeholder
           GOOGLE_CLIENT_SECRET: e2e-build-placeholder
 

@@ -114,6 +114,12 @@ import { v7 as uuidv7 } from 'uuid';
 import { startingChartCopy } from './catalogues';
 import { type Env, parseEnv } from './env';
 import { createLogger, stderr } from './logger';
+import {
+  createSectionFaults,
+  noSectionFaults,
+  type Latch,
+  type SectionFaults,
+} from './section-faults';
 
 export type Container = {
   readonly logger: Logger;
@@ -146,6 +152,7 @@ export type Container = {
   readonly finishGoogleSignIn: FinishGoogleSignIn;
   readonly testSignInOffered: boolean;
   readonly testSignIn: TestSignIn;
+  readonly sectionFaults: SectionFaults;
   readonly signOut: SignOut;
   readonly beginAuthorization: BeginAuthorization;
   readonly approveAuthorization: ApproveAuthorization;
@@ -160,7 +167,22 @@ export type Container = {
 const noTestSignIn: TestSignIn = () =>
   Promise.resolve(err(domainError('NOT_FOUND', 'There is no test sign-in here.')));
 
-export function createContainer({ databaseUrl, google, testSignIn, deployment }: Env): Container {
+const sectionLatches = globalThis as typeof globalThis & {
+  __credebiSectionLatches?: Map<string, Latch>;
+};
+
+function sharedLatches(): Map<string, Latch> {
+  sectionLatches.__credebiSectionLatches ??= new Map();
+  return sectionLatches.__credebiSectionLatches;
+}
+
+export function createContainer({
+  databaseUrl,
+  google,
+  testSignIn,
+  sectionFaults,
+  deployment,
+}: Env): Container {
   const logger = createLogger(stderr());
   const postgres = createPostgresHealthProbe(databaseUrl, logger);
   const entries = createPostgresEntryRepository(databaseUrl, logger);
@@ -242,6 +264,7 @@ export function createContainer({ databaseUrl, google, testSignIn, deployment }:
     finishGoogleSignIn: createFinishGoogleSignIn({ ...signIn, google: googleSignIn }),
     testSignInOffered: testSignIn,
     testSignIn: testSignIn ? createTestSignIn(signIn) : noTestSignIn,
+    sectionFaults: sectionFaults ? createSectionFaults(sharedLatches()) : noSectionFaults,
     signOut: createSignOut({ sessions, hashSessionToken }),
     beginAuthorization: createBeginAuthorization({ clientDocuments }),
     approveAuthorization: createApproveAuthorization({

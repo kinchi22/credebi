@@ -70,6 +70,7 @@ status in the ADR itself.
 | [ADR-0032: Identify a retried post by its Request key](adr/0032-identify-a-retried-post-by-its-request-key.md) | Accepted |
 | [ADR-0033: Report the Change score beside the floor](adr/0033-report-the-change-score-beside-the-floor.md) | Accepted |
 | [ADR-0034: Record tolerated mutants in a reviewed register](adr/0034-record-tolerated-mutants-in-a-reviewed-register.md) | Accepted |
+| [ADR-0035: Inject section faults in the E2E build](adr/0035-inject-section-faults-in-the-e2e-build.md) | Accepted |
 
 ## Package layout
 
@@ -158,7 +159,7 @@ Raise the TypeScript major only together with `typescript-eslint`.
 | Item                 | Decision                                                              |
 | -------------------- | --------------------------------------------------------------------- |
 | Error model          | Domain returns `Result<T, DomainError>`. No throwing.                  |
-| HTTP mapping         | In tRPC routers, via `apps/web/server/domain-error.ts`, and in the OAuth routes `/oauth/token` and `/mcp`, which cannot be tRPC: they answer OAuth errors, and a Domain error inside a tool is a tool result, not an HTTP error. ADR-0031. |
+| HTTP mapping         | In tRPC routers, via `apps/web/server/domain-error.ts`, and in the OAuth routes `/oauth/token` and `/mcp`, which cannot be tRPC: they answer OAuth errors, and a Domain error inside a tool is a tool result, not an HTTP error. ADR-0031. The E2E-only release route `/api/e2e/faults/<token>/<section>/release` is a route handler too: it carries no Domain error, only a 204 or a 404, and is not part of the app's API. ADR-0035. |
 | IDs                  | uuid v7, branded per entity from `uuidV7Schema`. Generators are injected, never imported into a pure layer. |
 | Money                | A branded integer in contracts, scale 0: no decimal places, no currency symbol, locale grouping at display only. Arithmetic only through `@repo/core/money`, which returns `Result`. A per-book scale is the additive path if a decimal currency ever appears. |
 | Dates                | An instant is stored in UTC as `timestamptz` and converted only at display. A calendar day -- the day an entry is posted -- is a `date`: it holds no time, so there is nothing to convert. ADR-0010. |
@@ -172,7 +173,7 @@ Raise the TypeScript major only together with `typescript-eslint`.
 | Client writes        | Server Actions in `apps/web/app/**/actions.ts`, invoking `createCaller`. |
 | Wire types           | Contracts are JSON-safe. An instant crosses as an ISO 8601 string; `Date` exists only inside core, and the serializer that converts lives beside the schema. |
 | Logging              | Adapters report an infrastructure failure through the `Logger` port, as an event name and fields, describing any error with `describeError`; a field's type admits no raw error or object. pino writes one JSON object per line to stderr, built in the composition root; core never imports it. A request that fails on the server is logged by `onRequestError` in `apps/web/instrumentation.ts`. ADR-0018. |
-| Environment          | `DATABASE_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `AUTH_TEST_LOGIN` and Vercel's `VERCEL_DEPLOYMENT_ID`, `VERCEL_GIT_COMMIT_SHA` and `VERCEL_URL`, validated by `parseEnv` in `apps/web/server/env.ts` and read in `apps/web/server/container.ts` alone, at first use rather than at import. Missing or malformed fails the request; unreachable degrades to the probe's amber dot. `AUTH_TEST_LOGIN` with `VERCEL_ENV=production` fails it too. The three `VERCEL_*` variables are the exception: unset or blank, the Deployment identity reports `null` and the request goes on. ADR-0005, ADR-0021, ADR-0024. |
+| Environment          | `DATABASE_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `AUTH_TEST_LOGIN`, `E2E_SECTION_FAULTS` and Vercel's `VERCEL_DEPLOYMENT_ID`, `VERCEL_GIT_COMMIT_SHA` and `VERCEL_URL`, validated by `parseEnv` in `apps/web/server/env.ts` and read in `apps/web/server/container.ts` alone, at first use rather than at import. Missing or malformed fails the request; unreachable degrades to the probe's amber dot. `AUTH_TEST_LOGIN` or `E2E_SECTION_FAULTS` with `VERCEL_ENV=production` fails it too. The three `VERCEL_*` variables are the exception: unset or blank, the Deployment identity reports `null` and the request goes on. ADR-0005, ADR-0021, ADR-0024, ADR-0035. |
 | Healthcheck          | `health.get` is the deployment's healthcheck, not a demonstration of the Phase 0 slice, and outlives the panel that renders it. Every external component the app depends on reports through it as a named component, and the smoke run asserts the strict answer: `healthy`, with `postgres` reachable. It also carries the Deployment identity, which never changes the status. ADR-0020, ADR-0024. |
 | Barrels              | One `index.ts` per public surface. No barrels inside a package.        |
 | Metadata files       | The favicon, icons, web manifest and share image use Next.js metadata file conventions at the root of `apps/web/app/`, drawn from the `Logo` module's geometry and the tokens. An image the conventions cannot name, such as a web manifest icon, is served by a route handler at `apps/web/app/<name>/[param]/route.tsx` that renders it and nothing else: its params come from `generateStaticParams`, with `dynamicParams` off. The shared rendering lives in `apps/web/components/`. The share image sets its text in IBM Plex Sans from `apps/web/app/fonts/IBMPlexSans-Regular.ttf`, because `ImageResponse` cannot read woff2. |
@@ -189,7 +190,7 @@ Raise the TypeScript major only together with `typescript-eslint`.
 | `packages/contracts`         | Unit tests, pure. Measured since ADR-0004.             |
 | `packages/ui`                | Its pure `.ts` modules, such as the design tokens: unit tests, measured. Its `.tsx` components: Playwright, where the app renders them. |
 | `apps/web/components`        | Its `.ts` modules: unit tests, measured, except hook shells (`use-*.ts`) and class-string modules (`*-classes.ts`). Those and its `.tsx` components: Playwright. |
-| `apps/web/server`            | The half a unit test can import -- `catalogues.ts`, `domain-error.ts`, `env.ts`, `logger.ts`, `request-error.ts`, `return-path.ts`, `session-cookie.ts` and `sign-in-redirect.ts` today -- unit tested and measured. |
+| `apps/web/server`            | The half a unit test can import -- `catalogues.ts`, `domain-error.ts`, `env.ts`, `logger.ts`, `request-error.ts`, `return-path.ts`, `section-fault-release.ts`, `section-faults.ts`, `session-cookie.ts` and `sign-in-redirect.ts` today -- unit tested and measured. |
 | the composition root, `routers/**`, `app/**` | Playwright, against a production build in CI (`E2E build`), on a Postgres service container migrated before the suite. Nothing else reaches them. |
 
 "Measured" means the mutation score, which is the only coverage floor here:
@@ -197,7 +198,7 @@ there is no line-coverage gate and no `@vitest/coverage-v8`. `stryker.config.ts`
 states the measured surface as patterns rather than a list, so a new file in a
 measured directory is measured by existing. A file nobody tests scores 0, and the
 break threshold of 90 is over the whole surface, so what fails is a named file
-rather than a percentage. Measured today: 89 files, 2,889 mutants, score 98.20.
+rather than a percentage. Measured today: 136 files, 5,304 mutants, score 97.83.
 
 The exclusions in that config name files no unit test can usefully run, not files
 whose tests are missing: under `apps/web/server` each reaches the composition

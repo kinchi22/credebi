@@ -36,7 +36,8 @@
         "DATABASE_URL",
         "GOOGLE_CLIENT_ID",
         "GOOGLE_CLIENT_SECRET",
-        "AUTH_TEST_LOGIN"
+        "AUTH_TEST_LOGIN",
+        "E2E_SECTION_FAULTS"
       ]
     }
   }

@@ -38,8 +38,12 @@ export type Env = {
     readonly clientSecret: string;
   };
   readonly testSignIn: boolean;
+  readonly sectionFaults: boolean;
   readonly deployment: DeploymentIdentity;
 };
+
+const SECTION_FAULTS_ON_PRODUCTION =
+  'E2E_SECTION_FAULTS is set on Production, where section faults must not exist.';
 
 const TEST_SIGN_IN_ON_PRODUCTION =
   'AUTH_TEST_LOGIN is set on Production, where the test sign-in must not exist.';
@@ -60,6 +64,11 @@ export function parseEnv(record: Record<string, string | undefined>): Env {
     throw new Error(TEST_SIGN_IN_ON_PRODUCTION);
   }
 
+  const sectionFaults = (record['E2E_SECTION_FAULTS'] ?? '') !== '';
+  if (sectionFaults && record['VERCEL_ENV'] === 'production') {
+    throw new Error(SECTION_FAULTS_ON_PRODUCTION);
+  }
+
   const host = optional(record, 'VERCEL_URL');
   const deployment = {
     id: optional(record, 'VERCEL_DEPLOYMENT_ID'),
@@ -67,5 +76,5 @@ export function parseEnv(record: Record<string, string | undefined>): Env {
     url: host === null ? null : `https://${host}`,
   };
 
-  return { databaseUrl, google, testSignIn, deployment };
+  return { databaseUrl, google, testSignIn, sectionFaults, deployment };
 }
