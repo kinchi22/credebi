@@ -21,7 +21,7 @@ for (const view of PAGES) {
       await expect(sectionError(page)).toHaveCount(0);
 
       await faults.set({ [section.id]: 'hold' });
-      await page.goto(view.path);
+      await page.goto(view.path, { waitUntil: 'commit' });
 
       await expect(busySections(page)).toHaveCount(1);
       await expect(empty(page)).toHaveCount(0);

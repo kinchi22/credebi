@@ -14,7 +14,7 @@ for (const view of PAGES) {
           const seeded = await signInWithSeededEntries(page);
           const faults = await injectFaults(page, { [first.id]: 'hold', [second.id]: 'hold' });
 
-          await page.goto(view.path);
+          await page.goto(view.path, { waitUntil: 'commit' });
 
           await expectShell(page, view);
           await expect(busySections(page)).toHaveCount(2);
