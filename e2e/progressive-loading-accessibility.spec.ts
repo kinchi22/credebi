@@ -1,12 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { expectShell, PAGES, signInWithSeededEntries } from './progressive-pages';
-import {
-  busySections,
-  expectOnlyLoadingMessageExposed,
-  injectFaults,
-  loadingMessages,
-  skeletonBlocks,
-} from './section-faults';
+import { injectFaults } from './section-faults';
+import { busySections, expectOnlyLoadingMessageExposed, loadingMessages, skeletonBlocks } from './section-states';
 
 for (const view of PAGES) {
   for (const held of view.sections) {

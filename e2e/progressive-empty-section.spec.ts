@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { PAGES } from './progressive-pages';
-import { busySections, injectFaults, sectionError, tryAgain } from './section-faults';
+import { injectFaults } from './section-faults';
+import { busySections, sectionError, tryAgain } from './section-states';
 import { BOOKS_OPEN, signIn } from './session';
 
 for (const view of PAGES) {

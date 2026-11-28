@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { PAGES } from './progressive-pages';
 import { SIGN_IN_URL } from './routes';
-import { busySections, type FaultModes, injectFaults } from './section-faults';
+import { type FaultModes, injectFaults } from './section-faults';
+import { busySections } from './section-states';
 
 for (const view of PAGES) {
   test(`${view.name}: redirects a signed-out request to sign in even with every section held`, async ({ page, baseURL }) => {

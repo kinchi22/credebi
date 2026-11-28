@@ -11,10 +11,9 @@ import {
   trendRangePath,
 } from './assets-and-liabilities-trend';
 import { entries, entryForm, entryOn, entrySearchForm, listedEntry, postEntries } from './entries';
-import { fromField, resultFor, results, toField } from './entry-search';
+import { fromField, resultFor, results, search, toField } from './entry-search';
 import { expectPeriod, periodForm, showStatement, statementTable } from './income-statement';
 import { languageChoices } from './language';
-import { reportRow } from './report-tables';
 import {
   ASSETS_AND_LIABILITIES_PATH,
   ENTRY_SEARCH_PATH,
@@ -24,7 +23,8 @@ import {
 } from './routes';
 import { type FaultSection } from './section-faults';
 import { BOOKS_OPEN, signIn } from './session';
-import { connectionsSection, entryFormModes } from './settings';
+import { connectionsSection, entryFormModes, startConnectingButton } from './settings';
+import { sidebar } from './sidebar';
 
 export type Seeded = {
   readonly memoA: string;
@@ -74,12 +74,15 @@ export type PageView = {
   readonly heading: string;
   readonly form?: (page: Page) => Locator;
   readonly sections: readonly SectionView[];
-  readonly filters?: {
-    readonly quiet: Filter;
-    readonly first: Filter;
-    readonly second: Filter;
-  };
-  readonly pathWithoutQuery?: string;
+};
+
+export type ReportPageView = PageView & {
+  readonly form: (page: Page) => Locator;
+  readonly report: SectionView;
+  readonly pathWithoutQuery: string;
+  readonly quietPath: string;
+  readonly first: Filter;
+  readonly second: Filter;
 };
 
 const firstControl = (scope: Locator): Locator => scope.locator('input, button, select, textarea').first();
@@ -107,12 +110,7 @@ const trendFilter = (from: string, to: string, figure: string): Filter => ({
 
 const searchFilter = (from: string, to: string, memo: (seeded: Seeded) => string): Filter => ({
   path: `${ENTRY_SEARCH_PATH}?from=${from}&to=${to}`,
-  apply: async (page) => {
-    await expect(entrySearchForm(page)).toBeVisible();
-    await fromField(page).fill(from);
-    await toField(page).fill(to);
-    await entrySearchForm(page).getByRole('button', { name: 'Search', exact: true }).click();
-  },
+  apply: (page) => search(page, { from, to }),
   expectTyped: async (page) => {
     await expect(fromField(page)).toHaveValue(from);
     await expect(toField(page)).toHaveValue(to);
@@ -120,7 +118,11 @@ const searchFilter = (from: string, to: string, memo: (seeded: Seeded) => string
   figure: memo,
 });
 
-export const ENTRIES_PAGE: PageView = {
+const modeChoice = (page: Page): Locator => entryFormModes(page).getByRole('radio').first();
+
+const languageChoice = (page: Page): Locator => languageChoices(page, 'en').getByRole('radio').first();
+
+const ENTRIES_PAGE: PageView = {
   name: 'Entries',
   path: '/entries',
   heading: 'Entries',
@@ -140,134 +142,126 @@ export const ENTRIES_PAGE: PageView = {
   ],
 };
 
-export const SETTINGS_PAGE: PageView = {
+const SETTINGS_PAGE: PageView = {
   name: 'Settings',
   path: SETTINGS_PATH,
   heading: 'Settings',
   sections: [
     {
       id: 'settings.entry-form-mode',
-      content: (page) => entryFormModes(page),
-      controls: (page) => entryFormModes(page).getByRole('radio').first(),
+      content: modeChoice,
+      controls: modeChoice,
       frame: (page) => entryFormModes(page),
     },
     {
       id: 'settings.accounts',
-      content: (page) => accountsSection(page),
+      content: (page) => accountsSection(page).getByRole('group').first(),
       controls: (page) => firstControl(accountsSection(page)),
     },
     {
       id: 'settings.language',
-      content: (page) => languageChoices(page, 'en'),
-      controls: (page) => languageChoices(page, 'en').getByRole('radio').first(),
+      content: languageChoice,
+      controls: languageChoice,
       frame: (page) => languageChoices(page, 'en'),
     },
     {
       id: 'settings.connections',
-      content: (page) => connectionsSection(page),
-      controls: (page) => connectionsSection(page).getByRole('button', { name: 'Start connecting', exact: true }),
+      content: startConnectingButton,
+      controls: startConnectingButton,
       empty: (page) => connectionsSection(page).getByText('An AI application reads your books and posts entries.'),
     },
   ],
 };
 
-export const INCOME_STATEMENT_PAGE: PageView = {
+const INCOME_STATEMENT_REPORT: SectionView = {
+  id: 'income-statement.report',
+  content: (page) => statementTable(page, 'Totals'),
+};
+
+const INCOME_STATEMENT_PAGE: ReportPageView = {
   name: 'Income statement',
   path: statementFilter('2026-06-01', '2026-06-30', FIGURE_B).path,
   pathWithoutQuery: INCOME_STATEMENT_PATH,
+  quietPath: statementFilter('2026-01-01', '2026-01-31', '').path,
   heading: 'Income statement',
   form: periodForm,
-  sections: [
-    {
-      id: 'income-statement.report',
-      content: (page) => statementTable(page, 'Totals'),
-      empty: (page) => reportRow(statementTable(page, 'Totals'), 'Net income').getByRole('cell').filter({ hasText: /^0$/ }),
-    },
-  ],
-  filters: {
-    quiet: statementFilter('2026-01-01', '2026-01-31', '0'),
-    first: statementFilter('2026-05-01', '2026-05-31', FIGURE_A),
-    second: statementFilter('2026-06-01', '2026-06-30', FIGURE_B),
-  },
+  report: INCOME_STATEMENT_REPORT,
+  sections: [INCOME_STATEMENT_REPORT],
+  first: statementFilter('2026-05-01', '2026-05-31', FIGURE_A),
+  second: statementFilter('2026-06-01', '2026-06-30', FIGURE_B),
 };
 
-export const ASSETS_AND_LIABILITIES_PAGE: PageView = {
+const ASSETS_AND_LIABILITIES_REPORT: SectionView = {
+  id: 'assets-and-liabilities.report',
+  content: (page) => reportTable(page, 'Totals'),
+};
+
+const ASSETS_AND_LIABILITIES_PAGE: ReportPageView = {
   name: 'Assets and liabilities',
   path: reportFilter('2026-06-30', FIGURE_B_CUMULATIVE).path,
   pathWithoutQuery: ASSETS_AND_LIABILITIES_PATH,
+  quietPath: reportFilter('2026-01-31', '').path,
   heading: 'Assets and liabilities',
   form: reportDateForm,
-  sections: [
-    {
-      id: 'assets-and-liabilities.report',
-      content: (page) => reportTable(page, 'Totals'),
-      empty: (page) => reportRow(reportTable(page, 'Totals'), 'Net worth').getByRole('cell').filter({ hasText: /^0$/ }),
-    },
-  ],
-  filters: {
-    quiet: reportFilter('2026-01-31', '0'),
-    first: reportFilter('2026-05-31', FIGURE_A),
-    second: reportFilter('2026-06-30', FIGURE_B_CUMULATIVE),
-  },
+  report: ASSETS_AND_LIABILITIES_REPORT,
+  sections: [ASSETS_AND_LIABILITIES_REPORT],
+  first: reportFilter('2026-05-31', FIGURE_A),
+  second: reportFilter('2026-06-30', FIGURE_B_CUMULATIVE),
 };
 
-export const TREND_PAGE: PageView = {
+const TREND_CHART: SectionView = {
+  id: 'assets-and-liabilities-trend.chart',
+  content: (page) => trendChart(page),
+  empty: (page) => nothingRecorded(page),
+};
+
+const TREND_PAGE: ReportPageView = {
   name: 'Assets and liabilities trend',
   path: trendFilter('2026-06', '2026-06', FIGURE_B_CUMULATIVE).path,
   pathWithoutQuery: TREND_PATH,
+  quietPath: trendFilter('2026-01', '2026-01', '').path,
   heading: 'Assets and liabilities trend',
   form: rangeForm,
-  sections: [
-    {
-      id: 'assets-and-liabilities-trend.chart',
-      content: (page) => trendChart(page),
-      empty: (page) => nothingRecorded(page),
-    },
-  ],
-  filters: {
-    quiet: trendFilter('2026-01', '2026-01', '0'),
-    first: trendFilter('2026-04', '2026-05', FIGURE_A),
-    second: trendFilter('2026-06', '2026-06', FIGURE_B_CUMULATIVE),
-  },
+  report: TREND_CHART,
+  sections: [TREND_CHART],
+  first: trendFilter('2026-04', '2026-05', FIGURE_A),
+  second: trendFilter('2026-06', '2026-06', FIGURE_B_CUMULATIVE),
 };
 
-export const ENTRY_SEARCH_PAGE: PageView = {
+const ENTRY_SEARCH_RESULTS: SectionView = {
+  id: 'entry-search.results',
+  content: (page, seeded) => resultFor(page, seeded.memoB),
+  empty: (page) => results(page).getByText('Nothing matched what you asked for.', { exact: true }),
+};
+
+const ENTRY_SEARCH_PAGE: ReportPageView = {
   name: 'Entry search',
   path: searchFilter('2026-06-01', '2026-06-30', (seeded) => seeded.memoB).path,
   pathWithoutQuery: ENTRY_SEARCH_PATH,
+  quietPath: searchFilter('2026-01-01', '2026-01-31', () => '').path,
   heading: 'Entry search',
   form: entrySearchForm,
-  sections: [
-    {
-      id: 'entry-search.results',
-      content: (page, seeded) => resultFor(page, seeded.memoB),
-      empty: (page) => results(page).getByText('Nothing matched what you asked for.', { exact: true }),
-    },
-  ],
-  filters: {
-    quiet: searchFilter('2026-01-01', '2026-01-31', () => 'Nothing matched what you asked for.'),
-    first: searchFilter('2026-05-01', '2026-05-31', (seeded) => seeded.memoA),
-    second: searchFilter('2026-06-01', '2026-06-30', (seeded) => seeded.memoB),
-  },
+  report: ENTRY_SEARCH_RESULTS,
+  sections: [ENTRY_SEARCH_RESULTS],
+  first: searchFilter('2026-05-01', '2026-05-31', (seeded) => seeded.memoA),
+  second: searchFilter('2026-06-01', '2026-06-30', (seeded) => seeded.memoB),
 };
 
-export const PAGES: readonly PageView[] = [
-  ENTRIES_PAGE,
+export const REPORT_PAGES: readonly ReportPageView[] = [
   ENTRY_SEARCH_PAGE,
-  SETTINGS_PAGE,
   INCOME_STATEMENT_PAGE,
   ASSETS_AND_LIABILITIES_PAGE,
   TREND_PAGE,
 ];
 
-export const REPORT_PAGES: readonly PageView[] = PAGES.filter((view) => view.filters !== undefined);
+export const PAGES: readonly PageView[] = [ENTRIES_PAGE, SETTINGS_PAGE, ...REPORT_PAGES];
 
 export const heading = (page: Page, view: PageView): Locator =>
   page.getByRole('heading', { level: 1, name: view.heading, exact: true });
 
 export async function expectShell(page: Page, view: PageView): Promise<void> {
   await expect(heading(page, view)).toBeVisible();
-  await expect(page.getByRole('navigation', { name: 'Sidebar' })).toBeVisible();
+  await expect(sidebar(page)).toBeVisible();
   if (view.form !== undefined) await expect(view.form(page)).toBeVisible();
 }
 

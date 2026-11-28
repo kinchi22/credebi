@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import { accountChoice, entryForm, fillHeading } from './entries';
-import { busySections, injectFaults } from './section-faults';
+import { injectFaults } from './section-faults';
+import { busySections } from './section-states';
 import { BOOKS_OPEN, signIn } from './session';
 
 test('lets a User fill in the entry form while the Entries list is held', async ({ page }) => {

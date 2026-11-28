@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { boxOf } from './accounts';
 import { PAGES, signInWithSeededEntries } from './progressive-pages';
-import { busySections, injectFaults } from './section-faults';
+import { injectFaults } from './section-faults';
+import { busySections } from './section-states';
 
 for (const view of PAGES) {
   for (const held of view.sections) {

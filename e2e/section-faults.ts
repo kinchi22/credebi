@@ -1,20 +1,17 @@
 import { randomUUID } from 'node:crypto';
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
-export const FAULT_SECTIONS = [
-  'settings.entry-form-mode',
-  'settings.accounts',
-  'settings.language',
-  'settings.connections',
-  'entries.form',
-  'entries.list',
-  'income-statement.report',
-  'assets-and-liabilities.report',
-  'assets-and-liabilities-trend.chart',
-  'entry-search.results',
-] as const;
-
-export type FaultSection = (typeof FAULT_SECTIONS)[number];
+export type FaultSection =
+  | 'settings.entry-form-mode'
+  | 'settings.accounts'
+  | 'settings.language'
+  | 'settings.connections'
+  | 'entries.form'
+  | 'entries.list'
+  | 'income-statement.report'
+  | 'assets-and-liabilities.report'
+  | 'assets-and-liabilities-trend.chart'
+  | 'entry-search.results';
 
 export type FaultMode = 'hold' | 'fail';
 
@@ -49,43 +46,4 @@ export async function injectFaults(
   };
   await set(initial);
   return { set, release };
-}
-
-export const busySections = (page: Page): Locator => page.locator('[aria-busy="true"]');
-
-export const loadingMessages = (scope: Page | Locator): Locator => scope.getByRole('status');
-
-export const skeletonBlocks = (section: Locator): Locator => section.locator('[aria-hidden="true"]');
-
-export const tryAgain = (page: Page): Locator => page.getByRole('button', { name: 'Try again', exact: true });
-
-export const sectionError = (page: Page): Locator => page.getByRole('alert');
-
-const PLACEHOLDER_ROLES = [
-  'row',
-  'cell',
-  'columnheader',
-  'rowheader',
-  'table',
-  'list',
-  'listitem',
-  'textbox',
-  'combobox',
-  'button',
-  'radio',
-  'checkbox',
-  'link',
-  'img',
-  'application',
-];
-
-export async function expectOnlyLoadingMessageExposed(section: Locator): Promise<void> {
-  await expect(loadingMessages(section)).toHaveCount(1);
-  const exposed = (await section.ariaSnapshot()).split('\n').map((line) => line.trim());
-  for (const role of PLACEHOLDER_ROLES) {
-    expect(
-      exposed.filter((line) => line.startsWith(`- ${role}`)),
-      `the loading section exposes no ${role}`,
-    ).toEqual([]);
-  }
 }
