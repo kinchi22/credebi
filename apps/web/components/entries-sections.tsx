@@ -1,10 +1,8 @@
 import { type EntryFormMode } from '@repo/contracts';
 import { cache, type ReactNode } from 'react';
-import { createContext } from '../server/context';
 import { SIGNED_IN_HOME } from '../server/return-path';
-import { createCaller } from '../server/root-router';
 import { withSectionFault } from '../server/section-fault-request';
-import { orSignIn } from '../server/sign-in-redirect';
+import { readOfRequest, type RequestCaller } from '../server/signed-in-read-request';
 import { type EntryFormProps } from './entry-form';
 import { EntryList, type EntryControls } from './entry-list';
 import { MultiLineEntryForm } from './multi-line-entry-form';
@@ -15,29 +13,18 @@ const FORM_BY_MODE: Readonly<Record<EntryFormMode, (props: EntryFormProps) => Re
   'multi-line': MultiLineEntryForm,
 };
 
-const callerOfRequest = cache(async () => createCaller(await createContext()));
+const readEntries = <T,>(read: (caller: RequestCaller) => Promise<T>): Promise<T> =>
+  readOfRequest(SIGNED_IN_HOME, read);
 
-const readOfRequest = async <T,>(
-  read: (caller: Awaited<ReturnType<typeof callerOfRequest>>) => Promise<T>,
-): Promise<T> => orSignIn(read(await callerOfRequest()), SIGNED_IN_HOME);
+const settingsOfRequest = cache(() => readEntries((caller) => caller.settings.read()));
 
-const settingsOfRequest = cache(() => readOfRequest((caller) => caller.settings.read()));
+const chartOfRequest = cache(() => readEntries((caller) => caller.accounts.chart()));
 
-const chartOfRequest = cache(() => readOfRequest((caller) => caller.accounts.chart()));
+const titlesOfRequest = cache(() => readEntries((caller) => caller.entries.titles()));
 
-const titlesOfRequest = cache(() => readOfRequest((caller) => caller.entries.titles()));
+const logOfRequest = cache(() => readEntries((caller) => caller.entries.log()));
 
-const logOfRequest = cache(() => readOfRequest((caller) => caller.entries.log()));
-
-type EntriesFormSectionProps = {
-  readonly action: EntryFormProps['action'];
-};
-
-type EntriesListSectionProps = {
-  readonly controls: Pick<EntryControls, 'editEntry' | 'deleteEntry'>;
-};
-
-export async function EntriesFormSection({ action }: EntriesFormSectionProps): Promise<ReactNode> {
+export async function EntriesFormSection({ action }: Pick<EntryFormProps, 'action'>): Promise<ReactNode> {
   const [settings, chart, titles] = await withSectionFault('entries.form', () =>
     Promise.all([settingsOfRequest(), chartOfRequest(), titlesOfRequest()]),
   );
@@ -45,7 +32,11 @@ export async function EntriesFormSection({ action }: EntriesFormSectionProps): P
   return <EntryForm action={action} chart={chart} titles={titles} />;
 }
 
-export async function EntriesListSection({ controls }: EntriesListSectionProps): Promise<ReactNode> {
+export async function EntriesListSection({
+  controls,
+}: {
+  readonly controls: Pick<EntryControls, 'editEntry' | 'deleteEntry'>;
+}): Promise<ReactNode> {
   const [settings, chart, titles, entries] = await withSectionFault('entries.list', () =>
     Promise.all([settingsOfRequest(), chartOfRequest(), titlesOfRequest(), logOfRequest()]),
   );

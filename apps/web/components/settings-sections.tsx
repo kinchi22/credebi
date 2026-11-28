@@ -1,11 +1,9 @@
 import { headers } from 'next/headers';
 import { cache, type ReactNode } from 'react';
-import { createContext } from '../server/context';
 import { authorizationServerAt, requestOrigin } from '../server/oauth';
 import { SETTINGS_PATH } from '../server/return-path';
-import { createCaller } from '../server/root-router';
 import { withSectionFault } from '../server/section-fault-request';
-import { orSignIn } from '../server/sign-in-redirect';
+import { readOfRequest, type RequestCaller } from '../server/signed-in-read-request';
 import { AccountsSection, type AccountsSectionProps } from './accounts-section';
 import {
   ConnectionsSection,
@@ -14,12 +12,10 @@ import {
 import { EntryFormModeChoice, type EntryFormModeChoiceProps } from './entry-form-mode-choice';
 import { LanguageChoice, type LanguageChoiceProps } from './language-choice';
 
-const callerOfRequest = cache(async () => createCaller(await createContext()));
+const readSettings = <T,>(read: (caller: RequestCaller) => Promise<T>): Promise<T> =>
+  readOfRequest(SETTINGS_PATH, read);
 
-const readOfRequest = async <T,>(read: (caller: Awaited<ReturnType<typeof callerOfRequest>>) => Promise<T>): Promise<T> =>
-  orSignIn(read(await callerOfRequest()), SETTINGS_PATH);
-
-const settingsOfRequest = cache(() => readOfRequest((caller) => caller.settings.read()));
+const settingsOfRequest = cache(() => readSettings((caller) => caller.settings.read()));
 
 export async function SettingsEntryFormModeSection({
   action,
@@ -32,7 +28,7 @@ export async function SettingsAccountsSection({
   actions,
 }: Pick<AccountsSectionProps, 'actions'>): Promise<ReactNode> {
   const chart = await withSectionFault('settings.accounts', () =>
-    readOfRequest((caller) => caller.accounts.chart()),
+    readSettings((caller) => caller.accounts.chart()),
   );
   return <AccountsSection chart={chart} actions={actions} />;
 }
@@ -48,7 +44,7 @@ export async function SettingsConnectionsSection({
   action,
 }: Pick<ConnectionsSectionProps, 'action'>): Promise<ReactNode> {
   const connections = await withSectionFault('settings.connections', () =>
-    readOfRequest((caller) => caller.auth.connections()),
+    readSettings((caller) => caller.auth.connections()),
   );
   const { mcpUrl } = authorizationServerAt(requestOrigin(await headers()));
   return <ConnectionsSection connections={connections} mcpUrl={mcpUrl} action={action} />;
