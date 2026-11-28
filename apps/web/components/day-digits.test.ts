@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { DAY_DIGITS, digitsOf, digitsOfIsoDay, editedDigits, firstDigits, isDayDigits, isoOfDayDigits } from './day-digits';
 
-const typed = (previous: string, raw: string, caret = raw.length) => editedDigits(previous, raw, caret, DAY_DIGITS);
+const typed = (previous: string, raw: string, caret = raw.length) =>
+  editedDigits(previous, raw, caret, DAY_DIGITS, true);
+const set = (previous: string, raw: string, caret = raw.length) =>
+  editedDigits(previous, raw, caret, DAY_DIGITS, false);
 
 describe('digitsOf', () => {
   it('keeps only the digits, in order', () => {
@@ -40,17 +43,22 @@ describe('editedDigits', () => {
   });
 
   it('reduces a value set at once to its first digits, with the caret at its end', () => {
-    expect(typed('', '2026-11-25 99')).toEqual({ digits: '20261125', caret: 8 });
+    expect(set('', '2026-11-25 99')).toEqual({ digits: '20261125', caret: 8 });
   });
 
   it('counts no digits before a caret that has none behind it', () => {
     expect(typed('', 'x')).toEqual({ digits: '', caret: 0 });
-    expect(typed('2026', '2026-11-25 99', 0)).toEqual({ digits: '20261125', caret: 0 });
+    expect(set('2026', '2026-11-25 99', 0)).toEqual({ digits: '20261125', caret: 0 });
   });
 
   it('reduces a value that is as long as the field to its first digits', () => {
-    expect(typed('20261125', '20261125-')).toEqual({ digits: '20261125', caret: 8 });
-    expect(typed('2026112', '2026-11-259')).toEqual({ digits: '20261125', caret: 8 });
+    expect(set('20261125', '20261125-')).toEqual({ digits: '20261125', caret: 8 });
+    expect(set('2026112', '2026-11-259')).toEqual({ digits: '20261125', caret: 8 });
+  });
+
+  it('keeps the first digits of a nine-digit value set over a full field, though it is one digit longer', () => {
+    expect(set('20261125', '202611259')).toEqual({ digits: '20261125', caret: 8 });
+    expect(set('20261125', '199912319')).toEqual({ digits: '19991231', caret: 8 });
   });
 
   it('replaces a selection by what is typed over it, even when full', () => {
@@ -98,6 +106,12 @@ describe('isDayDigits', () => {
     expect(isDayDigits('2026112')).toBe(false);
     expect(isDayDigits('202611255')).toBe(false);
     expect(isDayDigits('2026-1-5')).toBe(false);
+  });
+});
+
+describe('isoOfDayDigits (year 0000)', () => {
+  it('refuses year 0000 whatever follows', () => {
+    expect(isoOfDayDigits('00000229')).toBeUndefined();
   });
 });
 

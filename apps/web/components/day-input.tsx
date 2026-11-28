@@ -28,6 +28,11 @@ type Typed = {
 const ruleOffset = (digits: number): string =>
   `calc(${FRAME_AND_PADDING} + ${String(digits)} * (1ch + ${LETTER_GAP}) - ${LETTER_GAP} / 2)`;
 
+function typedOneCharacter(event: ChangeEvent<HTMLInputElement>): boolean {
+  const native = event.nativeEvent;
+  return native instanceof InputEvent && native.inputType === 'insertText' && native.data?.length === 1;
+}
+
 export function DayInput({ id, name, day, onDay, required, autoComplete, className }: DayInputProps): ReactNode {
   const t = useTranslations('dayInput');
   const field = useRef<HTMLInputElement>(null);
@@ -38,9 +43,9 @@ export function DayInput({ id, name, day, onDay, required, autoComplete, classNa
 
   if (day !== seenDay) {
     setSeenDay(day);
-    if (day !== kept) {
+    setKept(day);
+    if (digitsOfIsoDay(day) !== typed.digits) {
       setTyped({ digits: digitsOfIsoDay(day), caret: undefined });
-      setKept(day);
     }
   }
 
@@ -59,7 +64,7 @@ export function DayInput({ id, name, day, onDay, required, autoComplete, classNa
 
   const change = (event: ChangeEvent<HTMLInputElement>): void => {
     const { value, selectionStart } = event.target;
-    const edit = editedDigits(typed.digits, value, selectionStart ?? value.length, DAY_DIGITS);
+    const edit = editedDigits(typed.digits, value, selectionStart ?? value.length, DAY_DIGITS, typedOneCharacter(event));
     setTyped(edit);
     const iso = isoOfDayDigits(edit.digits);
     if (iso !== undefined) {

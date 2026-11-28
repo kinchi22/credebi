@@ -85,6 +85,7 @@ export function RangeFields({
   const id = useId();
   const [from, setFrom] = useState(unit.shown(initialFrom ?? ''));
   const [to, setTo] = useState(unit.shown(initialTo ?? ''));
+  const [pushes, setPushes] = useState(0);
   const fields = useRef<HTMLDivElement>(null);
 
   const submitPreset = (range: DayRange): void => {
@@ -92,6 +93,7 @@ export function RangeFields({
     flushSync(() => {
       setFrom(shown.from);
       setTo(shown.to);
+      setPushes((count) => count + 1);
     });
     fields.current?.closest('form')?.requestSubmit();
   };
@@ -105,6 +107,7 @@ export function RangeFields({
         <div className={FIELD}>
           <label htmlFor={`${id}-from`}>{t('from')}</label>
           <unit.Field
+            key={pushes}
             id={`${id}-from`}
             name={names.from}
             value={from}
@@ -115,6 +118,7 @@ export function RangeFields({
         <div className={FIELD}>
           <label htmlFor={`${id}-to`}>{t('to')}</label>
           <unit.Field
+            key={pushes}
             id={`${id}-to`}
             name={names.to}
             value={to}
