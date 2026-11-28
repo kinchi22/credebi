@@ -24,7 +24,8 @@ import {
 import { type FaultSection } from './section-faults';
 import { BOOKS_OPEN, signIn } from './session';
 import { connectionsSection, entryFormModes, startConnectingButton } from './settings';
-import { sidebar } from './sidebar';
+import { menu, sidebar } from './sidebar';
+import { viewportOf } from './viewport';
 
 export type Seeded = {
   readonly memoA: string;
@@ -259,9 +260,11 @@ export const PAGES: readonly PageView[] = [ENTRIES_PAGE, SETTINGS_PAGE, ...REPOR
 export const heading = (page: Page, view: PageView): Locator =>
   page.getByRole('heading', { level: 1, name: view.heading, exact: true });
 
+const WIDE_FROM = 720;
+
 export async function expectShell(page: Page, view: PageView): Promise<void> {
   await expect(heading(page, view)).toBeVisible();
-  await expect(sidebar(page)).toBeVisible();
+  await expect(viewportOf(page).width < WIDE_FROM ? menu(page) : sidebar(page)).toBeVisible();
   if (view.form !== undefined) await expect(view.form(page)).toBeVisible();
 }
 
