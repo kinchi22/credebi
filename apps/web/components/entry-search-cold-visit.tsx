@@ -1,15 +1,16 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
 import { defaultSearchRange, type DayRange } from '@repo/core/entries';
+import { useTranslations } from 'next-intl';
 import { useCallback, useState, type ReactNode } from 'react';
 import { type EntrySearchAnswer } from '../server/entry-search';
 import { type DeleteEntryAction } from './delete-entry';
 import { type EditEntryAction } from './edit-entry';
 import { type EntryControls } from './entry-list';
 import { EntrySearchForm } from './entry-search-form';
-import { EntrySearchOutcome, EntrySearchPending } from './entry-search-results';
-import { DANGER_TEXT } from './text-classes';
+import { EntrySearchOutcome, EntrySearchSkeleton } from './entry-search-results';
+import { RetryingColdVisit } from './retrying-cold-visit';
+import { SectionFailure } from './section-error-boundary';
 import { UNAVAILABLE, useDefaultAnswer } from './use-default-answer';
 
 export type SearchDefaultRange = (range: DayRange) => Promise<EntrySearchAnswer>;
@@ -19,30 +20,10 @@ export type EntrySearchColdVisitProps = {
   readonly controls: EntryControls;
 };
 
-type ColdVisitAnswer = EntrySearchAnswer | typeof UNAVAILABLE;
+type AttemptProps = EntrySearchColdVisitProps & { readonly retry: () => void };
 
-function ColdVisitOutcome({
-  answer,
-  controls,
-}: {
-  readonly answer: ColdVisitAnswer | undefined;
-  readonly controls: EntryControls;
-}): ReactNode {
+function ColdVisitAttempt({ search, controls, retry }: AttemptProps): ReactNode {
   const t = useTranslations();
-  if (answer === undefined) {
-    return <EntrySearchPending />;
-  }
-  if (answer === UNAVAILABLE) {
-    return (
-      <p role="alert" className={DANGER_TEXT}>
-        {t('entrySearch.unavailable')}
-      </p>
-    );
-  }
-  return <EntrySearchOutcome answer={answer} controls={controls} />;
-}
-
-export function EntrySearchColdVisit({ search, controls }: EntrySearchColdVisitProps): ReactNode {
   const [revision, setRevision] = useState(0);
   const { asked: range, todayKey, answer } = useDefaultAnswer(defaultSearchRange, search, revision);
   const { deleteEntry, editEntry } = controls;
@@ -67,6 +48,20 @@ export function EntrySearchColdVisit({ search, controls }: EntrySearchColdVisitP
     [editEntry],
   );
 
+  let results: ReactNode;
+  if (answer === undefined) {
+    results = <EntrySearchSkeleton />;
+  } else if (answer === UNAVAILABLE) {
+    results = <SectionFailure name={t('entrySearch.results')} retry={retry} />;
+  } else {
+    results = (
+      <EntrySearchOutcome
+        answer={answer}
+        controls={{ ...controls, deleteEntry: deleteAndSearchAgain, editEntry: editAndSearchAgain }}
+      />
+    );
+  }
+
   return (
     <>
       <EntrySearchForm
@@ -75,10 +70,15 @@ export function EntrySearchColdVisit({ search, controls }: EntrySearchColdVisitP
         chart={controls.chart}
         titles={controls.titles}
       />
-      <ColdVisitOutcome
-        answer={answer}
-        controls={{ ...controls, deleteEntry: deleteAndSearchAgain, editEntry: editAndSearchAgain }}
-      />
+      {results}
     </>
+  );
+}
+
+export function EntrySearchColdVisit({ search, controls }: EntrySearchColdVisitProps): ReactNode {
+  return (
+    <RetryingColdVisit>
+      {(retry) => <ColdVisitAttempt search={search} controls={controls} retry={retry} />}
+    </RetryingColdVisit>
   );
 }

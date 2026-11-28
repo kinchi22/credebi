@@ -314,8 +314,6 @@ export const ko = {
     memo: '메모',
     submit: '검색',
     results: '결과',
-    searching: '지난 한 달을 검색하는 중...',
-    unavailable: '지금은 검색할 수 없습니다. 잠시 후 다시 시도해 주세요.',
     nothingMatched: '조건에 맞는 거래가 없습니다.',
     refused:
       '날짜 범위의 시작일은 종료일보다 늦을 수 없습니다. 계정이 목록에 있는 것인지, 제목과 메모가 허용된 길이를 넘지 않는지 확인하세요.',

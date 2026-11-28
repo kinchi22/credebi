@@ -1,22 +1,20 @@
 import { useTranslations } from 'next-intl';
 import { type PostedEntry } from '@repo/contracts';
+import { PANEL } from '@repo/ui';
 import { typeClasses } from '@repo/ui/type-classes';
 import { useId, type ReactNode } from 'react';
 import { type EntrySearchAnswer } from '../server/entry-search';
+import { EntryRowSkeleton } from './entries-skeletons';
 import { EntryList, type EntryControls } from './entry-list';
+import { SkeletonLine, SkeletonRows, SkeletonSection } from './skeleton';
 import { DANGER_TEXT, MUTED_TEXT } from './text-classes';
 
-type ResultsRegionProps = {
-  readonly busy: boolean;
-  readonly children: ReactNode;
-};
-
-function ResultsRegion({ busy, children }: ResultsRegionProps): ReactNode {
+function ResultsRegion({ children }: { readonly children: ReactNode }): ReactNode {
   const t = useTranslations();
   const titleId = useId();
 
   return (
-    <section aria-labelledby={titleId} aria-busy={busy} className="flex flex-col gap-2">
+    <section aria-labelledby={titleId} className="flex flex-col gap-2">
       <h2
         id={titleId}
         className={`${typeClasses.label} text-text-muted`}
@@ -36,7 +34,7 @@ export type EntrySearchResultsProps = {
 export function EntrySearchResults({ entries, controls }: EntrySearchResultsProps): ReactNode {
   const t = useTranslations();
   return (
-    <ResultsRegion busy={false}>
+    <ResultsRegion>
       {entries.length === 0 ? (
         <p className={MUTED_TEXT}>{t('entrySearch.nothingMatched')}</p>
       ) : (
@@ -46,14 +44,18 @@ export function EntrySearchResults({ entries, controls }: EntrySearchResultsProp
   );
 }
 
-export function EntrySearchPending(): ReactNode {
+export function EntrySearchSkeleton(): ReactNode {
   const t = useTranslations();
   return (
-    <ResultsRegion busy>
-      <p role="status" className={MUTED_TEXT}>
-        {t('entrySearch.searching')}
-      </p>
-    </ResultsRegion>
+    <SkeletonSection
+      message={t('sectionState.loading', { section: t('entrySearch.results') })}
+      className="flex flex-col gap-2"
+    >
+      <SkeletonLine className="w-16" />
+      <div className={PANEL}>
+        <SkeletonRows row={EntryRowSkeleton} />
+      </div>
+    </SkeletonSection>
   );
 }
 

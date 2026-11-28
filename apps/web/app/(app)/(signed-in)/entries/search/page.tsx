@@ -5,13 +5,19 @@ import { redirect } from 'next/navigation';
 import { type ReactNode } from 'react';
 import { EntrySearchColdVisit } from '../../../../../components/entry-search-cold-visit';
 import { EntrySearchForm } from '../../../../../components/entry-search-form';
-import { EntrySearchOutcome } from '../../../../../components/entry-search-results';
+import { EntrySearchSkeleton } from '../../../../../components/entry-search-results';
+import {
+  chartOfRequest,
+  EntrySearchSection,
+  settingsOfRequest,
+  titlesOfRequest,
+} from '../../../../../components/entry-search-section';
+import { LoadingSection } from '../../../../../components/loading-section';
 import { PAGE_HEADING } from '../../../../../components/text-classes';
 import { createContext } from '../../../../../server/context';
-import { answerEntrySearch } from '../../../../../server/entry-search';
+import { criteriaOfQuery } from '../../../../../server/entry-search';
 import { ENTRY_SEARCH_PATH, pathWithQuery, signInPath } from '../../../../../server/return-path';
 import { createCaller } from '../../../../../server/root-router';
-import { orSignIn } from '../../../../../server/sign-in-redirect';
 import { deleteEntry, editEntry } from '../actions';
 import { searchDefaultRange } from './actions';
 
@@ -33,16 +39,14 @@ export default async function EntrySearchPage({
   const t = await getTranslations();
   const heading = <h1 className={PAGE_HEADING}>{t('entrySearchPage.heading')}</h1>;
   const path = pathWithQuery(ENTRY_SEARCH_PATH, query);
-  const caller = createCaller(await createContext());
+  if (!(await createCaller(await createContext()).auth.signedIn())) {
+    redirect(signInPath(ENTRY_SEARCH_PATH));
+  }
+
+  const [chart, titles] = await Promise.all([chartOfRequest(path), titlesOfRequest(path)]);
+
   if (path === ENTRY_SEARCH_PATH) {
-    if (!(await caller.auth.signedIn())) {
-      redirect(signInPath(ENTRY_SEARCH_PATH));
-    }
-    const [{ entryFormMode }, chart, titles] = await Promise.all([
-      orSignIn(caller.settings.read(), path),
-      orSignIn(caller.accounts.chart(), path),
-      orSignIn(caller.entries.titles(), path),
-    ]);
+    const { entryFormMode } = await settingsOfRequest(path);
     return (
       <>
         {heading}
@@ -54,21 +58,17 @@ export default async function EntrySearchPage({
     );
   }
 
-  const [settings, chart, titles, answer] = await Promise.all([
-    orSignIn(caller.settings.read(), path),
-    orSignIn(caller.accounts.chart(), path),
-    orSignIn(caller.entries.titles(), path),
-    answerEntrySearch((criteria) => orSignIn(caller.entries.search(criteria), path), query),
-  ]);
-
   return (
     <>
       {heading}
-      <EntrySearchForm criteria={answer.criteria} chart={chart} titles={titles} />
-      <EntrySearchOutcome
-        answer={answer}
-        controls={{ chart, titles, entryFormMode: settings.entryFormMode, editEntry, deleteEntry }}
-      />
+      <EntrySearchForm criteria={criteriaOfQuery(query)} chart={chart} titles={titles} />
+      <LoadingSection
+        key={JSON.stringify(query)}
+        name={t('entrySearch.results')}
+        skeleton={<EntrySearchSkeleton />}
+      >
+        <EntrySearchSection query={query} controls={{ editEntry, deleteEntry }} />
+      </LoadingSection>
     </>
   );
 }
