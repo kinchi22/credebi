@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { activeUntil, BOOKS_OPEN, nameField, openAdd, pressSave } from './accounts';
-import { reportDate, reportDateForm } from './assets-and-liabilities';
+import { reportDate, reportDateForm, showButton } from './assets-and-liabilities';
 import { expectRefusedAs, INVALID_DAY, validationMessage } from './day-input';
 import { fromField, searchButton, toField } from './entry-search';
 import { chooseLanguageAtSettings, documentLanguage, type Language } from './language';
@@ -45,7 +45,7 @@ async function openReport(page: Page, language: Language = 'en'): Promise<void> 
 }
 
 async function pressShow(page: Page): Promise<void> {
-  await reportDateForm(page).getByRole('button', { name: 'Show', exact: true }).click();
+  await showButton(page).click();
 }
 
 test.beforeEach(async ({ page }) => {
