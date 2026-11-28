@@ -579,7 +579,7 @@ test("shows Assets and liabilities in the User's Language: its heading, title, S
 
   const form = page.getByRole('main').getByRole('form');
   await expect(form).toHaveAccessibleName(HANGUL);
-  await expect(form.locator('input[name="date"]')).toHaveAccessibleName(HANGUL);
+  await expect(reportDate(page)).toHaveAccessibleName(HANGUL);
 
   const tables = reportTables(page);
   await expect(tables).toHaveCount(3);
@@ -610,7 +610,7 @@ test("shows Assets and liabilities in Japanese when that is the User's Language:
 
   const form = page.getByRole('main').getByRole('form');
   await expect(form).toHaveAccessibleName(JAPANESE);
-  await expect(form.locator('input[name="date"]')).toHaveAccessibleName(JAPANESE);
+  await expect(reportDate(page)).toHaveAccessibleName(JAPANESE);
 
   const tables = reportTables(page);
   await expect(tables).toHaveCount(3);

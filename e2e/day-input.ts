@@ -70,19 +70,27 @@ export async function expectRefusedAs(
 
 type Box = { readonly x: number; readonly y: number; readonly width: number; readonly height: number };
 
-const FRAME_BOX = `(input) => {
-  let node = input;
+type Frameable = {
+  readonly parentElement: Frameable | null;
+  getBoundingClientRect(): Box;
+};
+
+type Styles = { readonly borderTopWidth: string; readonly borderLeftWidth: string };
+
+function frameBox(input: Frameable): Box {
+  const view = globalThis as unknown as { getComputedStyle(node: Frameable): Styles };
+  let node: Frameable | null = input;
   while (node !== null) {
-    const style = getComputedStyle(node);
+    const style = view.getComputedStyle(node);
     if (parseFloat(style.borderTopWidth) > 0 || parseFloat(style.borderLeftWidth) > 0) break;
     node = node.parentElement;
   }
   const { x, y, width, height } = (node ?? input).getBoundingClientRect();
   return { x, y, width, height };
-}`;
+}
 
 export async function expectInsideFrame(field: Locator, button: Locator): Promise<void> {
-  const frame = await field.evaluate<Box, undefined>(FRAME_BOX, undefined);
+  const frame = await field.evaluate(frameBox);
   const box = await button.boundingBox();
   if (box === null) throw new Error('the button must be on screen');
   const tolerance = 1;
